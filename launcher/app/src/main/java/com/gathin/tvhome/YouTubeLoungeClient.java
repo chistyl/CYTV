@@ -18,8 +18,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Initial YouTube Lounge bind handshake with length-prefixed event-frame parsing.
- * This does not yet subscribe to the backchannel or send remote-control commands.
+ * YouTube Lounge bind, event subscription and remote-control command client.
+ * Parses length-prefixed event frames and keeps playback state scoped to each response.
  */
 final class YouTubeLoungeClient {
     private static final String BIND_URL =
@@ -549,12 +549,17 @@ final class YouTubeLoungeClient {
                             String playbackState = findString(eventData, "state");
                             if (position >= 0) parsed.currentTime = position;
                             if (length > 0) parsed.duration = length;
-                            // Keep position and state from the same event together.
-                            // Combining a fresh position with an older "playing" state
-                            // could otherwise seek while the TV is already paused.
-                            if (position >= 0 && !playbackState.isEmpty()) {
+                            // Lounge may send progress and player-state changes as separate
+                            // events in the same subscription response. Keep the newest value
+                            // for each field from this response instead of requiring both fields
+                            // to be embedded in one event (which can suppress every skip).
+                            // A later pause/state event overwrites an earlier playing state, so
+                            // the monitor still refuses to seek when the latest state is paused.
+                            if (position >= 0) {
                                 parsed.freshPlaybackTime = position;
-                                parsed.freshPlaybackDuration = length;
+                                if (length > 0) parsed.freshPlaybackDuration = length;
+                            }
+                            if (!playbackState.isEmpty()) {
                                 parsed.freshPlaybackState = playbackState;
                             }
                         }
