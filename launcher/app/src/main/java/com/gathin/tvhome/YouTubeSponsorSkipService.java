@@ -124,7 +124,10 @@ public final class YouTubeSponsorSkipService extends Service {
                     if (event.hasFreshPlayerState) {
                         playback.recordPlayerState(event.playerState);
                     }
-                    if (playback.isUsableForAutoSkip() && isValidVideoId(videoId)) {
+                    // Ignore unrelated Lounge notifications when both cached values are old;
+                    // only a new progress or player-state update should trigger evaluation.
+                    if ((event.hasFreshPosition || event.hasFreshPlayerState)
+                            && playback.isUsableForAutoSkip() && isValidVideoId(videoId)) {
                         if (!videoId.equals(segmentsVideoId)) {
                             segments = loadSegments(videoId, monitor);
                             segmentsVideoId = videoId;
