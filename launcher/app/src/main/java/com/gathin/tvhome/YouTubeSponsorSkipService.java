@@ -47,8 +47,7 @@ public final class YouTubeSponsorSkipService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
-        if (!getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_ENABLED, false)
-                && intent != null) {
+        if (!getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_ENABLED, false)) {
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -93,6 +92,15 @@ public final class YouTubeSponsorSkipService extends Service {
                             YouTubeLoungeClient.subscribeOnce(this, session, monitor);
                     if (!event.httpAccepted) {
                         throw new IllegalStateException("YouTube Lounge 未接受播放事件訂閱。");
+                    }
+                    // A clean EOF with no events can otherwise create a tight reconnect loop.
+                    if (event.eventCount == 0 && !event.timedOut) {
+                        try { Thread.sleep(900); }
+                        catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            stopping = true;
+                            break;
+                        }
                     }
 
                     if (event.hasFreshVideoId && isValidVideoId(event.videoId)
