@@ -508,26 +508,64 @@ public class AdsBlockerActivity extends Activity {
     }
 
     private void toggleFilter() {
-        if (enabled()) {
-            Intent stop = new Intent(this, AdsFilterVpnService.class);
-            stop.setAction(AdsFilterVpnService.ACTION_STOP);
-            if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(stop); else startService(stop);
-            prefs.edit().putBoolean("enabled", false).apply();
-            refresh();
-            return;
+        appendActivityDiagnostic("按下廣告阻擋按鈕；目前 enabled=" + enabled());
+        try {
+            if (enabled()) {
+                Intent stop = new Intent(this, AdsFilterVpnService.class);
+                stop.setAction(AdsFilterVpnService.ACTION_STOP);
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(stop); else startService(stop);
+                prefs.edit().putBoolean("enabled", false).apply();
+                appendActivityDiagnostic("已送出停止服務請求");
+                refresh();
+                return;
+            }
+            Intent prepare = VpnService.prepare(this);
+            appendActivityDiagnostic("VPN 授權檢查完成；需要顯示授權畫面=" + (prepare != null));
+            if (prepare != null) startActivityForResult(prepare, VPN_REQUEST);
+            else startFilter();
+        } catch (Exception e) {
+            appendActivityDiagnostic("按鈕啟動流程例外：" + e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
+            Toast.makeText(this, "啟用失敗：" + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
         }
-        Intent prepare = VpnService.prepare(this);
-        if (prepare != null) startActivityForResult(prepare, VPN_REQUEST);
-        else startFilter();
     }
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
-        if (request == VPN_REQUEST && result == RESULT_OK) startFilter();
+        if (request == VPN_REQUEST) {
+            appendActivityDiagnostic("VPN 授權畫面返回；resultCode=" + result);
+            if (result == RESULT_OK) startFilter();
+            else Toast.makeText(this, "未取得 VPN 授權，廣告阻擋未啟用", Toast.LENGTH_LONG).show();
+        }
     }
     private void startFilter() {
-        prefs.edit().putBoolean("enabled", true).apply();
-        Intent service = new Intent(this, AdsFilterVpnService.class);
-        if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);
-        refresh();
+        try {
+            appendActivityDiagnostic("準備啟動 VPN 服務");
+            Intent service = new Intent(this, AdsFilterVpnService.class);
+            if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);
+            prefs.edit().putBoolean("enabled", true).apply();
+            appendActivityDiagnostic("VPN 服務啟動命令已送出");
+            refresh();
+        } catch (Exception e) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            appendActivityDiagnostic("啟動 VPN 服務失敗：" + e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
+            Toast.makeText(this, "無法啟用廣告阻擋：" + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
+            refresh();
+        }
+    }
+    private void appendActivityDiagnostic(String message) {
+        try {
+            synchronized (AdsFilterVpnService.class) {
+                JSONArray old = new JSONArray(prefs.getString("dns_logs", "[]"));
+                JSONArray next = new JSONArray();
+                int start = Math.max(0, old.length() - 299);
+                for (int i = start; i < old.length(); i++) next.put(old.getJSONObject(i));
+                JSONObject item = new JSONObject();
+                item.put("time", System.currentTimeMillis());
+                item.put("domain", "-");
+                item.put("result", "診斷");
+                item.put("response", message);
+                next.put(item);
+                prefs.edit().putString("dns_logs", next.toString()).apply();
+            }
+        } catch (Exception ignored) { }
     }
 }
