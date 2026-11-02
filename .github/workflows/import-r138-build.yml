@@ -22,19 +22,26 @@ jobs:
           ref: r138-reboot-fix-r3
           fetch-depth: 0
 
-      - name: Reassemble and verify source archive
+      - name: Reassemble and verify source archive when parts exist
         shell: bash
         run: |
           set -euo pipefail
-          cat CYTV-R138-R3-source.part01 CYTV-R138-R3-source.part02 CYTV-R138-R3-source.part03 > /tmp/CYTV-R138-R3-source.zip
-          unzip -tq /tmp/CYTV-R138-R3-source.zip
-          mkdir -p /tmp/cytv-r138-source
-          unzip -q /tmp/CYTV-R138-R3-source.zip -d /tmp/cytv-r138-source
-          test -f /tmp/cytv-r138-source/launcher/gradlew
-          test -f /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
-          grep -q '重新啟動' /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+          if [ -f CYTV-R138-R3-source.part01 ]; then
+            cat CYTV-R138-R3-source.part01 CYTV-R138-R3-source.part02 CYTV-R138-R3-source.part03 > /tmp/CYTV-R138-R3-source.zip
+            unzip -tq /tmp/CYTV-R138-R3-source.zip
+            mkdir -p /tmp/cytv-r138-source
+            unzip -q /tmp/CYTV-R138-R3-source.zip -d /tmp/cytv-r138-source
+            test -f /tmp/cytv-r138-source/launcher/gradlew
+            test -f /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+            grep -q '重新啟動' /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+            echo "SOURCE_IMPORT=true" >> "$GITHUB_ENV"
+          else
+            test -f launcher/gradlew
+            echo "SOURCE_IMPORT=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Import complete source into this branch
+        if: env.SOURCE_IMPORT == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -78,10 +85,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload complete source archive
+      - name: Package complete source archive
         run: |
-          zip -qr CYTV-R138-Reboot-R3-source.zip .             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*'                './launcher/app/build/*' './CYTV-R138-Reboot-R3-source.zip'
-      - uses: actions/upload-artifact@v4
+          zip -qr CYTV-R138-Reboot-R3-source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './CYTV-R138-Reboot-R3-source.zip'
+
+      - name: Upload complete source archive
+        uses: actions/upload-artifact@v4
         with:
           name: CYTV-R138-Reboot-R3-Complete-Source
           path: CYTV-R138-Reboot-R3-source.zip
