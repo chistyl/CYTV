@@ -77,7 +77,7 @@ final class SponsorBlockClient {
 
         String hash = sha256Hex(id);
         String prefix = hash.substring(0, 4);
-        String categories = URLEncoder.encode("[\\"sponsor\\"]", "UTF-8");
+        String categories = URLEncoder.encode("[\"sponsor\"]", "UTF-8");
         URL url = new URL(API + prefix + "?categories=" + categories);
         HttpURLConnection connection = null;
         try {
