@@ -1,0 +1,60 @@
+name: Build CYTV AdBlock Safety R1
+
+on:
+  push:
+    branches:
+      - r138-adblock-safety-ui-r1
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-adblock-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ad-block safety branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Build debug APK
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-AdBlock-Safety-R1-APK
+          path: launcher/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Package complete source archive
+        run: |
+          zip -qr CYTV-AdBlock-Safety-R1-source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './CYTV-AdBlock-Safety-R1-source.zip'
+      - name: Upload complete source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-AdBlock-Safety-R1-Complete-Source
+          path: CYTV-AdBlock-Safety-R1-source.zip
+          if-no-files-found: error
+          retention-days: 30
