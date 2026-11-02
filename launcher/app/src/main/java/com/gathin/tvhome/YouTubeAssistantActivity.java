@@ -32,8 +32,8 @@ public class YouTubeAssistantActivity extends Activity {
     private static final int MUTED = Color.rgb(157, 164, 177);
 
     private volatile boolean monitoring = false;
-    private YouTubeLoungeClient.MonitorHandle monitorHandle;
-    private Thread monitorThread;
+    private volatile YouTubeLoungeClient.MonitorHandle monitorHandle;
+    private volatile Thread monitorThread;
     private TextView monitorStatusView;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -243,6 +243,9 @@ public class YouTubeAssistantActivity extends Activity {
         final YouTubeLoungeClient.MonitorHandle handle = monitorHandle;
         monitorThread = new Thread(() -> {
             String cachedVideoId = "";
+            double latestPosition = -1;
+            double latestDuration = -1;
+            String latestPlayerState = "";
             java.util.List<SponsorBlockClient.Segment> cachedSegments =
                     new java.util.ArrayList<>();
             String previousSegmentKey = "";
@@ -260,27 +263,38 @@ public class YouTubeAssistantActivity extends Activity {
                                 result.lastEventId);
                     }
 
+                    if (result.videoId.matches("[A-Za-z0-9_-]{11}")
+                            && !result.videoId.equals(cachedVideoId)) {
+                        cachedVideoId = result.videoId;
+                        cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId);
+                        previousSegmentKey = "";
+                        latestPosition = -1;
+                        latestDuration = -1;
+                    }
+                    if (result.currentTime >= 0) latestPosition = result.currentTime;
+                    if (result.duration > 0) latestDuration = result.duration;
+                    if (!result.playerState.isEmpty()) latestPlayerState = result.playerState;
+
                     StringBuilder status = new StringBuilder();
                     status.append(result.httpAccepted ? "Lounge：已接受訂閱" : "Lounge：尚未確認訂閱");
                     status.append("\n事件數：").append(result.eventCount)
                             .append("｜AID：").append(result.lastEventId);
-                    if (!result.playerState.isEmpty()) {
-                        status.append("\n播放狀態：").append(result.playerState);
+                    if (!latestPlayerState.isEmpty()) {
+                        status.append("\n播放狀態：").append(latestPlayerState);
                     }
 
-                    if (result.videoId.matches("[A-Za-z0-9_-]{11}")) {
-                        if (!result.videoId.equals(cachedVideoId)) {
-                            cachedVideoId = result.videoId;
-                            cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId);
-                            previousSegmentKey = "";
-                        }
+                    if (!cachedVideoId.isEmpty()) {
                         status.append("\n影片 ID：").append(cachedVideoId);
-                        if (result.currentTime >= 0) {
+                        if (latestPosition >= 0) {
                             status.append("\n播放位置：").append(String.format(
-                                    java.util.Locale.US, "%.1f 秒", result.currentTime));
+                                    java.util.Locale.US, "%.1f 秒", latestPosition));
+                            if (latestDuration > 0) {
+                                status.append(" / ").append(String.format(
+                                        java.util.Locale.US, "%.1f 秒", latestDuration));
+                            }
                             SponsorBlockClient.Segment active =
                                     SponsorBlockClient.findSegmentAtPosition(cachedSegments,
-                                            result.currentTime);
+                                            latestPosition);
                             String activeKey = active == null ? "" : active.uuid;
                             if (!activeKey.equals(previousSegmentKey)) {
                                 if (!activeKey.isEmpty()) {
