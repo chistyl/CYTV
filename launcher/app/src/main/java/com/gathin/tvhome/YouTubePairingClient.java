@@ -14,7 +14,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;\nimport java.util.UUID;
+import java.security.KeyStore;
+import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -35,11 +36,17 @@ final class YouTubePairingClient {
         final String screenId;
         final String loungeToken;
         final String deviceName;
+        final String deviceId;
 
         PairingResult(String screenId, String loungeToken, String deviceName) {
+            this(screenId, loungeToken, deviceName, UUID.randomUUID().toString());
+        }
+
+        PairingResult(String screenId, String loungeToken, String deviceName, String deviceId) {
             this.screenId = screenId;
             this.loungeToken = loungeToken;
             this.deviceName = deviceName;
+            this.deviceId = deviceId;
         }
     }
 
@@ -95,7 +102,8 @@ final class YouTubePairingClient {
         JSONObject json = new JSONObject();
         json.put("screenId", result.screenId);
         json.put("loungeToken", result.loungeToken);
-        json.put("name", result.deviceName);\n        json.put("deviceId", result.deviceId);
+        json.put("name", result.deviceName);
+        json.put("deviceId", result.deviceId);
         byte[] iv;
         byte[] encrypted;
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -121,7 +129,8 @@ final class YouTubePairingClient {
         cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(128, iv));
         JSONObject json = new JSONObject(new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8));
         return new PairingResult(json.getString("screenId"), json.getString("loungeToken"),
-                json.optString("name", "YouTube TV"),\n                json.optString("deviceId", UUID.randomUUID().toString()));
+                json.optString("name", "YouTube TV"),
+                json.optString("deviceId", UUID.randomUUID().toString()));
     }
 
     static PairingResult refreshLoungeToken(Context context) throws Exception {
