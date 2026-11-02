@@ -398,7 +398,7 @@ public class YouTubeAssistantActivity extends Activity {
         }
         AlertDialog progress = new AlertDialog.Builder(this)
                 .setTitle("測試事件訂閱")
-                .setMessage("正在建立工作階段並等待 YouTube TV 事件，最多約 12 秒…")
+                .setMessage("正在建立工作階段並連續接收 YouTube TV 事件，最多約 60 秒…")
                 .setCancelable(false).create();
         progress.show();
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -408,12 +408,57 @@ public class YouTubeAssistantActivity extends Activity {
             boolean success = false;
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                // Collect five consecutive backchannel windows so playback changes have time
+                // to arrive. Each window resumes from the last acknowledged AID.
+                int totalEvents = 0;
+                long latestAid = session.lastEventId;
+                boolean httpAccepted = false;
+                boolean timedOut = false;
+                StringBuilder eventTrace = new StringBuilder();
+                String videoId = session.initialVideoId;
+                double currentTime = session.initialCurrentTime;
+                double duration = session.initialDuration;
+                String playerState = session.initialPlayerState;
+                for (int window = 1; window <= 5; window++) {
+                    YouTubeLoungeClient.SubscriptionResult windowResult =
+                            YouTubeLoungeClient.subscribeOnce(this, session);
+                    httpAccepted |= windowResult.httpAccepted;
+                    totalEvents += windowResult.eventCount;
+                    latestAid = Math.max(latestAid, windowResult.lastEventId);
+                    timedOut |= windowResult.timedOut;
+                    if (windowResult.videoId.matches("[A-Za-z0-9_-]{11}")) {
+                        videoId = windowResult.videoId;
+                    }
+                    if (windowResult.currentTime >= 0) currentTime = windowResult.currentTime;
+                    if (windowResult.duration > 0) duration = windowResult.duration;
+                    if (!windowResult.playerState.isEmpty()) playerState = windowResult.playerState;
+                    if (eventTrace.length() > 0) eventTrace.append(" || ");
+                    eventTrace.append("第").append(window).append("輪：")
+                            .append(windowResult.eventSummary);
+                    session = new YouTubeLoungeClient.Session(session.sid,
+                            session.gsessionId, session.screenId, session.deviceId,
+                            latestAid, videoId, currentTime, duration, playerState,
+                            session.initialEventSummary);
+                }
+                final boolean anyHttpAccepted = httpAccepted;
+                final boolean anyTimedOut = timedOut;
+                final int collectedEvents = totalEvents;
+                final long collectedAid = latestAid;
+                final String collectedEventTrace = eventTrace.toString();
+                final String collectedVideoId = videoId;
+                final double collectedCurrentTime = currentTime;
+                final double collectedDuration = duration;
+                final String collectedPlayerState = playerState;
                 YouTubeLoungeClient.SubscriptionResult result =
-                        YouTubeLoungeClient.subscribeOnce(this, session);
+                        new YouTubeLoungeClient.SubscriptionResult(collectedEvents,
+                                collectedAid, collectedEventTrace, anyTimedOut,
+                                anyHttpAccepted, collectedVideoId, collectedCurrentTime,
+                                collectedDuration, collectedPlayerState);
                 StringBuilder report = new StringBuilder();
                 report.append(result.httpAccepted
                         ? "YouTube 已接受 Lounge 訂閱 HTTP 請求。"
                         : "尚未確認 YouTube 接受 Lounge 訂閱請求。");
+                report.append("\n訂閱輪數：5（每輪最多等待 12 秒）");
                 report.append("\n收到事件數：").append(result.eventCount)
                         .append("\n最後事件編號 AID：").append(result.lastEventId)
                         .append("\n事件：").append(result.eventSummary);
