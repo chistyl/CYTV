@@ -432,10 +432,15 @@ public class YouTubeAssistantActivity extends Activity {
                         SponsorBlockClient.LookupResult lookup =
                                 SponsorBlockClient.lookupSponsorSegmentsDetailed(result.videoId);
                         java.util.List<SponsorBlockClient.Segment> segments = lookup.segments;
-                        report.append("\nSponsorBlock API：HTTP ").append(lookup.httpStatus)
+                                                report.append("\nSponsorBlock API：HTTP ").append(lookup.httpStatus)
                                 .append("｜回應大小：").append(lookup.responseBytes).append(" bytes")
+                                .append("｜SHA-256 前綴：").append(lookup.hashPrefix)
                                 .append("｜候選影片：").append(lookup.candidateCount)
                                 .append("｜符合影片 ID：").append(lookup.matchingVideoCount)
+                                .append("\n候選影片 ID 樣本：")
+                                .append(lookup.candidateIdSamples.isEmpty()
+                                        ? "無可讀取的 videoID 欄位"
+                                        : android.text.TextUtils.join("、", lookup.candidateIdSamples))
                                 .append("\nSponsorBlock 贊助片段：").append(segments.size()).append(" 段");
                         if (lookup.httpStatus == 404) {
                             report.append("\n查詢判讀：API 回覆 404，該雜湊前綴目前沒有可回傳資料");
