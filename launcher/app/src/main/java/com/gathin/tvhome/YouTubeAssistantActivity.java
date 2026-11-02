@@ -80,9 +80,15 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout featureCard = card();
         TextView featureTitle = text("自動略過贊助片段", 19, true, TEXT);
         featureCard.addView(featureTitle);
-        featureStatus = text("", 14, false, MUTED);
+        featureStatus = text("", 15, true, TEXT);
+        featureStatus.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        featureStatus.setPadding(dp(14), dp(13), dp(14), dp(13));
+        featureStatus.setBackground(round(Color.rgb(38, 43, 53), dp(10)));
+        featureStatus.setFocusable(true);
+        featureStatus.setClickable(true);
+        featureStatus.setOnClickListener(v -> toggleAutoSkip());
         LinearLayout.LayoutParams featureStatusLp = new LinearLayout.LayoutParams(-1, -2);
-        featureStatusLp.topMargin = dp(8);
+        featureStatusLp.topMargin = dp(12);
         featureCard.addView(featureStatus, featureStatusLp);
         root.addView(featureCard, fullWidth());
 
@@ -100,11 +106,47 @@ public class YouTubeAssistantActivity extends Activity {
         boolean paired = YouTubePairingClient.hasSavedCredentials(this);
         pairingStatus.setText(paired ? "已完成電視配對" : "尚未連接電視");
         pairingAction.setText(paired ? "重新配對電視" : "連接 YouTube TV");
-        // Do not expose a switch that falsely claims to skip ads: the current
-        // Lounge implementation still lacks a verified seek command.
-        featureStatus.setText(paired
-                ? "已完成配對；自動跳轉功能尚在整合，完成後即可直接開啟。"
-                : "請先連接 YouTube TV。");
+        boolean enabled = getSharedPreferences(
+                YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
+                .getBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false);
+        String status = getSharedPreferences(
+                YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
+                .getString(YouTubeSponsorSkipService.PREF_STATUS, "");
+        featureStatus.setText(!paired ? "請先連接 YouTube TV。"
+                : enabled ? "自動略過：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
+                        + "\n點選此處關閉"
+                : "自動略過：已關閉\n點選此處開啟");
+        featureStatus.setFocusable(paired);
+        featureStatus.setClickable(paired);
+        featureStatus.setAlpha(paired ? 1f : 0.55f);
+    }
+
+    private void toggleAutoSkip() {
+        if (!YouTubePairingClient.hasSavedCredentials(this)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("尚未連接電視")
+                    .setMessage("請先連接 YouTube TV，再開啟自動略過。")
+                    .setPositiveButton("確定", (d, w) -> d.dismiss())
+                    .show();
+            return;
+        }
+        android.content.SharedPreferences prefs =
+                getSharedPreferences(YouTubeSponsorSkipService.PREFS, MODE_PRIVATE);
+        boolean enabled = prefs.getBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false);
+        if (enabled) {
+            prefs.edit().putBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false)
+                    .putString(YouTubeSponsorSkipService.PREF_STATUS, "功能已關閉").apply();
+            stopService(new android.content.Intent(this, YouTubeSponsorSkipService.class));
+        } else {
+            prefs.edit().putBoolean(YouTubeSponsorSkipService.PREF_ENABLED, true)
+                    .putString(YouTubeSponsorSkipService.PREF_STATUS, "正在連接 YouTube TV").apply();
+            android.content.Intent service =
+                    new android.content.Intent(this, YouTubeSponsorSkipService.class)
+                            .setAction(YouTubeSponsorSkipService.ACTION_ENABLE);
+            if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(service);
+            else startService(service);
+        }
+        refreshUi();
     }
 
     private void showPairingDialog() {
