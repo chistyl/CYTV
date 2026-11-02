@@ -1,0 +1,89 @@
+name: Import CYTV R138 R3 and Build APK
+
+on:
+  push:
+    branches:
+      - r138-reboot-fix-r3
+    paths:
+      - 'CYTV-R138-R3-source.part*'
+      - '.github/workflows/import-r138-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout R138 work branch
+        uses: actions/checkout@v4
+        with:
+          ref: r138-reboot-fix-r3
+          fetch-depth: 0
+
+      - name: Reassemble and verify source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat CYTV-R138-R3-source.part01 CYTV-R138-R3-source.part02 CYTV-R138-R3-source.part03 > /tmp/CYTV-R138-R3-source.zip
+          unzip -tq /tmp/CYTV-R138-R3-source.zip
+          mkdir -p /tmp/cytv-r138-source
+          unzip -q /tmp/CYTV-R138-R3-source.zip -d /tmp/cytv-r138-source
+          test -f /tmp/cytv-r138-source/launcher/gradlew
+          test -f /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+          grep -q '重新啟動' /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+
+      - name: Import complete source into this branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a /tmp/cytv-r138-source/ ./ --exclude='.git/'
+          rm -f CYTV-R138-R3-source.part01 CYTV-R138-R3-source.part02 CYTV-R138-R3-source.part03
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Import CYTV R138 reboot revision R3 source"
+            git push origin HEAD:r138-reboot-fix-r3
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Build debug APK
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R138-Reboot-R3-APK
+          path: launcher/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload complete source archive
+        run: |
+          zip -qr CYTV-R138-Reboot-R3-source.zip .             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*'                './launcher/app/build/*' './CYTV-R138-Reboot-R3-source.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R138-Reboot-R3-Complete-Source
+          path: CYTV-R138-Reboot-R3-source.zip
+          if-no-files-found: error
+          retention-days: 30
