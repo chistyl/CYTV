@@ -408,8 +408,8 @@ public class YouTubeAssistantActivity extends Activity {
             boolean success = false;
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
-                // Collect five consecutive backchannel windows so playback changes have time
-                // to arrive. Each window resumes from the last acknowledged AID.
+                // Alternate CI=0 and CI=1 on the same Lounge session to compare
+                // backchannel behavior without issuing any playback-control commands.
                 int totalEvents = 0;
                 long latestAid = session.lastEventId;
                 boolean httpAccepted = false;
@@ -419,9 +419,10 @@ public class YouTubeAssistantActivity extends Activity {
                 double currentTime = session.initialCurrentTime;
                 double duration = session.initialDuration;
                 String playerState = session.initialPlayerState;
-                for (int window = 1; window <= 5; window++) {
+                for (int window = 1; window <= 4; window++) {
+                    int clientIndex = (window % 2 == 1) ? 0 : 1;
                     YouTubeLoungeClient.SubscriptionResult windowResult =
-                            YouTubeLoungeClient.subscribeOnce(this, session);
+                            YouTubeLoungeClient.subscribeOnce(this, session, clientIndex);
                     httpAccepted |= windowResult.httpAccepted;
                     totalEvents += windowResult.eventCount;
                     latestAid = Math.max(latestAid, windowResult.lastEventId);
@@ -433,7 +434,8 @@ public class YouTubeAssistantActivity extends Activity {
                     if (windowResult.duration > 0) duration = windowResult.duration;
                     if (!windowResult.playerState.isEmpty()) playerState = windowResult.playerState;
                     if (eventTrace.length() > 0) eventTrace.append(" || ");
-                    eventTrace.append("第").append(window).append("輪：")
+                    eventTrace.append("第").append(window).append("輪（CI=")
+                            .append(clientIndex).append("）：")
                             .append(windowResult.eventSummary);
                     session = new YouTubeLoungeClient.Session(session.sid,
                             session.gsessionId, session.screenId, session.deviceId,
@@ -458,7 +460,7 @@ public class YouTubeAssistantActivity extends Activity {
                 report.append(result.httpAccepted
                         ? "YouTube 已接受 Lounge 訂閱 HTTP 請求。"
                         : "尚未確認 YouTube 接受 Lounge 訂閱請求。");
-                report.append("\n訂閱輪數：5（每輪最多等待 12 秒）");
+                report.append("\n訂閱輪數：4（CI=0、CI=1 各測 2 輪；每輪最多等待 12 秒）");
                 report.append("\n收到事件數：").append(result.eventCount)
                         .append("\n最後事件編號 AID：").append(result.lastEventId)
                         .append("\n事件：").append(result.eventSummary);
