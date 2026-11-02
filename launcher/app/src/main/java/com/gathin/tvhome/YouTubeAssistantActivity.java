@@ -31,6 +31,11 @@ public class YouTubeAssistantActivity extends Activity {
     private static final int TEXT = Color.rgb(245, 247, 250);
     private static final int MUTED = Color.rgb(157, 164, 177);
 
+    private volatile boolean monitoring = false;
+    private YouTubeLoungeClient.MonitorHandle monitorHandle;
+    private Thread monitorThread;
+    private TextView monitorStatusView;
+
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().getDecorView().setSystemUiVisibility(
@@ -83,6 +88,7 @@ public class YouTubeAssistantActivity extends Activity {
         addAvailabilityRow(rows);
         addLoungeConnectRow(rows);
         addLoungeSubscribeRow(rows);
+        addMonitorRows(rows);
         addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
@@ -208,6 +214,144 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout card = createCard(parent, "測試 Lounge 事件訂閱",
                 "建立工作階段後，短時間接收 YouTube TV 事件");
         card.setOnClickListener(v -> subscribeLoungeOnce());
+    }
+
+    private void addMonitorRows(LinearLayout parent) {
+        LinearLayout start = createCard(parent, "開始持續監測",
+                "持續讀取播放事件與 SponsorBlock 片段狀態；不會自動跳轉");
+        start.setOnClickListener(v -> startPlaybackMonitor());
+        LinearLayout stop = createCard(parent, "停止持續監測",
+                "中斷目前 Lounge 訂閱並停止背景監測");
+        stop.setOnClickListener(v -> stopPlaybackMonitor());
+        LinearLayout status = createCard(parent, "即時播放監測狀態",
+                "尚未開始監測");
+        monitorStatusView = (TextView) status.getChildAt(1);
+    }
+
+    private void startPlaybackMonitor() {
+        if (monitoring) {
+            showInfo("播放監測已在執行中。");
+            return;
+        }
+        if (!YouTubePairingClient.hasSavedCredentials(this)) {
+            showInfo("請先完成 YouTube TV 配對並取得裝置憑證。");
+            return;
+        }
+        monitoring = true;
+        monitorHandle = new YouTubeLoungeClient.MonitorHandle();
+        setMonitorStatus("正在建立 YouTube Lounge 工作階段…");
+        final YouTubeLoungeClient.MonitorHandle handle = monitorHandle;
+        monitorThread = new Thread(() -> {
+            String cachedVideoId = "";
+            java.util.List<SponsorBlockClient.Segment> cachedSegments =
+                    new java.util.ArrayList<>();
+            String previousSegmentKey = "";
+            try {
+                YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                setMonitorStatus("已連線，等待 YouTube 播放事件…");
+                while (!handle.isStopped() && monitoring) {
+                    YouTubeLoungeClient.SubscriptionResult result =
+                            YouTubeLoungeClient.subscribeOnce(this, session, handle);
+                    if (handle.isStopped() || !monitoring) break;
+
+                    if (result.lastEventId > session.lastEventId) {
+                        session = new YouTubeLoungeClient.Session(session.sid,
+                                session.gsessionId, session.screenId, session.deviceId,
+                                result.lastEventId);
+                    }
+
+                    StringBuilder status = new StringBuilder();
+                    status.append(result.httpAccepted ? "Lounge：已接受訂閱" : "Lounge：尚未確認訂閱");
+                    status.append("\n事件數：").append(result.eventCount)
+                            .append("｜AID：").append(result.lastEventId);
+                    if (!result.playerState.isEmpty()) {
+                        status.append("\n播放狀態：").append(result.playerState);
+                    }
+
+                    if (result.videoId.matches("[A-Za-z0-9_-]{11}")) {
+                        if (!result.videoId.equals(cachedVideoId)) {
+                            cachedVideoId = result.videoId;
+                            cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId);
+                            previousSegmentKey = "";
+                        }
+                        status.append("\n影片 ID：").append(cachedVideoId);
+                        if (result.currentTime >= 0) {
+                            status.append("\n播放位置：").append(String.format(
+                                    java.util.Locale.US, "%.1f 秒", result.currentTime));
+                            SponsorBlockClient.Segment active =
+                                    SponsorBlockClient.findSegmentAtPosition(cachedSegments,
+                                            result.currentTime);
+                            String activeKey = active == null ? "" : active.uuid;
+                            if (!activeKey.equals(previousSegmentKey)) {
+                                if (!activeKey.isEmpty()) {
+                                    status.append("\n狀態變化：進入贊助片段（")
+                                            .append(String.format(java.util.Locale.US, "%.1f–%.1f 秒",
+                                                    active.startSeconds, active.endSeconds)).append("）");
+                                } else if (!previousSegmentKey.isEmpty()) {
+                                    status.append("\n狀態變化：離開贊助片段");
+                                }
+                                previousSegmentKey = activeKey;
+                            }
+                            status.append(active == null
+                                    ? "\n目前位置：不在已知贊助片段內"
+                                    : "\n目前位置：位於贊助片段");
+                        } else {
+                            status.append("\n尚未取得有效播放位置");
+                        }
+                        status.append("\nSponsorBlock 贊助片段：")
+                                .append(cachedSegments.size()).append(" 段（已快取）");
+                    } else {
+                        status.append("\n尚未取得有效影片 ID");
+                    }
+                    if (result.timedOut) status.append("\n等待逾時，將重新等待事件");
+                    setMonitorStatus(status.toString());
+
+                    if (result.eventCount == 0 && !handle.isStopped()) {
+                        try { Thread.sleep(700); }
+                        catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                }
+            } catch (java.util.concurrent.CancellationException cancelled) {
+                // Expected when the user stops monitoring.
+            } catch (Exception error) {
+                if (!handle.isStopped()) {
+                    setMonitorStatus("監測發生錯誤："
+                            + (error.getMessage() == null ? "未知錯誤" : error.getMessage()));
+                }
+            } finally {
+                monitoring = false;
+                if (monitorHandle == handle) monitorHandle = null;
+                monitorThread = null;
+                if (!isFinishing() && !isDestroyed()) {
+                    setMonitorStatus(handle.isStopped() ? "監測已停止" : "監測已結束");
+                }
+            }
+        }, "CYTV-YouTube-Monitor");
+        monitorThread.start();
+    }
+
+    private void stopPlaybackMonitor() {
+        monitoring = false;
+        YouTubeLoungeClient.MonitorHandle handle = monitorHandle;
+        if (handle != null) handle.stop();
+        Thread thread = monitorThread;
+        if (thread != null) thread.interrupt();
+        setMonitorStatus("正在停止監測並中斷 Lounge 連線…");
+    }
+
+    private void setMonitorStatus(String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (monitorStatusView != null) monitorStatusView.setText(message);
+        });
+    }
+
+    @Override protected void onDestroy() {
+        stopPlaybackMonitor();
+        super.onDestroy();
     }
 
     private void subscribeLoungeOnce() {
