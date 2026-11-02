@@ -3789,7 +3789,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
         addSettingsMenuRow(rows, popup, "YouTube廣告助手", () -> {
             popup.dismiss();
-            Toast.makeText(this, "YouTube 廣告助手功能準備中", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
         addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
             popup.dismiss();
