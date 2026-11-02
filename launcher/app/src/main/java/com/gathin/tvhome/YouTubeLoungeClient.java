@@ -50,10 +50,11 @@ final class YouTubeLoungeClient {
         final String videoId;
         final double currentTime;
         final double duration;
+        final String playerState;
 
         SubscriptionResult(int eventCount, long lastEventId, String eventSummary,
                            boolean timedOut, boolean httpAccepted, String videoId,
-                           double currentTime, double duration) {
+                           double currentTime, double duration, String playerState) {
             this.eventCount = eventCount;
             this.lastEventId = lastEventId;
             this.eventSummary = eventSummary;
@@ -62,6 +63,7 @@ final class YouTubeLoungeClient {
             this.videoId = videoId;
             this.currentTime = currentTime;
             this.duration = duration;
+            this.playerState = playerState;
         }
     }
 
@@ -74,6 +76,7 @@ final class YouTubeLoungeClient {
         String videoId = "";
         double currentTime = -1;
         double duration = -1;
+        String playerState = "";
         boolean timedOut = false;
     }
 
@@ -170,7 +173,7 @@ final class YouTubeLoungeClient {
             } catch (SocketTimeoutException timeout) {
                 return new SubscriptionResult(0, session.lastEventId,
                         "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。",
-                        true, false, "", -1, -1);
+                        true, false, "", -1, -1, "");
             }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
             if (status == 400 || status == 410) {
@@ -188,11 +191,11 @@ final class YouTubeLoungeClient {
                 summary += "；尚未取得目前播放影片 ID。";
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
-                    parsed.timedOut, true, parsed.videoId, parsed.currentTime, parsed.duration);
+                    parsed.timedOut, true, parsed.videoId, parsed.currentTime, parsed.duration, parsed.playerState);
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
-                    true, httpAccepted, "", -1, -1);
+                    true, httpAccepted, "", -1, -1, "");
         } finally {
             if (connection != null) connection.disconnect();
         }
@@ -271,15 +274,21 @@ final class YouTubeLoungeClient {
                         parsed.gsessionId = payload.optString(1, "");
                     } else {
                         if (!eventName.isEmpty()) parsed.eventNames.add(eventName);
-                        if ("nowPlaying".equals(eventName) && payload.length() > 1) {
-                            JSONObject nowPlaying = payload.optJSONObject(1);
-                            if (nowPlaying != null) {
-                                String id = nowPlaying.optString("videoId", "");
+                        if (payload.length() > 1) {
+                            JSONObject stateData = payload.optJSONObject(1);
+                            if (stateData != null && "nowPlaying".equals(eventName)) {
+                                String id = stateData.optString("videoId", "");
                                 if (id.matches("[A-Za-z0-9_-]{11}")) {
                                     parsed.videoId = id;
                                 }
-                                parsed.currentTime = nowPlaying.optDouble("currentTime", -1);
-                                parsed.duration = nowPlaying.optDouble("duration", -1);
+                                parsed.currentTime = stateData.optDouble("currentTime", -1);
+                                parsed.duration = stateData.optDouble("duration", -1);
+                            } else if (stateData != null && "onStateChange".equals(eventName)) {
+                                parsed.playerState = stateData.optString("state", "");
+                                double position = stateData.optDouble("currentTime", -1);
+                                double length = stateData.optDouble("duration", -1);
+                                if (position >= 0) parsed.currentTime = position;
+                                if (length > 0) parsed.duration = length;
                             }
                         }
                     }
