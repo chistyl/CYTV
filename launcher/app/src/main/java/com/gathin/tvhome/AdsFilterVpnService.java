@@ -43,6 +43,8 @@ public class AdsFilterVpnService extends VpnService {
     static final String ACTION_REFRESH_NETWORK = "com.gathin.tvhome.action.REFRESH_NETWORK";
     static final String ACTION_STOP = "com.gathin.tvhome.action.STOP_AD_FILTER";
     private final AtomicBoolean running = new AtomicBoolean(false);
+    // Prevent duplicate teardown from the UI action, worker thread and Service lifecycle callbacks.
+    private final AtomicBoolean stopping = new AtomicBoolean(false);
     private final AtomicInteger consecutiveDnsFailures = new AtomicInteger(0);
     private static final int DNS_FAILURES_BEFORE_FAIL_OPEN = 3;
     private ParcelFileDescriptor tunnel;
@@ -69,6 +71,7 @@ public class AdsFilterVpnService extends VpnService {
             return START_NOT_STICKY;
         }
         if (running.get()) return START_STICKY;
+        stopping.set(false);
         try {
             startNotice();
             // Track real Wi-Fi/Ethernet networks, excluding the VPN itself. The default
@@ -131,13 +134,18 @@ public class AdsFilterVpnService extends VpnService {
                     .addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
+            // Android 9 needs the VPN's physical underlay to be explicit. This lets
+            // ConnectivityService keep Ethernet as the VPN underlay and restore the
+            // ordinary network cleanly when the TUN descriptor is closed.
+            Network selectedUnderlay = underlyingNetwork;
+            if (selectedUnderlay != null) applyUnderlyingNetwork(selectedUnderlay);
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
         } catch (Exception e) {
             Log.e(TAG, "Unable to start DNS filter", e);
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-            stopSelf();
+            stopFilter();
         }
         return START_STICKY;
     }
@@ -162,10 +170,22 @@ public class AdsFilterVpnService extends VpnService {
         underlyingNetwork = network;
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null) updateUpstreamServers(network, cm);
-        // Intentionally do not call setUnderlyingNetworks(). This VPN only routes
-        // the local DNS endpoint (/32); changing the platform's underlying-network
-        // association can disrupt Ethernet routing on some Android TV firmware.
-        // forward() protects and binds each upstream DNS socket to this physical network.
+        if (tunnel != null && running.get() && !stopping.get()) applyUnderlyingNetwork(network);
+        // Each upstream DNS socket is still protected from the VPN and bound to this network.
+    }
+
+    private void applyUnderlyingNetwork(Network network) {
+        try {
+            boolean applied = setUnderlyingNetworks(network == null ? null : new Network[] { network });
+            if (!applied) Log.w(TAG, "Android did not accept the VPN underlying-network update");
+            else Log.i(TAG, network == null
+                    ? "VPN underlay reset to Android default network"
+                    : "VPN underlay associated with physical network " + network);
+        } catch (Exception e) {
+            // Some vendor Android 9 builds do not fully implement this optional API.
+            // Keep DNS forwarding protected/bound to the selected Network regardless.
+            Log.w(TAG, "Unable to update VPN underlying network", e);
+        }
     }
 
     private void updateUpstreamServers(Network network, ConnectivityManager cm) {
@@ -245,7 +265,9 @@ public class AdsFilterVpnService extends VpnService {
         } catch (Exception e) {
             if (running.get()) Log.e(TAG, "DNS tunnel stopped", e);
         } finally {
-            stopSelf();
+            // If the TUN reader exits unexpectedly, perform the same complete teardown
+            // as an explicit user stop. A normal user stop has already cleared running.
+            if (running.get()) stopFilter();
         }
     }
 
@@ -441,15 +463,33 @@ public class AdsFilterVpnService extends VpnService {
     }
     @Override public void onDestroy() { stopFilter(); super.onDestroy(); }
     private void stopFilter() {
+        if (!stopping.compareAndSet(false, true)) return;
         running.set(false);
+
+        // First detach the VPN from its physical underlay, then close the TUN file
+        // descriptor. This ordering is important on Android 9 TV firmware, where
+        // closing the descriptor alone may leave ConnectivityService's underlay
+        // association stale until the next reboot.
+        applyUnderlyingNetwork(null);
+
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null && networkCallback != null) {
-            try { cm.unregisterNetworkCallback(networkCallback); } catch (Exception ignored) {}
+            try { cm.unregisterNetworkCallback(networkCallback); }
+            catch (Exception e) { Log.w(TAG, "Unable to unregister network callback", e); }
             networkCallback = null;
         }
         underlyingNetwork = null;
-        if (tunnel != null) { try { tunnel.close(); } catch (Exception ignored) {} tunnel = null; }
-        if (worker != null) { worker.interrupt(); worker = null; }
+
+        ParcelFileDescriptor activeTunnel = tunnel;
+        tunnel = null;
+        if (activeTunnel != null) {
+            try { activeTunnel.close(); }
+            catch (Exception e) { Log.w(TAG, "Unable to close VPN tunnel", e); }
+        }
+
+        Thread activeWorker = worker;
+        worker = null;
+        if (activeWorker != null && activeWorker != Thread.currentThread()) activeWorker.interrupt();
         stopForeground(true);
         stopSelf();
     }
