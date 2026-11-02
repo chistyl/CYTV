@@ -30,7 +30,12 @@ final class YouTubeLoungeClient {
         final String gsessionId;
         final String screenId;
         final String deviceId;
-        final long lastEventId;
+        volatile long lastEventId;
+        private final long initialEventId;
+        private final java.util.concurrent.atomic.AtomicInteger commandOffset =
+                new java.util.concurrent.atomic.AtomicInteger(1);
+        private final java.util.concurrent.CountDownLatch firstEvent =
+                new java.util.concurrent.CountDownLatch(1);
         final String initialVideoId;
         final double initialCurrentTime;
         final double initialDuration;
@@ -45,11 +50,25 @@ final class YouTubeLoungeClient {
             this.screenId = screenId;
             this.deviceId = deviceId;
             this.lastEventId = lastEventId;
+            this.initialEventId = lastEventId;
             this.initialVideoId = initialVideoId;
             this.initialCurrentTime = initialCurrentTime;
             this.initialDuration = initialDuration;
             this.initialPlayerState = initialPlayerState;
             this.initialEventSummary = initialEventSummary;
+        }
+
+        int nextCommandOffset() { return commandOffset.getAndIncrement(); }
+
+        void noteEvent(long eventId) {
+            if (eventId >= 0) {
+                lastEventId = eventId;
+                if (eventId > initialEventId) firstEvent.countDown();
+            }
+        }
+
+        void awaitEventProgress(long timeoutMillis) throws InterruptedException {
+            firstEvent.await(timeoutMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
     }
 
@@ -291,7 +310,7 @@ final class YouTubeLoungeClient {
             if (status != 200) throw new Exception("YouTube Lounge 事件訂閱失敗（HTTP " + status + "）。");
             httpAccepted = true;
 
-            ParsedEvents parsed = parseEventStream(connection.getInputStream());
+            ParsedEvents parsed = parseEventStream(connection.getInputStream(), session);
             long aid = parsed.lastEventId >= 0 ? parsed.lastEventId : session.lastEventId;
             String summary = parsed.eventNames.isEmpty()
                     ? "訂閱回應中沒有可辨識的事件。"
@@ -329,13 +348,21 @@ final class YouTubeLoungeClient {
      */
     static String requestNowPlaying(Context context, Session session) throws Exception {
         YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
+        // Wait briefly for the active backchannel to advance AID before issuing a command.
+        // Lounge commands must use the latest event cursor, not the bind-time cursor.
+        try { session.awaitEventProgress(1500); }
+        catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new java.util.concurrent.CancellationException("Lounge 命令已中斷。");
+        }
+        int offset = session.nextCommandOffset();
         String query = "name=" + enc("CYTV")
                 + "&loungeIdToken=" + enc(credentials.loungeToken)
                 + "&SID=" + enc(session.sid)
                 + "&AID=" + enc(String.valueOf(session.lastEventId))
                 + "&gsessionid=" + enc(session.gsessionId)
                 + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2"
-                + "&RID=2&auth_failure_option=send_error";
+                + "&RID=" + (offset + 1) + "&auth_failure_option=send_error";
         HttpURLConnection connection = null;
         try {
             URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
@@ -350,7 +377,7 @@ final class YouTubeLoungeClient {
             connection.setRequestProperty("Origin", "https://www.youtube.com");
             connection.setRequestProperty("User-Agent",
                     "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-            String body = "count=1&ofs=1&req0__sc=getNowPlaying";
+            String body = "count=1&ofs=" + offset + "&req0__sc=getNowPlaying";
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             connection.setFixedLengthStreamingMode(bytes.length);
             try (OutputStream out = connection.getOutputStream()) {
@@ -381,6 +408,10 @@ final class YouTubeLoungeClient {
      * any complete events already received instead of discarding the partial session.
      */
     private static ParsedEvents parseEventStream(InputStream stream) throws Exception {
+        return parseEventStream(stream, null);
+    }
+
+    private static ParsedEvents parseEventStream(InputStream stream, Session liveSession) throws Exception {
         ParsedEvents parsed = new ParsedEvents();
         try (BufferedReader reader = new BufferedReader(
                 new java.io.InputStreamReader(stream, StandardCharsets.UTF_8))) {
@@ -471,7 +502,10 @@ final class YouTubeLoungeClient {
                         }
                     }
                     parsed.eventCount++;
-                    if (eventId >= 0) parsed.lastEventId = Math.max(parsed.lastEventId, eventId);
+                    if (eventId >= 0) {
+                        parsed.lastEventId = eventId;
+                        if (liveSession != null) liveSession.noteEvent(eventId);
+                    }
                 }
             }
         }
