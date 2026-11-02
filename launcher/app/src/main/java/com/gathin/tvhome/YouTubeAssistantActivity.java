@@ -80,7 +80,7 @@ public class YouTubeAssistantActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         addPairingRow(rows);
-        addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
+        addAvailabilityRow(rows);\n        addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
 
@@ -187,6 +187,44 @@ public class YouTubeAssistantActivity extends Activity {
         });
         dialog.show();
         dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    }
+
+    private void addAvailabilityRow(LinearLayout parent) {
+        LinearLayout card = createCard(parent, "檢查 YouTube TV 在線狀態",
+                "確認電視是否仍可透過 YouTube 配對服務連線");
+        card.setOnClickListener(v -> checkDeviceAvailability());
+    }
+
+    private void checkDeviceAvailability() {
+        if (!YouTubePairingClient.hasSavedCredentials(this)) {
+            showInfo("請先完成 YouTube TV 配對並取得裝置憑證。");
+            return;
+        }
+        AlertDialog progress = new AlertDialog.Builder(this)
+                .setTitle("檢查裝置狀態")
+                .setMessage("正在查詢 YouTube TV 在線狀態…")
+                .setCancelable(false).create();
+        progress.show();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler main = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            String message;
+            try {
+                boolean online = YouTubePairingClient.checkAvailability(this);
+                message = online
+                        ? "YouTube 配對服務回報裝置在線。\n這只代表裝置可用，尚未建立 Lounge 控制連線。"
+                        : "YouTube 配對服務目前回報裝置離線。請確認電視已開啟 YouTube，並與本機網路連線正常。";
+            } catch (Exception e) {
+                message = e.getMessage() == null ? "查詢失敗，請稍後重試。" : e.getMessage();
+            }
+            final String result = message;
+            main.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                progress.dismiss();
+                showInfo(result);
+            });
+            executor.shutdown();
+        });
     }
 
     private void startPairing(String code) {
