@@ -61,7 +61,7 @@ final class YouTubeLoungeClient {
         int nextCommandOffset() { return commandOffset.getAndIncrement(); }
 
         void noteEvent(long eventId) {
-            if (eventId >= 0) {
+            if (eventId > lastEventId) {
                 lastEventId = eventId;
                 if (eventId > initialEventId) firstEvent.countDown();
             }
@@ -363,7 +363,7 @@ final class YouTubeLoungeClient {
                 + "&gsessionid=" + enc(session.gsessionId)
                 + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&CVER=1"
                 + "&RID=" + (offset + 1)
-                + "&TYPE=bind&t=1&CI=0&name=" + enc("CYTV")
+                + "&TYPE=bind&t=1&CI=0
                 + "&id=" + enc(session.deviceId)
                 + "&auth_failure_option=send_error";
         HttpURLConnection connection = null;
@@ -505,10 +505,8 @@ final class YouTubeLoungeClient {
                         }
                     }
                     parsed.eventCount++;
-                    if (eventId >= 0) {
-                        parsed.lastEventId = eventId;
-                        if (liveSession != null) liveSession.noteEvent(eventId);
-                    }
+                    if (eventId > parsed.lastEventId) parsed.lastEventId = eventId;
+                    if (eventId >= 0 && liveSession != null) liveSession.noteEvent(eventId);
                 }
             }
         }
