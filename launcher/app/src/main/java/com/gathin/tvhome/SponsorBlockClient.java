@@ -92,6 +92,24 @@ final class SponsorBlockClient {
         }
     }
 
+    /**
+     * Returns the sponsor segment containing the supplied playback position.
+     * The interval is start-inclusive and end-exclusive.
+     */
+    static Segment findSegmentAtPosition(List<Segment> segments, double positionSeconds) {
+        if (!Double.isFinite(positionSeconds) || positionSeconds < 0 || segments == null) {
+            return null;
+        }
+        for (Segment segment : segments) {
+            if (positionSeconds >= segment.startSeconds
+                    && positionSeconds < segment.endSeconds) {
+                return segment;
+            }
+            if (segment.startSeconds > positionSeconds) break;
+        }
+        return null;
+    }
+
     private static String sha256Hex(String value) throws Exception {
         byte[] digest = MessageDigest.getInstance("SHA-256")
                 .digest(value.getBytes(StandardCharsets.UTF_8));
