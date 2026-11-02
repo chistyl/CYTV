@@ -86,13 +86,15 @@ final class YouTubeLoungeClient {
         final double currentTime;
         final double duration;
         final String playerState;
+        final boolean hasFreshVideoId;
         final boolean hasFreshPosition;
         final boolean hasFreshPlayerState;
 
         SubscriptionResult(int eventCount, long lastEventId, String eventSummary,
                            boolean timedOut, boolean httpAccepted, String videoId,
                            double currentTime, double duration, String playerState,
-                           boolean hasFreshPosition, boolean hasFreshPlayerState) {
+                           boolean hasFreshVideoId, boolean hasFreshPosition,
+                           boolean hasFreshPlayerState) {
             this.eventCount = eventCount;
             this.lastEventId = lastEventId;
             this.eventSummary = eventSummary;
@@ -102,6 +104,7 @@ final class YouTubeLoungeClient {
             this.currentTime = currentTime;
             this.duration = duration;
             this.playerState = playerState;
+            this.hasFreshVideoId = hasFreshVideoId;
             this.hasFreshPosition = hasFreshPosition;
             this.hasFreshPlayerState = hasFreshPlayerState;
         }
@@ -310,7 +313,7 @@ final class YouTubeLoungeClient {
             } catch (SocketTimeoutException timeout) {
                 return new SubscriptionResult(0, session.lastEventId,
                         "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。",
-                        true, false, "", -1, -1, "", false, false);
+                        true, false, "", -1, -1, "", false, false, false);
             }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
             if (status == 400 || status == 410) {
@@ -342,11 +345,12 @@ final class YouTubeLoungeClient {
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
                     parsed.timedOut, true, videoId, currentTime, duration, playerState,
-                    parsed.currentTime >= 0, !parsed.playerState.isEmpty());
+                    !parsed.videoId.isEmpty(), parsed.currentTime >= 0,
+                    !parsed.playerState.isEmpty());
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
-                    true, httpAccepted, "", -1, -1, "", false, false);
+                    true, httpAccepted, "", -1, -1, "", false, false, false);
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
