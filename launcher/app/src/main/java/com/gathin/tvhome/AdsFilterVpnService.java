@@ -125,7 +125,17 @@ public class AdsFilterVpnService extends VpnService {
             };
             cm.registerNetworkCallback(request, networkCallback);
             Network initial = findPhysicalNetwork(cm);
-            if (initial == null) throw new IllegalStateException("No active Wi-Fi or Ethernet network");
+            // Android 9 TV may take a short time to restore Ethernet after VPN teardown.
+            for (int attempt = 1; initial == null && attempt <= 10; attempt++) {
+                appendDnsLog("-", "診斷", "等待實體網路恢復 " + attempt + "/10");
+                try { Thread.sleep(400L); }
+                catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for physical network");
+                }
+                initial = findPhysicalNetwork(cm);
+            }
+            if (initial == null) throw new IllegalStateException("No active Wi-Fi or Ethernet network after 4 seconds");
             updateUnderlyingNetwork(initial);
             NetworkCapabilities initialCaps = cm.getNetworkCapabilities(initial);
             appendDnsLog("-", "診斷", "已選取實體網路 " + initial
@@ -141,11 +151,8 @@ public class AdsFilterVpnService extends VpnService {
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
             appendDnsLog("-", "診斷", "VPN TUN 建立成功");
-            // Android 9 needs the VPN's physical underlay to be explicit. This lets
-            // ConnectivityService keep Ethernet as the VPN underlay and restore the
-            // ordinary network cleanly when the TUN descriptor is closed.
-            Network selectedUnderlay = underlyingNetwork;
-            if (selectedUnderlay != null) applyUnderlyingNetwork(selectedUnderlay);
+            // Keep Android's normal physical default-network selection untouched.
+            // Upstream DNS sockets use protect() + Network.bindSocket() individually.
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
@@ -179,28 +186,8 @@ public class AdsFilterVpnService extends VpnService {
         underlyingNetwork = network;
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null) updateUpstreamServers(network, cm);
-        if (tunnel != null && running.get() && !stopping.get()) applyUnderlyingNetwork(network);
-        // Each upstream DNS socket is still protected from the VPN and bound to this network.
-    }
-
-    private void applyUnderlyingNetwork(Network network) {
-        try {
-            boolean applied = setUnderlyingNetworks(network == null ? null : new Network[] { network });
-            if (!applied) {
-                Log.w(TAG, "Android did not accept the VPN underlying-network update");
-                appendDnsLog("-", "診斷", "Android 拒絕 VPN 實體網路綁定");
-            } else {
-                appendDnsLog("-", "診斷", network == null ? "VPN 實體網路已解除綁定" : "VPN 已綁定實體網路 " + network);
-                Log.i(TAG, network == null
-                    ? "VPN underlay reset to Android default network"
-                    : "VPN underlay associated with physical network " + network);
-            }
-        } catch (Exception e) {
-            appendDnsLog("-", "診斷", "VPN 實體網路綁定例外：" + e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
-            // Some vendor Android 9 builds do not fully implement this optional API.
-            // Keep DNS forwarding protected/bound to the selected Network regardless.
-            Log.w(TAG, "Unable to update VPN underlying network", e);
-        }
+        // Do not call VpnService.setUnderlyingNetworks() on Android 9 TV firmware.
+        // DNS sockets are independently protected from the VPN and bound to this Network.
     }
 
     private void updateUpstreamServers(Network network, ConnectivityManager cm) {
@@ -351,7 +338,9 @@ public class AdsFilterVpnService extends VpnService {
                 consecutiveDnsFailures.set(0);
                 return out;
             } catch (Exception e) {
-                Log.w(TAG, "DNS upstream failed: " + dns.getHostAddress(), e);
+                String failure = e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage());
+                Log.w(TAG, "DNS upstream failed: " + dns.getHostAddress() + " " + failure, e);
+                appendDnsLog("-", "診斷", "上游 DNS " + dns.getHostAddress() + " 失敗：" + failure);
             } finally {
                 if (socket != null) socket.close();
             }
@@ -487,11 +476,8 @@ public class AdsFilterVpnService extends VpnService {
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
 
-        // First detach the VPN from its physical underlay, then close the TUN file
-        // descriptor. This ordering is important on Android 9 TV firmware, where
-        // closing the descriptor alone may leave ConnectivityService's underlay
-        // association stale until the next reboot.
-        applyUnderlyingNetwork(null);
+        // Do not mutate VPN underlay state here; Android 9 TV firmware has shown
+        // that setUnderlyingNetworks() can disrupt Ethernet restoration.
 
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null && networkCallback != null) {
