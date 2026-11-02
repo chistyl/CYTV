@@ -227,7 +227,7 @@ public class YouTubeAssistantActivity extends Activity {
     private void styleDialog(AlertDialog dialog, boolean focusPrimary) {
         if (dialog.getWindow() != null) {
             GradientDrawable surface = round(Color.rgb(28, 32, 41), dp(24));
-            surface.setStroke(dp(1), 0x283FFFFFF);
+            surface.setStroke(dp(1), 0x28FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             dialog.getWindow().getDecorView().setClipToOutline(true);
             dialog.getWindow().setDimAmount(0.62f);
