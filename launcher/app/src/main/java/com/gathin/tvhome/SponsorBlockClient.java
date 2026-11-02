@@ -40,14 +40,19 @@ final class SponsorBlockClient {
         final int responseBytes;
         final int candidateCount;
         final int matchingVideoCount;
+        final String hashPrefix;
+        final List<String> candidateIdSamples;
         final List<Segment> segments;
 
         LookupResult(int httpStatus, int responseBytes, int candidateCount,
-                     int matchingVideoCount, List<Segment> segments) {
+                     int matchingVideoCount, String hashPrefix,
+                     List<String> candidateIdSamples, List<Segment> segments) {
             this.httpStatus = httpStatus;
             this.responseBytes = responseBytes;
             this.candidateCount = candidateCount;
             this.matchingVideoCount = matchingVideoCount;
+            this.hashPrefix = hashPrefix;
+            this.candidateIdSamples = candidateIdSamples;
             this.segments = segments;
         }
     }
@@ -97,7 +102,8 @@ final class SponsorBlockClient {
                     ? connection.getInputStream() : connection.getErrorStream();
             byte[] response = readBytes(stream);
             if (status == 404) {
-                return new LookupResult(status, response.length, 0, 0, new ArrayList<>());
+                return new LookupResult(status, response.length, 0, 0, prefix,
+                        new ArrayList<>(), new ArrayList<>());
             }
             if (status != 200) {
                 throw new Exception("SponsorBlock 查詢失敗（HTTP " + status + "）；回應 "
@@ -113,9 +119,15 @@ final class SponsorBlockClient {
             }
             List<Segment> matches = new ArrayList<>();
             int matchingVideos = 0;
+            List<String> candidateIdSamples = new ArrayList<>();
             for (int i = 0; i < candidates.length(); i++) {
                 JSONObject video = candidates.optJSONObject(i);
-                if (video == null || !id.equals(video.optString("videoID", ""))) continue;
+                if (video == null) continue;
+                String candidateId = video.optString("videoID", "");
+                if (!candidateId.isEmpty() && candidateIdSamples.size() < 8) {
+                    candidateIdSamples.add(candidateId);
+                }
+                if (!id.equals(candidateId)) continue;
                 matchingVideos++;
                 JSONArray segments = video.optJSONArray("segments");
                 if (segments == null) continue;
@@ -134,7 +146,7 @@ final class SponsorBlockClient {
             java.util.Collections.sort(matches,
                     (left, right) -> Double.compare(left.startSeconds, right.startSeconds));
             return new LookupResult(status, response.length, candidates.length(),
-                    matchingVideos, matches);
+                    matchingVideos, prefix, candidateIdSamples, matches);
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
