@@ -84,7 +84,7 @@ final class YouTubeLoungeClient {
             if (connection != null) connection.disconnect();
         }
 
-        private void attach(HttpURLConnection connection) throws Exception {
+        void attach(HttpURLConnection connection) throws Exception {
             if (stopped.get()) {
                 connection.disconnect();
                 throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
@@ -97,7 +97,7 @@ final class YouTubeLoungeClient {
             }
         }
 
-        private void detach(HttpURLConnection connection) {
+        void detach(HttpURLConnection connection) {
             if (activeConnection == connection) activeConnection = null;
         }
     }
