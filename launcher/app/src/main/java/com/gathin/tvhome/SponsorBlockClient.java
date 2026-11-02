@@ -38,6 +38,14 @@ final class SponsorBlockClient {
     }
 
     static List<Segment> lookupSponsorSegments(String videoId) throws Exception {
+        return lookupSponsorSegments(videoId, null);
+    }
+
+    static List<Segment> lookupSponsorSegments(String videoId,
+                                                YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        if (monitor != null && monitor.isStopped()) {
+            throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
+        }
         String id = videoId == null ? "" : videoId.trim();
         if (!id.matches("[A-Za-z0-9_-]{11}")) {
             throw new IllegalArgumentException("YouTube 影片 ID 格式不正確。");
@@ -55,8 +63,12 @@ final class SponsorBlockClient {
             connection.setReadTimeout(10000);
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty("User-Agent", "CYTV-YouTube-Assistant/1.0");
+            if (monitor != null) monitor.attach(connection);
 
             int status = connection.getResponseCode();
+            if (monitor != null && monitor.isStopped()) {
+                throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
+            }
             if (status == 404) return new ArrayList<>();
             InputStream stream = status >= 200 && status < 300
                     ? connection.getInputStream() : connection.getErrorStream();
@@ -88,6 +100,7 @@ final class SponsorBlockClient {
                     (left, right) -> Double.compare(left.startSeconds, right.startSeconds));
             return matches;
         } finally {
+            if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
     }
