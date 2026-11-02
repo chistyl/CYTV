@@ -7,7 +7,6 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-adblock-safety.yml'
-      - '.github/workflows/build-adblock-safety.yml'
   workflow_dispatch:
 
 permissions:
