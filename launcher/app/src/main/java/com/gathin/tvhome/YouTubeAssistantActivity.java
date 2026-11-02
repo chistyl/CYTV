@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
@@ -15,6 +17,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * TV-first landing page for the YouTube helper. Pairing and SponsorBlock are intentionally
@@ -94,7 +98,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void addPairingRow(LinearLayout parent) {
         String savedCode = getPreferences(MODE_PRIVATE).getString("youtube_tv_device_code", "");
-        String stateText = savedCode.isEmpty() ? "尚未輸入裝置代碼" : "裝置代碼已保存（尚未連線）";
+        String stateText = YouTubePairingClient.hasSavedCredentials(this) ? "已取得配對憑證（尚未建立控制連線）" : (savedCode.isEmpty() ? "尚未輸入裝置代碼" : "裝置代碼已保存（尚未配對）");
         LinearLayout card = createCard(parent, "YouTube TV 配對", stateText);
         card.setOnClickListener(v -> showDeviceCodeDialog());
     }
@@ -166,10 +170,11 @@ public class YouTubeAssistantActivity extends Activity {
                     String code = input.getText().toString().trim();
                     if (code.isEmpty()) {
                         getPreferences(MODE_PRIVATE).edit().remove("youtube_tv_device_code").apply();
-                        showInfo("已清除裝置代碼");
+                        YouTubePairingClient.clear(this);
+                        showInfo("已清除裝置代碼與配對憑證");
                     } else {
                         getPreferences(MODE_PRIVATE).edit().putString("youtube_tv_device_code", code).apply();
-                        showInfo("代碼已保存；目前尚未連線");
+                        startPairing(code);
                     }
                     recreate();
                 })
@@ -184,6 +189,39 @@ public class YouTubeAssistantActivity extends Activity {
         dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
 
+    private void startPairing(String code) {
+        AlertDialog progress = new AlertDialog.Builder(this)
+                .setTitle("正在配對")
+                .setMessage("正在向 YouTube 驗證裝置代碼，請稍候…")
+                .setCancelable(false).create();
+        progress.show();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler main = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            String message;
+            boolean success = false;
+            try {
+                YouTubePairingClient.PairingResult result = YouTubePairingClient.pair(code);
+                YouTubePairingClient.save(this, result);
+                message = "已取得 YouTube TV 配對憑證：" + result.deviceName
+                        + "\n\n裝置憑證已使用 Android Keystore 加密保存。"
+                        + "\n目前尚未建立 Lounge 控制連線，因此不代表已可控制電視。";
+                success = true;
+            } catch (Exception e) {
+                message = e.getMessage() == null ? "配對失敗，請稍後重試。" : e.getMessage();
+            }
+            final String resultMessage = message;
+            final boolean paired = success;
+            main.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                progress.dismiss();
+                new AlertDialog.Builder(this).setTitle(paired ? "取得配對憑證" : "配對失敗")
+                        .setMessage(resultMessage)
+                        .setPositiveButton("知道了", (d, w) -> recreate()).show();
+            });
+            executor.shutdown();
+        });
+    }
     private void showInfo(String message) {
         new AlertDialog.Builder(this).setMessage(message)
                 .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
