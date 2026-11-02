@@ -1,4 +1,4 @@
-name: Import CYTV R138 R3 and Build APK
+name: Build CYTV R138 Reopen Menu Update
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
             unzip -q /tmp/CYTV-R138-R3-source.zip -d /tmp/cytv-r138-source
             test -f /tmp/cytv-r138-source/launcher/gradlew
             test -f /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
-            grep -q '重新啟動' /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+            grep -q '重新開啟' /tmp/cytv-r138-source/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
             echo "SOURCE_IMPORT=true" >> "$GITHUB_ENV"
           else
             test -f launcher/gradlew
@@ -80,21 +80,21 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R138-Reboot-R3-APK
+          name: CYTV-R138-Reopen-Menu-R4-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R138-Reboot-R3-source.zip . \
+          zip -qr CYTV-R138-Reopen-Menu-R4-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
                './launcher/app/build/*' './CYTV-R138-Reboot-R3-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R138-Reboot-R3-Complete-Source
+          name: CYTV-R138-Reopen-Menu-R4-Complete-Source
           path: CYTV-R138-Reboot-R3-source.zip
           if-no-files-found: error
           retention-days: 30
