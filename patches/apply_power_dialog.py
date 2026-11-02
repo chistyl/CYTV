@@ -50,11 +50,11 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
         panel.setOrientation(android.widget.LinearLayout.VERTICAL);
         panel.setPadding((int) (36 * density), (int) (30 * density),
                 (int) (36 * density), (int) (26 * density));
-        panel.setBackground(new GradientDrawable() {{
+        panel.setBackground(new GradientDrawable() {
             setColor(0xFF242426);
             setCornerRadius(26 * density);
             setStroke(Math.max(1, (int) (1.2f * density)), 0xFF505054);
-        }});
+        });
 
         TextView title = new TextView(this);
         title.setText(titleText);
@@ -90,24 +90,24 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
         panel.addView(buttonRow, rowParams);
 
         AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        dialog.setOnShowListener(ignored -> {{
+        dialog.setOnShowListener(ignored -> {
             Window window = dialog.getWindow();
-            if (window != null) {{
+            if (window != null) {
                 window.setBackgroundDrawableResource(android.R.color.transparent);
                 window.setDimAmount(0.62f);
                 android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
                 int width = Math.min((int) (metrics.widthPixels * 0.86f),
                         (int) (960 * density));
                 window.setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-            }}
-        }});
+            }
+        });
 
         Button negative = new Button(this);
         negative.setText(negativeText);
         Button positive = new Button(this);
         positive.setText(positiveText);
-        Button[] buttons = new Button[]{{negative, positive}};
-        for (Button button : buttons) {{
+        Button[] buttons = new Button[]{negative, positive};
+        for (Button button : buttons) {
             button.setAllCaps(false);
             button.setTextSize(18);
             button.setMinHeight((int) (64 * density));
@@ -124,12 +124,12 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
             focused.setStroke(Math.max(1, (int) (1 * density)), 0xFFFFFFFF);
             button.setBackground(normal);
             button.setTextColor(0xFFE8E8E8);
-            button.setOnFocusChangeListener((v, hasFocus) -> {{
+            button.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
                 ((Button) v).setTextColor(hasFocus ? 0xFF202124 : 0xFFE8E8E8);
                 v.setElevation(hasFocus ? 3 * density : 0f);
-            }});
-        }}
+            });
+        }
 
         android.widget.LinearLayout.LayoutParams negativeParams =
                 new android.widget.LinearLayout.LayoutParams(
@@ -145,10 +145,10 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
         buttonRow.addView(positive, positiveParams);
 
         negative.setOnClickListener(v -> dialog.dismiss());
-        positive.setOnClickListener(v -> {{
+        positive.setOnClickListener(v -> {
             dialog.dismiss();
             if (positiveAction != null) positiveAction.run();
-        }});
+        });
         negative.setId(View.generateViewId());
         positive.setId(View.generateViewId());
         negative.setNextFocusRightId(positive.getId());
@@ -156,14 +156,14 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
 
         dialog.show();
         Window window = dialog.getWindow();
-        if (window != null) {{
+        if (window != null) {
             window.setBackgroundDrawableResource(android.R.color.transparent);
             window.setDimAmount(0.62f);
             android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
             int width = Math.min((int) (metrics.widthPixels * 0.86f),
                     (int) (960 * density));
             window.setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        }}
+        }
     }
 '''
 if old not in text:
