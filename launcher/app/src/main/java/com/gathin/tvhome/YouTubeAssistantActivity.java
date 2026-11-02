@@ -429,9 +429,25 @@ public class YouTubeAssistantActivity extends Activity {
                         report.append("\n影片長度：").append(String.format(java.util.Locale.US, "%.1f 秒", result.duration));
                     }
                     try {
-                        java.util.List<SponsorBlockClient.Segment> segments =
-                                SponsorBlockClient.lookupSponsorSegments(result.videoId);
-                        report.append("\nSponsorBlock 贊助片段：").append(segments.size()).append(" 段");
+                        SponsorBlockClient.LookupResult lookup =
+                                SponsorBlockClient.lookupSponsorSegmentsDetailed(result.videoId);
+                        java.util.List<SponsorBlockClient.Segment> segments = lookup.segments;
+                        report.append("\nSponsorBlock API：HTTP ").append(lookup.httpStatus)
+                                .append("｜回應大小：").append(lookup.responseBytes).append(" bytes")
+                                .append("｜候選影片：").append(lookup.candidateCount)
+                                .append("｜符合影片 ID：").append(lookup.matchingVideoCount)
+                                .append("\nSponsorBlock 贊助片段：").append(segments.size()).append(" 段");
+                        if (lookup.httpStatus == 404) {
+                            report.append("\n查詢判讀：API 回覆 404，該雜湊前綴目前沒有可回傳資料");
+                        } else if (lookup.candidateCount > 0 && lookup.matchingVideoCount == 0) {
+                            report.append("\n查詢判讀：有候選資料，但沒有符合目前影片 ID");
+                        } else if (lookup.matchingVideoCount > 0 && segments.isEmpty()) {
+                            report.append("\n查詢判讀：找到影片資料，但沒有 sponsor 類別片段");
+                        } else if (segments.isEmpty()) {
+                            report.append("\n查詢判讀：API 回覆成功，但沒有符合的影片／贊助片段");
+                        } else {
+                            report.append("\n查詢判讀：已取得贊助片段資料");
+                        }
                         if (result.currentTime >= 0) {
                             SponsorBlockClient.Segment activeSegment =
                                     SponsorBlockClient.findSegmentAtPosition(segments, result.currentTime);
