@@ -408,6 +408,7 @@ public class YouTubeAssistantActivity extends Activity {
             boolean success = false;
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                String nowPlayingRequestStatus = YouTubeLoungeClient.requestNowPlaying(this, session);
                 // Alternate CI=0 and CI=1 on the same Lounge session to compare
                 // backchannel behavior without issuing any playback-control commands.
                 int totalEvents = 0;
@@ -460,6 +461,7 @@ public class YouTubeAssistantActivity extends Activity {
                 report.append(result.httpAccepted
                         ? "YouTube 已接受 Lounge 訂閱 HTTP 請求。"
                         : "尚未確認 YouTube 接受 Lounge 訂閱請求。");
+                report.append("\n唯讀播放狀態請求：").append(nowPlayingRequestStatus);
                 report.append("\n訂閱輪數：4（CI=0、CI=1 各測 2 輪；每輪最多等待 12 秒）");
                 report.append("\n收到事件數：").append(result.eventCount)
                         .append("\n最後事件編號 AID：").append(result.lastEventId)
