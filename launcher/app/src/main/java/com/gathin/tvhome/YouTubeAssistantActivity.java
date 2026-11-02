@@ -402,6 +402,7 @@ public class YouTubeAssistantActivity extends Activity {
                 .setCancelable(false).create();
         progress.show();
         ExecutorService executor = Executors.newFixedThreadPool(2);
+        final ExecutorService eventExecutor = executor;
         Handler main = new Handler(Looper.getMainLooper());
         executor.execute(() -> {
             String message;
@@ -412,7 +413,7 @@ public class YouTubeAssistantActivity extends Activity {
                 // Lounge playback updates are delivered on the backchannel, not necessarily
                 // in the command acknowledgement response.
                 java.util.concurrent.Future<YouTubeLoungeClient.SubscriptionResult> firstWindow =
-                        executor.submit(() -> YouTubeLoungeClient.subscribeOnce(this, session, 0));
+                        eventExecutor.submit(() -> YouTubeLoungeClient.subscribeOnce(this, session, 0));
                 try { Thread.sleep(500); }
                 catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
