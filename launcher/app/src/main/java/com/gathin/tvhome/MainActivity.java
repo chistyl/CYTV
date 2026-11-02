@@ -3904,53 +3904,134 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void fetchCityForecast(String city) {
+        String requestedCity = city == null ? "" : city.trim();
+        if (requestedCity.isEmpty()) {
+            showWeatherError("請輸入城市名稱");
+            return;
+        }
+        String normalized = requestedCity.replace("臺", "台").replaceAll("\\s+", "");
+        double[] coordinates = taiwanCityCoordinates(normalized);
+        if (coordinates != null) {
+            try {
+                fetchForecastData(coordinates[0], coordinates[1], requestedCity);
+                return;
+            } catch (Exception directError) {
+                android.util.Log.w("WeeklyWeather", "Fixed coordinates failed for " + requestedCity
+                        + "; trying geocoding fallback", directError);
+            }
+        }
         try {
-            // Stable Taiwan city coordinates avoid geocoder failures for localized city names.
-            String normalizedCity = city.replace("臺", "台").trim();
-            if (normalizedCity.contains("桃園")) { fetchForecast(24.9936, 121.3010, "桃園市"); return; }
-            if (normalizedCity.contains("台北")) { fetchForecast(25.0330, 121.5654, "台北市"); return; }
-            if (normalizedCity.contains("新北")) { fetchForecast(25.0169, 121.4628, "新北市"); return; }
-            if (normalizedCity.contains("台中")) { fetchForecast(24.1477, 120.6736, "台中市"); return; }
-            if (normalizedCity.contains("台南")) { fetchForecast(22.9999, 120.2269, "台南市"); return; }
-            if (normalizedCity.contains("高雄")) { fetchForecast(22.6273, 120.3014, "高雄市"); return; }
-            String q = URLEncoder.encode(city, "UTF-8");
-            JSONObject geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q + "&count=10&language=zh&format=json");
+            JSONObject geo = geocodeCity(requestedCity, "zh");
             JSONArray results = geo.optJSONArray("results");
             if (results == null || results.length() == 0) {
-                String fallback = city;
-                if (city.contains("桃園")) fallback = "Taoyuan";
-                else if (city.contains("台北") || city.contains("臺北")) fallback = "Taipei";
-                else if (city.contains("新北")) fallback = "New Taipei";
-                else if (city.contains("台中") || city.contains("臺中")) fallback = "Taichung";
-                else if (city.contains("台南") || city.contains("臺南")) fallback = "Tainan";
-                else if (city.contains("高雄")) fallback = "Kaohsiung";
-                String fq = URLEncoder.encode(fallback, "UTF-8");
-                geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + fq + "&count=10&language=en&format=json");
+                geo = geocodeCity(englishTaiwanCityName(normalized), "en");
                 results = geo.optJSONArray("results");
             }
-            if (results == null || results.length() == 0) throw new IOException("找不到城市：" + city);
+            if (results == null || results.length() == 0) {
+                throw new IOException("找不到城市：" + requestedCity);
+            }
             JSONObject place = results.getJSONObject(0);
             for (int i = 0; i < results.length(); i++) {
                 JSONObject candidate = results.getJSONObject(i);
-                if ("TW".equalsIgnoreCase(candidate.optString("country_code"))) { place = candidate; break; }
+                if ("TW".equalsIgnoreCase(candidate.optString("country_code"))) {
+                    place = candidate;
+                    break;
+                }
             }
-            fetchForecast(place.getDouble("latitude"), place.getDouble("longitude"), city);
-        } catch (Exception e) { showWeatherError("城市定位失敗：" + e.getMessage()); }
+            fetchForecastData(place.getDouble("latitude"), place.getDouble("longitude"), requestedCity);
+        } catch (Exception e) {
+            android.util.Log.e("WeeklyWeather", "City lookup failed: " + requestedCity, e);
+            showWeatherError("城市定位失敗：" + errorMessage(e));
+        }
+    }
+
+    /** Coordinates for Taiwan's 22 counties/cities; longer county names must be matched first. */
+    private double[] taiwanCityCoordinates(String city) {
+        if (city.contains("新竹縣")) return new double[]{24.7036, 121.1252};
+        if (city.contains("新竹市")) return new double[]{24.8138, 120.9675};
+        if (city.contains("嘉義縣")) return new double[]{23.4589, 120.2908};
+        if (city.contains("嘉義市")) return new double[]{23.4801, 120.4491};
+        if (city.contains("桃園")) return new double[]{24.9936, 121.3010};
+        if (city.contains("台北")) return new double[]{25.0330, 121.5654};
+        if (city.contains("新北")) return new double[]{25.0169, 121.4628};
+        if (city.contains("基隆")) return new double[]{25.1276, 121.7392};
+        if (city.contains("苗栗")) return new double[]{24.5602, 120.8214};
+        if (city.contains("台中")) return new double[]{24.1477, 120.6736};
+        if (city.contains("彰化")) return new double[]{24.0518, 120.5161};
+        if (city.contains("南投")) return new double[]{23.9157, 120.6639};
+        if (city.contains("雲林")) return new double[]{23.7092, 120.4313};
+        if (city.contains("台南")) return new double[]{22.9999, 120.2269};
+        if (city.contains("高雄")) return new double[]{22.6273, 120.3014};
+        if (city.contains("屏東")) return new double[]{22.6761, 120.4942};
+        if (city.contains("宜蘭")) return new double[]{24.7021, 121.7378};
+        if (city.contains("花蓮")) return new double[]{23.9871, 121.6015};
+        if (city.contains("台東")) return new double[]{22.7554, 121.1508};
+        if (city.contains("澎湖")) return new double[]{23.5711, 119.5793};
+        if (city.contains("金門")) return new double[]{24.4403, 118.3183};
+        if (city.contains("連江") || city.contains("馬祖")) return new double[]{26.1605, 119.9510};
+        return null;
+    }
+
+    private String englishTaiwanCityName(String city) {
+        if (city.contains("桃園")) return "Taoyuan";
+        if (city.contains("台北")) return "Taipei";
+        if (city.contains("新北")) return "New Taipei";
+        if (city.contains("基隆")) return "Keelung";
+        if (city.contains("新竹縣")) return "Hsinchu County";
+        if (city.contains("新竹市")) return "Hsinchu";
+        if (city.contains("苗栗")) return "Miaoli";
+        if (city.contains("台中")) return "Taichung";
+        if (city.contains("彰化")) return "Changhua";
+        if (city.contains("南投")) return "Nantou";
+        if (city.contains("雲林")) return "Yunlin";
+        if (city.contains("嘉義縣")) return "Chiayi County";
+        if (city.contains("嘉義市")) return "Chiayi";
+        if (city.contains("台南")) return "Tainan";
+        if (city.contains("高雄")) return "Kaohsiung";
+        if (city.contains("屏東")) return "Pingtung";
+        if (city.contains("宜蘭")) return "Yilan";
+        if (city.contains("花蓮")) return "Hualien";
+        if (city.contains("台東")) return "Taitung";
+        if (city.contains("澎湖")) return "Penghu";
+        if (city.contains("金門")) return "Kinmen";
+        if (city.contains("連江") || city.contains("馬祖")) return "Lienchiang";
+        return city;
+    }
+
+    private JSONObject geocodeCity(String city, String language) throws Exception {
+        String q = URLEncoder.encode(city, "UTF-8");
+        return getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
+                + "&count=10&language=" + language + "&format=json");
     }
 
     private void fetchForecast(double lat, double lon, String place) {
         try {
-            String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
-                    + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-                    + "&forecast_days=7&timezone=auto";
-            JSONObject root = getJson(url);
-            JSONObject daily = root.getJSONObject("daily");
-            JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
-            JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
-            JSONArray rain = daily.optJSONArray("precipitation_probability_max");
-            weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain));
+            fetchForecastData(lat, lon, place);
+        } catch (Exception e) {
+            android.util.Log.e("WeeklyWeather", "Forecast request failed for " + place, e);
+            showWeatherError("天氣資料讀取失敗：" + errorMessage(e));
+        }
+    }
 
-        } catch (Exception e) { showWeatherError("天氣資料讀取失敗：" + e.getMessage()); }
+    private void fetchForecastData(double lat, double lon, String place) throws Exception {
+        String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
+                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+                + "&forecast_days=7&timezone=auto";
+        JSONObject root = getJson(url);
+        JSONObject daily = root.getJSONObject("daily");
+        JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
+        JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
+        JSONArray rain = daily.optJSONArray("precipitation_probability_max");
+        if (dates.length() == 0 || codes.length() == 0 || highs.length() == 0 || lows.length() == 0) {
+            throw new IOException("天氣服務回傳空資料");
+        }
+        weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain, place));
+    }
+
+    private String errorMessage(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty()
+                ? error.getClass().getSimpleName() : message;
     }
 
     private void showWeeklyWeatherStatus(String message) {
@@ -3964,14 +4045,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.addView(status, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain) {
+    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
         if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView heading = new TextView(this);
-        heading.setText("一週天氣・桃園市");
+        heading.setText("一週天氣・" + place);
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -4068,12 +4149,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private JSONObject getJson(String address) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setRequestMethod("GET"); c.setConnectTimeout(12000); c.setReadTimeout(12000);
+        c.setRequestMethod("GET");
+        c.setConnectTimeout(12000);
+        c.setReadTimeout(12000);
         c.setRequestProperty("Accept", "application/json");
-        try (InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-            byte[] buf = new byte[4096]; int n; while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            return new JSONObject(out.toString("UTF-8"));
-        } finally { c.disconnect(); }
+        c.setRequestProperty("User-Agent", "CYTV-WeeklyWeather/1.0");
+        try {
+            int status = c.getResponseCode();
+            InputStream stream = status >= 200 && status < 300 ? c.getInputStream() : c.getErrorStream();
+            if (stream == null) throw new IOException("HTTP " + status + "（無回應內容）");
+            try (InputStream in = stream; java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                String body = out.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    String detail = body.length() > 240 ? body.substring(0, 240) : body;
+                    throw new IOException("HTTP " + status + "：" + detail);
+                }
+                return new JSONObject(body);
+            }
+        } finally {
+            c.disconnect();
+        }
     }
 
     private void showWeatherError(String message) {
