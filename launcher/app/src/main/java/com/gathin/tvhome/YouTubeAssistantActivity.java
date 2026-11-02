@@ -249,8 +249,11 @@ public class YouTubeAssistantActivity extends Activity {
             java.util.List<SponsorBlockClient.Segment> cachedSegments =
                     new java.util.ArrayList<>();
             String previousSegmentKey = "";
+            String terminalStatus = null;
+            String sponsorLookupError = "";
             try {
-                YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this, handle);
+                if (handle.isStopped()) break;
                 setMonitorStatus("已連線，等待 YouTube 播放事件…");
                 while (!handle.isStopped() && monitoring) {
                     YouTubeLoungeClient.SubscriptionResult result =
@@ -266,7 +269,16 @@ public class YouTubeAssistantActivity extends Activity {
                     if (result.videoId.matches("[A-Za-z0-9_-]{11}")
                             && !result.videoId.equals(cachedVideoId)) {
                         cachedVideoId = result.videoId;
-                        cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId, handle);
+                        try {
+                            cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId, handle);
+                            sponsorLookupError = "";
+                        } catch (java.util.concurrent.CancellationException cancelled) {
+                            throw cancelled;
+                        } catch (Exception lookupError) {
+                            cachedSegments = new java.util.ArrayList<>();
+                            sponsorLookupError = lookupError.getMessage() == null
+                                    ? "未知錯誤" : lookupError.getMessage();
+                        }
                         previousSegmentKey = "";
                         latestPosition = -1;
                         latestDuration = -1;
@@ -312,8 +324,13 @@ public class YouTubeAssistantActivity extends Activity {
                         } else {
                             status.append("\n尚未取得有效播放位置");
                         }
-                        status.append("\nSponsorBlock 贊助片段：")
-                                .append(cachedSegments.size()).append(" 段（已快取）");
+                        if (!sponsorLookupError.isEmpty()) {
+                            status.append("\nSponsorBlock 查詢失敗：").append(sponsorLookupError);
+                            status.append("\nLounge 監測仍會持續執行");
+                        } else {
+                            status.append("\nSponsorBlock 贊助片段：")
+                                    .append(cachedSegments.size()).append(" 段（已快取）");
+                        }
                     } else {
                         status.append("\n尚未取得有效影片 ID");
                     }
@@ -332,15 +349,19 @@ public class YouTubeAssistantActivity extends Activity {
                 // Expected when the user stops monitoring.
             } catch (Exception error) {
                 if (!handle.isStopped()) {
-                    setMonitorStatus("監測發生錯誤："
-                            + (error.getMessage() == null ? "未知錯誤" : error.getMessage()));
+                    terminalStatus = "監測發生錯誤："
+                            + (error.getMessage() == null ? "未知錯誤" : error.getMessage());
                 }
             } finally {
                 monitoring = false;
                 if (monitorHandle == handle) monitorHandle = null;
                 monitorThread = null;
                 if (!isFinishing() && !isDestroyed()) {
-                    setMonitorStatus(handle.isStopped() ? "監測已停止" : "監測已結束");
+                    if (terminalStatus != null) {
+                        setMonitorStatus(terminalStatus);
+                    } else {
+                        setMonitorStatus(handle.isStopped() ? "監測已停止" : "監測已結束");
+                    }
                 }
             }
         }, "CYTV-YouTube-Monitor");
