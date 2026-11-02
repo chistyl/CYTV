@@ -88,15 +88,26 @@ public class AdsFilterVpnService extends VpnService {
                 }
                 @Override public void onLost(Network network) {
                     if (network.equals(underlyingNetwork)) {
-                        // Do not guess between remaining Wi-Fi/Ethernet networks. A wrong
-                        // choice can send DNS through a captive or isolated network. Stop the
-                        // local VPN so Android can resume its own default-network routing.
-                        failOpen("目前使用的實體網路已中斷");
+                        // Prefer another usable physical transport (Wi-Fi/Ethernet) before
+                        // stopping the DNS VPN. Never keep forwarding through the lost Network.
+                        Network replacement = findPhysicalNetwork(cm);
+                        if (replacement != null && !replacement.equals(network)) {
+                            updateUnderlyingNetwork(replacement);
+                            Log.i(TAG, "Physical network failover completed after onLost");
+                        } else {
+                            failOpen("目前使用的實體網路已中斷，且沒有可用的替代網路");
+                        }
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
                     if (network.equals(underlyingNetwork) && !isPhysicalInternet(caps)) {
-                        failOpen("目前網路已不再提供一般網際網路");
+                        Network replacement = findPhysicalNetwork(cm);
+                        if (replacement != null && !replacement.equals(network)) {
+                            updateUnderlyingNetwork(replacement);
+                            Log.i(TAG, "Physical network failover completed after capability loss");
+                        } else {
+                            failOpen("目前網路已不再提供一般網際網路，且沒有可用的替代網路");
+                        }
                     } else if (underlyingNetwork == null && isPhysicalInternet(caps)) {
                         updateUnderlyingNetwork(network);
                     }
