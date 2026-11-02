@@ -82,6 +82,7 @@ public class YouTubeAssistantActivity extends Activity {
         addPairingRow(rows);
         addAvailabilityRow(rows);
         addLoungeConnectRow(rows);
+        addLoungeSubscribeRow(rows);
         addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
@@ -201,6 +202,54 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout card = createCard(parent, "建立 YouTube Lounge 控制連線",
                 "測試 YouTube TV 控制通道的第一階段握手");
         card.setOnClickListener(v -> connectLounge());
+    }
+
+    private void addLoungeSubscribeRow(LinearLayout parent) {
+        LinearLayout card = createCard(parent, "測試 Lounge 事件訂閱",
+                "建立工作階段後，短時間接收 YouTube TV 事件");
+        card.setOnClickListener(v -> subscribeLoungeOnce());
+    }
+
+    private void subscribeLoungeOnce() {
+        if (!YouTubePairingClient.hasSavedCredentials(this)) {
+            showInfo("請先完成 YouTube TV 配對並取得裝置憑證。");
+            return;
+        }
+        AlertDialog progress = new AlertDialog.Builder(this)
+                .setTitle("測試事件訂閱")
+                .setMessage("正在建立工作階段並等待 YouTube TV 事件，最多約 12 秒…")
+                .setCancelable(false).create();
+        progress.show();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler main = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            String message;
+            boolean success = false;
+            try {
+                YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                YouTubeLoungeClient.SubscriptionResult result =
+                        YouTubeLoungeClient.subscribeOnce(this, session);
+                message = "Lounge 訂閱 HTTP 請求成功。"
+                        + "\n收到事件數：" + result.eventCount
+                        + "\n最後事件編號 AID：" + result.lastEventId
+                        + "\n事件：" + result.eventSummary
+                        + (result.timedOut ? "\n\n目前是等待逾時，尚未收到事件。" : "");
+                success = true;
+            } catch (Exception e) {
+                message = e.getMessage() == null ? "事件訂閱失敗，請稍後重試。" : e.getMessage();
+            }
+            final String resultMessage = message;
+            final boolean completed = success;
+            main.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                progress.dismiss();
+                new AlertDialog.Builder(this)
+                        .setTitle(completed ? "事件訂閱診斷完成" : "事件訂閱失敗")
+                        .setMessage(resultMessage)
+                        .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
+            });
+            executor.shutdown();
+        });
     }
 
     private void connectLounge() {
