@@ -110,6 +110,48 @@ final class YouTubePairingClient {
         }
     }
 
+    static PairingResult load(Context context) throws Exception {
+        String blob = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(PREF_DATA, "");
+        if (blob.isEmpty()) throw new Exception("尚未完成 YouTube TV 配對。");
+        String[] parts = blob.split(":", 2);
+        if (parts.length != 2) throw new Exception("配對憑證格式錯誤，請重新配對。");
+        byte[] iv = Base64.decode(parts[0], Base64.NO_WRAP);
+        byte[] encrypted = Base64.decode(parts[1], Base64.NO_WRAP);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(128, iv));
+        JSONObject json = new JSONObject(new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8));
+        return new PairingResult(json.getString("screenId"), json.getString("loungeToken"),
+                json.optString("name", "YouTube TV"));
+    }
+
+    static boolean checkAvailability(Context context) throws Exception {
+        PairingResult credentials = load(context);
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(API + "/pairing/get_screen_availability");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(10000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            byte[] body = ("lounge_token=" + java.net.URLEncoder.encode(credentials.loungeToken, "UTF-8"))
+                    .getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(body.length);
+            try (OutputStream out = connection.getOutputStream()) { out.write(body); }
+            int status = connection.getResponseCode();
+            String response = readAll(status >= 200 && status < 300
+                    ? connection.getInputStream() : connection.getErrorStream());
+            if (status != 200) throw new Exception("YouTube 在線狀態查詢失敗（HTTP " + status + "）。");
+            JSONObject root = new JSONObject(response);
+            org.json.JSONArray screens = root.optJSONArray("screens");
+            return screens != null && screens.length() > 0
+                    && "online".equalsIgnoreCase(screens.getJSONObject(0).optString("status", ""));
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
     static boolean hasSavedCredentials(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains(PREF_DATA);
     }
