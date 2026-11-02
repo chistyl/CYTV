@@ -26,7 +26,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK
+      - name: Set up Gradle cache\n        uses: gradle/actions/setup-gradle@v4\n\n      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
