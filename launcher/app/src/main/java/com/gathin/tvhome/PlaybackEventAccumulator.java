@@ -23,6 +23,12 @@ final class PlaybackEventAccumulator {
         }
     }
 
+    void reset() {
+        currentTime = -1;
+        duration = -1;
+        playerState = "";
+    }
+
     boolean hasPosition() {
         return Double.isFinite(currentTime) && currentTime >= 0;
     }
