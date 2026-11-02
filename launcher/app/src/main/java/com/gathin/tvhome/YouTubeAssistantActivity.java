@@ -401,16 +401,26 @@ public class YouTubeAssistantActivity extends Activity {
                 .setMessage("正在建立工作階段並連續接收 YouTube TV 事件，最多約 60 秒…")
                 .setCancelable(false).create();
         progress.show();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
         Handler main = new Handler(Looper.getMainLooper());
         executor.execute(() -> {
             String message;
             boolean success = false;
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                // Keep the first event subscription open while getNowPlaying is sent.
+                // Lounge playback updates are delivered on the backchannel, not necessarily
+                // in the command acknowledgement response.
+                java.util.concurrent.Future<YouTubeLoungeClient.SubscriptionResult> firstWindow =
+                        executor.submit(() -> YouTubeLoungeClient.subscribeOnce(this, session, 0));
+                try { Thread.sleep(500); }
+                catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new java.util.concurrent.CancellationException("診斷已中斷。");
+                }
                 String nowPlayingRequestStatus = YouTubeLoungeClient.requestNowPlaying(this, session);
                 // Alternate CI=0 and CI=1 on the same Lounge session to compare
-                // backchannel behavior without issuing any playback-control commands.
+                // backchannel behavior without issuing playback-control commands.
                 int totalEvents = 0;
                 long latestAid = session.lastEventId;
                 boolean httpAccepted = false;
@@ -422,8 +432,12 @@ public class YouTubeAssistantActivity extends Activity {
                 String playerState = session.initialPlayerState;
                 for (int window = 1; window <= 4; window++) {
                     int clientIndex = (window % 2 == 1) ? 0 : 1;
-                    YouTubeLoungeClient.SubscriptionResult windowResult =
-                            YouTubeLoungeClient.subscribeOnce(this, session, clientIndex);
+                    YouTubeLoungeClient.SubscriptionResult windowResult;
+                    if (window == 1) {
+                        windowResult = firstWindow.get(15, java.util.concurrent.TimeUnit.SECONDS);
+                    } else {
+                        windowResult = YouTubeLoungeClient.subscribeOnce(this, session, clientIndex);
+                    }
                     httpAccepted |= windowResult.httpAccepted;
                     totalEvents += windowResult.eventCount;
                     latestAid = Math.max(latestAid, windowResult.lastEventId);
