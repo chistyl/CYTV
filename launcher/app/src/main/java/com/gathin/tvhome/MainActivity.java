@@ -3767,6 +3767,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.getChildAt(0).requestFocus();
     }
 
+    /**
+     * True only when an Internet-capable Wi-Fi network is present and no Ethernet network
+     * is present. Android 9 supports getAllNetworks()/NetworkCapabilities.
+     */
+    private boolean isWifiWithoutEthernetAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        boolean wifi = false;
+        boolean ethernet = false;
+        for (Network network : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            if (caps == null || !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                continue;
+            }
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) ethernet = true;
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifi = true;
+        }
+        return wifi && !ethernet;
+    }
+
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
     private void showSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
@@ -3791,14 +3811,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
-        addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
-            popup.dismiss();
-            startActivity(new Intent(this, AdsBlockerActivity.class));
-        });
-        addSettingsMenuRow(rows, popup, "重新啟動", () -> {
-            popup.dismiss();
-            openSystemPowerMenuFromSettings();
-        });
+        // 廣告阻擋功能僅在 Wi-Fi 網路顯示；有線網路優先判定為 Ethernet。
+        if (isWifiWithoutEthernetAvailable()) {
+            addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
+                popup.dismiss();
+                startActivity(new Intent(this, AdsBlockerActivity.class));
+            });
+        }
         // 只縮小右上角「設定」下拉選單的選項高度，不影響其他彈出選單。
         for (int i = 0; i < rows.getChildCount(); i++) {
             View menuItem = rows.getChildAt(i);
