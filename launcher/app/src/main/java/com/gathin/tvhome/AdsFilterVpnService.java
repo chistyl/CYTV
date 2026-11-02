@@ -115,16 +115,29 @@ public class AdsFilterVpnService extends VpnService {
                 }
                 @Override public void onLost(Network network) {
                     if (network.equals(underlyingNetwork)) {
-                        // Prefer another usable physical transport (Wi-Fi/Ethernet) before
-                        // stopping the DNS VPN. Never keep forwarding through the lost Network.
-                        schedulePhysicalNetworkRecovery(cm, network,
-                                "目前使用的實體網路已中斷，且沒有可用的替代網路");
+                        if (running.get()) {
+                            // Android 9 TV firmware may hide the physical Network after the
+                            // VPN becomes the active Network. A callback alone is not proof
+                            // that Ethernet is physically disconnected. Protected DNS sockets
+                            // follow Android's current default route; let real DNS failures,
+                            // not onLost(), decide whether fail-open is necessary.
+                            underlyingNetwork = null;
+                            appendDnsLog("-", "診斷", "VPN 執行期間收到實體 Network onLost；不立即關閉 VPN，改由受保護 DNS 連線驗證網路");
+                        } else {
+                            schedulePhysicalNetworkRecovery(cm, network,
+                                    "啟動期間實體網路中斷，且沒有可用的替代網路");
+                        }
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
                     if (network.equals(underlyingNetwork) && !isPhysicalTransport(caps)) {
-                        schedulePhysicalNetworkRecovery(cm, network,
-                                "目前網路已不再提供一般網際網路，且沒有可用的替代網路");
+                        if (running.get()) {
+                            underlyingNetwork = null;
+                            appendDnsLog("-", "診斷", "VPN 執行期間實體 Network 能力暫時消失；不因能力回報直接關閉 VPN");
+                        } else {
+                            schedulePhysicalNetworkRecovery(cm, network,
+                                    "啟動期間網路已不再提供一般網際網路，且沒有可用的替代網路");
+                        }
                     } else if (isPhysicalTransport(caps)) {
                         NetworkCapabilities currentCaps = underlyingNetwork == null
                                 ? null : cm.getNetworkCapabilities(underlyingNetwork);
