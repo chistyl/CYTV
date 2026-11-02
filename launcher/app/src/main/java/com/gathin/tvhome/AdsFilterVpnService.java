@@ -38,6 +38,7 @@ public class AdsFilterVpnService extends VpnService {
     private static final String DNS_CLIENT = "10.13.0.1";
     private static final String DNS_LOCAL = "10.13.0.2";
     private static final String UPSTREAM = "1.1.1.1";
+    private static final String SECONDARY_UPSTREAM = "8.8.8.8";
     private static final String DNS_MODE_AUTO = "auto";
     static final String ACTION_REFRESH_NETWORK = "com.gathin.tvhome.action.REFRESH_NETWORK";
     static final String ACTION_STOP = "com.gathin.tvhome.action.STOP_AD_FILTER";
@@ -47,7 +48,7 @@ public class AdsFilterVpnService extends VpnService {
     private ParcelFileDescriptor tunnel;
     private Thread worker;
     private volatile Network underlyingNetwork;
-    private volatile List<InetAddress> upstreamServers = Collections.singletonList(parseAddress(UPSTREAM));
+    private volatile List<InetAddress> upstreamServers = fallbackDnsServers();
     private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -74,9 +75,11 @@ public class AdsFilterVpnService extends VpnService {
             // network can change while the filter is running, so do not capture it only once.
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             if (cm == null) throw new IllegalStateException("Connectivity service unavailable");
+            // Do not require NET_CAPABILITY_NOT_VPN in the request. Some Android TV
+            // firmwares transiently drop that capability from physical Ethernet when a
+            // VPN becomes active. Transport checks below exclude the VPN itself.
             NetworkRequest request = new NetworkRequest.Builder()
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build();
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override public void onAvailable(Network network) {
@@ -142,7 +145,6 @@ public class AdsFilterVpnService extends VpnService {
     private boolean isPhysicalInternet(NetworkCapabilities caps) {
         return caps != null
                 && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                 && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                     || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
     }
@@ -169,7 +171,7 @@ public class AdsFilterVpnService extends VpnService {
     private void updateUpstreamServers(Network network, ConnectivityManager cm) {
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         if (!DNS_MODE_AUTO.equals(prefs.getString("dns_mode", DNS_MODE_AUTO))) {
-            upstreamServers = Collections.singletonList(parseAddress(UPSTREAM));
+            upstreamServers = fallbackDnsServers();
             return;
         }
         try {
@@ -183,12 +185,25 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
             }
-            upstreamServers = Collections.unmodifiableList(discovered);
-            Log.i(TAG, "Auto DNS negotiated: " + discovered.size() + " upstream server(s)");
+            // Keep router DNS first for LAN/split-DNS names, then public resolvers
+            // as timeout fallbacks. An empty DHCP DNS list must not black-hole DNS.
+            LinkedHashSet<InetAddress> candidates = new LinkedHashSet<>(discovered);
+            candidates.add(parseAddress(UPSTREAM));
+            candidates.add(parseAddress(SECONDARY_UPSTREAM));
+            upstreamServers = Collections.unmodifiableList(new ArrayList<>(candidates));
+            Log.i(TAG, "Auto DNS negotiated: " + discovered.size()
+                    + " network DNS server(s); " + upstreamServers.size() + " total candidates");
         } catch (Exception e) {
             upstreamServers = Collections.emptyList();
             Log.w(TAG, "Unable to read network DNS; automatic mode will fail open", e);
         }
+    }
+
+    private static List<InetAddress> fallbackDnsServers() {
+        List<InetAddress> servers = new ArrayList<>();
+        servers.add(parseAddress(UPSTREAM));
+        servers.add(parseAddress(SECONDARY_UPSTREAM));
+        return Collections.unmodifiableList(servers);
     }
 
     private static InetAddress parseAddress(String address) {
