@@ -412,8 +412,9 @@ public class YouTubeAssistantActivity extends Activity {
                 // Keep the first event subscription open while getNowPlaying is sent.
                 // Lounge playback updates are delivered on the backchannel, not necessarily
                 // in the command acknowledgement response.
+                final YouTubeLoungeClient.Session initialSession = session;
                 java.util.concurrent.Future<YouTubeLoungeClient.SubscriptionResult> firstWindow =
-                        eventExecutor.submit(() -> YouTubeLoungeClient.subscribeOnce(this, session, 0));
+                        eventExecutor.submit(() -> YouTubeLoungeClient.subscribeOnce(this, initialSession, 0));
                 try { Thread.sleep(500); }
                 catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
