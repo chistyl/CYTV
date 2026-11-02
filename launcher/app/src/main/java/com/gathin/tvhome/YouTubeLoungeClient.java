@@ -383,13 +383,22 @@ final class YouTubeLoungeClient {
                         if (!eventName.isEmpty()) parsed.eventNames.add(eventName);
                         if (payload.length() > 1) {
                             JSONObject stateData = payload.optJSONObject(1);
-                            if (stateData != null && "nowPlaying".equals(eventName)) {
+                            if (stateData != null && ("nowPlaying".equals(eventName)
+                                    || "playlistModified".equals(eventName))) {
+                                // Lounge may publish the active item first as playlistModified.
+                                // Prefer videoId; firstVideoId is a safe fallback when the queue
+                                // event identifies its first/current item but omits videoId.
                                 String id = stateData.optString("videoId", "");
+                                if (!id.matches("[A-Za-z0-9_-]{11}")) {
+                                    id = stateData.optString("firstVideoId", "");
+                                }
                                 if (id.matches("[A-Za-z0-9_-]{11}")) {
                                     parsed.videoId = id;
                                 }
-                                parsed.currentTime = stateData.optDouble("currentTime", -1);
-                                parsed.duration = stateData.optDouble("duration", -1);
+                                double position = stateData.optDouble("currentTime", -1);
+                                double length = stateData.optDouble("duration", -1);
+                                if (position >= 0) parsed.currentTime = position;
+                                if (length > 0) parsed.duration = length;
                             } else if (stateData != null && "onStateChange".equals(eventName)) {
                                 parsed.playerState = stateData.optString("state", "");
                                 double position = stateData.optDouble("currentTime", -1);
