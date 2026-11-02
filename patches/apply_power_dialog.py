@@ -100,7 +100,16 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
             positive.setNextFocusLeftId(negative.getId());
         }
         Button first = focusPrimary && positive != null ? positive : negative;
-        if (first != null) first.post(first::requestFocus);
+        if (first != null) {
+            // Re-apply focus after AlertDialog finishes its own button-focus pass.
+            View decor = dialog.getWindow() != null ? dialog.getWindow().getDecorView() : first;
+            Runnable focusAction = () -> {
+                first.requestFocus();
+                first.requestFocusFromTouch();
+            };
+            decor.post(focusAction);
+            decor.postDelayed(focusAction, 180);
+        }
     }
 '''
 if old not in text:
