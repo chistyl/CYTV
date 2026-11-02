@@ -156,6 +156,9 @@ final class YouTubeLoungeClient {
         double currentTime = -1;
         double duration = -1;
         String playerState = "";
+        double freshPlaybackTime = -1;
+        double freshPlaybackDuration = -1;
+        String freshPlaybackState = "";
         boolean timedOut = false;
         String remotePairingType = "";
         String remoteIdentityMatchStatus = "";
@@ -333,10 +336,9 @@ final class YouTubeLoungeClient {
             String videoId = parsed.videoId.isEmpty() ? session.latestVideoId : parsed.videoId;
             // Never present bind-time playback values as if they were freshly observed.
             // Automatic skipping must only act on a position/state from this subscription.
-            double currentTime = parsed.currentTime;
-            double duration = parsed.duration;
-            String playerState = parsed.playerState.isEmpty()
-                    ? session.latestPlayerState : parsed.playerState;
+            double currentTime = parsed.freshPlaybackTime;
+            double duration = parsed.freshPlaybackDuration;
+            String playerState = parsed.freshPlaybackState;
             summary += "；" + session.initialEventSummary;
             if (videoId.isEmpty()) {
                 summary += "；尚未取得目前播放影片 ID。";
@@ -345,8 +347,8 @@ final class YouTubeLoungeClient {
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
                     parsed.timedOut, true, videoId, currentTime, duration, playerState,
-                    !parsed.videoId.isEmpty(), parsed.currentTime >= 0,
-                    !parsed.playerState.isEmpty());
+                    !parsed.videoId.isEmpty(), parsed.freshPlaybackTime >= 0,
+                    !parsed.freshPlaybackState.isEmpty());
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
@@ -544,8 +546,17 @@ final class YouTubeLoungeClient {
                             // Lounge clients wrap playback data instead of exposing it at root.
                             double position = findNumber(eventData, "currentTime");
                             double length = findNumber(eventData, "duration");
+                            String playbackState = findString(eventData, "state");
                             if (position >= 0) parsed.currentTime = position;
                             if (length > 0) parsed.duration = length;
+                            // Keep position and state from the same event together.
+                            // Combining a fresh position with an older "playing" state
+                            // could otherwise seek while the TV is already paused.
+                            if (position >= 0 && !playbackState.isEmpty()) {
+                                parsed.freshPlaybackTime = position;
+                                parsed.freshPlaybackDuration = length;
+                                parsed.freshPlaybackState = playbackState;
+                            }
                         }
                     }
                     parsed.eventCount++;
