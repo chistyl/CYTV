@@ -3791,7 +3791,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, AdsBlockerActivity.class));
         });
-        addSettingsMenuRow(rows, popup, "重新開啟", () -> {
+        addSettingsMenuRow(rows, popup, "重新啟動", () -> {
             popup.dismiss();
             openSystemPowerMenuFromSettings();
         });
