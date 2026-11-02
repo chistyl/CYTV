@@ -80,7 +80,8 @@ public class YouTubeAssistantActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         addPairingRow(rows);
-        addAvailabilityRow(rows);\n        addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
+        addAvailabilityRow(rows);
+        addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
 
