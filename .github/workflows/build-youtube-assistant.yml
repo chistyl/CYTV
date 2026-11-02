@@ -41,7 +41,7 @@ jobs:
         working-directory: launcher
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace :app:assembleDebug
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest :app:assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
