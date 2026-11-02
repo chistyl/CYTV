@@ -116,9 +116,19 @@ final class YouTubeLoungeClient {
     }
 
     static Session connect(Context context) throws Exception {
+        return connect(context, null);
+    }
+
+    static Session connect(Context context, MonitorHandle monitor) throws Exception {
+        if (monitor != null && monitor.isStopped()) {
+            throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+        }
         // Lounge tokens expire; refresh from the paired screen ID before opening a new session.
         YouTubePairingClient.PairingResult credentials =
                 YouTubePairingClient.refreshLoungeToken(context);
+        if (monitor != null && monitor.isStopped()) {
+            throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+        }
         HttpURLConnection connection = null;
         try {
             URL url = new URL(BIND_URL);
@@ -133,6 +143,7 @@ final class YouTubeLoungeClient {
             connection.setRequestProperty("Origin", "https://www.youtube.com");
             connection.setRequestProperty("User-Agent",
                     "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            if (monitor != null) monitor.attach(connection);
 
             String deviceContext = "user_agent=dunno&window_width_points=&window_height_points="
                     + "&os_name=android&ms=";
@@ -155,6 +166,9 @@ final class YouTubeLoungeClient {
             }
 
             int status = connection.getResponseCode();
+            if (monitor != null && monitor.isStopped()) {
+                throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+            }
             InputStream stream = status >= 200 && status < 300
                     ? connection.getInputStream() : connection.getErrorStream();
             String response = readAll(stream);
@@ -170,9 +184,13 @@ final class YouTubeLoungeClient {
                 throw new Exception("YouTube 已回應，但封包中缺少 SID、gsessionid 或事件編號；"
                         + "尚未建立可用的控制工作階段。");
             }
+            if (monitor != null && monitor.isStopped()) {
+                throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+            }
             return new Session(events.sid, events.gsessionId, credentials.screenId,
                     credentials.deviceId, events.lastEventId);
         } finally {
+            if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
     }
