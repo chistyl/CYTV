@@ -266,7 +266,7 @@ public class YouTubeAssistantActivity extends Activity {
                     if (result.videoId.matches("[A-Za-z0-9_-]{11}")
                             && !result.videoId.equals(cachedVideoId)) {
                         cachedVideoId = result.videoId;
-                        cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId);
+                        cachedSegments = SponsorBlockClient.lookupSponsorSegments(cachedVideoId, handle);
                         previousSegmentKey = "";
                         latestPosition = -1;
                         latestDuration = -1;
