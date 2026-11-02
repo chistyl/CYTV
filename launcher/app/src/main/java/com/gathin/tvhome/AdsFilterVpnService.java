@@ -55,8 +55,14 @@ public class AdsFilterVpnService extends VpnService {
     private volatile List<InetAddress> upstreamServers = fallbackDnsServers();
     private ConnectivityManager.NetworkCallback networkCallback;
     private final Handler startupHandler = new Handler(Looper.getMainLooper());
+    private final Handler networkHandler = new Handler(Looper.getMainLooper());
+    private Runnable pendingNetworkLossCheck;
     private int startupAttempts = 0;
-    private static final int STARTUP_MAX_ATTEMPTS = 10;
+    // Android 9 TV firmware can report a short-lived onLost/ActiveNetwork=null
+    // while Ethernet is still recovering. Allow a longer non-blocking recovery window.
+    private static final int STARTUP_MAX_ATTEMPTS = 30;
+    private static final long STARTUP_RETRY_MS = 500L;
+    private static final long NETWORK_LOSS_GRACE_MS = 3000L;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_REFRESH_NETWORK.equals(intent.getAction())) {
@@ -97,8 +103,13 @@ public class AdsFilterVpnService extends VpnService {
                     // Keep the physical default selected before the VPN was established.
                     // A second available transport (for example Wi-Fi while Ethernet is active)
                     // must not silently steal DNS forwarding from the current default.
-                    if (underlyingNetwork == null && isPhysicalTransport(caps)) {
+                    NetworkCapabilities currentCaps = underlyingNetwork == null
+                            ? null : cm.getNetworkCapabilities(underlyingNetwork);
+                    if ((underlyingNetwork == null || !isPhysicalTransport(currentCaps))
+                            && isPhysicalTransport(caps)) {
+                        cancelPendingNetworkLossCheck();
                         updateUnderlyingNetwork(network);
+                        appendDnsLog("-", "診斷", "實體網路重新可用：" + network);
                         if (!running.get()) startTunnelWhenNetworkReady();
                     }
                 }
@@ -106,27 +117,25 @@ public class AdsFilterVpnService extends VpnService {
                     if (network.equals(underlyingNetwork)) {
                         // Prefer another usable physical transport (Wi-Fi/Ethernet) before
                         // stopping the DNS VPN. Never keep forwarding through the lost Network.
-                        Network replacement = findPhysicalNetwork(cm);
-                        if (replacement != null && !replacement.equals(network)) {
-                            updateUnderlyingNetwork(replacement);
-                            Log.i(TAG, "Physical network failover completed after onLost");
-                        } else {
-                            failOpen("目前使用的實體網路已中斷，且沒有可用的替代網路");
-                        }
+                        schedulePhysicalNetworkRecovery(cm, network,
+                                "目前使用的實體網路已中斷，且沒有可用的替代網路");
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
                     if (network.equals(underlyingNetwork) && !isPhysicalTransport(caps)) {
-                        Network replacement = findPhysicalNetwork(cm);
-                        if (replacement != null && !replacement.equals(network)) {
-                            updateUnderlyingNetwork(replacement);
-                            Log.i(TAG, "Physical network failover completed after capability loss");
-                        } else {
-                            failOpen("目前網路已不再提供一般網際網路，且沒有可用的替代網路");
+                        schedulePhysicalNetworkRecovery(cm, network,
+                                "目前網路已不再提供一般網際網路，且沒有可用的替代網路");
+                    } else if (isPhysicalTransport(caps)) {
+                        NetworkCapabilities currentCaps = underlyingNetwork == null
+                                ? null : cm.getNetworkCapabilities(underlyingNetwork);
+                        if (underlyingNetwork == null || !isPhysicalTransport(currentCaps)) {
+                            cancelPendingNetworkLossCheck();
+                            updateUnderlyingNetwork(network);
+                            appendDnsLog("-", "診斷", "網路能力恢復，重新指定實體網路：" + network);
+                            if (!running.get()) startTunnelWhenNetworkReady();
+                        } else if (network.equals(underlyingNetwork)) {
+                            cancelPendingNetworkLossCheck();
                         }
-                    } else if (underlyingNetwork == null && isPhysicalTransport(caps)) {
-                        updateUnderlyingNetwork(network);
-                        if (!running.get()) startTunnelWhenNetworkReady();
                     }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
@@ -157,6 +166,35 @@ public class AdsFilterVpnService extends VpnService {
                 || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
     }
 
+    private void cancelPendingNetworkLossCheck() {
+        if (pendingNetworkLossCheck != null) {
+            networkHandler.removeCallbacks(pendingNetworkLossCheck);
+            pendingNetworkLossCheck = null;
+        }
+    }
+
+    // Do not tear down the VPN on the first transient onLost/capability callback.
+    // Android TV may briefly publish no default/physical Network during Ethernet recovery.
+    private void schedulePhysicalNetworkRecovery(ConnectivityManager cm, Network lostNetwork, String reason) {
+        cancelPendingNetworkLossCheck();
+        appendDnsLog("-", "診斷", "偵測到實體網路中斷，等待 "
+                + (NETWORK_LOSS_GRACE_MS / 1000) + " 秒確認並重新搜尋：" + lostNetwork);
+        pendingNetworkLossCheck = () -> {
+            pendingNetworkLossCheck = null;
+            if (stopping.get()) return;
+            Network replacement = findPhysicalNetwork(cm);
+            if (replacement != null) {
+                updateUnderlyingNetwork(replacement);
+                appendDnsLog("-", "診斷", "網路中斷後重新取得實體網路：" + replacement);
+                Log.i(TAG, "Physical network recovery completed: " + replacement);
+            } else {
+                appendNetworkSnapshot(cm);
+                failOpen(reason + "；等待恢復後仍找不到可用的 Wi-Fi／Ethernet");
+            }
+        };
+        networkHandler.postDelayed(pendingNetworkLossCheck, NETWORK_LOSS_GRACE_MS);
+    }
+
     private Network findPhysicalNetwork(ConnectivityManager cm) {
         Network active = cm.getActiveNetwork();
         if (active != null && isPhysicalTransport(cm.getNetworkCapabilities(active))) return active;
@@ -183,14 +221,14 @@ public class AdsFilterVpnService extends VpnService {
                 appendDnsLog("-", "診斷", "非阻塞等待實體網路 " + startupAttempts + "/" + STARTUP_MAX_ATTEMPTS);
                 appendNetworkSnapshot(cm);
                 if (startupAttempts < STARTUP_MAX_ATTEMPTS) {
-                    startupHandler.postDelayed(this, 400L);
+                    startupHandler.postDelayed(this, STARTUP_RETRY_MS);
                 } else {
-                    appendDnsLog("-", "啟動失敗", "等待 4 秒仍找不到 Wi-Fi／Ethernet；服務已安全停止");
+                    appendDnsLog("-", "啟動失敗", "等待 15 秒仍找不到 Wi-Fi／Ethernet；服務已安全停止");
                     getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
                     stopFilter();
                 }
             }
-        }, 400L);
+        }, STARTUP_RETRY_MS);
     }
 
     private void appendNetworkSnapshot(ConnectivityManager cm) {
@@ -531,6 +569,7 @@ public class AdsFilterVpnService extends VpnService {
     private void stopFilter() {
         if (!stopping.compareAndSet(false, true)) return;
         startupHandler.removeCallbacksAndMessages(null);
+        cancelPendingNetworkLossCheck();
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
