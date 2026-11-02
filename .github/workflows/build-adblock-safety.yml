@@ -59,3 +59,4 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 # CI trigger: run GitHub-hosted build for the current AdBlock Safety R1 source.
+# Rebuild verification: 2026-11-02
