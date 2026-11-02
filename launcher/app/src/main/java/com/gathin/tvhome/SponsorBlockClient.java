@@ -17,8 +17,6 @@ import java.util.List;
  * SponsorBlock lookup using the public K-anonymity endpoint.
  * Only returns segments for the exact requested YouTube video ID.
  * This class does not perform playback seeking or skipping.
- *
- * SponsorBlock API attribution: https://github.com/ajayyy/SponsorBlock/wiki/API-Docs
  */
 final class SponsorBlockClient {
     private static final String API = "https://sponsor.ajay.app/api/skipSegments/";
@@ -37,12 +35,38 @@ final class SponsorBlockClient {
         }
     }
 
+    static final class LookupResult {
+        final int httpStatus;
+        final int responseBytes;
+        final int candidateCount;
+        final int matchingVideoCount;
+        final List<Segment> segments;
+
+        LookupResult(int httpStatus, int responseBytes, int candidateCount,
+                     int matchingVideoCount, List<Segment> segments) {
+            this.httpStatus = httpStatus;
+            this.responseBytes = responseBytes;
+            this.candidateCount = candidateCount;
+            this.matchingVideoCount = matchingVideoCount;
+            this.segments = segments;
+        }
+    }
+
     static List<Segment> lookupSponsorSegments(String videoId) throws Exception {
-        return lookupSponsorSegments(videoId, null);
+        return lookupSponsorSegmentsDetailed(videoId, null).segments;
     }
 
     static List<Segment> lookupSponsorSegments(String videoId,
                                                 YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupSponsorSegmentsDetailed(videoId, monitor).segments;
+    }
+
+    static LookupResult lookupSponsorSegmentsDetailed(String videoId) throws Exception {
+        return lookupSponsorSegmentsDetailed(videoId, null);
+    }
+
+    static LookupResult lookupSponsorSegmentsDetailed(String videoId,
+                                                        YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
         if (monitor != null && monitor.isStopped()) {
             throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
         }
@@ -53,7 +77,7 @@ final class SponsorBlockClient {
 
         String hash = sha256Hex(id);
         String prefix = hash.substring(0, 4);
-        String categories = URLEncoder.encode("[\"sponsor\"]", "UTF-8");
+        String categories = URLEncoder.encode("[\\"sponsor\\"]", "UTF-8");
         URL url = new URL(API + prefix + "?categories=" + categories);
         HttpURLConnection connection = null;
         try {
@@ -69,19 +93,30 @@ final class SponsorBlockClient {
             if (monitor != null && monitor.isStopped()) {
                 throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
             }
-            if (status == 404) return new ArrayList<>();
             InputStream stream = status >= 200 && status < 300
                     ? connection.getInputStream() : connection.getErrorStream();
-            String response = readAll(stream);
+            byte[] response = readBytes(stream);
+            if (status == 404) {
+                return new LookupResult(status, response.length, 0, 0, new ArrayList<>());
+            }
             if (status != 200) {
-                throw new Exception("SponsorBlock 查詢失敗（HTTP " + status + "）。");
+                throw new Exception("SponsorBlock 查詢失敗（HTTP " + status + "）；回應 "
+                        + response.length + " bytes。");
             }
 
-            JSONArray candidates = new JSONArray(response);
+            JSONArray candidates;
+            try {
+                candidates = new JSONArray(new String(response, StandardCharsets.UTF_8));
+            } catch (Exception parseError) {
+                throw new Exception("SponsorBlock 回應不是有效 JSON（HTTP 200，"
+                        + response.length + " bytes）。", parseError);
+            }
             List<Segment> matches = new ArrayList<>();
+            int matchingVideos = 0;
             for (int i = 0; i < candidates.length(); i++) {
                 JSONObject video = candidates.optJSONObject(i);
                 if (video == null || !id.equals(video.optString("videoID", ""))) continue;
+                matchingVideos++;
                 JSONArray segments = video.optJSONArray("segments");
                 if (segments == null) continue;
                 for (int j = 0; j < segments.length(); j++) {
@@ -98,26 +133,21 @@ final class SponsorBlockClient {
             }
             java.util.Collections.sort(matches,
                     (left, right) -> Double.compare(left.startSeconds, right.startSeconds));
-            return matches;
+            return new LookupResult(status, response.length, candidates.length(),
+                    matchingVideos, matches);
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
     }
 
-    /**
-     * Returns the sponsor segment containing the supplied playback position.
-     * The interval is start-inclusive and end-exclusive.
-     */
     static Segment findSegmentAtPosition(List<Segment> segments, double positionSeconds) {
         if (!Double.isFinite(positionSeconds) || positionSeconds < 0 || segments == null) {
             return null;
         }
         for (Segment segment : segments) {
             if (positionSeconds >= segment.startSeconds
-                    && positionSeconds < segment.endSeconds) {
-                return segment;
-            }
+                    && positionSeconds < segment.endSeconds) return segment;
             if (segment.startSeconds > positionSeconds) break;
         }
         return null;
@@ -131,13 +161,13 @@ final class SponsorBlockClient {
         return hex.toString();
     }
 
-    private static String readAll(InputStream stream) throws Exception {
-        if (stream == null) return "";
+    private static byte[] readBytes(InputStream stream) throws Exception {
+        if (stream == null) return new byte[0];
         try (InputStream in = stream; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[4096];
             int count;
             while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-            return out.toString("UTF-8");
+            return out.toByteArray();
         }
     }
 
