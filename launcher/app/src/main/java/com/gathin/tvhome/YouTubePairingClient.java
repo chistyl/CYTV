@@ -14,7 +14,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
+import java.security.KeyStore;\nimport java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -95,7 +95,7 @@ final class YouTubePairingClient {
         JSONObject json = new JSONObject();
         json.put("screenId", result.screenId);
         json.put("loungeToken", result.loungeToken);
-        json.put("name", result.deviceName);
+        json.put("name", result.deviceName);\n        json.put("deviceId", result.deviceId);
         byte[] iv;
         byte[] encrypted;
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -121,7 +121,42 @@ final class YouTubePairingClient {
         cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), new GCMParameterSpec(128, iv));
         JSONObject json = new JSONObject(new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8));
         return new PairingResult(json.getString("screenId"), json.getString("loungeToken"),
-                json.optString("name", "YouTube TV"));
+                json.optString("name", "YouTube TV"),\n                json.optString("deviceId", UUID.randomUUID().toString()));
+    }
+
+    static PairingResult refreshLoungeToken(Context context) throws Exception {
+        PairingResult old = load(context);
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(API + "/pairing/get_lounge_token_batch");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(10000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            byte[] body = ("screen_ids=" + java.net.URLEncoder.encode(old.screenId, "UTF-8"))
+                    .getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(body.length);
+            try (OutputStream out = connection.getOutputStream()) { out.write(body); }
+            int status = connection.getResponseCode();
+            String response = readAll(status >= 200 && status < 300
+                    ? connection.getInputStream() : connection.getErrorStream());
+            if (status != 200) throw new Exception("YouTube 憑證更新失敗（HTTP " + status + "）。請重新配對。");
+            JSONObject root = new JSONObject(response);
+            org.json.JSONArray screens = root.optJSONArray("screens");
+            if (screens == null || screens.length() == 0)
+                throw new Exception("YouTube 未回傳可更新的裝置憑證，請重新配對。");
+            JSONObject screen = screens.getJSONObject(0);
+            String screenId = screen.optString("screenId", old.screenId);
+            String token = screen.optString("loungeToken", "");
+            if (token.isEmpty()) throw new Exception("YouTube 未回傳新的 Lounge Token，請重新配對。");
+            PairingResult updated = new PairingResult(screenId, token, old.deviceName, old.deviceId);
+            save(context, updated);
+            return updated;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     static boolean checkAvailability(Context context) throws Exception {
