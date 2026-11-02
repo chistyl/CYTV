@@ -12,6 +12,8 @@ import android.net.NetworkCapabilities;
 import android.net.LinkProperties;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -52,6 +54,9 @@ public class AdsFilterVpnService extends VpnService {
     private volatile Network underlyingNetwork;
     private volatile List<InetAddress> upstreamServers = fallbackDnsServers();
     private ConnectivityManager.NetworkCallback networkCallback;
+    private final Handler startupHandler = new Handler(Looper.getMainLooper());
+    private int startupAttempts = 0;
+    private static final int STARTUP_MAX_ATTEMPTS = 10;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_REFRESH_NETWORK.equals(intent.getAction())) {
@@ -83,7 +88,8 @@ public class AdsFilterVpnService extends VpnService {
             // firmwares transiently drop that capability from physical Ethernet when a
             // VPN becomes active. Transport checks below exclude the VPN itself.
             NetworkRequest request = new NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .addTransportType(NetworkCapabilities.TRANSPORT_ETHERNET)
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .build();
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override public void onAvailable(Network network) {
@@ -91,7 +97,10 @@ public class AdsFilterVpnService extends VpnService {
                     // Keep the physical default selected before the VPN was established.
                     // A second available transport (for example Wi-Fi while Ethernet is active)
                     // must not silently steal DNS forwarding from the current default.
-                    if (underlyingNetwork == null && isPhysicalInternet(caps)) updateUnderlyingNetwork(network);
+                    if (underlyingNetwork == null && isPhysicalTransport(caps)) {
+                        updateUnderlyingNetwork(network);
+                        if (!running.get()) startTunnelWhenNetworkReady();
+                    }
                 }
                 @Override public void onLost(Network network) {
                     if (network.equals(underlyingNetwork)) {
@@ -115,8 +124,9 @@ public class AdsFilterVpnService extends VpnService {
                         } else {
                             failOpen("目前網路已不再提供一般網際網路，且沒有可用的替代網路");
                         }
-                    } else if (underlyingNetwork == null && isPhysicalInternet(caps)) {
+                    } else if (underlyingNetwork == null && isPhysicalTransport(caps)) {
                         updateUnderlyingNetwork(network);
+                        if (!running.get()) startTunnelWhenNetworkReady();
                     }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
@@ -125,38 +135,14 @@ public class AdsFilterVpnService extends VpnService {
             };
             cm.registerNetworkCallback(request, networkCallback);
             Network initial = findPhysicalNetwork(cm);
-            // Android 9 TV may take a short time to restore Ethernet after VPN teardown.
-            for (int attempt = 1; initial == null && attempt <= 10; attempt++) {
-                appendDnsLog("-", "診斷", "等待實體網路恢復 " + attempt + "/10");
-                try { Thread.sleep(400L); }
-                catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Interrupted while waiting for physical network");
-                }
-                initial = findPhysicalNetwork(cm);
+            if (initial != null) {
+                updateUnderlyingNetwork(initial);
+                startTunnelWhenNetworkReady();
+            } else {
+                appendDnsLog("-", "診斷", "啟動時尚未取得 Wi-Fi／Ethernet；改用非阻塞網路等待");
+                appendNetworkSnapshot(cm);
+                scheduleNetworkRetry(cm);
             }
-            if (initial == null) throw new IllegalStateException("No active Wi-Fi or Ethernet network after 4 seconds");
-            updateUnderlyingNetwork(initial);
-            NetworkCapabilities initialCaps = cm.getNetworkCapabilities(initial);
-            appendDnsLog("-", "診斷", "已選取實體網路 " + initial
-                    + "；Ethernet=" + (initialCaps != null && initialCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-                    + "；Wi-Fi=" + (initialCaps != null && initialCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                    + "；Internet=" + (initialCaps != null && initialCaps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
-            Builder builder = new Builder()
-                    .setSession("CleanYourTV 廣告過濾")
-                    .setMtu(1500)
-                    .addAddress(DNS_CLIENT, 32)
-                    .addDnsServer(DNS_LOCAL)
-                    .addRoute(DNS_LOCAL, 32);
-            tunnel = builder.establish();
-            if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
-            appendDnsLog("-", "診斷", "VPN TUN 建立成功");
-            // Keep Android's normal physical default-network selection untouched.
-            // Upstream DNS sockets use protect() + Network.bindSocket() individually.
-            running.set(true);
-            worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
-            worker.start();
-            appendDnsLog("-", "診斷", "DNS 工作執行緒已啟動");
         } catch (Exception e) {
             Log.e(TAG, "Unable to start DNS filter", e);
             appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
@@ -166,20 +152,91 @@ public class AdsFilterVpnService extends VpnService {
         return START_STICKY;
     }
 
-    private boolean isPhysicalInternet(NetworkCapabilities caps) {
-        return caps != null
-                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-                    || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+    private boolean isPhysicalTransport(NetworkCapabilities caps) {
+        return caps != null && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
     }
 
     private Network findPhysicalNetwork(ConnectivityManager cm) {
         Network active = cm.getActiveNetwork();
-        if (active != null && isPhysicalInternet(cm.getNetworkCapabilities(active))) return active;
+        if (active != null && isPhysicalTransport(cm.getNetworkCapabilities(active))) return active;
         for (Network candidate : cm.getAllNetworks()) {
-            if (isPhysicalInternet(cm.getNetworkCapabilities(candidate))) return candidate;
+            if (isPhysicalTransport(cm.getNetworkCapabilities(candidate))) return candidate;
         }
         return null;
+    }
+
+    private void scheduleNetworkRetry(ConnectivityManager cm) {
+        startupHandler.removeCallbacksAndMessages(null);
+        startupAttempts = 0;
+        startupHandler.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (stopping.get() || running.get()) return;
+                Network candidate = findPhysicalNetwork(cm);
+                if (candidate != null) {
+                    updateUnderlyingNetwork(candidate);
+                    appendDnsLog("-", "診斷", "非阻塞等待取得實體網路成功：" + candidate);
+                    startTunnelWhenNetworkReady();
+                    return;
+                }
+                startupAttempts++;
+                appendDnsLog("-", "診斷", "非阻塞等待實體網路 " + startupAttempts + "/" + STARTUP_MAX_ATTEMPTS);
+                appendNetworkSnapshot(cm);
+                if (startupAttempts < STARTUP_MAX_ATTEMPTS) {
+                    startupHandler.postDelayed(this, 400L);
+                } else {
+                    appendDnsLog("-", "啟動失敗", "等待 4 秒仍找不到 Wi-Fi／Ethernet；服務已安全停止");
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+                    stopFilter();
+                }
+            }
+        }, 400L);
+    }
+
+    private void appendNetworkSnapshot(ConnectivityManager cm) {
+        try {
+            Network active = cm.getActiveNetwork();
+            appendDnsLog("-", "診斷", "目前 ActiveNetwork=" + active);
+            for (Network candidate : cm.getAllNetworks()) {
+                NetworkCapabilities caps = cm.getNetworkCapabilities(candidate);
+                appendDnsLog("-", "診斷", "Network=" + candidate
+                        + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                        + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                        + "；VPN=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
+                        + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
+            }
+        } catch (Exception e) {
+            appendDnsLog("-", "診斷", "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage());
+        }
+    }
+
+    private void startTunnelWhenNetworkReady() {
+        if (stopping.get() || running.get() || tunnel != null) return;
+        startupHandler.removeCallbacksAndMessages(null);
+        try {
+            Network selected = underlyingNetwork;
+            if (selected == null) throw new IllegalStateException("Physical network is null");
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
+            appendDnsLog("-", "診斷", "選取實體網路 " + selected
+                    + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                    + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                    + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
+            Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
+                    .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
+            tunnel = builder.establish();
+            if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
+            appendDnsLog("-", "診斷", "VPN TUN 建立成功");
+            running.set(true);
+            worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
+            worker.start();
+            appendDnsLog("-", "診斷", "DNS 工作執行緒已啟動");
+        } catch (Exception e) {
+            Log.e(TAG, "Unable to establish DNS tunnel", e);
+            appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+            stopFilter();
+        }
     }
 
     private void updateUnderlyingNetwork(Network network) {
@@ -473,6 +530,8 @@ public class AdsFilterVpnService extends VpnService {
     }
     private void stopFilter() {
         if (!stopping.compareAndSet(false, true)) return;
+        startupHandler.removeCallbacksAndMessages(null);
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
 
