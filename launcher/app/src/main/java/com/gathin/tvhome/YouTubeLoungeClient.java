@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -39,10 +40,26 @@ final class YouTubeLoungeClient {
         }
     }
 
+    static final class SubscriptionResult {
+        final int eventCount;
+        final long lastEventId;
+        final String eventSummary;
+        final boolean timedOut;
+
+        SubscriptionResult(int eventCount, long lastEventId, String eventSummary, boolean timedOut) {
+            this.eventCount = eventCount;
+            this.lastEventId = lastEventId;
+            this.eventSummary = eventSummary;
+            this.timedOut = timedOut;
+        }
+    }
+
     private static final class ParsedEvents {
         String sid = "";
         String gsessionId = "";
         long lastEventId = -1;
+        int eventCount = 0;
+        final java.util.LinkedHashSet<String> eventNames = new java.util.LinkedHashSet<>();
     }
 
     static Session connect(Context context) throws Exception {
@@ -108,6 +125,58 @@ final class YouTubeLoungeClient {
     }
 
     /**
+     * Opens one bounded backchannel subscription request for diagnostics.
+     * It deliberately does not keep a permanent listener or issue control commands.
+     */
+    static SubscriptionResult subscribeOnce(Context context, Session session) throws Exception {
+        YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
+        String query = "name=" + enc("CYTV")
+                + "&loungeIdToken=" + enc(credentials.loungeToken)
+                + "&SID=" + enc(session.sid)
+                + "&AID=" + enc(String.valueOf(session.lastEventId))
+                + "&gsessionid=" + enc(session.gsessionId)
+                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&RID=rpc&CI=0&TYPE=xmlhttp";
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(12000);
+            connection.setRequestProperty("Accept", "*/*");
+            connection.setRequestProperty("Origin", "https://www.youtube.com");
+            connection.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+
+            int status = connection.getResponseCode();
+            if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
+            if (status == 400 || status == 410) {
+                throw new Exception("YouTube Lounge 工作階段已失效（HTTP " + status + "），請重新建立控制連線。");
+            }
+            if (status != 200) throw new Exception("YouTube Lounge 事件訂閱失敗（HTTP " + status + "）。");
+
+            ParsedEvents parsed;
+            try {
+                parsed = parseEventFrames(readAll(connection.getInputStream()));
+            } catch (SocketTimeoutException timeout) {
+                return new SubscriptionResult(0, session.lastEventId,
+                        "等待事件逾時；HTTP 訂閱請求已成功建立，但目前沒有收到事件。", true);
+            }
+            long aid = parsed.lastEventId >= 0 ? parsed.lastEventId : session.lastEventId;
+            String summary = parsed.eventNames.isEmpty()
+                    ? "訂閱請求已回應，但沒有收到可辨識的事件。"
+                    : android.text.TextUtils.join("、", parsed.eventNames);
+            return new SubscriptionResult(parsed.eventCount, aid, summary, false);
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    private static String enc(String value) throws Exception {
+        return URLEncoder.encode(value == null ? "" : value, "UTF-8");
+    }
+
+    /**
      * YouTube Lounge frames are: decimal character count + newline + JSON event array.
      * Each event is [eventId, [eventName, ...arguments]].
      */
@@ -156,7 +225,10 @@ final class YouTubeLoungeClient {
                         parsed.sid = payload.optString(1, "");
                     } else if ("S".equals(eventName) && payload.length() > 1) {
                         parsed.gsessionId = payload.optString(1, "");
+                    } else if (!eventName.isEmpty()) {
+                        parsed.eventNames.add(eventName);
                     }
+                    parsed.eventCount++;
                     if (eventId >= 0) parsed.lastEventId = Math.max(parsed.lastEventId, eventId);
                 }
             }
