@@ -253,7 +253,7 @@ public class YouTubeAssistantActivity extends Activity {
             String sponsorLookupError = "";
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this, handle);
-                if (handle.isStopped()) break;
+                if (handle.isStopped()) return;
                 setMonitorStatus("已連線，等待 YouTube 播放事件…");
                 while (!handle.isStopped() && monitoring) {
                     YouTubeLoungeClient.SubscriptionResult result =
