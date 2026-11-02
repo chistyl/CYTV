@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rsync -a /tmp/cytv-r138-source/ ./ --exclude='.git/'
+          rsync -a /tmp/cytv-r138-source/ ./ --exclude='.git/' --exclude='.github/workflows/***'
           rm -f CYTV-R138-R3-source.part01 CYTV-R138-R3-source.part02 CYTV-R138-R3-source.part03
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
