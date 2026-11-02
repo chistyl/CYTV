@@ -155,19 +155,22 @@ public class AdsBlockerActivity extends Activity {
         LinearLayout.LayoutParams modeTitleParams = new LinearLayout.LayoutParams(-1, dp(42));
         modeTitleParams.topMargin = dp(12);
         content.addView(networkModeTitle, modeTitleParams);
+        TextView modeHint = label("建議使用自動 DNS，由目前連線提供 DNS。", 15);
+        modeHint.setTextColor(Color.LTGRAY);
+        content.addView(modeHint, new LinearLayout.LayoutParams(-1, dp(34)));
         LinearLayout modeRow = new LinearLayout(this);
-        modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        autoDnsChoice = button("自動（Auto）", () -> setDnsMode("auto"));
-        manualDnsChoice = button("手動（固定 DNS）", () -> setDnsMode("manual"));
-        LinearLayout.LayoutParams modeButtonParams = new LinearLayout.LayoutParams(0, dp(54), 1f);
-        modeButtonParams.rightMargin = dp(8);
+        modeRow.setOrientation(LinearLayout.VERTICAL);
+        autoDnsChoice = button("自動（使用目前網路 DNS）", () -> setDnsMode("auto"));
+        manualDnsChoice = button("手動（固定 DNS：1.1.1.1）", () -> setDnsMode("manual"));
+        LinearLayout.LayoutParams modeButtonParams = new LinearLayout.LayoutParams(-1, dp(60));
+        modeButtonParams.bottomMargin = dp(8);
         modeRow.addView(autoDnsChoice, modeButtonParams);
-        LinearLayout.LayoutParams manualParams = new LinearLayout.LayoutParams(0, dp(54), 1f);
-        manualParams.leftMargin = dp(8);
-        modeRow.addView(manualDnsChoice, manualParams);
-        content.addView(modeRow, new LinearLayout.LayoutParams(-1, dp(58)));
+        modeRow.addView(manualDnsChoice, new LinearLayout.LayoutParams(-1, dp(60)));
+        content.addView(modeRow, new LinearLayout.LayoutParams(-1, dp(130)));
         toggle = button("", this::toggleFilter);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, dp(58)); tp.topMargin = dp(12);
+        toggle.setTextSize(21);
+        toggle.setTypeface(null, Typeface.BOLD);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, dp(70)); tp.topMargin = dp(14);
         content.addView(toggle, tp);
         Button dnsHistory = button("查看 DNS 紀錄", this::showDnsLogs);
         LinearLayout.LayoutParams logButtonParams = new LinearLayout.LayoutParams(-1, dp(56));
@@ -202,7 +205,7 @@ public class AdsBlockerActivity extends Activity {
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
     private void refresh() {
         if (status == null) return;
-        status.setText(enabled() ? "狀態：廣告過濾已啟用" : "狀態：廣告過濾已關閉");
+        status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
         toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
         autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
