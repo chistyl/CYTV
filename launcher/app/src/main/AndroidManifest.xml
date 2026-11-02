@@ -122,6 +122,15 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape" />
 
+        <service
+            android:name=".YouTubeSponsorSkipService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-enabled YouTube playback monitoring for SponsorBlock skipping" />
+        </service>
+
         <activity
             android:name=".LauncherSettingsActivity"
             android:exported="false"
