@@ -221,7 +221,8 @@ public class YouTubeAssistantActivity extends Activity {
             try {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
                 message = "已取得 YouTube Lounge 工作階段識別碼。"
-                        + "\\n目前只完成 bind handshake，尚未訂閱事件，也尚未啟用遙控命令。";
+                        + "\n目前只完成 bind handshake，尚未訂閱事件，也尚未啟用遙控命令。"
+                        + "\n最後事件編號 AID：" + session.lastEventId + "。";
                 connected = true;
             } catch (Exception e) {
                 message = e.getMessage() == null ? "Lounge 連線失敗，請稍後重試。" : e.getMessage();
