@@ -6,10 +6,12 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -73,13 +75,13 @@ public class YouTubeAssistantActivity extends Activity {
         scroll.addView(rows);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        addRow(rows, "YouTube TV 配對", "尚未連線", "配對功能尚在開發中，完成通訊協定與實機測試後才會開放。");
+        addPairingRow(rows);
         addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
 
         TextView note = new TextView(this);
-        note.setText("注意：此頁目前為設定介面第一階段，尚未執行配對、靜音或自動略過。");
+        note.setText("目前可先保存 YouTube TV 裝置代碼；尚未建立裝置連線，也不會執行靜音或自動略過。");
         note.setTextColor(MUTED);
         note.setTextSize(13);
         note.setPadding(dp(4), dp(16), dp(4), 0);
@@ -89,7 +91,104 @@ public class YouTubeAssistantActivity extends Activity {
         back.requestFocus();
     }
 
-    private void addRow(LinearLayout parent, String heading, String status, String detail) {
+
+    private void addPairingRow(LinearLayout parent) {
+        String savedCode = getPreferences(MODE_PRIVATE).getString("youtube_tv_device_code", "");
+        String stateText = savedCode.isEmpty() ? "尚未輸入裝置代碼" : "裝置代碼已保存（尚未連線）";
+        LinearLayout card = createCard(parent, "YouTube TV 配對", stateText);
+        card.setOnClickListener(v -> showDeviceCodeDialog());
+    }
+
+    private LinearLayout createCard(LinearLayout parent, String heading, String status) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setFocusable(true);
+        card.setFocusableInTouchMode(true);
+        card.setClickable(true);
+        card.setPadding(dp(20), dp(15), dp(20), dp(15));
+        card.setBackground(background(PANEL, dp(14)));
+        card.setOnFocusChangeListener((v, focused) -> {
+            v.setBackground(background(focused ? FOCUS : PANEL, dp(14)));
+            setTextColorRecursive((ViewGroup) v, focused ? Color.rgb(20, 23, 29) : TEXT,
+                    focused ? Color.rgb(70, 76, 88) : MUTED);
+            v.setScaleX(focused ? 1.015f : 1f);
+            v.setScaleY(focused ? 1.015f : 1f);
+        });
+        TextView name = new TextView(this);
+        name.setText(heading);
+        name.setTextColor(TEXT);
+        name.setTextSize(19);
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        card.addView(name);
+        TextView state = new TextView(this);
+        state.setText(status);
+        state.setTextColor(MUTED);
+        state.setTextSize(14);
+        LinearLayout.LayoutParams stateLp = new LinearLayout.LayoutParams(-1, -2);
+        stateLp.topMargin = dp(5);
+        card.addView(state, stateLp);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = dp(12);
+        parent.addView(card, lp);
+        return card;
+    }
+
+    private void showDeviceCodeDialog() {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(getPreferences(MODE_PRIVATE).getString("youtube_tv_device_code", ""));
+        input.setHint("輸入 YouTube TV 裝置代碼");
+        input.setTextColor(Color.WHITE);
+        input.setHintTextColor(MUTED);
+        input.setTextSize(18);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+                | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setSelectAllOnFocus(true);
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        input.setBackground(background(PANEL, dp(10)));
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(22), dp(8), dp(22), dp(4));
+        TextView help = new TextView(this);
+        help.setText("請先在 YouTube TV App 的設定中查看裝置代碼，再使用遙控器輸入。");
+        help.setTextColor(MUTED);
+        help.setTextSize(14);
+        box.addView(help);
+        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
+        inputLp.topMargin = dp(14);
+        box.addView(input, inputLp);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("輸入 YouTube TV 裝置代碼")
+                .setView(box)
+                .setPositiveButton("保存代碼", (d, which) -> {
+                    String code = input.getText().toString().trim();
+                    if (code.isEmpty()) {
+                        getPreferences(MODE_PRIVATE).edit().remove("youtube_tv_device_code").apply();
+                        showInfo("已清除裝置代碼");
+                    } else {
+                        getPreferences(MODE_PRIVATE).edit().putString("youtube_tv_device_code", code).apply();
+                        showInfo("代碼已保存；目前尚未連線");
+                    }
+                    recreate();
+                })
+                .setNegativeButton("取消", (d, which) -> d.dismiss())
+                .create();
+        dialog.getWindow();
+        dialog.setOnShowListener(d -> {
+            input.requestFocus();
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        });
+        dialog.show();
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    }
+
+    private void showInfo(String message) {
+        new AlertDialog.Builder(this).setMessage(message)
+                .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
+    }
+\n    private void addRow(LinearLayout parent, String heading, String status, String detail) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setFocusable(true);
