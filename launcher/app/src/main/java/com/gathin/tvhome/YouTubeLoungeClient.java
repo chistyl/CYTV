@@ -222,7 +222,12 @@ final class YouTubeLoungeClient {
      * It deliberately does not keep a permanent listener or issue control commands.
      */
     static SubscriptionResult subscribeOnce(Context context, Session session) throws Exception {
-        return subscribeOnce(context, session, null);
+        return subscribeOnce(context, session, null, 0);
+    }
+
+    static SubscriptionResult subscribeOnce(Context context, Session session,
+                                            int clientIndex) throws Exception {
+        return subscribeOnce(context, session, null, clientIndex);
     }
 
     /**
@@ -231,6 +236,14 @@ final class YouTubeLoungeClient {
      */
     static SubscriptionResult subscribeOnce(Context context, Session session,
                                             MonitorHandle monitor) throws Exception {
+        return subscribeOnce(context, session, monitor, 0);
+    }
+
+    static SubscriptionResult subscribeOnce(Context context, Session session,
+                                            MonitorHandle monitor, int clientIndex) throws Exception {
+        if (clientIndex != 0 && clientIndex != 1) {
+            throw new IllegalArgumentException("Lounge CI 僅支援 0 或 1。");
+        }
         if (monitor != null && monitor.isStopped()) {
             throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
         }
@@ -240,7 +253,8 @@ final class YouTubeLoungeClient {
                 + "&SID=" + enc(session.sid)
                 + "&AID=" + enc(String.valueOf(session.lastEventId))
                 + "&gsessionid=" + enc(session.gsessionId)
-                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&RID=rpc&CI=0&TYPE=xmlhttp";
+                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&RID=rpc&CI="
+                + clientIndex + "&TYPE=xmlhttp";
         HttpURLConnection connection = null;
         boolean httpAccepted = false;
         try {
