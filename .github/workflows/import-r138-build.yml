@@ -1,4 +1,4 @@
-name: Build CYTV R138 Reopen Menu Update
+name: Build CYTV R138 LauncherTV Dialog Style Update
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - r138-reboot-fix-r3
     paths:
       - 'CYTV-R138-R3-source.part*'
+      - 'patches/power-dialog-style.patch'
       - '.github/workflows/import-r138-build.yml'
   workflow_dispatch:
 
@@ -21,6 +22,15 @@ jobs:
         with:
           ref: r138-reboot-fix-r3
           fetch-depth: 0
+
+      - name: Apply LauncherTV power dialog style
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f patches/power-dialog-style.patch ]; then
+            git apply --check patches/power-dialog-style.patch
+            git apply patches/power-dialog-style.patch
+          fi
 
       - name: Reassemble and verify source archive when parts exist
         shell: bash
@@ -80,21 +90,21 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R138-Reopen-Menu-R4-APK
+          name: CYTV-R138-LauncherTV-Dialog-R5-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R138-Reopen-Menu-R4-source.zip . \
+          zip -qr CYTV-R138-LauncherTV-Dialog-R5-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R138-Reopen-Menu-R4-source.zip'
+               './launcher/app/build/*' './CYTV-R138-LauncherTV-Dialog-R5-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R138-Reopen-Menu-R4-Complete-Source
-          path: CYTV-R138-Reopen-Menu-R4-source.zip
+          name: CYTV-R138-LauncherTV-Dialog-R5-Complete-Source
+          path: CYTV-R138-LauncherTV-Dialog-R5-source.zip
           if-no-files-found: error
           retention-days: 30
