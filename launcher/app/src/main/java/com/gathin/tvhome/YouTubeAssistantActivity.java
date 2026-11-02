@@ -229,13 +229,38 @@ public class YouTubeAssistantActivity extends Activity {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
                 YouTubeLoungeClient.SubscriptionResult result =
                         YouTubeLoungeClient.subscribeOnce(this, session);
-                message = (result.httpAccepted
+                StringBuilder report = new StringBuilder();
+                report.append(result.httpAccepted
                         ? "YouTube 已接受 Lounge 訂閱 HTTP 請求。"
-                        : "尚未確認 YouTube 接受 Lounge 訂閱請求。")
-                        + "\n收到事件數：" + result.eventCount
-                        + "\n最後事件編號 AID：" + result.lastEventId
-                        + "\n事件：" + result.eventSummary
-                        + (result.timedOut ? "\n\n診斷結果：等待逾時。" : "");
+                        : "尚未確認 YouTube 接受 Lounge 訂閱請求。");
+                report.append("\\n收到事件數：").append(result.eventCount)
+                        .append("\\n最後事件編號 AID：").append(result.lastEventId)
+                        .append("\\n事件：").append(result.eventSummary);
+                if (!result.videoId.isEmpty()) {
+                    report.append("\\n目前影片 ID：").append(result.videoId);
+                    if (result.currentTime >= 0) {
+                        report.append("\\n目前播放位置：").append(String.format(java.util.Locale.US, "%.1f 秒", result.currentTime));
+                    }
+                    if (result.duration >= 0) {
+                        report.append("\\n影片長度：").append(String.format(java.util.Locale.US, "%.1f 秒", result.duration));
+                    }
+                    try {
+                        java.util.List<SponsorBlockClient.Segment> segments =
+                                SponsorBlockClient.lookupSponsorSegments(result.videoId);
+                        report.append("\\nSponsorBlock 贊助片段：").append(segments.size()).append(" 段");
+                        for (SponsorBlockClient.Segment segment : segments) {
+                            report.append("\\n").append(String.format(java.util.Locale.US,
+                                    "%.1f–%.1f 秒", segment.startSeconds, segment.endSeconds));
+                        }
+                    } catch (Exception lookupError) {
+                        report.append("\\nSponsorBlock 查詢失敗：")
+                                .append(lookupError.getMessage() == null ? "未知錯誤" : lookupError.getMessage());
+                    }
+                } else {
+                    report.append("\\n目前尚未取得影片 ID，暫不查詢 SponsorBlock。");
+                }
+                if (result.timedOut) report.append("\\n\\n診斷結果：等待逾時。");
+                message = report.toString();
                 success = true;
             } catch (Exception e) {
                 message = e.getMessage() == null ? "事件訂閱失敗，請稍後重試。" : e.getMessage();
