@@ -45,12 +45,15 @@ final class YouTubeLoungeClient {
         final long lastEventId;
         final String eventSummary;
         final boolean timedOut;
+        final boolean httpAccepted;
 
-        SubscriptionResult(int eventCount, long lastEventId, String eventSummary, boolean timedOut) {
+        SubscriptionResult(int eventCount, long lastEventId, String eventSummary,
+                           boolean timedOut, boolean httpAccepted) {
             this.eventCount = eventCount;
             this.lastEventId = lastEventId;
             this.eventSummary = eventSummary;
             this.timedOut = timedOut;
+            this.httpAccepted = httpAccepted;
         }
     }
 
@@ -137,6 +140,7 @@ final class YouTubeLoungeClient {
                 + "&gsessionid=" + enc(session.gsessionId)
                 + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&RID=rpc&CI=0&TYPE=xmlhttp";
         HttpURLConnection connection = null;
+        boolean httpAccepted = false;
         try {
             URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
             connection = (HttpURLConnection) url.openConnection();
@@ -148,25 +152,36 @@ final class YouTubeLoungeClient {
             connection.setRequestProperty("User-Agent",
                     "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-            int status = connection.getResponseCode();
+            final int status;
+            try {
+                status = connection.getResponseCode();
+            } catch (SocketTimeoutException timeout) {
+                return new SubscriptionResult(0, session.lastEventId,
+                        "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。", true, false);
+            }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
             if (status == 400 || status == 410) {
                 throw new Exception("YouTube Lounge 工作階段已失效（HTTP " + status + "），請重新建立控制連線。");
             }
             if (status != 200) throw new Exception("YouTube Lounge 事件訂閱失敗（HTTP " + status + "）。");
+            httpAccepted = true;
 
             ParsedEvents parsed;
             try {
                 parsed = parseEventFrames(readAll(connection.getInputStream()));
             } catch (SocketTimeoutException timeout) {
                 return new SubscriptionResult(0, session.lastEventId,
-                        "等待事件逾時；HTTP 訂閱請求已成功建立，但目前沒有收到事件。", true);
+                        "YouTube 已接受 HTTP 訂閱請求；等待事件逾時，目前尚未收到事件。",
+                        true, true);
             }
             long aid = parsed.lastEventId >= 0 ? parsed.lastEventId : session.lastEventId;
             String summary = parsed.eventNames.isEmpty()
-                    ? "訂閱請求已回應，但沒有收到可辨識的事件。"
+                    ? "訂閱回應中沒有可辨識的事件。"
                     : android.text.TextUtils.join("、", parsed.eventNames);
-            return new SubscriptionResult(parsed.eventCount, aid, summary, false);
+            return new SubscriptionResult(parsed.eventCount, aid, summary, false, true);
+        } catch (SocketTimeoutException timeout) {
+            return new SubscriptionResult(0, session.lastEventId,
+                    "連線等待逾時；尚未確認伺服器接受訂閱。", true, httpAccepted);
         } finally {
             if (connection != null) connection.disconnect();
         }
