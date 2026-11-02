@@ -6,7 +6,7 @@ on:
       - r138-reboot-fix-r3
     paths:
       - 'CYTV-R138-R3-source.part*'
-      - 'patches/power-dialog-style.patch'
+      - 'patches/apply_power_dialog.py'
       - '.github/workflows/import-r138-build.yml'
   workflow_dispatch:
 
@@ -27,10 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f patches/power-dialog-style.patch ]; then
-            git apply --check patches/power-dialog-style.patch
-            git apply patches/power-dialog-style.patch
-          fi
+          python3 patches/apply_power_dialog.py
 
       - name: Reassemble and verify source archive when parts exist
         shell: bash
