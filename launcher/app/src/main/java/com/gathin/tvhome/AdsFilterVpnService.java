@@ -81,19 +81,25 @@ public class AdsFilterVpnService extends VpnService {
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override public void onAvailable(Network network) {
                     NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-                    if (isPhysicalInternet(caps)) updateUnderlyingNetwork(network);
+                    // Keep the physical default selected before the VPN was established.
+                    // A second available transport (for example Wi-Fi while Ethernet is active)
+                    // must not silently steal DNS forwarding from the current default.
+                    if (underlyingNetwork == null && isPhysicalInternet(caps)) updateUnderlyingNetwork(network);
                 }
                 @Override public void onLost(Network network) {
                     if (network.equals(underlyingNetwork)) {
-                        underlyingNetwork = null;
-                        Network replacement = findPhysicalNetwork(cm);
-                        if (replacement != null) updateUnderlyingNetwork(replacement);
-                        // Do not change Android's system-wide underlying-network selection.
-                        // The DNS socket is explicitly bound to the physical network in forward().
+                        // Do not guess between remaining Wi-Fi/Ethernet networks. A wrong
+                        // choice can send DNS through a captive or isolated network. Stop the
+                        // local VPN so Android can resume its own default-network routing.
+                        failOpen("目前使用的實體網路已中斷");
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
-                    if (isPhysicalInternet(caps)) updateUnderlyingNetwork(network);
+                    if (network.equals(underlyingNetwork) && !isPhysicalInternet(caps)) {
+                        failOpen("目前網路已不再提供一般網際網路");
+                    } else if (underlyingNetwork == null && isPhysicalInternet(caps)) {
+                        updateUnderlyingNetwork(network);
+                    }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
                     if (network.equals(underlyingNetwork)) updateUpstreamServers(network, cm);
@@ -289,6 +295,13 @@ public class AdsFilterVpnService extends VpnService {
         }
         noteDnsFailure("所有設定的上游 DNS 均無回應");
         return null;
+    }
+
+    private void failOpen(String reason) {
+        Log.e(TAG, "Fail-open: " + reason);
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+        appendDnsLog("-", "查詢失敗", reason + "；已自動關閉過濾並交還 Android 網路管理");
+        stopFilter();
     }
 
     private void noteDnsFailure(String reason) {
