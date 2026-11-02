@@ -46,10 +46,10 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
     private void showLauncherPowerDialog(String titleText, String messageText,
                                          String positiveText, String negativeText,
                                          Runnable positiveAction) {
-        int pad = (int) (1 * density);
         android.widget.LinearLayout panel = new android.widget.LinearLayout(this);
         panel.setOrientation(android.widget.LinearLayout.VERTICAL);
-        panel.setPadding(36 * pad, 30 * pad, 36 * pad, 26 * pad);
+        panel.setPadding((int) (36 * density), (int) (30 * density),
+                (int) (36 * density), (int) (26 * density));
         panel.setBackground(new GradientDrawable() {{
             setColor(0xFF242426);
             setCornerRadius(26 * density);
@@ -149,6 +149,8 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
             dialog.dismiss();
             if (positiveAction != null) positiveAction.run();
         }});
+        negative.setId(View.generateViewId());
+        positive.setId(View.generateViewId());
         negative.setNextFocusRightId(positive.getId());
         positive.setNextFocusLeftId(negative.getId());
 
