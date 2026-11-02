@@ -323,6 +323,51 @@ final class YouTubeLoungeClient {
         }
     }
 
+    /**
+     * Requests the current playback state from the paired screen.
+     * getNowPlaying is a read-only Lounge query; it does not alter playback.
+     */
+    static String requestNowPlaying(Context context, Session session) throws Exception {
+        YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
+        String query = "name=" + enc("CYTV")
+                + "&loungeIdToken=" + enc(credentials.loungeToken)
+                + "&SID=" + enc(session.sid)
+                + "&AID=" + enc(String.valueOf(session.lastEventId))
+                + "&gsessionid=" + enc(session.gsessionId)
+                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2"
+                + "&RID=2&auth_failure_option=send_error";
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(12000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type",
+                    "application/x-www-form-urlencoded; charset=UTF-8");
+            connection.setRequestProperty("Accept", "*/*");
+            connection.setRequestProperty("Origin", "https://www.youtube.com");
+            connection.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            String body = "count=1&ofs=1&req0__sc=getNowPlaying";
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(bytes.length);
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(bytes);
+                out.flush();
+            }
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 200 && status < 300
+                    ? connection.getInputStream() : connection.getErrorStream();
+            String response = readAll(stream);
+            return "getNowPlaying HTTP " + status + "（回應 " +
+                    response.getBytes(StandardCharsets.UTF_8).length + " bytes）";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
     private static String enc(String value) throws Exception {
         return URLEncoder.encode(value == null ? "" : value, "UTF-8");
     }
