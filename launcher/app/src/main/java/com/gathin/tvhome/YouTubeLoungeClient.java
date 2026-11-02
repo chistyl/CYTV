@@ -108,6 +108,7 @@ final class YouTubeLoungeClient {
         long lastEventId = -1;
         int eventCount = 0;
         final java.util.LinkedHashSet<String> eventNames = new java.util.LinkedHashSet<>();
+        final java.util.LinkedHashSet<String> eventDetails = new java.util.LinkedHashSet<>();
         String videoId = "";
         double currentTime = -1;
         double duration = -1;
@@ -254,6 +255,9 @@ final class YouTubeLoungeClient {
             String summary = parsed.eventNames.isEmpty()
                     ? "訂閱回應中沒有可辨識的事件。"
                     : android.text.TextUtils.join("、", parsed.eventNames);
+            if (!parsed.eventDetails.isEmpty()) {
+                summary += "；事件資料：" + android.text.TextUtils.join(" | ", parsed.eventDetails);
+            }
             if (parsed.videoId.isEmpty()) {
                 summary += "；尚未取得目前播放影片 ID。";
             }
@@ -336,6 +340,12 @@ final class YouTubeLoungeClient {
                     JSONArray payload = envelope.optJSONArray(1);
                     if (payload == null || payload.length() == 0) continue;
                     String eventName = payload.optString(0, "");
+                    // Keep a bounded, token-free sample of the actual event payload for protocol diagnostics.
+                    String detail = payload.toString();
+                    if (detail.length() > 420) detail = detail.substring(0, 420) + "…";
+                    if (!"c".equals(eventName) && !"S".equals(eventName)) {
+                        parsed.eventDetails.add(eventName + " " + detail);
+                    }
                     if ("c".equals(eventName) && payload.length() > 1) {
                         parsed.sid = payload.optString(1, "");
                     } else if ("S".equals(eventName) && payload.length() > 1) {
