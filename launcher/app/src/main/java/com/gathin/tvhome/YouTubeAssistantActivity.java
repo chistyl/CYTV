@@ -229,11 +229,13 @@ public class YouTubeAssistantActivity extends Activity {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
                 YouTubeLoungeClient.SubscriptionResult result =
                         YouTubeLoungeClient.subscribeOnce(this, session);
-                message = "Lounge 訂閱 HTTP 請求成功。"
+                message = (result.httpAccepted
+                        ? "YouTube 已接受 Lounge 訂閱 HTTP 請求。"
+                        : "尚未確認 YouTube 接受 Lounge 訂閱請求。")
                         + "\n收到事件數：" + result.eventCount
                         + "\n最後事件編號 AID：" + result.lastEventId
                         + "\n事件：" + result.eventSummary
-                        + (result.timedOut ? "\n\n目前是等待逾時，尚未收到事件。" : "");
+                        + (result.timedOut ? "\n\n診斷結果：等待逾時。" : "");
                 success = true;
             } catch (Exception e) {
                 message = e.getMessage() == null ? "事件訂閱失敗，請稍後重試。" : e.getMessage();
