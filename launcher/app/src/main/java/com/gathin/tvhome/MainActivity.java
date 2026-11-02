@@ -3814,33 +3814,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Open Android TV's system power dialog through the enabled accessibility helper.
-     * A regular launcher app cannot reboot the device directly without privileged permission.
+     * Open the TV power dialog when the optional accessibility helper is available.
+     * On Android 9 TV builds without an Accessibility settings entry, try the platform
+     * reboot API directly; firmware that grants REBOOT can complete this without the helper.
+     * If the ROM denies that privileged operation, show a clear fallback instead of sending
+     * the user to a settings page that may not exist.
      */
     private void openSystemPowerMenuFromSettings() {
-        // Do not rely on a separate "can" check: the accessibility service can disconnect
-        // between checking its state and invoking the global action.
+        // Prefer the system power dialog when the helper is already connected.
         if (HomeKeyService.openPowerMenu()) return;
 
-        if (!HomeKeyService.canOpenPowerMenu()) {
-            new AlertDialog.Builder(this)
-                    .setTitle("尚未啟用重新啟動功能")
-                    .setMessage("需要先啟用 CleanYourTV 的「主畫面鍵」輔助使用服務，才能開啟電視的系統電源選單。啟用後返回桌面，再選擇「重新啟動」。")
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("前往輔助使用設定", (dialog, which) ->
-                            open(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
-                    .show();
-            return;
-        }
-
-        // The service is connected, but this firmware declined GLOBAL_ACTION_POWER_DIALOG.
-        new AlertDialog.Builder(this)
-                .setTitle("無法開啟系統電源選單")
-                .setMessage("電視系統沒有接受電源選單請求。請使用電視遙控器的電源鍵，或前往 Android 系統設定重新啟動電視。")
-                .setPositiveButton("開啟系統設定", (dialog, which) ->
-                        open(new Intent(Settings.ACTION_SETTINGS)))
-                .setNegativeButton("取消", null)
-                .show();
+        // No Accessibility settings dependency: requestDeviceReboot() handles confirmation,
+        // attempts PowerManager.reboot(), and reports a permission denial safely.
+        requestDeviceReboot();
     }
 
     /** V16.9 weekly weather: Open-Meteo geocoding + 7-day forecast. */
@@ -4129,8 +4115,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         power.reboot(null);
                     } catch (RuntimeException error) {
                         new AlertDialog.Builder(this)
-                                .setTitle("無法由啟動器重新開機")
-                                .setMessage("目前電視系統未授予重新開機權限，請使用電視的系統電源選單重新啟動。")
+                                .setTitle("電視系統未允許直接重新開機")
+                                .setMessage("這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。")
                                 .setPositiveButton("確定", null)
                                 .show();
                     }
