@@ -369,11 +369,12 @@ final class YouTubeLoungeClient {
                     JSONArray payload = envelope.optJSONArray(1);
                     if (payload == null || payload.length() == 0) continue;
                     String eventName = payload.optString(0, "");
-                    // Keep a bounded, token-free sample of the actual event payload for protocol diagnostics.
+                    // Keep a bounded sample of every event, including unknown event types.
+                    // Lounge playback payloads can be nested differently across TV clients.
                     String detail = payload.toString();
-                    if (detail.length() > 420) detail = detail.substring(0, 420) + "…";
+                    if (detail.length() > 1400) detail = detail.substring(0, 1400) + "…";
                     if (!"c".equals(eventName) && !"S".equals(eventName)) {
-                        parsed.eventDetails.add(eventName + " " + detail);
+                        parsed.eventDetails.add("AID=" + eventId + " " + eventName + " " + detail);
                     }
                     if ("c".equals(eventName) && payload.length() > 1) {
                         parsed.sid = payload.optString(1, "");
@@ -382,30 +383,24 @@ final class YouTubeLoungeClient {
                     } else {
                         if (!eventName.isEmpty()) parsed.eventNames.add(eventName);
                         if (payload.length() > 1) {
-                            JSONObject stateData = payload.optJSONObject(1);
-                            if (stateData != null && ("nowPlaying".equals(eventName)
-                                    || "playlistModified".equals(eventName))) {
-                                // Lounge may publish the active item first as playlistModified.
-                                // Prefer videoId; firstVideoId is a safe fallback when the queue
-                                // event identifies its first/current item but omits videoId.
-                                String id = stateData.optString("videoId", "");
+                            Object eventData = payload.opt(1);
+                            JSONObject stateData = eventData instanceof JSONObject
+                                    ? (JSONObject) eventData : null;
+                            if (stateData != null) {
+                                String id = findString(stateData, "videoId");
                                 if (!id.matches("[A-Za-z0-9_-]{11}")) {
-                                    id = stateData.optString("firstVideoId", "");
+                                    id = findString(stateData, "firstVideoId");
                                 }
-                                if (id.matches("[A-Za-z0-9_-]{11}")) {
-                                    parsed.videoId = id;
-                                }
-                                double position = stateData.optDouble("currentTime", -1);
-                                double length = stateData.optDouble("duration", -1);
-                                if (position >= 0) parsed.currentTime = position;
-                                if (length > 0) parsed.duration = length;
-                            } else if (stateData != null && "onStateChange".equals(eventName)) {
-                                parsed.playerState = stateData.optString("state", "");
-                                double position = stateData.optDouble("currentTime", -1);
-                                double length = stateData.optDouble("duration", -1);
-                                if (position >= 0) parsed.currentTime = position;
-                                if (length > 0) parsed.duration = length;
+                                if (id.matches("[A-Za-z0-9_-]{11}")) parsed.videoId = id;
+                                String state = findString(stateData, "state");
+                                if (!state.isEmpty()) parsed.playerState = state;
                             }
+                            // Search nested objects, arrays and JSON-encoded strings. Some
+                            // Lounge clients wrap playback data instead of exposing it at root.
+                            double position = findNumber(eventData, "currentTime");
+                            double length = findNumber(eventData, "duration");
+                            if (position >= 0) parsed.currentTime = position;
+                            if (length > 0) parsed.duration = length;
                         }
                     }
                     parsed.eventCount++;
@@ -414,6 +409,69 @@ final class YouTubeLoungeClient {
             }
         }
         return parsed;
+    }
+
+    private static String findString(Object value, String key) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            String found = object.optString(key, "");
+            if (!found.isEmpty() && !"null".equals(found)) return found;
+            java.util.Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                String childKey = keys.next();
+                String nested = findString(object.opt(childKey), key);
+                if (!nested.isEmpty()) return nested;
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int i = 0; i < array.length(); i++) {
+                String nested = findString(array.opt(i), key);
+                if (!nested.isEmpty()) return nested;
+            }
+        } else if (value instanceof String) {
+            String raw = ((String) value).trim();
+            if (raw.startsWith("{") || raw.startsWith("[")) {
+                try {
+                    Object nested = raw.startsWith("{") ? new JSONObject(raw) : new JSONArray(raw);
+                    return findString(nested, key);
+                } catch (JSONException ignored) { }
+            }
+        }
+        return "";
+    }
+
+    private static double findNumber(Object value, String key) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            if (object.has(key)) {
+                Object raw = object.opt(key);
+                if (raw instanceof Number) return ((Number) raw).doubleValue();
+                if (raw instanceof String) {
+                    try { return Double.parseDouble((String) raw); }
+                    catch (NumberFormatException ignored) { }
+                }
+            }
+            java.util.Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                double nested = findNumber(object.opt(keys.next()), key);
+                if (nested >= 0) return nested;
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int i = 0; i < array.length(); i++) {
+                double nested = findNumber(array.opt(i), key);
+                if (nested >= 0) return nested;
+            }
+        } else if (value instanceof String) {
+            String raw = ((String) value).trim();
+            if (raw.startsWith("{") || raw.startsWith("[")) {
+                try {
+                    Object nested = raw.startsWith("{") ? new JSONObject(raw) : new JSONArray(raw);
+                    return findNumber(nested, key);
+                } catch (JSONException ignored) { }
+            }
+        }
+        return -1;
     }
 
     private static String form(String key, String value) throws Exception {
