@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
  */
 final class YouTubeLoungeClient {
     private static final String BIND_URL =
-            "https://www.youtube.com/api/lounge/bc/bind?RID=1&VER=8&CVER=1&auth_failure_option=send_error";
+            "https://www.youtube.com/api/lounge/bc/bind?RID=1&VER=8&CVER=1&TYPE=xmlhttp&auth_failure_option=send_error";
 
     static final class Session {
         final String sid;
@@ -31,13 +31,25 @@ final class YouTubeLoungeClient {
         final String screenId;
         final String deviceId;
         final long lastEventId;
+        final String initialVideoId;
+        final double initialCurrentTime;
+        final double initialDuration;
+        final String initialPlayerState;
+        final String initialEventSummary;
 
-        Session(String sid, String gsessionId, String screenId, String deviceId, long lastEventId) {
+        Session(String sid, String gsessionId, String screenId, String deviceId, long lastEventId,
+                String initialVideoId, double initialCurrentTime, double initialDuration,
+                String initialPlayerState, String initialEventSummary) {
             this.sid = sid;
             this.gsessionId = gsessionId;
             this.screenId = screenId;
             this.deviceId = deviceId;
             this.lastEventId = lastEventId;
+            this.initialVideoId = initialVideoId;
+            this.initialCurrentTime = initialCurrentTime;
+            this.initialDuration = initialDuration;
+            this.initialPlayerState = initialPlayerState;
+            this.initialEventSummary = initialEventSummary;
         }
     }
 
@@ -189,8 +201,16 @@ final class YouTubeLoungeClient {
             if (monitor != null && monitor.isStopped()) {
                 throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
             }
+            String initialSummary = events.eventNames.isEmpty()
+                    ? "初始 bind 未附帶播放事件。"
+                    : android.text.TextUtils.join("、", events.eventNames);
+            if (!events.eventDetails.isEmpty()) {
+                initialSummary += "；初始事件資料：" +
+                        android.text.TextUtils.join(" | ", events.eventDetails);
+            }
             return new Session(events.sid, events.gsessionId, credentials.screenId,
-                    credentials.deviceId, events.lastEventId);
+                    credentials.deviceId, events.lastEventId, events.videoId,
+                    events.currentTime, events.duration, events.playerState, initialSummary);
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
@@ -258,11 +278,20 @@ final class YouTubeLoungeClient {
             if (!parsed.eventDetails.isEmpty()) {
                 summary += "；事件資料：" + android.text.TextUtils.join(" | ", parsed.eventDetails);
             }
-            if (parsed.videoId.isEmpty()) {
+            String videoId = parsed.videoId.isEmpty() ? session.initialVideoId : parsed.videoId;
+            double currentTime = parsed.currentTime >= 0
+                    ? parsed.currentTime : session.initialCurrentTime;
+            double duration = parsed.duration > 0 ? parsed.duration : session.initialDuration;
+            String playerState = parsed.playerState.isEmpty()
+                    ? session.initialPlayerState : parsed.playerState;
+            summary += "；" + session.initialEventSummary;
+            if (videoId.isEmpty()) {
                 summary += "；尚未取得目前播放影片 ID。";
+            } else if (parsed.videoId.isEmpty()) {
+                summary += "；影片 ID 取自初始 bind 回應。";
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
-                    parsed.timedOut, true, parsed.videoId, parsed.currentTime, parsed.duration, parsed.playerState);
+                    parsed.timedOut, true, videoId, currentTime, duration, playerState);
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
