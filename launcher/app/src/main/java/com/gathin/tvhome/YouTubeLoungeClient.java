@@ -156,9 +156,7 @@ final class YouTubeLoungeClient {
         double currentTime = -1;
         double duration = -1;
         String playerState = "";
-        double freshPlaybackTime = -1;
-        double freshPlaybackDuration = -1;
-        String freshPlaybackState = "";
+        final PlaybackEventAccumulator playback = new PlaybackEventAccumulator();
         boolean timedOut = false;
         String remotePairingType = "";
         String remoteIdentityMatchStatus = "";
@@ -336,9 +334,9 @@ final class YouTubeLoungeClient {
             String videoId = parsed.videoId.isEmpty() ? session.latestVideoId : parsed.videoId;
             // Never present bind-time playback values as if they were freshly observed.
             // Automatic skipping must only act on a position/state from this subscription.
-            double currentTime = parsed.freshPlaybackTime;
-            double duration = parsed.freshPlaybackDuration;
-            String playerState = parsed.freshPlaybackState;
+            double currentTime = parsed.playback.currentTime;
+            double duration = parsed.playback.duration;
+            String playerState = parsed.playback.playerState;
             summary += "；" + session.initialEventSummary;
             if (videoId.isEmpty()) {
                 summary += "；尚未取得目前播放影片 ID。";
@@ -347,8 +345,8 @@ final class YouTubeLoungeClient {
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
                     parsed.timedOut, true, videoId, currentTime, duration, playerState,
-                    !parsed.videoId.isEmpty(), parsed.freshPlaybackTime >= 0,
-                    !parsed.freshPlaybackState.isEmpty());
+                    !parsed.videoId.isEmpty(), parsed.playback.hasPosition(),
+                    parsed.playback.hasPlayerState());
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
@@ -555,13 +553,8 @@ final class YouTubeLoungeClient {
                             // to be embedded in one event (which can suppress every skip).
                             // A later pause/state event overwrites an earlier playing state, so
                             // the monitor still refuses to seek when the latest state is paused.
-                            if (position >= 0) {
-                                parsed.freshPlaybackTime = position;
-                                if (length > 0) parsed.freshPlaybackDuration = length;
-                            }
-                            if (!playbackState.isEmpty()) {
-                                parsed.freshPlaybackState = playbackState;
-                            }
+                            if (position >= 0) parsed.playback.recordPosition(position, length);
+                            if (!playbackState.isEmpty()) parsed.playback.recordPlayerState(playbackState);
                         }
                     }
                     parsed.eventCount++;
