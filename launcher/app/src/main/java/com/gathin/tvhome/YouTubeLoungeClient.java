@@ -46,14 +46,21 @@ final class YouTubeLoungeClient {
         final String eventSummary;
         final boolean timedOut;
         final boolean httpAccepted;
+        final String videoId;
+        final double currentTime;
+        final double duration;
 
         SubscriptionResult(int eventCount, long lastEventId, String eventSummary,
-                           boolean timedOut, boolean httpAccepted) {
+                           boolean timedOut, boolean httpAccepted, String videoId,
+                           double currentTime, double duration) {
             this.eventCount = eventCount;
             this.lastEventId = lastEventId;
             this.eventSummary = eventSummary;
             this.timedOut = timedOut;
             this.httpAccepted = httpAccepted;
+            this.videoId = videoId;
+            this.currentTime = currentTime;
+            this.duration = duration;
         }
     }
 
@@ -63,6 +70,10 @@ final class YouTubeLoungeClient {
         long lastEventId = -1;
         int eventCount = 0;
         final java.util.LinkedHashSet<String> eventNames = new java.util.LinkedHashSet<>();
+        String videoId = "";
+        double currentTime = -1;
+        double duration = -1;
+        boolean timedOut = false;
     }
 
     static Session connect(Context context) throws Exception {
@@ -157,7 +168,8 @@ final class YouTubeLoungeClient {
                 status = connection.getResponseCode();
             } catch (SocketTimeoutException timeout) {
                 return new SubscriptionResult(0, session.lastEventId,
-                        "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。", true, false);
+                        "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。",
+                        true, false, "", -1, -1);
             }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
             if (status == 400 || status == 410) {
@@ -166,22 +178,20 @@ final class YouTubeLoungeClient {
             if (status != 200) throw new Exception("YouTube Lounge 事件訂閱失敗（HTTP " + status + "）。");
             httpAccepted = true;
 
-            ParsedEvents parsed;
-            try {
-                parsed = parseEventFrames(readAll(connection.getInputStream()));
-            } catch (SocketTimeoutException timeout) {
-                return new SubscriptionResult(0, session.lastEventId,
-                        "YouTube 已接受 HTTP 訂閱請求；等待事件逾時，目前尚未收到事件。",
-                        true, true);
-            }
+            ParsedEvents parsed = parseEventStream(connection.getInputStream());
             long aid = parsed.lastEventId >= 0 ? parsed.lastEventId : session.lastEventId;
             String summary = parsed.eventNames.isEmpty()
                     ? "訂閱回應中沒有可辨識的事件。"
                     : android.text.TextUtils.join("、", parsed.eventNames);
-            return new SubscriptionResult(parsed.eventCount, aid, summary, false, true);
+            if (parsed.videoId.isEmpty()) {
+                summary += "；尚未取得目前播放影片 ID。";
+            }
+            return new SubscriptionResult(parsed.eventCount, aid, summary,
+                    parsed.timedOut, true, parsed.videoId, parsed.currentTime, parsed.duration);
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
-                    "連線等待逾時；尚未確認伺服器接受訂閱。", true, httpAccepted);
+                    "連線等待逾時；尚未確認伺服器接受訂閱。",
+                    true, httpAccepted, "", -1, -1);
         } finally {
             if (connection != null) connection.disconnect();
         }
@@ -195,11 +205,23 @@ final class YouTubeLoungeClient {
      * YouTube Lounge frames are: decimal character count + newline + JSON event array.
      * Each event is [eventId, [eventName, ...arguments]].
      */
-    private static ParsedEvents parseEventFrames(String response) throws Exception {
+    /**
+     * Reads length-prefixed event frames incrementally. A read timeout preserves
+     * any complete events already received instead of discarding the partial session.
+     */
+    private static ParsedEvents parseEventStream(InputStream stream) throws Exception {
         ParsedEvents parsed = new ParsedEvents();
-        try (BufferedReader reader = new BufferedReader(new StringReader(response))) {
-            String lengthLine;
-            while ((lengthLine = reader.readLine()) != null) {
+        try (BufferedReader reader = new BufferedReader(
+                new java.io.InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            while (true) {
+                String lengthLine;
+                try {
+                    lengthLine = reader.readLine();
+                } catch (SocketTimeoutException timeout) {
+                    parsed.timedOut = true;
+                    break;
+                }
+                if (lengthLine == null) break;
                 if (lengthLine.trim().isEmpty()) continue;
                 final int frameLength;
                 try {
@@ -213,14 +235,20 @@ final class YouTubeLoungeClient {
                 StringBuilder frame = new StringBuilder(frameLength);
                 int remaining = frameLength;
                 while (remaining > 0) {
-                    String line = reader.readLine();
+                    final String line;
+                    try {
+                        line = reader.readLine();
+                    } catch (SocketTimeoutException timeout) {
+                        parsed.timedOut = true;
+                        return parsed;
+                    }
                     if (line == null) {
                         throw new Exception("YouTube Lounge 回應不完整：事件封包提前結束。");
                     }
                     frame.append(line);
                     remaining -= line.length() + 1;
                     if (remaining < 0) {
-                        throw new Exception("YouTube Lounge 回應格式錯誤：事件封包長度不符。");
+                        throw new Exception("YouTube Lounge 回應格式錯誤：封包長度不符。");
                     }
                 }
                 JSONArray events;
@@ -240,8 +268,19 @@ final class YouTubeLoungeClient {
                         parsed.sid = payload.optString(1, "");
                     } else if ("S".equals(eventName) && payload.length() > 1) {
                         parsed.gsessionId = payload.optString(1, "");
-                    } else if (!eventName.isEmpty()) {
-                        parsed.eventNames.add(eventName);
+                    } else {
+                        if (!eventName.isEmpty()) parsed.eventNames.add(eventName);
+                        if ("nowPlaying".equals(eventName) && payload.length() > 1) {
+                            JSONObject nowPlaying = payload.optJSONObject(1);
+                            if (nowPlaying != null) {
+                                String id = nowPlaying.optString("videoId", "");
+                                if (id.matches("[A-Za-z0-9_-]{11}")) {
+                                    parsed.videoId = id;
+                                }
+                                parsed.currentTime = nowPlaying.optDouble("currentTime", -1);
+                                parsed.duration = nowPlaying.optDouble("duration", -1);
+                            }
+                        }
                     }
                     parsed.eventCount++;
                     if (eventId >= 0) parsed.lastEventId = Math.max(parsed.lastEventId, eventId);
