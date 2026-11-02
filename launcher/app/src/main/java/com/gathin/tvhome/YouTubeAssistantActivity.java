@@ -123,11 +123,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void toggleAutoSkip() {
         if (!YouTubePairingClient.hasSavedCredentials(this)) {
-            new AlertDialog.Builder(this)
-                    .setTitle("尚未連接電視")
-                    .setMessage("請先連接 YouTube TV，再開啟自動略過。")
-                    .setPositiveButton("確定", (d, w) -> d.dismiss())
-                    .show();
+            showMessageDialog("尚未連接電視", "請先連接 YouTube TV，再開啟自動略過。");
             return;
         }
         android.content.SharedPreferences prefs =
@@ -177,6 +173,7 @@ public class YouTubeAssistantActivity extends Activity {
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
                 .create();
         dialog.setOnShowListener(ignored -> {
+            styleDialog(dialog, false);
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
@@ -208,13 +205,78 @@ public class YouTubeAssistantActivity extends Activity {
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 refreshUi();
-                new AlertDialog.Builder(this)
-                        .setTitle(paired ? "連接成功" : "連接失敗")
-                        .setMessage(resultMessage)
-                        .setPositiveButton("確定", (d, w) -> d.dismiss())
-                        .show();
+                showMessageDialog(paired ? "連接成功" : "連接失敗", resultMessage);
             });
         }, "CYTV-YouTube-Pairing").start();
+    }
+
+    /**
+     * Shared TV dialog styling: charcoal rounded surface, rounded action pills,
+     * and a high-contrast white focus state that is easy to see with a D-pad remote.
+     */
+    private void showMessageDialog(String title, String message) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("確定", (d, w) -> d.dismiss())
+                .create();
+        dialog.show();
+        styleDialog(dialog, true);
+    }
+
+    private void styleDialog(AlertDialog dialog, boolean focusPrimary) {
+        if (dialog.getWindow() != null) {
+            GradientDrawable surface = round(Color.rgb(28, 32, 41), dp(24));
+            surface.setStroke(dp(1), 0x283FFFFFF);
+            dialog.getWindow().setBackgroundDrawable(surface);
+            dialog.getWindow().getDecorView().setClipToOutline(true);
+            dialog.getWindow().setDimAmount(0.62f);
+        }
+
+        TextView message = dialog.findViewById(android.R.id.message);
+        if (message != null) {
+            message.setTextColor(0xFFE7EAF0);
+            message.setTextSize(16);
+            message.setLineSpacing(dp(3), 1.0f);
+        }
+
+        android.widget.Button negative = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        android.widget.Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+        android.widget.Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        android.widget.Button[] buttons = {negative, neutral, positive};
+
+        GradientDrawable normal = round(0xFF343B47, dp(16));
+        GradientDrawable focused = round(FOCUS, dp(16));
+        focused.setStroke(dp(1), 0xFFFFFFFF);
+
+        for (android.widget.Button button : buttons) {
+            if (button == null) continue;
+            button.setAllCaps(false);
+            button.setTextSize(16);
+            button.setMinHeight(dp(52));
+            button.setMinWidth(dp(112));
+            button.setPadding(dp(18), dp(10), dp(18), dp(10));
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setBackground(normal.getConstantState().newDrawable().mutate());
+            button.setTextColor(0xFFE8EBF0);
+            button.setOnFocusChangeListener((view, hasFocus) -> {
+                view.setBackground(hasFocus
+                        ? focused.getConstantState().newDrawable().mutate()
+                        : normal.getConstantState().newDrawable().mutate());
+                ((android.widget.Button) view).setTextColor(hasFocus ? 0xFF202124 : 0xFFE8EBF0);
+                view.setElevation(hasFocus ? dp(3) : 0f);
+            });
+        }
+
+        if (negative != null && positive != null) {
+            negative.setNextFocusRightId(positive.getId());
+            positive.setNextFocusLeftId(negative.getId());
+        }
+        android.widget.Button first = focusPrimary && positive != null ? positive : negative;
+        if (first == null) first = positive != null ? positive : neutral;
+        if (first != null) first.post(first::requestFocus);
     }
 
     private LinearLayout card() {
