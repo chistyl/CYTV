@@ -41,6 +41,8 @@ final class YouTubeLoungeClient {
         final double initialDuration;
         final String initialPlayerState;
         final String initialEventSummary;
+        volatile String latestVideoId;
+        volatile String latestPlayerState;
 
         Session(String sid, String gsessionId, String screenId, String deviceId, long lastEventId,
                 String initialVideoId, double initialCurrentTime, double initialDuration,
@@ -56,6 +58,8 @@ final class YouTubeLoungeClient {
             this.initialDuration = initialDuration;
             this.initialPlayerState = initialPlayerState;
             this.initialEventSummary = initialEventSummary;
+            this.latestVideoId = initialVideoId;
+            this.latestPlayerState = initialPlayerState;
         }
 
         int nextCommandOffset() { return commandOffset.getAndIncrement(); }
@@ -82,10 +86,13 @@ final class YouTubeLoungeClient {
         final double currentTime;
         final double duration;
         final String playerState;
+        final boolean hasFreshPosition;
+        final boolean hasFreshPlayerState;
 
         SubscriptionResult(int eventCount, long lastEventId, String eventSummary,
                            boolean timedOut, boolean httpAccepted, String videoId,
-                           double currentTime, double duration, String playerState) {
+                           double currentTime, double duration, String playerState,
+                           boolean hasFreshPosition, boolean hasFreshPlayerState) {
             this.eventCount = eventCount;
             this.lastEventId = lastEventId;
             this.eventSummary = eventSummary;
@@ -95,6 +102,8 @@ final class YouTubeLoungeClient {
             this.currentTime = currentTime;
             this.duration = duration;
             this.playerState = playerState;
+            this.hasFreshPosition = hasFreshPosition;
+            this.hasFreshPlayerState = hasFreshPlayerState;
         }
     }
 
@@ -301,7 +310,7 @@ final class YouTubeLoungeClient {
             } catch (SocketTimeoutException timeout) {
                 return new SubscriptionResult(0, session.lastEventId,
                         "等待 YouTube Lounge HTTP 回應逾時；尚未確認伺服器接受訂閱。",
-                        true, false, "", -1, -1, "");
+                        true, false, "", -1, -1, "", false, false);
             }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
             if (status == 400 || status == 410) {
@@ -318,12 +327,13 @@ final class YouTubeLoungeClient {
             if (!parsed.eventDetails.isEmpty()) {
                 summary += "；事件資料：" + android.text.TextUtils.join(" | ", parsed.eventDetails);
             }
-            String videoId = parsed.videoId.isEmpty() ? session.initialVideoId : parsed.videoId;
-            double currentTime = parsed.currentTime >= 0
-                    ? parsed.currentTime : session.initialCurrentTime;
-            double duration = parsed.duration > 0 ? parsed.duration : session.initialDuration;
+            String videoId = parsed.videoId.isEmpty() ? session.latestVideoId : parsed.videoId;
+            // Never present bind-time playback values as if they were freshly observed.
+            // Automatic skipping must only act on a position/state from this subscription.
+            double currentTime = parsed.currentTime;
+            double duration = parsed.duration;
             String playerState = parsed.playerState.isEmpty()
-                    ? session.initialPlayerState : parsed.playerState;
+                    ? session.latestPlayerState : parsed.playerState;
             summary += "；" + session.initialEventSummary;
             if (videoId.isEmpty()) {
                 summary += "；尚未取得目前播放影片 ID。";
@@ -331,11 +341,12 @@ final class YouTubeLoungeClient {
                 summary += "；影片 ID 取自初始 bind 回應。";
             }
             return new SubscriptionResult(parsed.eventCount, aid, summary,
-                    parsed.timedOut, true, videoId, currentTime, duration, playerState);
+                    parsed.timedOut, true, videoId, currentTime, duration, playerState,
+                    parsed.currentTime >= 0, !parsed.playerState.isEmpty());
         } catch (SocketTimeoutException timeout) {
             return new SubscriptionResult(0, session.lastEventId,
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
-                    true, httpAccepted, "", -1, -1, "");
+                    true, httpAccepted, "", -1, -1, "", false, false);
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
@@ -392,6 +403,77 @@ final class YouTubeLoungeClient {
                     ? connection.getInputStream() : connection.getErrorStream();
             String response = readAll(stream);
             return "getNowPlaying HTTP " + status + "（回應 " +
+                    response.getBytes(StandardCharsets.UTF_8).length + " bytes）";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    /**
+     * Seeks the paired YouTube TV to an absolute playback position (seconds).
+     * This is the Lounge remote-control command used by SponsorBlock; it is not
+     * considered successful unless YouTube returns HTTP 200.
+     */
+    static String seekTo(Context context, Session session, double seconds) throws Exception {
+        if (!Double.isFinite(seconds) || seconds < 0) {
+            throw new IllegalArgumentException("跳轉位置必須是有效的非負秒數。");
+        }
+        return sendCommand(context, session, "seekTo", "newTime",
+                String.format(java.util.Locale.US, "%.3f", seconds));
+    }
+
+    private static String sendCommand(Context context, Session session,
+                                      String command, String argumentName,
+                                      String argumentValue) throws Exception {
+        if (session == null) throw new IllegalArgumentException("YouTube Lounge 工作階段不存在。");
+        YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
+        int offset = session.nextCommandOffset();
+        String query = "name=" + enc("CYTV")
+                + "&loungeIdToken=" + enc(credentials.loungeToken)
+                + "&SID=" + enc(session.sid)
+                + "&AID=" + enc(String.valueOf(session.lastEventId))
+                + "&gsessionid=" + enc(session.gsessionId)
+                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&CVER=1"
+                + "&RID=" + (offset + 1)
+                + "&TYPE=bind&t=1&CI=0"
+                + "&id=" + enc(session.deviceId)
+                + "&auth_failure_option=send_error";
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(12000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type",
+                    "application/x-www-form-urlencoded; charset=UTF-8");
+            connection.setRequestProperty("Accept", "*/*");
+            connection.setRequestProperty("Origin", "https://www.youtube.com");
+            connection.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            String body = "count=1&ofs=" + offset + "&req0__sc=" + enc(command);
+            if (argumentName != null) {
+                body += "&req0_" + enc(argumentName) + "=" + enc(argumentValue);
+            }
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(bytes.length);
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(bytes);
+                out.flush();
+            }
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 200 && status < 300
+                    ? connection.getInputStream() : connection.getErrorStream();
+            String response = readAll(stream);
+            if (status == 401) throw new Exception("YouTube Lounge 憑證失效（HTTP 401），請重新配對。");
+            if (status == 400 || status == 404 || status == 410) {
+                throw new Exception("YouTube Lounge 工作階段失效（HTTP " + status + "），需要重新連線。");
+            }
+            if (status != 200) {
+                throw new Exception("YouTube " + command + " 指令失敗（HTTP " + status + "）。");
+            }
+            return command + " HTTP 200（回應 " +
                     response.getBytes(StandardCharsets.UTF_8).length + " bytes）";
         } finally {
             if (connection != null) connection.disconnect();
@@ -506,7 +588,11 @@ final class YouTubeLoungeClient {
                     }
                     parsed.eventCount++;
                     if (eventId > parsed.lastEventId) parsed.lastEventId = eventId;
-                    if (eventId >= 0 && liveSession != null) liveSession.noteEvent(eventId);
+                    if (eventId >= 0 && liveSession != null) {
+                        liveSession.noteEvent(eventId);
+                        if (!parsed.videoId.isEmpty()) liveSession.latestVideoId = parsed.videoId;
+                        if (!parsed.playerState.isEmpty()) liveSession.latestPlayerState = parsed.playerState;
+                    }
                 }
             }
         }
