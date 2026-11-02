@@ -251,6 +251,20 @@ public class YouTubeAssistantActivity extends Activity {
                         java.util.List<SponsorBlockClient.Segment> segments =
                                 SponsorBlockClient.lookupSponsorSegments(result.videoId);
                         report.append("\nSponsorBlock 贊助片段：").append(segments.size()).append(" 段");
+                        if (result.currentTime >= 0) {
+                            SponsorBlockClient.Segment activeSegment =
+                                    SponsorBlockClient.findSegmentAtPosition(segments, result.currentTime);
+                            if (activeSegment != null) {
+                                report.append("\n目前位置判定：位於贊助片段（")
+                                        .append(String.format(java.util.Locale.US, "%.1f–%.1f 秒",
+                                                activeSegment.startSeconds, activeSegment.endSeconds))
+                                        .append("）");
+                            } else {
+                                report.append("\n目前位置判定：不在已知贊助片段內");
+                            }
+                        } else {
+                            report.append("\n目前位置判定：尚未取得有效播放位置");
+                        }
                         for (SponsorBlockClient.Segment segment : segments) {
                             report.append("\n").append(String.format(java.util.Locale.US,
                                     "%.1f–%.1f 秒", segment.startSeconds, segment.endSeconds));
