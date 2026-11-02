@@ -58,3 +58,4 @@ jobs:
           path: CYTV-AdBlock-Safety-R1-source.zip
           if-no-files-found: error
           retention-days: 30
+# CI trigger: run GitHub-hosted build for the current AdBlock Safety R1 source.
