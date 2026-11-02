@@ -1,0 +1,26 @@
+CYTV-R138 重新開機功能接通修正版
+================================
+
+基準：使用者上傳的 CYTVR138.zip。
+
+修改檔案：
+launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+
+修改內容：
+1. 在右上角「設定」下拉選單加入「重新啟動…」項目。
+2. 點選後呼叫 HomeKeyService.openPowerMenu()，由 Android AccessibilityService 顯示系統電源選單。
+3. 若 HomeKeyService 尚未啟用，顯示說明並提供前往 Android 輔助使用設定的按鈕。
+4. 不使用 PowerManager.reboot() 作為一般應用程式的直接重開機方式，避免因缺少 REBOOT 特權而失敗。
+
+使用條件：
+- 電視需啟用 CleanYourTV 的「主畫面鍵」輔助使用服務。
+- 啟用後返回桌面，開啟右上角「設定」>「重新啟動…」。
+- 最後由電視系統電源選單選擇「重新啟動」。
+
+驗證狀態：
+- 已檢查原始碼呼叫關係，並確認新增選單項目會呼叫 HomeKeyService。
+- 尚未完成 Gradle 編譯：此環境無法連線 services.gradle.org 下載 Gradle 8.9。
+- 尚未進行實機測試，因此不能宣稱 APK 或電視端功能已驗證成功。
+
+注意：
+- 除上述 MainActivity.java 外，其餘原始碼及資源均由 R138 原始 ZIP 保留。
