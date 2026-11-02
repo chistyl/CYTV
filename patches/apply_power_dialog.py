@@ -50,11 +50,11 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
         panel.setOrientation(android.widget.LinearLayout.VERTICAL);
         panel.setPadding((int) (36 * density), (int) (30 * density),
                 (int) (36 * density), (int) (26 * density));
-        panel.setBackground(new GradientDrawable() {
-            setColor(0xFF242426);
-            setCornerRadius(26 * density);
-            setStroke(Math.max(1, (int) (1.2f * density)), 0xFF505054);
-        });
+        GradientDrawable panelBackground = new GradientDrawable();
+        panelBackground.setColor(0xFF242426);
+        panelBackground.setCornerRadius(26 * density);
+        panelBackground.setStroke(Math.max(1, (int) (1.2f * density)), 0xFF505054);
+        panel.setBackground(panelBackground);
 
         TextView title = new TextView(this);
         title.setText(titleText);
