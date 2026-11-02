@@ -363,7 +363,7 @@ final class YouTubeLoungeClient {
                 + "&gsessionid=" + enc(session.gsessionId)
                 + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&CVER=1"
                 + "&RID=" + (offset + 1)
-                + "&TYPE=bind&t=1&CI=0
+                + "&TYPE=bind&t=1&CI=0"
                 + "&id=" + enc(session.deviceId)
                 + "&auth_failure_option=send_error";
         HttpURLConnection connection = null;
