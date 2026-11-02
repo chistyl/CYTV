@@ -89,12 +89,12 @@ jobs:
         run: |
           zip -qr CYTV-R138-Reopen-Menu-R4-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R138-Reboot-R3-source.zip'
+               './launcher/app/build/*' './CYTV-R138-Reopen-Menu-R4-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-R138-Reopen-Menu-R4-Complete-Source
-          path: CYTV-R138-Reboot-R3-source.zip
+          path: CYTV-R138-Reopen-Menu-R4-source.zip
           if-no-files-found: error
           retention-days: 30
