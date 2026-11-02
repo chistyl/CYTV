@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -41,6 +42,8 @@ public class AdsFilterVpnService extends VpnService {
     static final String ACTION_REFRESH_NETWORK = "com.gathin.tvhome.action.REFRESH_NETWORK";
     static final String ACTION_STOP = "com.gathin.tvhome.action.STOP_AD_FILTER";
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicInteger consecutiveDnsFailures = new AtomicInteger(0);
+    private static final int DNS_FAILURES_BEFORE_FAIL_OPEN = 3;
     private ParcelFileDescriptor tunnel;
     private Thread worker;
     private volatile Network underlyingNetwork;
@@ -163,12 +166,11 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
             }
-            if (discovered.isEmpty()) discovered.add(parseAddress(UPSTREAM));
             upstreamServers = Collections.unmodifiableList(discovered);
             Log.i(TAG, "Auto DNS negotiated: " + discovered.size() + " upstream server(s)");
         } catch (Exception e) {
-            upstreamServers = Collections.singletonList(parseAddress(UPSTREAM));
-            Log.w(TAG, "Unable to read network DNS; using fallback", e);
+            upstreamServers = Collections.emptyList();
+            Log.w(TAG, "Unable to read network DNS; automatic mode will fail open", e);
         }
     }
 
@@ -276,6 +278,7 @@ public class AdsFilterVpnService extends VpnService {
                 socket.receive(reply);
                 byte[] out = new byte[reply.getLength()];
                 System.arraycopy(reply.getData(), reply.getOffset(), out, 0, out.length);
+                consecutiveDnsFailures.set(0);
                 return out;
             } catch (Exception e) {
                 Log.w(TAG, "DNS upstream failed: " + dns.getHostAddress(), e);
@@ -283,29 +286,20 @@ public class AdsFilterVpnService extends VpnService {
                 if (socket != null) socket.close();
             }
         }
-        try {
-            InetAddress fallback = parseAddress(UPSTREAM);
-            if (!candidates.contains(fallback)) {
-                DatagramSocket socket = new DatagramSocket();
-                try {
-                    if (!protect(socket)) throw new IllegalStateException("Could not protect fallback DNS socket");
-                    underlying.bindSocket(socket);
-                    socket.setSoTimeout(1800);
-                    socket.send(new DatagramPacket(query, query.length, fallback, 53));
-                    byte[] buf = new byte[4096];
-                    DatagramPacket reply = new DatagramPacket(buf, buf.length);
-                    socket.receive(reply);
-                    byte[] out = new byte[reply.getLength()];
-                    System.arraycopy(reply.getData(), reply.getOffset(), out, 0, out.length);
-                    return out;
-                } finally { socket.close(); }
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Fallback DNS failed", e);
-        }
+        noteDnsFailure("所有設定的上游 DNS 均無回應");
         return null;
     }
 
+    private void noteDnsFailure(String reason) {
+        int failures = consecutiveDnsFailures.incrementAndGet();
+        Log.w(TAG, "DNS forwarding failure " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + ": " + reason);
+        if (failures >= DNS_FAILURES_BEFORE_FAIL_OPEN && running.compareAndSet(true, false)) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+            appendDnsLog("-", "查詢失敗", "DNS 連續異常，已自動關閉過濾並交還 Android 原始網路");
+            Log.e(TAG, "Fail-open: stopping local DNS VPN after repeated upstream failures");
+            stopFilter();
+        }
+    }
     private byte[] makeReply(byte[] request, int ihl, int clientPort, byte[] dns) {
         int total = 20 + 8 + dns.length;
         byte[] out = new byte[total];
