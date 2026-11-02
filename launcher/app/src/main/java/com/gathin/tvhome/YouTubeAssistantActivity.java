@@ -21,8 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * TV-first landing page for the YouTube helper. Pairing and SponsorBlock are intentionally
- * presented as unavailable until their services are implemented and tested.
+ * TV-first YouTube helper diagnostics. Pairing, Lounge bind and bounded event subscription
+ * are diagnostic stages only; SponsorBlock automation and remote commands are not enabled.
  */
 public class YouTubeAssistantActivity extends Activity {
     private static final int BG = Color.rgb(12, 14, 19);
@@ -88,7 +88,7 @@ public class YouTubeAssistantActivity extends Activity {
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
 
         TextView note = new TextView(this);
-        note.setText("目前可先保存 YouTube TV 裝置代碼；尚未建立裝置連線，也不會執行靜音或自動略過。");
+        note.setText("目前可測試 YouTube TV 配對、Lounge 握手與單次事件訂閱；尚未啟用遙控命令或自動略過。");
         note.setTextColor(MUTED);
         note.setTextSize(13);
         note.setPadding(dp(4), dp(16), dp(4), 0);
