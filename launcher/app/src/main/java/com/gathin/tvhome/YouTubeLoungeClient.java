@@ -361,8 +361,11 @@ final class YouTubeLoungeClient {
                 + "&SID=" + enc(session.sid)
                 + "&AID=" + enc(String.valueOf(session.lastEventId))
                 + "&gsessionid=" + enc(session.gsessionId)
-                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2"
-                + "&RID=" + (offset + 1) + "&auth_failure_option=send_error";
+                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&CVER=1"
+                + "&RID=" + (offset + 1)
+                + "&TYPE=bind&t=1&CI=0&name=" + enc("CYTV")
+                + "&id=" + enc(session.deviceId)
+                + "&auth_failure_option=send_error";
         HttpURLConnection connection = null;
         try {
             URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
