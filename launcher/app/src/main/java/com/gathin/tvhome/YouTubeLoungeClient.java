@@ -126,6 +126,11 @@ final class YouTubeLoungeClient {
         double duration = -1;
         String playerState = "";
         boolean timedOut = false;
+        String remotePairingType = "";
+        String remoteIdentityMatchStatus = "";
+        String receiverIdentityMatchStatus = "";
+        String remoteClientName = "";
+        String receiverClientName = "";
     }
 
     static Session connect(Context context) throws Exception {
@@ -208,6 +213,8 @@ final class YouTubeLoungeClient {
                 initialSummary += "；初始事件資料：" +
                         android.text.TextUtils.join(" | ", events.eventDetails);
             }
+            String identitySummary = buildIdentitySummary(events);
+            if (!identitySummary.isEmpty()) initialSummary += "；裝置身分診斷：" + identitySummary;
             return new Session(events.sid, events.gsessionId, credentials.screenId,
                     credentials.deviceId, events.lastEventId, events.videoId,
                     events.currentTime, events.duration, events.playerState, initialSummary);
@@ -385,7 +392,7 @@ final class YouTubeLoungeClient {
                     String eventName = payload.optString(0, "");
                     // Keep a bounded sample of every event, including unknown event types.
                     // Lounge playback payloads can be nested differently across TV clients.
-                    String detail = payload.toString();
+                    String detail = sanitizeDiagnosticJson(payloadAsObject(payload)).toString();
                     if (detail.length() > 1400) detail = detail.substring(0, 1400) + "…";
                     if (!"c".equals(eventName) && !"S".equals(eventName)) {
                         parsed.eventDetails.add("AID=" + eventId + " " + eventName + " " + detail);
@@ -401,6 +408,7 @@ final class YouTubeLoungeClient {
                             JSONObject stateData = eventData instanceof JSONObject
                                     ? (JSONObject) eventData : null;
                             if (stateData != null) {
+                                if ("loungeStatus".equals(eventName)) captureLoungeIdentity(stateData, parsed);
                                 String id = findString(stateData, "videoId");
                                 if (!id.matches("[A-Za-z0-9_-]{11}")) {
                                     id = findString(stateData, "firstVideoId");
@@ -423,6 +431,86 @@ final class YouTubeLoungeClient {
             }
         }
         return parsed;
+    }
+
+
+    private static JSONObject payloadAsObject(JSONArray payload) {
+        JSONObject wrapper = new JSONObject();
+        try { wrapper.put("payload", payload); } catch (JSONException ignored) { }
+        return wrapper;
+    }
+
+    // Redact credential-like fields before retaining event data for diagnostics.
+    private static Object sanitizeDiagnosticValue(Object value) {
+        if (value instanceof JSONObject) return sanitizeDiagnosticJson((JSONObject) value);
+        if (value instanceof JSONArray) {
+            JSONArray source = (JSONArray) value;
+            JSONArray clean = new JSONArray();
+            for (int i = 0; i < source.length(); i++) clean.put(sanitizeDiagnosticValue(source.opt(i)));
+            return clean;
+        }
+        if (value instanceof String) {
+            String raw = ((String) value).trim();
+            if (raw.startsWith("{")) {
+                try { return sanitizeDiagnosticJson(new JSONObject(raw)).toString(); }
+                catch (JSONException ignored) { }
+            } else if (raw.startsWith("[")) {
+                try { return sanitizeDiagnosticValue(new JSONArray(raw)).toString(); }
+                catch (JSONException ignored) { }
+            }
+        }
+        return value == null ? JSONObject.NULL : value;
+    }
+
+    private static JSONObject sanitizeDiagnosticJson(JSONObject source) {
+        JSONObject clean = new JSONObject();
+        java.util.Iterator<String> keys = source.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            String normalized = key.toLowerCase(java.util.Locale.US);
+            boolean sensitive = normalized.contains("token")
+                    || normalized.contains("encryptionkey")
+                    || normalized.contains("secret")
+                    || normalized.contains("authorization")
+                    || normalized.contains("cookie")
+                    || normalized.equals("sid")
+                    || normalized.equals("gsessionid");
+            try {
+                clean.put(key, sensitive ? "[已遮蔽]" : sanitizeDiagnosticValue(source.opt(key)));
+            } catch (JSONException ignored) { }
+        }
+        return clean;
+    }
+
+    private static void captureLoungeIdentity(JSONObject stateData, ParsedEvents parsed) {
+        String devicesRaw = stateData.optString("devices", "");
+        if (devicesRaw.isEmpty()) return;
+        try {
+            JSONArray devices = new JSONArray(devicesRaw);
+            for (int i = 0; i < devices.length(); i++) {
+                JSONObject device = devices.optJSONObject(i);
+                if (device == null) continue;
+                String type = device.optString("type", "");
+                if ("REMOTE_CONTROL".equals(type)) {
+                    parsed.remotePairingType = device.optString("pairingType", "");
+                    parsed.remoteIdentityMatchStatus = device.optString("receiverIdentityMatchStatus", "");
+                    parsed.remoteClientName = device.optString("clientName", "");
+                } else if ("LOUNGE_SCREEN".equals(type)) {
+                    parsed.receiverIdentityMatchStatus = device.optString("receiverIdentityMatchStatus", "");
+                    parsed.receiverClientName = device.optString("clientName", "");
+                }
+            }
+        } catch (JSONException ignored) { }
+    }
+
+    private static String buildIdentitySummary(ParsedEvents events) {
+        java.util.ArrayList<String> fields = new java.util.ArrayList<>();
+        if (!events.remotePairingType.isEmpty()) fields.add("遙控端 pairingType=" + events.remotePairingType);
+        if (!events.remoteIdentityMatchStatus.isEmpty()) fields.add("遙控端 receiverIdentityMatchStatus=" + events.remoteIdentityMatchStatus);
+        if (!events.receiverIdentityMatchStatus.isEmpty()) fields.add("電視端 receiverIdentityMatchStatus=" + events.receiverIdentityMatchStatus);
+        if (!events.remoteClientName.isEmpty()) fields.add("遙控端 clientName=" + events.remoteClientName);
+        if (!events.receiverClientName.isEmpty()) fields.add("電視端 clientName=" + events.receiverClientName);
+        return android.text.TextUtils.join("；", fields);
     }
 
     private static String findString(Object value, String key) {
