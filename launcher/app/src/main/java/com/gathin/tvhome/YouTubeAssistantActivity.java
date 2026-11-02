@@ -236,6 +236,9 @@ public class YouTubeAssistantActivity extends Activity {
                 report.append("\n收到事件數：").append(result.eventCount)
                         .append("\n最後事件編號 AID：").append(result.lastEventId)
                         .append("\n事件：").append(result.eventSummary);
+                if (!result.playerState.isEmpty()) {
+                    report.append("\n播放狀態：").append(result.playerState);
+                }
                 if (!result.videoId.isEmpty()) {
                     report.append("\n目前影片 ID：").append(result.videoId);
                     if (result.currentTime >= 0) {
