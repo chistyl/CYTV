@@ -116,7 +116,7 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
-                    if (network.equals(underlyingNetwork) && !isPhysicalInternet(caps)) {
+                    if (network.equals(underlyingNetwork) && !isPhysicalTransport(caps)) {
                         Network replacement = findPhysicalNetwork(cm);
                         if (replacement != null && !replacement.equals(network)) {
                             updateUnderlyingNetwork(replacement);
@@ -221,7 +221,7 @@ public class AdsFilterVpnService extends VpnService {
             appendDnsLog("-", "診斷", "選取實體網路 " + selected
                     + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
                     + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                    + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
+                    + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
             Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
                     .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
