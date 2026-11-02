@@ -67,6 +67,41 @@ final class YouTubeLoungeClient {
         }
     }
 
+    /**
+     * Cancellation token for a bounded Lounge subscription. stop() disconnects
+     * the active HTTP request so a monitor can stop without waiting for read timeout.
+     */
+    static final class MonitorHandle {
+        private final java.util.concurrent.atomic.AtomicBoolean stopped =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+        private volatile HttpURLConnection activeConnection;
+
+        boolean isStopped() { return stopped.get(); }
+
+        void stop() {
+            stopped.set(true);
+            HttpURLConnection connection = activeConnection;
+            if (connection != null) connection.disconnect();
+        }
+
+        private void attach(HttpURLConnection connection) throws Exception {
+            if (stopped.get()) {
+                connection.disconnect();
+                throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+            }
+            activeConnection = connection;
+            if (stopped.get()) {
+                activeConnection = null;
+                connection.disconnect();
+                throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+            }
+        }
+
+        private void detach(HttpURLConnection connection) {
+            if (activeConnection == connection) activeConnection = null;
+        }
+    }
+
     private static final class ParsedEvents {
         String sid = "";
         String gsessionId = "";
@@ -147,6 +182,18 @@ final class YouTubeLoungeClient {
      * It deliberately does not keep a permanent listener or issue control commands.
      */
     static SubscriptionResult subscribeOnce(Context context, Session session) throws Exception {
+        return subscribeOnce(context, session, null);
+    }
+
+    /**
+     * One bounded subscription that can be cancelled by a monitor handle.
+     * The existing one-shot diagnostic keeps its original behavior.
+     */
+    static SubscriptionResult subscribeOnce(Context context, Session session,
+                                            MonitorHandle monitor) throws Exception {
+        if (monitor != null && monitor.isStopped()) {
+            throw new java.util.concurrent.CancellationException("Lounge 監測已停止。");
+        }
         YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
         String query = "name=" + enc("CYTV")
                 + "&loungeIdToken=" + enc(credentials.loungeToken)
@@ -166,6 +213,7 @@ final class YouTubeLoungeClient {
             connection.setRequestProperty("Origin", "https://www.youtube.com");
             connection.setRequestProperty("User-Agent",
                     "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            if (monitor != null) monitor.attach(connection);
 
             final int status;
             try {
@@ -197,6 +245,7 @@ final class YouTubeLoungeClient {
                     "連線等待逾時；尚未確認伺服器接受訂閱。",
                     true, httpAccepted, "", -1, -1, "");
         } finally {
+            if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
     }
