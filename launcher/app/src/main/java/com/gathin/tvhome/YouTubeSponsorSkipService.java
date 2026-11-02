@@ -75,6 +75,11 @@ public final class YouTubeSponsorSkipService extends Service {
                 setStatus("已連接電視，正在監控播放");
                 String videoId = session.initialVideoId;
                 String segmentsVideoId = "";
+                // Playback progress and state may arrive in separate Lounge polls.
+                // Keep the latest values for this video only; reset on video change.
+                PlaybackEventAccumulator playback = new PlaybackEventAccumulator();
+                playback.recordPosition(session.initialCurrentTime, session.initialDuration);
+                playback.recordPlayerState(session.initialPlayerState);
                 List<SponsorBlockClient.Segment> segments = java.util.Collections.emptyList();
                 Set<String> skipped = new HashSet<>();
 
@@ -109,17 +114,24 @@ public final class YouTubeSponsorSkipService extends Service {
                         segmentsVideoId = "";
                         segments = java.util.Collections.emptyList();
                         skipped.clear();
+                        playback.reset();
                         setStatus("偵測到新影片，正在載入贊助片段");
                     }
 
-                    if (event.hasFreshPosition && event.hasFreshPlayerState
-                            && isValidVideoId(videoId)) {
+                    if (event.hasFreshPosition) {
+                        playback.recordPosition(event.currentTime, event.duration);
+                    }
+                    if (event.hasFreshPlayerState) {
+                        playback.recordPlayerState(event.playerState);
+                    }
+                    if (playback.isUsableForAutoSkip() && isValidVideoId(videoId)) {
                         if (!videoId.equals(segmentsVideoId)) {
                             segments = loadSegments(videoId, monitor);
                             segmentsVideoId = videoId;
                         }
                         skipIfNeeded(session, videoId, segments, skipped,
-                                event.currentTime, event.playerState, event.duration, monitor);
+                                playback.currentTime, playback.playerState,
+                                playback.duration, monitor);
                     }
                 }
             } catch (CancellationException cancelled) {
