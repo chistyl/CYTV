@@ -262,6 +262,7 @@ public class AdsFilterVpnService extends VpnService {
         Network underlying = underlyingNetwork;
         if (underlying == null) {
             Log.w(TAG, "No physical network available for DNS forwarding");
+            noteDnsFailure("目前沒有可用的實體網路");
             return null;
         }
         List<InetAddress> candidates = upstreamServers;
