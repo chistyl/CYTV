@@ -72,6 +72,7 @@ public class AdsFilterVpnService extends VpnService {
         }
         if (running.get()) return START_STICKY;
         stopping.set(false);
+        appendDnsLog("-", "診斷", "收到啟動請求；Android API " + Build.VERSION.SDK_INT);
         try {
             startNotice();
             // Track real Wi-Fi/Ethernet networks, excluding the VPN itself. The default
@@ -126,6 +127,11 @@ public class AdsFilterVpnService extends VpnService {
             Network initial = findPhysicalNetwork(cm);
             if (initial == null) throw new IllegalStateException("No active Wi-Fi or Ethernet network");
             updateUnderlyingNetwork(initial);
+            NetworkCapabilities initialCaps = cm.getNetworkCapabilities(initial);
+            appendDnsLog("-", "診斷", "已選取實體網路 " + initial
+                    + "；Ethernet=" + (initialCaps != null && initialCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                    + "；Wi-Fi=" + (initialCaps != null && initialCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                    + "；Internet=" + (initialCaps != null && initialCaps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
             Builder builder = new Builder()
                     .setSession("CleanYourTV 廣告過濾")
                     .setMtu(1500)
@@ -134,6 +140,7 @@ public class AdsFilterVpnService extends VpnService {
                     .addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
+            appendDnsLog("-", "診斷", "VPN TUN 建立成功");
             // Android 9 needs the VPN's physical underlay to be explicit. This lets
             // ConnectivityService keep Ethernet as the VPN underlay and restore the
             // ordinary network cleanly when the TUN descriptor is closed.
@@ -142,8 +149,10 @@ public class AdsFilterVpnService extends VpnService {
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
+            appendDnsLog("-", "診斷", "DNS 工作執行緒已啟動");
         } catch (Exception e) {
             Log.e(TAG, "Unable to start DNS filter", e);
+            appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             stopFilter();
         }
@@ -177,11 +186,17 @@ public class AdsFilterVpnService extends VpnService {
     private void applyUnderlyingNetwork(Network network) {
         try {
             boolean applied = setUnderlyingNetworks(network == null ? null : new Network[] { network });
-            if (!applied) Log.w(TAG, "Android did not accept the VPN underlying-network update");
-            else Log.i(TAG, network == null
+            if (!applied) {
+                Log.w(TAG, "Android did not accept the VPN underlying-network update");
+                appendDnsLog("-", "診斷", "Android 拒絕 VPN 實體網路綁定");
+            } else {
+                appendDnsLog("-", "診斷", network == null ? "VPN 實體網路已解除綁定" : "VPN 已綁定實體網路 " + network);
+                Log.i(TAG, network == null
                     ? "VPN underlay reset to Android default network"
                     : "VPN underlay associated with physical network " + network);
+            }
         } catch (Exception e) {
+            appendDnsLog("-", "診斷", "VPN 實體網路綁定例外：" + e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
             // Some vendor Android 9 builds do not fully implement this optional API.
             // Keep DNS forwarding protected/bound to the selected Network regardless.
             Log.w(TAG, "Unable to update VPN underlying network", e);
@@ -355,6 +370,7 @@ public class AdsFilterVpnService extends VpnService {
     private void noteDnsFailure(String reason) {
         int failures = consecutiveDnsFailures.incrementAndGet();
         Log.w(TAG, "DNS forwarding failure " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + ": " + reason);
+        appendDnsLog("-", "診斷", "DNS 轉送失敗 " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + "：" + reason);
         if (failures >= DNS_FAILURES_BEFORE_FAIL_OPEN && running.compareAndSet(true, false)) {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             appendDnsLog("-", "查詢失敗", "DNS 連續異常，已自動關閉過濾並交還 Android 原始網路");
@@ -458,12 +474,17 @@ public class AdsFilterVpnService extends VpnService {
     }
 
     @Override public void onRevoke() {
+        appendDnsLog("-", "診斷", "Android 已撤銷 VPN 授權（onRevoke）");
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
         stopFilter(); super.onRevoke();
     }
-    @Override public void onDestroy() { stopFilter(); super.onDestroy(); }
+    @Override public void onDestroy() {
+        appendDnsLog("-", "診斷", "VPN 服務進入 onDestroy");
+        stopFilter(); super.onDestroy();
+    }
     private void stopFilter() {
         if (!stopping.compareAndSet(false, true)) return;
+        appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
 
         // First detach the VPN from its physical underlay, then close the TUN file
