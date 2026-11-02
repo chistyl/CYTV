@@ -7,6 +7,7 @@ on:
     paths:
       - 'CYTV-R138-R3-source.part*'
       - 'patches/apply_power_dialog.py'
+      - 'launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java'
       - '.github/workflows/import-r138-build.yml'
   workflow_dispatch:
 
