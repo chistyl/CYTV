@@ -81,6 +81,7 @@ public class YouTubeAssistantActivity extends Activity {
 
         addPairingRow(rows);
         addAvailabilityRow(rows);
+        addLoungeConnectRow(rows);
         addRow(rows, "SponsorBlock 片段略過", "尚未啟用", "尚未連接 SponsorBlock API，目前不會自動略過影片片段。");
         addRow(rows, "自動略過贊助片段", "功能準備中", "待配對與片段偵測完成後加入。");
         addRow(rows, "連線狀態與診斷", "尚無連線資料", "配對功能完成後，這裡會顯示裝置、連線與錯誤資訊。");
@@ -194,6 +195,49 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout card = createCard(parent, "檢查 YouTube TV 在線狀態",
                 "確認電視是否仍可透過 YouTube 配對服務連線");
         card.setOnClickListener(v -> checkDeviceAvailability());
+    }
+
+    private void addLoungeConnectRow(LinearLayout parent) {
+        LinearLayout card = createCard(parent, "建立 YouTube Lounge 控制連線",
+                "測試 YouTube TV 控制通道的第一階段握手");
+        card.setOnClickListener(v -> connectLounge());
+    }
+
+    private void connectLounge() {
+        if (!YouTubePairingClient.hasSavedCredentials(this)) {
+            showInfo("請先完成 YouTube TV 配對並取得裝置憑證。");
+            return;
+        }
+        AlertDialog progress = new AlertDialog.Builder(this)
+                .setTitle("建立控制連線")
+                .setMessage("正在建立 YouTube Lounge 工作階段…")
+                .setCancelable(false).create();
+        progress.show();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler main = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            String message;
+            boolean connected = false;
+            try {
+                YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this);
+                message = "已取得 YouTube Lounge 工作階段識別碼。"
+                        + "\\n目前只完成 bind handshake，尚未訂閱事件，也尚未啟用遙控命令。";
+                connected = true;
+            } catch (Exception e) {
+                message = e.getMessage() == null ? "Lounge 連線失敗，請稍後重試。" : e.getMessage();
+            }
+            final String result = message;
+            final boolean success = connected;
+            main.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                progress.dismiss();
+                new AlertDialog.Builder(this)
+                        .setTitle(success ? "Lounge 握手成功" : "Lounge 連線失敗")
+                        .setMessage(result)
+                        .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
+            });
+            executor.shutdown();
+        });
     }
 
     private void checkDeviceAvailability() {
