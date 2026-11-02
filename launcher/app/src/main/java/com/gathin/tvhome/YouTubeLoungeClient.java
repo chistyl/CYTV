@@ -316,7 +316,7 @@ final class YouTubeLoungeClient {
                         true, false, "", -1, -1, "", false, false, false);
             }
             if (status == 401) throw new Exception("YouTube Lounge 訂閱憑證失效（HTTP 401），請重新配對。");
-            if (status == 400 || status == 410) {
+            if (status == 400 || status == 404 || status == 410) {
                 throw new Exception("YouTube Lounge 工作階段已失效（HTTP " + status + "），請重新建立控制連線。");
             }
             if (status != 200) throw new Exception("YouTube Lounge 事件訂閱失敗（HTTP " + status + "）。");
@@ -362,55 +362,13 @@ final class YouTubeLoungeClient {
      * getNowPlaying is a read-only Lounge query; it does not alter playback.
      */
     static String requestNowPlaying(Context context, Session session) throws Exception {
-        YouTubePairingClient.PairingResult credentials = YouTubePairingClient.load(context);
         // Wait briefly for the active backchannel to advance AID before issuing a command.
-        // Lounge commands must use the latest event cursor, not the bind-time cursor.
         try { session.awaitEventProgress(1500); }
         catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new java.util.concurrent.CancellationException("Lounge 命令已中斷。");
         }
-        int offset = session.nextCommandOffset();
-        String query = "name=" + enc("CYTV")
-                + "&loungeIdToken=" + enc(credentials.loungeToken)
-                + "&SID=" + enc(session.sid)
-                + "&AID=" + enc(String.valueOf(session.lastEventId))
-                + "&gsessionid=" + enc(session.gsessionId)
-                + "&device=REMOTE_CONTROL&app=youtube-desktop&VER=8&v=2&CVER=1"
-                + "&RID=" + (offset + 1)
-                + "&TYPE=bind&t=1&CI=0"
-                + "&id=" + enc(session.deviceId)
-                + "&auth_failure_option=send_error";
-        HttpURLConnection connection = null;
-        try {
-            URL url = new URL("https://www.youtube.com/api/lounge/bc/bind?" + query);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(10000);
-            connection.setReadTimeout(12000);
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type",
-                    "application/x-www-form-urlencoded; charset=UTF-8");
-            connection.setRequestProperty("Accept", "*/*");
-            connection.setRequestProperty("Origin", "https://www.youtube.com");
-            connection.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-            String body = "count=1&ofs=" + offset + "&req0__sc=getNowPlaying";
-            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-            connection.setFixedLengthStreamingMode(bytes.length);
-            try (OutputStream out = connection.getOutputStream()) {
-                out.write(bytes);
-                out.flush();
-            }
-            int status = connection.getResponseCode();
-            InputStream stream = status >= 200 && status < 300
-                    ? connection.getInputStream() : connection.getErrorStream();
-            String response = readAll(stream);
-            return "getNowPlaying HTTP " + status + "（回應 " +
-                    response.getBytes(StandardCharsets.UTF_8).length + " bytes）";
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        return sendCommand(context, session, "getNowPlaying", null, null);
     }
 
     /**
