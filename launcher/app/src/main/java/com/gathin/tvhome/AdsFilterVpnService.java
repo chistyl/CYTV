@@ -410,19 +410,16 @@ public class AdsFilterVpnService extends VpnService {
     }
 
     private byte[] forward(byte[] query) {
-        Network underlying = underlyingNetwork;
-        if (underlying == null) {
-            Log.w(TAG, "No physical network available for DNS forwarding");
-            noteDnsFailure("目前沒有可用的實體網路");
-            return null;
-        }
+        // A protected socket bypasses this VPN and follows Android's current physical
+        // default route. Do not bind it to a cached Network: Android 9 TV firmware can
+        // invalidate that Network while the VPN is active, causing ENONET and Ethernet loss.
         List<InetAddress> candidates = upstreamServers;
         for (InetAddress dns : candidates) {
             DatagramSocket socket = null;
             try {
                 socket = new DatagramSocket();
                 if (!protect(socket)) throw new IllegalStateException("Could not protect upstream DNS socket");
-                underlying.bindSocket(socket);
+                // protect(socket) is sufficient; explicit Network.bindSocket() is unsafe here.
                 socket.setSoTimeout(1800);
                 socket.send(new DatagramPacket(query, query.length, dns, 53));
                 byte[] buf = new byte[4096];
