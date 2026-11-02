@@ -469,6 +469,17 @@ public class YouTubeAssistantActivity extends Activity {
                 new AlertDialog.Builder(this)
                         .setTitle(completed ? "事件訂閱診斷完成" : "事件訂閱失敗")
                         .setMessage(resultMessage)
+                        .setNeutralButton("複製診斷資料", (d, w) -> {
+                            android.content.ClipboardManager clipboard =
+                                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                            if (clipboard != null) {
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                                        "CYTV Lounge 診斷資料", resultMessage));
+                                showInfo("診斷資料已複製，請回到對話中貼上。");
+                            } else {
+                                showInfo("無法存取剪貼簿，請改用截圖回傳。");
+                            }
+                        })
                         .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
             });
             executor.shutdown();
