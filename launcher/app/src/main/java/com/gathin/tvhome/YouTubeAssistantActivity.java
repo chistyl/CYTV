@@ -265,7 +265,8 @@ public class YouTubeAssistantActivity extends Activity {
         new AlertDialog.Builder(this).setMessage(message)
                 .setPositiveButton("知道了", (d, w) -> d.dismiss()).show();
     }
-\n    private void addRow(LinearLayout parent, String heading, String status, String detail) {
+
+    private void addRow(LinearLayout parent, String heading, String status, String detail) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setFocusable(true);
