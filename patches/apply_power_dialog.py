@@ -25,8 +25,8 @@ old = '''        if (!HomeKeyService.canOpenPowerMenu()) {
 '''
 new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
             AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle("尚未啟用重新開啟功能")
-                    .setMessage("需要先啟用 LauncherTV 的「主畫面鍵」輔助使用服務，才能開啟電視的系統電源選單。啟用後返回桌面，再選擇「重新開啟」。")
+                    .setTitle("尚未啟用重新啟動功能")
+                    .setMessage("需要先啟用 LauncherTV 的「主畫面鍵」輔助使用服務，才能開啟電視的系統電源選單。啟用後返回桌面，再選擇「重新啟動」。")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("前往輔助使用設定", (d, which) ->
                             open(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
@@ -39,7 +39,7 @@ new = '''        if (!HomeKeyService.canOpenPowerMenu()) {
         // The service is connected, but this firmware declined GLOBAL_ACTION_POWER_DIALOG.
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("無法開啟系統電源選單")
-                .setMessage("電視系統沒有接受電源選單請求。請使用電視遙控器的電源鍵，或前往 Android 系統設定重新開啟電視。")
+                .setMessage("電視系統沒有接受電源選單請求。請使用電視遙控器的電源鍵，或前往 Android 系統設定重新啟動電視。")
                 .setPositiveButton("開啟系統設定", (d, which) ->
                         open(new Intent(Settings.ACTION_SETTINGS)))
                 .setNegativeButton("取消", null)
