@@ -179,7 +179,8 @@ final class YouTubeLoungeClient {
                 throw new Exception("YouTube Lounge bind 連線失敗（HTTP " + status + "）。");
             }
 
-            ParsedEvents events = parseEventFrames(response);
+            ParsedEvents events = parseEventStream(new java.io.ByteArrayInputStream(
+                    response.getBytes(StandardCharsets.UTF_8)));
             if (events.sid.isEmpty() || events.gsessionId.isEmpty() || events.lastEventId < 0) {
                 throw new Exception("YouTube 已回應，但封包中缺少 SID、gsessionid 或事件編號；"
                         + "尚未建立可用的控制工作階段。");
