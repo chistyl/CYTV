@@ -263,7 +263,9 @@ public class YouTubeAssistantActivity extends Activity {
                     if (result.lastEventId > session.lastEventId) {
                         session = new YouTubeLoungeClient.Session(session.sid,
                                 session.gsessionId, session.screenId, session.deviceId,
-                                result.lastEventId);
+                                result.lastEventId, session.initialVideoId,
+                                session.initialCurrentTime, session.initialDuration,
+                                session.initialPlayerState, session.initialEventSummary);
                     }
 
                     if (result.videoId.matches("[A-Za-z0-9_-]{11}")
