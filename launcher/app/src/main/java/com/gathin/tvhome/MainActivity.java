@@ -5569,17 +5569,17 @@ private GradientDrawable roundSurface(int color, float radius) {
             List<String> packages = new ArrayList<>(labels.keySet());
             boolean[] checked = new boolean[packages.size()];
             Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
-            Set<String> systemExcluded = prefs.getStringSet("system_folder_excluded",
+            Set<String> excludedSystemPackages = prefs.getStringSet("system_folder_excluded",
                     java.util.Collections.<String>emptySet());
-            Set<String> systemAdded = prefs.getStringSet("system_folder_added",
+            Set<String> addedSystemPackages = prefs.getStringSet("system_folder_added",
                     java.util.Collections.<String>emptySet());
             for (int i = 0; i < packages.size(); i++) {
                 String pkg = packages.get(i);
-                boolean belongsToSystem = systemAdded.contains(pkg);
+                boolean belongsToSystem = addedSystemPackages.contains(pkg);
                 try {
                     int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
                     boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
-                    belongsToSystem = belongsToSystem || (isSystem && !systemExcluded.contains(pkg));
+                    belongsToSystem = belongsToSystem || (isSystem && !excludedSystemPackages.contains(pkg));
                 } catch (PackageManager.NameNotFoundException ignored) { }
                 checked[i] = members.contains(pkg) && !belongsToSystem;
             }
