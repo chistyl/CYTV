@@ -1,6 +1,9 @@
 name: Build CYTV AdBlock Safety R1
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - r138-adblock-safety-ui-r1
