@@ -3908,38 +3908,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             String normalized = city == null ? "" : city.trim().replace("臺", "台");
             if (normalized.isEmpty()) throw new IOException("請輸入城市名稱");
 
-            // Use deterministic representative coordinates for Taiwan's 22 counties/cities.
-            // Exact-name matching avoids accidentally mapping a district or overseas city to a county centre.
-            String[][] taiwan = {
-                    {"桃園市", "桃園", "24.9936", "121.3010"},
-                    {"台北市", "台北", "25.0330", "121.5654"},
-                    {"新北市", "新北", "25.0169", "121.4628"},
-                    {"基隆市", "基隆", "25.1276", "121.7392"},
-                    {"新竹市", "新竹市", "24.8138", "120.9675"},
-                    {"新竹縣", "新竹縣", "24.8392", "121.0177"},
-                    {"苗栗縣", "苗栗", "24.5602", "120.8214"},
-                    {"台中市", "台中", "24.1477", "120.6736"},
-                    {"彰化縣", "彰化", "24.0747", "120.5383"},
-                    {"南投縣", "南投", "23.9157", "120.6850"},
-                    {"雲林縣", "雲林", "23.7092", "120.4313"},
-                    {"嘉義市", "嘉義市", "23.4801", "120.4491"},
-                    {"嘉義縣", "嘉義縣", "23.4589", "120.5740"},
-                    {"台南市", "台南", "22.9999", "120.2269"},
-                    {"高雄市", "高雄", "22.6273", "120.3014"},
-                    {"屏東縣", "屏東", "22.6761", "120.4942"},
-                    {"宜蘭縣", "宜蘭", "24.7021", "121.7378"},
-                    {"花蓮縣", "花蓮", "23.9872", "121.6015"},
-                    {"台東縣", "台東", "22.7972", "121.0714"},
-                    {"澎湖縣", "澎湖", "23.5711", "119.5793"},
-                    {"金門縣", "金門", "24.4321", "118.3171"},
-                    {"連江縣", "連江", "26.1605", "119.9517"}
-            };
-            for (String[] item : taiwan) {
-                String canonical = item[0].replace("臺", "台");
-                if (normalized.equals(canonical) || normalized.equals(item[1])) {
-                    fetchForecast(Double.parseDouble(item[2]), Double.parseDouble(item[3]), item[0]);
-                    return;
-                }
+            // Use a deterministic county/city centre for exact Taiwan county/city names.
+            // Districts and overseas cities continue through geocoding below.
+            WeeklyWeatherCity fixedCity = WeeklyWeatherCity.find(normalized);
+            if (fixedCity != null) {
+                fetchForecast(fixedCity.latitude, fixedCity.longitude, fixedCity.displayName);
+                return;
             }
 
             // For districts and overseas cities, geocode the exact user input. Prefer Taiwan matches when present;
