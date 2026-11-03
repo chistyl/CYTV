@@ -68,9 +68,12 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction = text("", 15, true, TEXT);
         pairingAction.setGravity(android.view.Gravity.CENTER);
         pairingAction.setPadding(dp(16), dp(12), dp(16), dp(12));
-        pairingAction.setBackground(round(PANEL, dp(10)));
+        pairingAction.setBackground(round(0xFF343B47, dp(12)));
         pairingAction.setFocusable(true);
+        pairingAction.setFocusableInTouchMode(true);
         pairingAction.setClickable(true);
+        pairingAction.setDefaultFocusHighlightEnabled(false);
+        pairingAction.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
         pairingAction.setOnClickListener(v -> showPairingDialog());
         LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(-1, -2);
         actionLp.topMargin = dp(16);
@@ -85,7 +88,10 @@ public class YouTubeAssistantActivity extends Activity {
         featureStatus.setPadding(dp(14), dp(13), dp(14), dp(13));
         featureStatus.setBackground(round(Color.rgb(38, 43, 53), dp(10)));
         featureStatus.setFocusable(true);
+        featureStatus.setFocusableInTouchMode(true);
         featureStatus.setClickable(true);
+        featureStatus.setDefaultFocusHighlightEnabled(false);
+        featureStatus.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
         featureStatus.setOnClickListener(v -> toggleAutoSkip());
         LinearLayout.LayoutParams featureStatusLp = new LinearLayout.LayoutParams(-1, -2);
         featureStatusLp.topMargin = dp(12);
@@ -100,6 +106,14 @@ public class YouTubeAssistantActivity extends Activity {
         setContentView(root);
         refreshUi();
         pairingAction.requestFocus();
+    }
+
+    private void applyFocusState(View view, boolean hasFocus) {
+        GradientDrawable background = round(
+                hasFocus ? 0xFF46566B : 0xFF343B47, dp(12));
+        if (hasFocus) background.setStroke(dp(2), 0xFFF4F6F8);
+        view.setBackground(background);
+        view.setElevation(hasFocus ? dp(5) : 0f);
     }
 
     private void refreshUi() {
@@ -117,8 +131,10 @@ public class YouTubeAssistantActivity extends Activity {
                         + "\n點選此處關閉"
                 : "自動略過：已關閉\n點選此處開啟");
         featureStatus.setFocusable(paired);
+        featureStatus.setFocusableInTouchMode(paired);
         featureStatus.setClickable(paired);
         featureStatus.setAlpha(paired ? 1f : 0.55f);
+        if (!paired && featureStatus.hasFocus()) pairingAction.requestFocus();
     }
 
     private void toggleAutoSkip() {
