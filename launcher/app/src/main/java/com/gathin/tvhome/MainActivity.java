@@ -5687,6 +5687,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         int folderColumns = 4;
         int folderTileDp = Math.max(92, Math.min(184, (availableWidthDp - 56) / folderColumns));
         grid.setColumnCount(folderColumns);
+        // Folder cards always fill from the left edge, independent of inherited RTL direction.
+        // Otherwise GridLayout can put column 0 on the right and leave an apparent blank column.
+        grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         grid.setUseDefaultMargins(false);
         // 四欄等寬填滿內容區，GridLayout 權重分配確保左右邊界留白一致。
         grid.setAlignmentMode(android.widget.GridLayout.ALIGN_BOUNDS);
