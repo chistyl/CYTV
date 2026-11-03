@@ -1,0 +1,61 @@
+name: Build CYTV Weather Add-on
+
+on:
+  push:
+    branches:
+      - fix/weather-city-search-7day
+    paths:
+      - 'addons/weather/**'
+      - '.github/workflows/build-weather-addon.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Run unit tests and build release APK
+        working-directory: addons/weather
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace testReleaseUnitTest assembleRelease
+      - name: Upload weather add-on APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Weather-7Day-APK
+          path: addons/weather/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Package weather source
+        run: |
+          cd addons/weather
+          zip -qr ../../CYTV-Weather-7Day-source.zip . -x './.gradle/*' './**/build/*'
+      - name: Upload weather source
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Weather-7Day-Source
+          path: CYTV-Weather-7Day-source.zip
+          if-no-files-found: error
+          retention-days: 30
