@@ -35,6 +35,7 @@ public final class LauncherSettingsActivity extends Activity {
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
     private final TextView[] clockChoices = new TextView[CLOCK_FORMATS.length];
     private TextView wallpaperChoice;
+    private TextView wallpaperThemesChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -125,6 +126,8 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        wallpaperThemesChoice = findViewById(R.id.wallpaperThemesChoice);
+        wallpaperThemesChoice.setOnClickListener(v -> showWallpaperThemesUnavailable());
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -218,6 +221,14 @@ public final class LauncherSettingsActivity extends Activity {
                     refresh();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showWallpaperThemesUnavailable() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.wallpaper_themes_title)
+                .setMessage(R.string.wallpaper_themes_unavailable)
+                .setPositiveButton(android.R.string.ok, null)
                 .show();
     }
 
