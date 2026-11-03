@@ -5775,10 +5775,13 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.addView(tvCard, cardLp);
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
-                    // Focus frame belongs to the icon card only; app name text stays outside the frame.
-                    cardSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    // Make remote focus unmistakable: thicker gold frame, gentle card scale,
+                    // and stronger elevation. The app-name row and measured tile dimensions stay unchanged.
+                    cardSurface.setStroke(Math.max(1, (int)(focused ? 7*density : density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
-                    tvCard.setElevation(focused ? 10f * density : 0f);
+                    tvCard.animate().scaleX(focused ? 1.045f : 1f).scaleY(focused ? 1.045f : 1f)
+                            .translationZ(focused ? 8f*density : 0f).setDuration(120).start();
+                    tvCard.setElevation(focused ? 16f * density : 0f);
                 });
                 tile.setOnKeyListener((v, keyCode, event) -> {
                     if (event.getAction() == KeyEvent.ACTION_UP
@@ -5856,10 +5859,12 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addLabelLp.topMargin = (int)(3*density);
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
-                    // The add tile uses the same icon-card-only focus outline.
-                    addSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    // Keep the "+" tile focus treatment consistent with app cards.
+                    addSurface.setStroke(Math.max(1, (int)(focused ? 7*density : density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
-                    addCard.setElevation(focused ? 10f * density : 0f);
+                    addCard.animate().scaleX(focused ? 1.045f : 1f).scaleY(focused ? 1.045f : 1f)
+                            .translationZ(focused ? 8f*density : 0f).setDuration(120).start();
+                    addCard.setElevation(focused ? 16f * density : 0f);
                 });
                 add.setOnKeyListener((v, keyCode, event) -> {
                     if (event.getAction() == KeyEvent.ACTION_UP
