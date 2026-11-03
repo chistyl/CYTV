@@ -4857,21 +4857,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
                 item.addView(preview, imageLp);
 
-                TextView label = new TextView(this);
-                label.setText(names[index]);
-                label.setTextColor(Color.WHITE);
-                label.setTextSize(14);
-                label.setGravity(Gravity.CENTER);
-                label.setSingleLine(true);
-                label.setMaxLines(1);
-                label.setIncludeFontPadding(false);
-                label.setEllipsize(null);
-                label.setHorizontallyScrolling(false);
-                label.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-                label.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1, TypedValue.COMPLEX_UNIT_SP);
-                LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-                labelLp.topMargin = (int)(5*density);
-                item.addView(label, labelLp);
+                // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
+                LinearLayout.LayoutParams imageLp = (LinearLayout.LayoutParams) preview.getLayoutParams();
+                imageLp.height = (int)(88*density);
+                preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setBackground(hasFocus ? focused : normal);
