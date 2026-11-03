@@ -4897,7 +4897,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         scroll.setFillViewport(false);
-        scroll.setVerticalScrollBarEnabled(true);
+        // 隱藏右側捲動條，保留遙控器上下捲動功能。
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
