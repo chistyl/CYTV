@@ -4870,8 +4870,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(7*density)));
             }
         }
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
         scroll.addView(choices);
-        panel.addView(scroll, new LinearLayout.LayoutParams(-1, (int)(Math.min(390*density, getResources().getDisplayMetrics().heightPixels*0.55f))));
+        // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        scrollLp.topMargin = (int)(2*density);
+        scrollLp.bottomMargin = (int)(8*density);
+        panel.addView(scroll, scrollLp);
         addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
@@ -4904,7 +4910,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout(Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)), -2);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            dialog.getWindow().setLayout(
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
+                    (int)(screenHeight * 0.90f));
         }
         choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());
     }
