@@ -4727,6 +4727,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Import the selected image into app-private storage under an ASCII-only fixed name.
      * The original filename is deliberately ignored so Chinese names and provider-specific
      * document IDs never become part of the wallpaper loading path.
+     * This also keeps the selected image available after the picker activity has closed.
      */
     private boolean importCustomWallpaper(Uri uri) {
         java.io.File target = new java.io.File(getFilesDir(), "custom-wallpaper-image");
