@@ -105,6 +105,18 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
+        String customPath = preferences.getString("custom_wallpaper_path", null);
+        if (customPath != null) {
+            Bitmap custom = decode(new File(customPath));
+            if (custom != null) {
+                show(custom);
+                displayed = "custom";
+                showCaption(false);
+                return;
+            }
+            preferences.edit().remove("custom_wallpaper_path").apply();
+        }
+        // Keep compatibility with wallpapers selected by older app versions or QR transfer.
         String customUri = preferences.getString("custom_wallpaper_uri", null);
         if (customUri != null) {
             Bitmap custom = decodeUri(Uri.parse(customUri));
