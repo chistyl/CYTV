@@ -4858,7 +4858,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                LinearLayout.LayoutParams imageLp = (LinearLayout.LayoutParams) preview.getLayoutParams();
                 imageLp.height = (int)(88*density);
                 preview.setLayoutParams(imageLp);
 
