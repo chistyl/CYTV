@@ -1252,12 +1252,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri uri = data.getData();
-            try { getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
-            catch (SecurityException ignored) { }
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_uri", uri.toString())
-                    .putBoolean("hide_left_color_effect", true).apply();
-            recreate();
+            File target = new File(getFilesDir(), "custom-wallpaper.img");
+            boolean copied = false;
+            try (InputStream in = getContentResolver().openInputStream(uri);
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(target)) {
+                if (in == null) throw new IOException("無法讀取圖片");
+                byte[] buffer = new byte[8192];
+                int count;
+                long total = 0;
+                while ((count = in.read(buffer)) != -1) {
+                    total += count;
+                    if (total > 20L * 1024L * 1024L) throw new IOException("圖片不可超過 20 MB");
+                    out.write(buffer, 0, count);
+                }
+                out.flush();
+                copied = total > 0;
+            } catch (Exception failure) {
+                if (target.exists()) target.delete();
+                Toast.makeText(this, "圖片匯入失敗：" + failure.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            if (copied) {
+                getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
+                        .putString("custom_wallpaper_file", target.getAbsolutePath())
+                        .remove("custom_wallpaper_uri")
+                        .putBoolean("hide_left_color_effect", true).apply();
+                recreate();
+            }
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
