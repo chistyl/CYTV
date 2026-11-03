@@ -69,6 +69,7 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction.setGravity(android.view.Gravity.CENTER);
         pairingAction.setPadding(dp(16), dp(12), dp(16), dp(12));
         pairingAction.setBackground(round(0xFF343B47, dp(12)));
+        pairingAction.setId(View.generateViewId());
         pairingAction.setFocusable(true);
         pairingAction.setFocusableInTouchMode(true);
         pairingAction.setClickable(true);
@@ -87,12 +88,24 @@ public class YouTubeAssistantActivity extends Activity {
         featureStatus.setGravity(android.view.Gravity.CENTER_VERTICAL);
         featureStatus.setPadding(dp(14), dp(13), dp(14), dp(13));
         featureStatus.setBackground(round(Color.rgb(38, 43, 53), dp(10)));
+        featureStatus.setId(View.generateViewId());
+        // 即使尚未配對也保留焦點，讓 Android TV 遙控器方向鍵可以移到此功能區；
+        // 未配對時按確認鍵會提示先連接電視，不會執行開關。
         featureStatus.setFocusable(true);
         featureStatus.setFocusableInTouchMode(true);
         featureStatus.setClickable(true);
         featureStatus.setDefaultFocusHighlightEnabled(false);
         featureStatus.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
-        featureStatus.setOnClickListener(v -> toggleAutoSkip());
+        featureStatus.setOnClickListener(v -> {
+            if (!YouTubePairingClient.hasSavedCredentials(this)) {
+                showMessageDialog("尚未連接電視", "請先連接 YouTube TV，再開啟自動略過。");
+                return;
+            }
+            toggleAutoSkip();
+        });
+        // 明確指定上下焦點順序，避免 Android TV 不同遙控器／系統版本自動搜尋失敗。
+        pairingAction.setNextFocusDownId(featureStatus.getId());
+        featureStatus.setNextFocusUpId(pairingAction.getId());
         LinearLayout.LayoutParams featureStatusLp = new LinearLayout.LayoutParams(-1, -2);
         featureStatusLp.topMargin = dp(12);
         featureCard.addView(featureStatus, featureStatusLp);
@@ -130,11 +143,10 @@ public class YouTubeAssistantActivity extends Activity {
                 : enabled ? "自動略過：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
                         + "\n點選此處關閉"
                 : "自動略過：已關閉\n點選此處開啟");
-        featureStatus.setFocusable(paired);
-        featureStatus.setFocusableInTouchMode(paired);
-        featureStatus.setClickable(paired);
+        featureStatus.setFocusable(true);
+        featureStatus.setFocusableInTouchMode(true);
+        featureStatus.setClickable(true);
         featureStatus.setAlpha(paired ? 1f : 0.55f);
-        if (!paired && featureStatus.hasFocus()) pairingAction.requestFocus();
     }
 
     private void toggleAutoSkip() {
