@@ -4408,12 +4408,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** 桌面顯示：APP／資料夾分頁，勾選代表隱藏。APP 使用 TV 16:9 橫幅預覽。 */
     private void showHomeAppVisibilityDialog() {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(
+        PackageManager visibilityPm = getPackageManager();
+        // Merge TV and phone launchers instead of falling back only when the TV list is empty.
+        // Some vendor system apps expose only one category, or neither, but still have a launch intent.
+        Map<String, ResolveInfo> visibilityApps = new HashMap<>();
+        List<ResolveInfo> tvApps = visibilityPm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-        if (apps == null || apps.isEmpty()) apps = getPackageManager().queryIntentActivities(
+        List<ResolveInfo> phoneApps = visibilityPm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+        if (tvApps != null) for (ResolveInfo ri : tvApps)
+            if (ri.activityInfo != null) visibilityApps.put(ri.activityInfo.packageName, ri);
+        if (phoneApps != null) for (ResolveInfo ri : phoneApps)
+            if (ri.activityInfo != null) visibilityApps.putIfAbsent(ri.activityInfo.packageName, ri);
+        List<ApplicationInfo> installedForVisibility;
+        try { installedForVisibility = visibilityPm.getInstalledApplications(PackageManager.MATCH_ALL); }
+        catch (Exception ignored) { installedForVisibility = visibilityPm.getInstalledApplications(0); }
+        for (ApplicationInfo app : installedForVisibility) {
+            String pkg = app.packageName;
+            if (pkg == null || pkg.equals(getPackageName())
+                    || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+                    || visibilityApps.containsKey(pkg)) continue;
+            try {
+                Intent launch = visibilityPm.getLaunchIntentForPackage(pkg);
+                if (launch == null || launch.getComponent() == null) continue;
+                ActivityInfo activity = visibilityPm.getActivityInfo(launch.getComponent(), 0);
+                if (activity == null || !activity.exported) continue;
+                ResolveInfo fallback = new ResolveInfo();
+                fallback.activityInfo = activity;
+                visibilityApps.put(pkg, fallback);
+            } catch (PackageManager.NameNotFoundException | RuntimeException ignored) { }
+        }
         final List<ResolveInfo> appList = new ArrayList<>();
-        for (ResolveInfo ri : apps) {
+        for (ResolveInfo ri : visibilityApps.values()) {
             if (ri.activityInfo != null && ri.activityInfo.exported
                     && !ri.activityInfo.packageName.equals(getPackageName())) appList.add(ri);
         }
