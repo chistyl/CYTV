@@ -5910,32 +5910,39 @@ private GradientDrawable roundSurface(int color, float radius) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                         || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A
                         || keyCode == KeyEvent.KEYCODE_SPACE) {
-                    if (action == KeyEvent.ACTION_UP) {
-                        v.performClick();
-                        return true;
-                    }
+                    if (action == KeyEvent.ACTION_UP) v.performClick();
                     return true;
                 }
-                if (action != KeyEvent.ACTION_DOWN) return false;
+                boolean horizontal = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+                boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+                if (!horizontal && !vertical) return false;
+                // Consume both phases so Android's default focus finder cannot steal DPAD
+                // navigation from the folder grid (some TV remotes deliver key-up only).
+                if (action != KeyEvent.ACTION_DOWN) return true;
                 int index = folderFocusTiles.indexOf(v);
-                if (index < 0) return false;
+                if (index < 0) return true;
+                int column = index % folderColumns;
                 int target = -1;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && index % folderColumns > 0) target = index - 1;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && index % folderColumns < folderColumns - 1
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
                         && index + 1 < folderFocusTiles.size()) target = index + 1;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index - folderColumns >= 0) target = index - folderColumns;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                        && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
                 if (target >= 0) {
                     View next = folderFocusTiles.get(target);
-                    next.requestFocus();
-                    next.post(() -> {
-                        android.graphics.Rect rect = new android.graphics.Rect();
-                        next.getDrawingRect(rect);
-                        scroll.requestChildRectangleOnScreen(next, rect, true);
-                    });
-                    return true;
+                    if (next.requestFocus()) {
+                        next.post(() -> {
+                            android.graphics.Rect rect = new android.graphics.Rect();
+                            next.getDrawingRect(rect);
+                            scroll.requestChildRectangleOnScreen(next, rect, true);
+                        });
+                    }
                 }
-                return false;
+                // At row/column edges stay on the current tile instead of losing focus.
+                return true;
             });
         }
         Button close = new Button(this);
