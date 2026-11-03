@@ -5776,10 +5776,18 @@ private GradientDrawable roundSurface(int color, float radius) {
                     showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog);
                     return true;
                 });
+                int tileIndex = grid.getChildCount();
+                int totalTiles = matches.size() + 1; // include the trailing "+" tile
+                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
+                boolean incompleteLastRow = totalTiles % folderColumns != 0 && tileIndex >= lastRowStart;
                 android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
                         android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
-                        android.widget.GridLayout.spec(grid.getChildCount() % folderColumns, 1, 1f));
-                lp.width = 0; // 依欄位權重平均分配寬度，左右間距自然一致。
+                        incompleteLastRow
+                                ? android.widget.GridLayout.spec(tileIndex % folderColumns, 1)
+                                : android.widget.GridLayout.spec(tileIndex % folderColumns, 1, 1f));
+                // Full rows share available width evenly; the final partial row keeps
+                // standard card widths and stays left-aligned instead of stretching.
+                lp.width = incompleteLastRow ? Math.round(folderTileDp * density) : 0;
                 lp.height = Math.round((folderTileDp * 9f / 16f + 42f)*density);
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 grid.addView(tile, lp);
@@ -5828,13 +5836,16 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // Empty folders contain only the "+" tile. Do not give that lone tile
                 // a weighted column: GridLayout would stretch it across the entire row.
                 // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
-                boolean emptyFolder = matches.isEmpty();
+                int addIndex = grid.getChildCount();
+                int totalTiles = matches.size() + 1;
+                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
+                boolean incompleteLastRow = totalTiles % folderColumns != 0 && addIndex >= lastRowStart;
                 android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
                         android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
-                        emptyFolder
-                                ? android.widget.GridLayout.spec(0, 1)
-                                : android.widget.GridLayout.spec(grid.getChildCount() % folderColumns, 1, 1f));
-                lp.width = emptyFolder ? Math.round(folderTileDp * density) : 0;
+                        incompleteLastRow
+                                ? android.widget.GridLayout.spec(addIndex % folderColumns, 1)
+                                : android.widget.GridLayout.spec(addIndex % folderColumns, 1, 1f));
+                lp.width = incompleteLastRow ? Math.round(folderTileDp * density) : 0;
                 lp.height = Math.round((folderTileDp * 9f / 16f + 42f)*density);
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 grid.addView(add, lp);
