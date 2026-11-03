@@ -5756,12 +5756,15 @@ private GradientDrawable roundSurface(int color, float radius) {
                 FrameLayout tvCard = new FrameLayout(this);
                 GradientDrawable cardSurface = new GradientDrawable();
                 cardSurface.setColor(savedBackground); cardSurface.setCornerRadius(20*density);
-                // Shared folder-card border: visible neutral outline when idle, same 3dp
-                // yellow outline for focus in both system and ordinary folders.
-                cardSurface.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
                 tvCard.setBackground(cardSurface);
-                // Keep the focus stroke outside the clipping layer. Clipping the card itself
-                // cuts the centered stroke in half on some Android TV renderers.
+                // Draw the border as a foreground overlay, separate from the card fill and
+                // artwork clipping. This keeps the yellow focus stroke at one consistent
+                // physical-pixel width on every row and for both folder types.
+                GradientDrawable cardBorder = new GradientDrawable();
+                cardBorder.setColor(Color.TRANSPARENT);
+                cardBorder.setCornerRadius(20 * density);
+                cardBorder.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
+                tvCard.setForeground(cardBorder);
                 tvCard.setClipToOutline(false);
                 ImageView artwork = new ImageView(this);
                 GradientDrawable artworkClip = new GradientDrawable();
@@ -5789,7 +5792,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
-                    cardSurface.setStroke(focused
+                    cardBorder.setStroke(focused
                                     ? Math.max(1, Math.round(3f * density))
                                     : Math.max(1, Math.round(1.5f * density)),
                             focused ? 0xFFFFD54F : 0x66727D8B);
@@ -5858,9 +5861,13 @@ private GradientDrawable roundSurface(int color, float radius) {
                 FrameLayout addCard = new FrameLayout(this);
                 GradientDrawable addSurface = new GradientDrawable();
                 addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(20*density);
-                addSurface.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
                 addCard.setBackground(addSurface);
-                // Match APP cards: never clip the centered focus stroke at the outer card edge.
+                GradientDrawable addBorder = new GradientDrawable();
+                addBorder.setColor(Color.TRANSPARENT);
+                addBorder.setCornerRadius(20 * density);
+                addBorder.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
+                addCard.setForeground(addBorder);
+                // Match APP cards: keep the border in a separate foreground layer.
                 addCard.setClipToOutline(false);
                 TextView plus = new TextView(this); plus.setText("+"); plus.setTextColor(Color.WHITE);
                 GradientDrawable plusClip = new GradientDrawable();
@@ -5879,7 +5886,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
-                    addSurface.setStroke(focused
+                    addBorder.setStroke(focused
                                     ? Math.max(1, Math.round(3f * density))
                                     : Math.max(1, Math.round(1.5f * density)),
                             focused ? 0xFFFFD54F : 0x66727D8B);
