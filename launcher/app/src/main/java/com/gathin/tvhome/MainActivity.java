@@ -4860,20 +4860,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView label = new TextView(this);
                 label.setText(names[index]);
                 label.setTextColor(Color.WHITE);
-                label.setTextSize(13);
+                label.setTextSize(14);
                 label.setGravity(Gravity.CENTER);
-                label.setSingleLine(true);
-                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                label.setSingleLine(false);
+                label.setMaxLines(2);
+                label.setIncludeFontPadding(false);
+                label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
                 LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-                labelLp.topMargin = (int)(4*density);
+                labelLp.topMargin = (int)(5*density);
                 item.addView(label, labelLp);
-
-                TextView apply = new TextView(this);
-                apply.setText("套用");
-                apply.setTextColor(0xFF80CBC4);
-                apply.setTextSize(12);
-                apply.setGravity(Gravity.CENTER);
-                item.addView(apply, new LinearLayout.LayoutParams(-1, (int)(20*density)));
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setBackground(hasFocus ? focused : normal);
