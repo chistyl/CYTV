@@ -5569,19 +5569,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             List<String> packages = new ArrayList<>(labels.keySet());
             boolean[] checked = new boolean[packages.size()];
             Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
-            Set<String> excludedSystemPackages = prefs.getStringSet("system_folder_excluded",
-                    java.util.Collections.<String>emptySet());
-            Set<String> addedSystemPackages = prefs.getStringSet("system_folder_added",
-                    java.util.Collections.<String>emptySet());
+            // The ordinary folder's own saved membership controls this dialog's checkboxes.
+            // Do not hide a saved selection merely because the system-folder preferences are stale;
+            // the save action below resolves the conflict and moves selected packages here.
             for (int i = 0; i < packages.size(); i++) {
-                String pkg = packages.get(i);
-                boolean belongsToSystem = addedSystemPackages.contains(pkg);
-                try {
-                    int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
-                    boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
-                    belongsToSystem = belongsToSystem || (isSystem && !excludedSystemPackages.contains(pkg));
-                } catch (PackageManager.NameNotFoundException ignored) { }
-                checked[i] = members.contains(pkg) && !belongsToSystem;
+                checked[i] = members.contains(packages.get(i));
             }
             Map<String, ResolveInfo> appInfos = new java.util.HashMap<>();
             for (ResolveInfo ri : found) if (ri.activityInfo != null) appInfos.put(ri.activityInfo.packageName, ri);
