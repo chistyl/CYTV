@@ -4821,9 +4821,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             edit.apply();
         });
         randomRow.addView(randomSwitch);
+        // 將整列作為遙控器單一焦點目標，避免焦點落在 Switch 本體而沒有一致的白色外框。
+        randomSwitch.setFocusable(false);
+        randomSwitch.setFocusableInTouchMode(false);
         randomRow.setFocusable(true);
+        randomRow.setFocusableInTouchMode(true);
+        randomRow.setClickable(true);
+        GradientDrawable randomNormalBg = new GradientDrawable();
+        randomNormalBg.setColor(0xFF343B47);
+        randomNormalBg.setCornerRadius(14*density);
+        GradientDrawable randomFocusedBg = new GradientDrawable();
+        randomFocusedBg.setColor(0xFF46566B);
+        randomFocusedBg.setCornerRadius(14*density);
+        randomFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
+        randomRow.setBackground(randomNormalBg);
+        randomRow.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setBackground(hasFocus ? randomFocusedBg : randomNormalBg);
+            v.setElevation(hasFocus ? 5*density : 0f);
+        });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(50*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
