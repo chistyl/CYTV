@@ -556,8 +556,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
         weatherParent.removeView(weeklyWeatherView);
         FrameLayout.LayoutParams weatherOverlayLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.START);
+                clockBlock.getWidth(), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
         int glassIndex = root.indexOfChild(findViewById(R.id.glass));
         root.addView(weeklyWeatherView, Math.max(0, glassIndex), weatherOverlayLp);
         placeWeatherOverlay = () -> {
@@ -566,12 +565,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
+            lp.width = clockBlock.getWidth();
             lp.leftMargin = clockPos[0] - rootPos[0];
-            // Keep the forecast card independent of the right-side buttons, but avoid stretching it
-            // across almost the entire TV screen. Use a proportion of the available content width.
-            int rightInset = (int) (56 * density);
-            int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * 0.60f);
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setLayoutParams(lp);
         };
@@ -1257,13 +1252,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri uri = data.getData();
-            if (importCustomWallpaper(uri)) {
+            File target = new File(getFilesDir(), "custom-wallpaper.img");
+            boolean copied = false;
+            try (InputStream in = getContentResolver().openInputStream(uri);
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(target)) {
+                if (in == null) throw new IOException("無法讀取圖片");
+                byte[] buffer = new byte[8192];
+                int count;
+                long total = 0;
+                while ((count = in.read(buffer)) != -1) {
+                    total += count;
+                    if (total > 20L * 1024L * 1024L) throw new IOException("圖片不可超過 20 MB");
+                    out.write(buffer, 0, count);
+                }
+                out.flush();
+                copied = total > 0;
+            } catch (Exception failure) {
+                if (target.exists()) target.delete();
+                Toast.makeText(this, "圖片匯入失敗：" + failure.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            if (copied) {
                 getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                        .remove("custom_wallpaper_uri")
+                        .putString("custom_wallpaper_file", target.getAbsolutePath())
+                        .remove("builtin_wallpaper").remove("custom_wallpaper_uri")
                         .putBoolean("hide_left_color_effect", true).apply();
                 recreate();
-            } else {
-                Toast.makeText(this, "圖片讀取失敗，請改選 JPG 或 PNG 圖片", Toast.LENGTH_LONG).show();
             }
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
@@ -3911,81 +3924,141 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void fetchCityForecast(String city) {
-        try {
-            String normalized = city == null ? "" : city.trim().replace("臺", "台");
-            if (normalized.isEmpty()) throw new IOException("請輸入城市名稱");
-
-            // Use a deterministic county/city centre for exact Taiwan county/city names.
-            // Districts and overseas cities continue through geocoding below.
-            WeeklyWeatherCity fixedCity = WeeklyWeatherCity.find(normalized);
-            if (fixedCity != null) {
-                fetchForecast(fixedCity.latitude, fixedCity.longitude, fixedCity.displayName);
+        String requestedCity = city == null ? "" : city.trim();
+        if (requestedCity.isEmpty()) {
+            showWeatherError("請輸入城市名稱");
+            return;
+        }
+        String normalized = requestedCity.replace("臺", "台").replaceAll("\\s+", "");
+        double[] coordinates = taiwanCityCoordinates(normalized);
+        if (coordinates != null) {
+            try {
+                fetchForecastData(coordinates[0], coordinates[1], requestedCity);
                 return;
+            } catch (Exception directError) {
+                android.util.Log.w("WeeklyWeather", "Fixed coordinates failed for " + requestedCity
+                        + "; trying geocoding fallback", directError);
             }
-
-            // For districts and overseas cities, geocode the exact user input. Prefer Taiwan matches when present;
-            // never silently choose an unrelated first result when a Taiwan result exists further down the list.
-            String q = URLEncoder.encode(normalized, "UTF-8");
-            JSONObject geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
-                    + "&count=10&language=zh&format=json");
+        }
+        try {
+            JSONObject geo = geocodeCity(requestedCity, "zh");
             JSONArray results = geo.optJSONArray("results");
             if (results == null || results.length() == 0) {
-                geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
-                        + "&count=10&language=en&format=json");
+                geo = geocodeCity(englishTaiwanCityName(normalized), "en");
                 results = geo.optJSONArray("results");
             }
-            if (results == null || results.length() == 0) throw new IOException("找不到城市：" + city);
-
-            JSONObject selected = null;
+            if (results == null || results.length() == 0) {
+                throw new IOException("找不到城市：" + requestedCity);
+            }
+            JSONObject place = results.getJSONObject(0);
             for (int i = 0; i < results.length(); i++) {
                 JSONObject candidate = results.getJSONObject(i);
                 if ("TW".equalsIgnoreCase(candidate.optString("country_code"))) {
-                    selected = candidate;
+                    place = candidate;
                     break;
                 }
             }
-            if (selected == null) selected = results.getJSONObject(0);
-            String displayName = selected.optString("name", normalized);
-            String admin = selected.optString("admin1", "");
-            String country = selected.optString("country", "");
-            if (!admin.isEmpty() && !admin.equals(displayName)) displayName += "・" + admin;
-            if (!country.isEmpty() && !"台灣".equals(country) && !"Taiwan".equalsIgnoreCase(country))
-                displayName += "・" + country;
-            displayName = TraditionalText.toTraditional(displayName);
-            fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"), displayName);
+            fetchForecastData(place.getDouble("latitude"), place.getDouble("longitude"), requestedCity);
         } catch (Exception e) {
-            showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+            android.util.Log.e("WeeklyWeather", "City lookup failed: " + requestedCity, e);
+            showWeatherError("城市定位失敗：" + errorMessage(e));
         }
+    }
+
+    /** Coordinates for Taiwan's 22 counties/cities; longer county names must be matched first. */
+    private double[] taiwanCityCoordinates(String city) {
+        if (city.contains("新竹縣")) return new double[]{24.7036, 121.1252};
+        if (city.contains("新竹市")) return new double[]{24.8138, 120.9675};
+        if (city.contains("嘉義縣")) return new double[]{23.4589, 120.2908};
+        if (city.contains("嘉義市")) return new double[]{23.4801, 120.4491};
+        if (city.contains("桃園")) return new double[]{24.9936, 121.3010};
+        if (city.contains("台北")) return new double[]{25.0330, 121.5654};
+        if (city.contains("新北")) return new double[]{25.0169, 121.4628};
+        if (city.contains("基隆")) return new double[]{25.1276, 121.7392};
+        if (city.contains("苗栗")) return new double[]{24.5602, 120.8214};
+        if (city.contains("台中")) return new double[]{24.1477, 120.6736};
+        if (city.contains("彰化")) return new double[]{24.0518, 120.5161};
+        if (city.contains("南投")) return new double[]{23.9157, 120.6639};
+        if (city.contains("雲林")) return new double[]{23.7092, 120.4313};
+        if (city.contains("台南")) return new double[]{22.9999, 120.2269};
+        if (city.contains("高雄")) return new double[]{22.6273, 120.3014};
+        if (city.contains("屏東")) return new double[]{22.6761, 120.4942};
+        if (city.contains("宜蘭")) return new double[]{24.7021, 121.7378};
+        if (city.contains("花蓮")) return new double[]{23.9871, 121.6015};
+        if (city.contains("台東")) return new double[]{22.7554, 121.1508};
+        if (city.contains("澎湖")) return new double[]{23.5711, 119.5793};
+        if (city.contains("金門")) return new double[]{24.4403, 118.3183};
+        if (city.contains("連江") || city.contains("馬祖")) return new double[]{26.1605, 119.9510};
+        return null;
+    }
+
+    private String englishTaiwanCityName(String city) {
+        if (city.contains("桃園")) return "Taoyuan";
+        if (city.contains("台北")) return "Taipei";
+        if (city.contains("新北")) return "New Taipei";
+        if (city.contains("基隆")) return "Keelung";
+        if (city.contains("新竹縣")) return "Hsinchu County";
+        if (city.contains("新竹市")) return "Hsinchu";
+        if (city.contains("苗栗")) return "Miaoli";
+        if (city.contains("台中")) return "Taichung";
+        if (city.contains("彰化")) return "Changhua";
+        if (city.contains("南投")) return "Nantou";
+        if (city.contains("雲林")) return "Yunlin";
+        if (city.contains("嘉義縣")) return "Chiayi County";
+        if (city.contains("嘉義市")) return "Chiayi";
+        if (city.contains("台南")) return "Tainan";
+        if (city.contains("高雄")) return "Kaohsiung";
+        if (city.contains("屏東")) return "Pingtung";
+        if (city.contains("宜蘭")) return "Yilan";
+        if (city.contains("花蓮")) return "Hualien";
+        if (city.contains("台東")) return "Taitung";
+        if (city.contains("澎湖")) return "Penghu";
+        if (city.contains("金門")) return "Kinmen";
+        if (city.contains("連江") || city.contains("馬祖")) return "Lienchiang";
+        return city;
+    }
+
+    private JSONObject geocodeCity(String city, String language) throws Exception {
+        String q = URLEncoder.encode(city, "UTF-8");
+        return getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
+                + "&count=10&language=" + language + "&format=json");
     }
 
     private void fetchForecast(double lat, double lon, String place) {
         try {
-            if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
-                    || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180)
-                throw new IOException("城市座標無效");
-            String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
-                    + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-                    + "&forecast_days=7&timezone=auto";
-            JSONObject response = getJson(url);
-            if (response.optBoolean("error", false))
-                throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
-            JSONObject daily = response.getJSONObject("daily");
-            JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
-            JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
-            JSONArray rain = daily.optJSONArray("precipitation_probability_max");
-            if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
-                throw new IOException("預報資料不足七天，請稍後重試");
-            weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain, place));
+            fetchForecastData(lat, lon, place);
         } catch (Exception e) {
-            showWeatherError("天氣資料讀取失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+            android.util.Log.e("WeeklyWeather", "Forecast request failed for " + place, e);
+            showWeatherError("天氣資料讀取失敗：" + errorMessage(e));
         }
+    }
+
+    private void fetchForecastData(double lat, double lon, String place) throws Exception {
+        String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
+                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+                + "&forecast_days=7&timezone=auto";
+        JSONObject root = getJson(url);
+        JSONObject daily = root.getJSONObject("daily");
+        JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
+        JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
+        JSONArray rain = daily.optJSONArray("precipitation_probability_max");
+        if (dates.length() == 0 || codes.length() == 0 || highs.length() == 0 || lows.length() == 0) {
+            throw new IOException("天氣服務回傳空資料");
+        }
+        weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain, place));
+    }
+
+    private String errorMessage(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty()
+                ? error.getClass().getSimpleName() : message;
     }
 
     private void showWeeklyWeatherStatus(String message) {
         if (weeklyWeatherDays == null) return;
         weeklyWeatherDays.removeAllViews();
         TextView status = new TextView(this);
-        status.setText(TraditionalText.toTraditional(message));
+        status.setText(TraditionalText.display(this, message));
         status.setTextColor(Color.WHITE);
         status.setTextSize(15);
         status.setPadding((int)(12*density), (int)(8*density), (int)(12*density), (int)(8*density));
@@ -3999,7 +4072,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView heading = new TextView(this);
-        heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+        heading.setText("一週天氣・" + place);
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -4026,9 +4099,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
                 dateView.setTextSize(14);
-                dateView.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                dateView.setMaxLines(1);
                 dateView.setGravity(Gravity.CENTER);
                 dayColumn.addView(dateView, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4041,38 +4111,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dayColumn.addView(iconView, iconLp);
 
                 TextView condition = new TextView(this);
-                condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
+                condition.setText(weatherLabel(code));
                 condition.setTextColor(0xFFE8EBF0);
                 condition.setTextSize(13);
                 condition.setGravity(Gravity.CENTER);
-                // Let the label shrink slightly when each of the seven forecast columns is narrow.
-                // Keep up to two lines so the full Traditional Chinese condition remains readable.
-                condition.setAutoSizeTextTypeUniformWithConfiguration(10, 13, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                condition.setMaxLines(2);
+                condition.setMaxLines(1);
+                condition.setEllipsize(TextUtils.TruncateAt.END);
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
                 TextView temperature = new TextView(this);
                 temperature.setText(Math.round(highs.optDouble(i)) + " / " + Math.round(lows.optDouble(i)));
                 temperature.setTextColor(Color.WHITE);
                 temperature.setTextSize(14);
-                temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                temperature.setMaxLines(1);
                 temperature.setGravity(Gravity.CENTER);
                 LinearLayout.LayoutParams tempLp = new LinearLayout.LayoutParams(-1, -2);
                 tempLp.topMargin = (int)(3*density);
                 dayColumn.addView(temperature, tempLp);
 
                 TextView precipitation = new TextView(this);
-                precipitation.setText(TraditionalText.toTraditional("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
+                precipitation.setText("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--"));
                 precipitation.setTextColor(0xFFD5D9E0);
                 precipitation.setTextSize(12);
                 precipitation.setGravity(Gravity.CENTER);
-                // Rain probability also adapts to the available column width instead of clipping.
-                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                precipitation.setMaxLines(2);
                 dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
 
                 LinearLayout.LayoutParams columnLp = new LinearLayout.LayoutParams(0, -2, 1f);
@@ -4109,12 +4169,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private JSONObject getJson(String address) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setRequestMethod("GET"); c.setConnectTimeout(12000); c.setReadTimeout(12000);
+        c.setRequestMethod("GET");
+        c.setConnectTimeout(12000);
+        c.setReadTimeout(12000);
         c.setRequestProperty("Accept", "application/json");
-        try (InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-            byte[] buf = new byte[4096]; int n; while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            return new JSONObject(out.toString("UTF-8"));
-        } finally { c.disconnect(); }
+        c.setRequestProperty("User-Agent", "CYTV-WeeklyWeather/1.0");
+        try {
+            int status = c.getResponseCode();
+            InputStream stream = status >= 200 && status < 300 ? c.getInputStream() : c.getErrorStream();
+            if (stream == null) throw new IOException("HTTP " + status + "（無回應內容）");
+            try (InputStream in = stream; java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                String body = out.toString("UTF-8");
+                if (status < 200 || status >= 300) {
+                    String detail = body.length() > 240 ? body.substring(0, 240) : body;
+                    throw new IOException("HTTP " + status + "：" + detail);
+                }
+                return new JSONObject(body);
+            }
+        } finally {
+            c.disconnect();
+        }
     }
 
     private void showWeatherError(String message) {
@@ -4723,44 +4800,143 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         catch (PackageManager.NameNotFoundException ignored) { return getDrawable(android.R.drawable.sym_def_app_icon); }
     }
 
-    /**
-     * Import the selected image into app-private storage under an ASCII-only fixed name.
-     * The original filename is deliberately ignored so Chinese names and provider-specific
-     * document IDs never become part of the wallpaper loading path.
-     * This also keeps the selected image available after the picker activity has closed.
-     */
-    private boolean importCustomWallpaper(Uri uri) {
-        java.io.File target = new java.io.File(getFilesDir(), "custom-wallpaper-image");
-        java.io.File temporary = new java.io.File(getFilesDir(), "custom-wallpaper-image.tmp");
-        try (java.io.InputStream input = getContentResolver().openInputStream(uri);
-             java.io.FileOutputStream output = new java.io.FileOutputStream(temporary)) {
-            if (input == null) return false;
-            byte[] buffer = new byte[16 * 1024];
-            int count;
-            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-            output.flush();
-            if (temporary.length() <= 0) return false;
-            if (target.exists() && !target.delete()) return false;
-            if (!temporary.renameTo(target)) return false;
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_path", target.getAbsolutePath()).apply();
-            return true;
-        } catch (Exception | OutOfMemoryError failure) {
-            temporary.delete();
-            return false;
-        }
-    }
-
     private void showWallpaperPicker() {
-        Dialog dialog = new Dialog(this);
+        final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setClipChildren(false); panel.setClipToPadding(false);
-        panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
-        GradientDrawable bg = new GradientDrawable(); bg.setColor(Color.rgb(28, 32, 40));
-        bg.setCornerRadius(22*density); bg.setStroke(Math.max(1, (int)density), 0x28FFFFFF); panel.setBackground(bg);
-        TextView title = new TextView(this); title.setText("桌布設定"); title.setTextColor(Color.WHITE);
-        title.setTextSize(20); title.setPadding(0, 0, 0, (int)(12*density)); panel.addView(title);
+        panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
+        panel.setBackground(roundSurface(Color.rgb(28, 32, 40), 22*density));
+        TextView title = new TextView(this);
+        title.setText("背景主題");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(21);
+        title.setPadding(0, 0, 0, (int)(12*density));
+        panel.addView(title);
+
+        final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
+        final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        LinearLayout randomRow = new LinearLayout(this);
+        randomRow.setOrientation(LinearLayout.HORIZONTAL);
+        randomRow.setGravity(Gravity.CENTER_VERTICAL);
+        randomRow.setPadding((int)(12*density), 0, (int)(8*density), 0);
+        TextView randomLabel = new TextView(this);
+        randomLabel.setText("主題隨機播放");
+        randomLabel.setTextColor(Color.WHITE);
+        randomLabel.setTextSize(16);
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        android.widget.Switch randomSwitch = new android.widget.Switch(this);
+        randomSwitch.setTextOn("");
+        randomSwitch.setTextOff("");
+        randomSwitch.setShowText(false);
+        randomSwitch.setChecked(wallpaperPrefs.getBoolean("builtin_random_play", false));
+        randomSwitch.setOnCheckedChangeListener((button, checked) -> {
+            SharedPreferences.Editor edit = wallpaperPrefs.edit()
+                    .putBoolean("builtin_random_play", checked);
+            if (checked) {
+                int selectedTheme = wallpaperPrefs.getInt("builtin_wallpaper", 0);
+                if (selectedTheme < 1 || selectedTheme > 6
+                        || wallpaperPrefs.getString("custom_wallpaper_uri", null) != null
+                        || wallpaperPrefs.getString("custom_wallpaper_file", null) != null) {
+                    int randomTheme = 1 + new java.util.Random().nextInt(6);
+                    edit.putInt("builtin_wallpaper", randomTheme)
+                            .remove("custom_wallpaper_uri")
+                            .remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true);
+                    File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+                    if (localWallpaper.exists()) localWallpaper.delete();
+                    edit.apply();
+                    dialog.dismiss();
+                    recreate();
+                    return;
+                }
+            }
+            edit.apply();
+        });
+        randomRow.addView(randomSwitch);
+        randomRow.setFocusable(true);
+        randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        LinearLayout choices = new LinearLayout(this);
+        choices.setOrientation(LinearLayout.VERTICAL);
+        final int columnsCount = 3;
+        final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
+        for (int row = 0; row < rowsCount; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < columnsCount; col++) {
+                final int index = row * columnsCount + col;
+                if (index >= names.length) {
+                    View empty = new View(this);
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(92*density), 1f));
+                    continue;
+                }
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setGravity(Gravity.CENTER);
+                item.setFocusable(true);
+                item.setFocusableInTouchMode(true);
+                item.setClickable(true);
+                item.setId(View.generateViewId());
+                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
+                GradientDrawable normal = new GradientDrawable();
+                normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
+                GradientDrawable focused = new GradientDrawable();
+                focused.setColor(0xFF46566B); focused.setCornerRadius(12*density);
+                focused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
+                item.setBackground(normal);
+
+                ImageView preview = new ImageView(this);
+                preview.setImageResource(previews[index]);
+                preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                preview.setAdjustViewBounds(true);
+                preview.setBackgroundColor(0xFF252B35);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
+                item.addView(preview, imageLp);
+
+                // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
+                imageLp.height = (int)(80*density);
+                preview.setLayoutParams(imageLp);
+
+                item.setOnFocusChangeListener((v, hasFocus) -> {
+                    v.setBackground(hasFocus ? focused : normal);
+                    v.setElevation(hasFocus ? 5*density : 0f);
+                });
+                item.setOnClickListener(v -> {
+                    SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+                    prefs.edit().putInt("builtin_wallpaper", index + 1).putBoolean("builtin_random_play", false)
+                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true).apply();
+                    dialog.dismiss();
+                    recreate();
+                });
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
+                if (col > 0) itemLp.leftMargin = (int)(5*density);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
+                rowLayout.addView(item, itemLp);
+            }
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            if (row < rowsCount - 1) {
+                View gap = new View(this);
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+            }
+        }
+        scroll.setFillViewport(false);
+        // 隱藏右側捲動條，保留遙控器上下捲動功能。
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.addView(choices);
+        // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        scrollLp.topMargin = (int)(2*density);
+        scrollLp.bottomMargin = (int)(6*density);
+        panel.addView(scroll, scrollLp);
         addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
@@ -4775,47 +4951,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_path").putBoolean("hide_left_color_effect", false).apply();
+                    .remove("builtin_wallpaper").remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .putBoolean("hide_left_color_effect", false).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
-        TextView cancel = new TextView(this); cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4);
-        cancel.setTextSize(16); cancel.setGravity(Gravity.CENTER);
-        cancel.setFocusable(true); cancel.setFocusableInTouchMode(true); cancel.setClickable(true);
-        cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
-        GradientDrawable cancelNormal = new GradientDrawable();
-        cancelNormal.setColor(0xFF343B47); cancelNormal.setCornerRadius(14*density);
-        GradientDrawable cancelFocused = new GradientDrawable();
-        cancelFocused.setColor(0xFF46566B); cancelFocused.setCornerRadius(14*density);
-        cancelFocused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
-        cancel.setBackground(cancelNormal);
-        cancel.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? cancelFocused : cancelNormal);
-            cancel.setTextColor(focused ? Color.WHITE : 0xFF80CBC4);
-            v.setElevation(focused ? 4*density : 0f);
-        });
-        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        cancelLp.topMargin = (int)(10*density); panel.addView(cancel, cancelLp);
+        TextView cancel = new TextView(this);
+        cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
+        cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
+        cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
+        GradientDrawable cancelBg = new GradientDrawable();
+        cancelBg.setColor(0xFF343B47); cancelBg.setCornerRadius(14*density); cancel.setBackground(cancelBg);
         cancel.setOnClickListener(v -> dialog.dismiss());
-        View firstWallpaperAction = panel.getChildAt(1);
-        View secondWallpaperAction = panel.getChildAt(2);
-        View lastWallpaperAction = panel.getChildAt(panel.getChildCount()-2);
-        if (firstWallpaperAction != null && secondWallpaperAction != null) {
-            firstWallpaperAction.setNextFocusUpId(cancel.getId());
-            firstWallpaperAction.setNextFocusDownId(secondWallpaperAction.getId());
-            secondWallpaperAction.setNextFocusUpId(firstWallpaperAction.getId());
-            secondWallpaperAction.setNextFocusDownId(lastWallpaperAction.getId());
-        }
-        if (lastWallpaperAction != null) {
-            lastWallpaperAction.setNextFocusUpId(secondWallpaperAction.getId());
-            lastWallpaperAction.setNextFocusDownId(cancel.getId());
-            cancel.setNextFocusUpId(lastWallpaperAction.getId());
-        }
-        dialog.setContentView(panel); dialog.show();
+        panel.addView(cancel, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        dialog.setContentView(panel);
+        dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout(Math.min((int)(460*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)), -2);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            dialog.getWindow().setLayout(
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
+                    (int)(screenHeight * 0.90f));
         }
-        panel.getChildAt(1).post(() -> panel.getChildAt(1).requestFocus());
+        choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());
+    }
+
+    private GradientDrawable roundSurface(int color, float radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(radius);
+        drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        return drawable;
     }
 
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳圖片並直接設為桌布。 */
@@ -4863,7 +5030,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
             if (isFinishing() || isDestroyed()) return;
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_uri", uri.toString())
+                    .putString("custom_wallpaper_uri", uri.toString()).remove("builtin_wallpaper").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", true).apply();
             Toast.makeText(this, "圖片已接收，正在設定桌布", Toast.LENGTH_LONG).show();
             dialog.dismiss();
