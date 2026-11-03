@@ -2011,8 +2011,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- top shelf -------------------------------------------------------------------------------
 
     private boolean isCustomWallpaperActive() {
-        return !TextUtils.isEmpty(getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
-                .getString("custom_wallpaper_uri", null));
+        SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        return !TextUtils.isEmpty(prefs.getString("custom_wallpaper_uri", null))
+                || !TextUtils.isEmpty(prefs.getString("custom_wallpaper_file", null));
     }
 
     private void showHero(int position, float dockTopInRoot) {
@@ -4745,8 +4746,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (temporary.length() <= 0) return false;
             if (target.exists() && !target.delete()) return false;
             if (!temporary.renameTo(target)) return false;
+            // WallpaperPlayer reads custom_wallpaper_file. Persist the exact key it consumes,
+            // and clear built-in selections so they cannot override the imported image.
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_path", target.getAbsolutePath()).apply();
+                    .putString("custom_wallpaper_file", target.getAbsolutePath())
+                    .remove("custom_wallpaper_path")
+                    .remove("custom_wallpaper_uri")
+                    .remove("builtin_wallpaper")
+                    .putBoolean("builtin_random_play", false)
+                    .apply();
             return true;
         } catch (Exception | OutOfMemoryError failure) {
             temporary.delete();
