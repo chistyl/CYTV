@@ -4862,10 +4862,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 label.setTextColor(Color.WHITE);
                 label.setTextSize(14);
                 label.setGravity(Gravity.CENTER);
-                label.setSingleLine(false);
-                label.setMaxLines(2);
+                label.setSingleLine(true);
+                label.setMaxLines(1);
                 label.setIncludeFontPadding(false);
-                label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+                label.setEllipsize(null);
+                label.setHorizontallyScrolling(false);
+                label.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+                label.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1, TypedValue.COMPLEX_UNIT_SP);
                 LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, 0, 1f);
                 labelLp.topMargin = (int)(5*density);
                 item.addView(label, labelLp);
