@@ -92,7 +92,7 @@ final class WallpaperPlayer {
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
-        if (preferences.getString("custom_wallpaper_uri", null) != null || (config.wallpaperEnabled && !files.isEmpty())) {
+        if (preferences.getInt("builtin_wallpaper", 0) > 0 || preferences.getString("custom_wallpaper_uri", null) != null || preferences.getString("custom_wallpaper_file", null) != null || (config.wallpaperEnabled && !files.isEmpty())) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
@@ -105,6 +105,17 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
+        int builtIn = preferences.getInt("builtin_wallpaper", 0);
+        if (builtIn >= 1 && builtIn <= 6) {
+            int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                    R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                    R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06};
+            image.setImageResource(themes[builtIn - 1]);
+            root.setBackground(null);
+            displayed = "builtin_" + builtIn;
+            showCaption(false);
+            return;
+        }
         String customFile = preferences.getString("custom_wallpaper_file", null);
         if (customFile != null) {
             File selected = new File(customFile);
