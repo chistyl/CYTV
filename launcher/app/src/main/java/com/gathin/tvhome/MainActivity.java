@@ -5825,10 +5825,16 @@ private GradientDrawable roundSurface(int color, float radius) {
                     dialog.dismiss();
                     if (systemFolder) showSystemFolderAssignment(); else showFolderAppAssignment(folderName);
                 });
+                // Empty folders contain only the "+" tile. Do not give that lone tile
+                // a weighted column: GridLayout would stretch it across the entire row.
+                // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
+                boolean emptyFolder = matches.isEmpty();
                 android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
                         android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
-                        android.widget.GridLayout.spec(grid.getChildCount() % folderColumns, 1, 1f));
-                lp.width = 0;
+                        emptyFolder
+                                ? android.widget.GridLayout.spec(0, 1)
+                                : android.widget.GridLayout.spec(grid.getChildCount() % folderColumns, 1, 1f));
+                lp.width = emptyFolder ? Math.round(folderTileDp * density) : 0;
                 lp.height = Math.round((folderTileDp * 9f / 16f + 42f)*density);
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 grid.addView(add, lp);
