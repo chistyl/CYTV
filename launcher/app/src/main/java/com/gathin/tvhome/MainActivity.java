@@ -4824,7 +4824,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .remove("custom_wallpaper_uri").putBoolean("hide_left_color_effect", false).apply();
+                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .putBoolean("hide_left_color_effect", false).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
         TextView cancel = new TextView(this); cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4);
