@@ -571,7 +571,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // across almost the entire TV screen. Use a proportion of the available content width.
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * 0.75f);
+            lp.width = Math.round(availableWidth * 0.70f);
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setLayoutParams(lp);
         };
@@ -4024,6 +4024,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
                 dateView.setTextSize(14);
+                dateView.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                dateView.setMaxLines(1);
                 dateView.setGravity(Gravity.CENTER);
                 dayColumn.addView(dateView, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4051,6 +4054,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 temperature.setText(Math.round(highs.optDouble(i)) + " / " + Math.round(lows.optDouble(i)));
                 temperature.setTextColor(Color.WHITE);
                 temperature.setTextSize(14);
+                temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                temperature.setMaxLines(1);
                 temperature.setGravity(Gravity.CENTER);
                 LinearLayout.LayoutParams tempLp = new LinearLayout.LayoutParams(-1, -2);
                 tempLp.topMargin = (int)(3*density);
