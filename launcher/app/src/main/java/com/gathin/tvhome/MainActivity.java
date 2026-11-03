@@ -4831,7 +4831,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(132*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(108*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -4854,7 +4854,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 preview.setAdjustViewBounds(true);
                 preview.setBackgroundColor(0xFF252B35);
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(82*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
                 item.addView(preview, imageLp);
 
                 TextView label = new TextView(this);
@@ -4885,15 +4885,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     dialog.dismiss();
                     recreate();
                 });
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(132*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(108*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(132*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(108*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -4904,7 +4904,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(2*density);
-        scrollLp.bottomMargin = (int)(8*density);
+        scrollLp.bottomMargin = (int)(6*density);
         panel.addView(scroll, scrollLp);
         addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
