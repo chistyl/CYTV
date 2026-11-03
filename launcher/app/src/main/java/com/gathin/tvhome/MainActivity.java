@@ -5763,7 +5763,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 GradientDrawable cardBorder = new GradientDrawable();
                 cardBorder.setColor(Color.TRANSPARENT);
                 cardBorder.setCornerRadius(20 * density);
-                cardBorder.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
+                cardBorder.setStroke(0, Color.TRANSPARENT);
                 tvCard.setForeground(cardBorder);
                 tvCard.setClipToOutline(false);
                 ImageView artwork = new ImageView(this);
@@ -5792,10 +5792,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
-                    cardBorder.setStroke(focused
-                                    ? Math.max(1, Math.round(3f * density))
-                                    : Math.max(1, Math.round(1.5f * density)),
-                            focused ? 0xFFFFD54F : 0x66727D8B);
+                    cardBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
+                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
                     tvCard.setElevation(focused ? 10f * density : 0f);
                 });
                 tile.setOnKeyListener((v, keyCode, event) -> {
@@ -5865,7 +5863,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 GradientDrawable addBorder = new GradientDrawable();
                 addBorder.setColor(Color.TRANSPARENT);
                 addBorder.setCornerRadius(20 * density);
-                addBorder.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
+                addBorder.setStroke(0, Color.TRANSPARENT);
                 addCard.setForeground(addBorder);
                 // Match APP cards: keep the border in a separate foreground layer.
                 addCard.setClipToOutline(false);
@@ -5886,10 +5884,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
-                    addBorder.setStroke(focused
-                                    ? Math.max(1, Math.round(3f * density))
-                                    : Math.max(1, Math.round(1.5f * density)),
-                            focused ? 0xFFFFD54F : 0x66727D8B);
+                    addBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
+                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
                     addCard.setElevation(focused ? 10f * density : 0f);
                 });
                 add.setOnKeyListener((v, keyCode, event) -> {
