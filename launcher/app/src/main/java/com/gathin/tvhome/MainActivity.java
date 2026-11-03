@@ -5882,7 +5882,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    row.setGravity(Gravity.TOP | Gravity.START);
+                    // Keep the add-tile row centered exactly like app rows so its outer
+                    // left/right spacing remains equal, including when the folder is empty.
+                    row.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
