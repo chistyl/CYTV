@@ -158,4 +158,7 @@
     <string name="clock_format_system">System</string>
     <string name="clock_format_12">12-hour</string>
     <string name="clock_format_24">24-hour</string>
+    <string name="wallpaper_themes">Wallpaper themes</string>
+    <string name="wallpaper_themes_title">Choose a wallpaper theme</string>
+    <string name="wallpaper_themes_unavailable">The six original theme photos have not been imported yet. Add the six JPG files before applying a theme.</string>
 </resources>
