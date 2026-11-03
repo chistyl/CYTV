@@ -801,11 +801,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            // Keep dock-row items visible in their normal RecyclerView lifecycle.
-            // Do not manually mark the first row INVISIBLE when it scrolls above the viewport:
-            // that stale visibility can make the first row disappear during D-pad navigation.
+            // Hide any app row as soon as it starts crossing the grid's upper clipping edge.
+            // Apply the same rule to the dock row and every later row so no partially clipped
+            // cards remain visible while navigating down with the TV remote.
+            private void updateClippedRowVisibility(RecyclerView rv) {
+                if (singleRow) return;
+                for (int i = 0; i < rv.getChildCount(); i++) {
+                    View child = rv.getChildAt(i);
+                    int position = rv.getChildAdapterPosition(child);
+                    if (position != RecyclerView.NO_POSITION) {
+                        child.setVisibility(child.getTop() < 0 ? View.INVISIBLE : View.VISIBLE);
+                    }
+                }
+            }
+
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                updateClippedRowVisibility(rv);
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
