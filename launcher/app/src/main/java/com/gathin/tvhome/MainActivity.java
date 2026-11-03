@@ -801,22 +801,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            // Hide the dock row as a whole after it crosses the viewport's upper edge.
-            // INVISIBLE preserves layout and focus geometry; it reappears when scrolling back up.
-            private void updateDockRowVisibility(RecyclerView rv) {
-                if (!dockRow || singleRow) return;
-                for (int i = 0; i < rv.getChildCount(); i++) {
-                    View child = rv.getChildAt(i);
-                    int position = rv.getChildAdapterPosition(child);
-                    if (position >= 0 && position < COLUMNS) {
-                        child.setVisibility(child.getTop() < 0 ? View.INVISIBLE : View.VISIBLE);
-                    }
-                }
-            }
-
+            // Keep dock-row items visible in their normal RecyclerView lifecycle.
+            // Do not manually mark the first row INVISIBLE when it scrolls above the viewport:
+            // that stale visibility can make the first row disappear during D-pad navigation.
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                updateDockRowVisibility(rv);
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
