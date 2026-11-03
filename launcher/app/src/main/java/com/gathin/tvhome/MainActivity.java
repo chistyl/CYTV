@@ -4710,51 +4710,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             edit.apply(); dialog.dismiss(); reloadApps(false);
         });
-        // Handle DPAD at the Dialog boundary. Folder tiles contain child views and
-        // some TV firmware consumes key events before they reach the focused tile.
-        final int[] lastDialogDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
-        dialog.setOnKeyListener((d, keyCode, event) -> {
-            boolean directional = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
-                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
-                    || keyCode == KeyEvent.KEYCODE_DPAD_UP
-                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
-            if (!directional) return false;
-            int action = event.getAction();
-            if (action == KeyEvent.ACTION_DOWN) {
-                lastDialogDpadDown[0] = keyCode;
-            } else if (action == KeyEvent.ACTION_UP) {
-                if (lastDialogDpadDown[0] == keyCode) {
-                    lastDialogDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
-                    return true;
-                }
-            } else {
-                return true;
-            }
-            View focused = dialog.getCurrentFocus();
-            int index = folderFocusTiles.indexOf(focused);
-            if (index < 0) {
-                if (!folderFocusTiles.isEmpty()) folderFocusTiles.get(0).requestFocus();
-                return true;
-            }
-            int target = -1;
-            int column = index % folderColumns;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
-                    && index + 1 < folderFocusTiles.size()) target = index + 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
-                    && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
-            if (target >= 0) {
-                View next = folderFocusTiles.get(target);
-                next.requestFocus();
-                next.post(() -> {
-                    android.graphics.Rect rect = new android.graphics.Rect();
-                    next.getDrawingRect(rect);
-                    scroll.requestChildRectangleOnScreen(next, rect, true);
-                });
-            }
-            return true;
-        });
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -5978,6 +5933,48 @@ private GradientDrawable roundSurface(int color, float radius) {
             close.setNextFocusDownId(firstTile.getId());
             close.setNextFocusLeftId(lastTile.getId());
         }
+        // Handle DPAD at the folder dialog boundary so TV firmware cannot swallow tile navigation.
+        final int[] lastFolderDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
+        dialog.setOnKeyListener((d, keyCode, event) -> {
+            boolean directional = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+            if (!directional) return false;
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                if (lastFolderDpadDown[0] == keyCode) {
+                    lastFolderDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
+                    return true;
+                }
+                return true;
+            }
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            lastFolderDpadDown[0] = keyCode;
+            View focused = dialog.getCurrentFocus();
+            int index = folderFocusTiles.indexOf(focused);
+            if (index < 0) {
+                if (!folderFocusTiles.isEmpty()) folderFocusTiles.get(0).requestFocus();
+                return true;
+            }
+            int target = -1;
+            int column = index % folderColumns;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
+                    && index + 1 < folderFocusTiles.size()) target = index + 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                    && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
+            if (target >= 0) {
+                View next = folderFocusTiles.get(target);
+                next.requestFocus();
+                next.post(() -> {
+                    android.graphics.Rect rect = new android.graphics.Rect();
+                    next.getDrawingRect(rect);
+                    scroll.requestChildRectangleOnScreen(next, rect, true);
+                });
+            }
+            return true;
+        });
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
