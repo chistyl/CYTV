@@ -5562,11 +5562,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         List<String> folders = new ArrayList<>(prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet()));
         if (!folders.contains(folder)) return;
-        List<ResolveInfo> found = getPackageManager().queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-            java.util.LinkedHashMap<String,String> labels = new java.util.LinkedHashMap<>();
-            for (ResolveInfo ri : found) if (ri.activityInfo != null && ri.activityInfo.exported && !ri.activityInfo.packageName.equals(getPackageName()))
-                labels.put(ri.activityInfo.packageName, String.valueOf(ri.loadLabel(getPackageManager())));
-            List<String> packages = new ArrayList<>(labels.keySet());
+        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
+            List<String> packages = new ArrayList<>(candidates.keySet());
             boolean[] checked = new boolean[packages.size()];
             Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
             // The ordinary folder's own saved membership controls this dialog's checkboxes.
@@ -5575,9 +5572,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             for (int i = 0; i < packages.size(); i++) {
                 checked[i] = members.contains(packages.get(i));
             }
-            Map<String, ResolveInfo> appInfos = new java.util.HashMap<>();
-            for (ResolveInfo ri : found) if (ri.activityInfo != null) appInfos.put(ri.activityInfo.packageName, ri);
-            showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, appInfos, checked, selected -> {
+            showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, candidates, checked, selected -> {
                 java.util.LinkedHashSet<String> chosen = new java.util.LinkedHashSet<>();
                 for (int i=0;i<packages.size();i++) if (selected[i]) chosen.add(packages.get(i));
                 SharedPreferences.Editor edit = prefs.edit().putStringSet("folder_apps_" + folder, chosen);
@@ -6135,13 +6130,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         showFolderContents(folderName, systemFolder);
     }
 
-    /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
-    private void showSystemFolderAssignment() {
-        PackageManager assignmentPm = getPackageManager();
+    /**
+     * One canonical app catalogue for both System and ordinary folder assignment dialogs.
+     * Package-name sorting is case-insensitive so the same apps always appear in the same order.
+     * Include TV launchers, phone launchers, and launchable system apps omitted by vendor TV queries.
+     */
+    private java.util.TreeMap<String, ResolveInfo> getFolderAssignmentCandidates() {
+        PackageManager pm = getPackageManager();
         java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        List<ResolveInfo> tvInstalled = assignmentPm.queryIntentActivities(
+        List<ResolveInfo> tvInstalled = pm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-        List<ResolveInfo> phoneInstalled = assignmentPm.queryIntentActivities(
+        List<ResolveInfo> phoneInstalled = pm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
         if (tvInstalled != null) for (ResolveInfo ri : tvInstalled) {
             if (ri.activityInfo != null && ri.activityInfo.exported
@@ -6153,25 +6152,30 @@ private GradientDrawable roundSurface(int color, float radius) {
                     && !ri.activityInfo.packageName.equals(getPackageName()))
                 candidates.putIfAbsent(ri.activityInfo.packageName, ri);
         }
-        // Include system apps that have a package launch intent but are absent from both launcher queries.
-        List<ApplicationInfo> assignmentInstalled;
-        try { assignmentInstalled = assignmentPm.getInstalledApplications(PackageManager.MATCH_ALL); }
-        catch (Exception ignored) { assignmentInstalled = assignmentPm.getInstalledApplications(0); }
-        for (ApplicationInfo app : assignmentInstalled) {
+        List<ApplicationInfo> installed;
+        try { installed = pm.getInstalledApplications(PackageManager.MATCH_ALL); }
+        catch (Exception ignored) { installed = pm.getInstalledApplications(0); }
+        for (ApplicationInfo app : installed) {
             String pkg = app.packageName;
             if (pkg == null || pkg.equals(getPackageName())
                     || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
                     || candidates.containsKey(pkg)) continue;
             try {
-                Intent launch = assignmentPm.getLaunchIntentForPackage(pkg);
+                Intent launch = pm.getLaunchIntentForPackage(pkg);
                 if (launch == null || launch.getComponent() == null) continue;
-                ActivityInfo activity = assignmentPm.getActivityInfo(launch.getComponent(), 0);
+                ActivityInfo activity = pm.getActivityInfo(launch.getComponent(), 0);
                 if (activity == null || !activity.exported) continue;
                 ResolveInfo fallback = new ResolveInfo();
                 fallback.activityInfo = activity;
                 candidates.put(pkg, fallback);
             } catch (PackageManager.NameNotFoundException | RuntimeException ignored) { }
         }
+        return candidates;
+    }
+
+    /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
+    private void showSystemFolderAssignment() {
+        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
         java.util.ArrayList<String> packages = new java.util.ArrayList<>(candidates.keySet());
         boolean[] checked = new boolean[packages.size()];
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
