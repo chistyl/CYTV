@@ -3815,6 +3815,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout rows = panel.findViewById(R.id.rows);
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
+        boolean ethernetAvailable = isEthernetAvailable();
+        // 有線網路時將「阻擋廣告」放在設定選單第一項，方便直接進入。
+        if (ethernetAvailable) {
+            addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
+                popup.dismiss();
+                startActivity(new Intent(this, AdsBlockerActivity.class));
+            });
+        }
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
         addSettingsMenuRow(rows, popup, "桌面設定", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
@@ -3828,14 +3836,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     popup.dismiss();
                     recreate();
                 });
-        // Ethernet 連線時將「阻擋廣告」提前顯示；Wi-Fi-only 時維持原本的選單位置。
-        boolean ethernetAvailable = isEthernetAvailable();
-        if (ethernetAvailable) {
-            addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
-                popup.dismiss();
-                startActivity(new Intent(this, AdsBlockerActivity.class));
-            });
-        }
         addSettingsMenuRow(rows, popup, "YouTube廣告助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
