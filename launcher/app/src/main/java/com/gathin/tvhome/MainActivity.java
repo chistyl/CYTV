@@ -6185,21 +6185,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         Set<String> excluded = prefs.getStringSet("system_folder_excluded", java.util.Collections.<String>emptySet());
         Set<String> added = prefs.getStringSet("system_folder_added", java.util.Collections.<String>emptySet());
-        Set<String> assignedToRegularFolder = new java.util.HashSet<>();
-        Set<String> regularFolders = prefs.getStringSet("home_folders",
-                java.util.Collections.<String>emptySet());
-        for (String folder : regularFolders) {
-            assignedToRegularFolder.addAll(prefs.getStringSet("folder_apps_" + folder,
-                    java.util.Collections.<String>emptySet()));
-        }
         for (int i = 0; i < packages.size(); i++) {
             String pkg = packages.get(i);
             try {
                 int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
                 boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
                 boolean belongsToSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
-                // A package already assigned to an ordinary folder must not also appear checked here.
-                checked[i] = belongsToSystem && !assignedToRegularFolder.contains(pkg);
+                // The system-folder preference is authoritative for system apps. Do not
+                // mask its checkbox based on stale ordinary-folder membership: that can make
+                // the same package appear unchecked in BOTH dialogs. Saving this dialog
+                // removes selected packages from every ordinary folder below.
+                checked[i] = belongsToSystem;
             } catch (PackageManager.NameNotFoundException ignored) { }
         }
         showAppSelectionDialog("勾選要放入「系統」資料夾的 APP", packages, candidates, checked, selected -> {
