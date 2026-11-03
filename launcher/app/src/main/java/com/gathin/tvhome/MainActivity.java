@@ -5706,22 +5706,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         scroll.setFillViewport(false);
-        android.widget.GridLayout grid = new android.widget.GridLayout(this);
+        // Use explicit horizontal rows instead of GridLayout. Several Android TV vendor builds
+        // mis-place weighted GridLayout children even when row/column specs are explicit.
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.TOP | Gravity.START);
         grid.setBackgroundColor(Color.TRANSPARENT);
         grid.setForeground(null);
+        grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         int availableWidthDp = Math.max(320, (int) (getResources().getDisplayMetrics().widthPixels / density) - 64);
         int folderColumns = 4;
         int folderTileDp = Math.max(92, Math.min(184, (availableWidthDp - 56) / folderColumns));
-        grid.setColumnCount(folderColumns);
-        // Folder cards always fill from the left edge, independent of inherited RTL direction.
-        // Otherwise GridLayout can put column 0 on the right and leave an apparent blank column.
-        grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        grid.setUseDefaultMargins(false);
-        // 四欄等寬填滿內容區，GridLayout 權重分配確保左右邊界留白一致。
-        grid.setAlignmentMode(android.widget.GridLayout.ALIGN_BOUNDS);
-        grid.setColumnOrderPreserved(false);
-        grid.setFocusable(false);
-        grid.setFocusableInTouchMode(false);
+        java.util.ArrayList<LinearLayout> folderRows = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         android.graphics.drawable.GradientDrawable scrollClip = new android.graphics.drawable.GradientDrawable();
         scrollClip.setColor(Color.TRANSPARENT);
@@ -5736,6 +5732,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         Runnable populate = () -> {
             grid.removeAllViews();
+            folderRows.clear();
             for (ResolveInfo ri : matches.values()) {
                 String packageName = ri.activityInfo.packageName;
                 LinearLayout tile = new LinearLayout(this);
@@ -5806,23 +5803,27 @@ private GradientDrawable roundSurface(int color, float radius) {
                     showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog);
                     return true;
                 });
-                int tileIndex = grid.getChildCount();
+                int tileIndex = folderFocusTiles.size();
                 int totalTiles = matches.size() + 1; // include the trailing "+" tile
                 int lastRowStart = (totalTiles / folderColumns) * folderColumns;
                 boolean incompleteLastRow = totalTiles % folderColumns != 0 && tileIndex >= lastRowStart;
-                // Set both row and column explicitly. An undefined row combined with a fixed
-                // column can make GridLayout auto-place the first item in a later row on some TV builds.
-                android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
-                        android.widget.GridLayout.spec(tileIndex / folderColumns),
-                        incompleteLastRow
-                                ? android.widget.GridLayout.spec(tileIndex % folderColumns, 1)
-                                : android.widget.GridLayout.spec(tileIndex % folderColumns, 1, 1f));
-                // Full rows share available width evenly; the final partial row keeps
-                // standard card widths and stays left-aligned instead of stretching.
-                lp.width = incompleteLastRow ? Math.round(folderTileDp * density) : 0;
-                lp.height = Math.round((folderTileDp * 9f / 16f + 42f)*density);
+                int rowIndex = tileIndex / folderColumns;
+                while (folderRows.size() <= rowIndex) {
+                    LinearLayout row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setGravity(Gravity.TOP | Gravity.START);
+                    row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+                    grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
+                    folderRows.add(row);
+                }
+                // Full rows share the available width; a partial final row keeps fixed-width
+                // cards and starts at the left edge on every Android TV vendor implementation.
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
+                        incompleteLastRow ? 0f : 1f);
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                grid.addView(tile, lp);
+                folderRows.get(rowIndex).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
             {
@@ -5868,19 +5869,25 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // Empty folders contain only the "+" tile. Do not give that lone tile
                 // a weighted column: GridLayout would stretch it across the entire row.
                 // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
-                int addIndex = grid.getChildCount();
+                int addIndex = folderFocusTiles.size();
                 int totalTiles = matches.size() + 1;
                 int lastRowStart = (totalTiles / folderColumns) * folderColumns;
                 boolean incompleteLastRow = totalTiles % folderColumns != 0 && addIndex >= lastRowStart;
-                android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
-                        android.widget.GridLayout.spec(addIndex / folderColumns),
-                        incompleteLastRow
-                                ? android.widget.GridLayout.spec(addIndex % folderColumns, 1)
-                                : android.widget.GridLayout.spec(addIndex % folderColumns, 1, 1f));
-                lp.width = incompleteLastRow ? Math.round(folderTileDp * density) : 0;
-                lp.height = Math.round((folderTileDp * 9f / 16f + 42f)*density);
+                int rowIndex = addIndex / folderColumns;
+                while (folderRows.size() <= rowIndex) {
+                    LinearLayout row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setGravity(Gravity.TOP | Gravity.START);
+                    row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+                    grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
+                    folderRows.add(row);
+                }
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
+                        incompleteLastRow ? 0f : 1f);
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                grid.addView(add, lp);
+                folderRows.get(rowIndex).addView(add, lp);
                 add.setId(View.generateViewId());
                 folderFocusTiles.add(add);
             }
