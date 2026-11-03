@@ -5951,10 +5951,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (i - folderColumns >= 0) item.setNextFocusUpId(folderFocusTiles.get(i - folderColumns).getId());
             if (i + folderColumns < folderFocusTiles.size()) item.setNextFocusDownId(folderFocusTiles.get(i + folderColumns).getId());
 
-                    return true;
-                }
-                return false;
-            });
         }
         Button close = new Button(this);
         close.setText("關閉"); close.setAllCaps(false);
