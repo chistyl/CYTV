@@ -5023,9 +5023,22 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
             if (isFinishing() || isDestroyed()) return;
+            // LocalWallpaperServer returns Uri.fromFile(). WallpaperPlayer's URI path uses
+            // ContentResolver and cannot reliably decode file:// URIs; store the real file path
+            // in the preference that WallpaperPlayer reads directly.
+            File received = uri == null || uri.getPath() == null ? null : new File(uri.getPath());
+            if (received == null || !received.isFile() || received.length() <= 0) {
+                Toast.makeText(this, "圖片已接收，但檔案無法讀取，請重新傳送。", Toast.LENGTH_LONG).show();
+                return;
+            }
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_uri", uri.toString())
-                    .putBoolean("hide_left_color_effect", true).apply();
+                    .putString("custom_wallpaper_file", received.getAbsolutePath())
+                    .remove("custom_wallpaper_uri")
+                    .remove("builtin_wallpaper")
+                    .putBoolean("builtin_random_play", false)
+                    .putBoolean("hide_left_color_effect", true)
+                    .putBoolean("left_color_effect_enabled", false)
+                    .apply();
             Toast.makeText(this, "圖片已接收，正在設定桌布", Toast.LENGTH_LONG).show();
             dialog.dismiss();
             recreate();
