@@ -6,6 +6,7 @@ on:
       - fix/weather-city-search-7day
       - fix/folder-grid-fixed-four-columns
       - fix/folder-app-assignment-sync
+      - fix/folder-dialog-dpad-from-baseline
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
