@@ -175,7 +175,10 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void showPairingDialog() {
         EditText input = new EditText(this);
+        input.setId(View.generateViewId());
         input.setSingleLine(true);
+        input.setFocusable(true);
+        input.setFocusableInTouchMode(true);
         input.setHint("輸入電視上的配對代碼");
         input.setTextColor(Color.WHITE);
         input.setHintTextColor(MUTED);
@@ -202,6 +205,16 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
+            android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            // D-pad traversal: code field -> action row; left/right switches Cancel/Connect.
+            if (cancelButton != null && connectButton != null) {
+                input.setNextFocusDownId(cancelButton.getId());
+                cancelButton.setNextFocusUpId(input.getId());
+                connectButton.setNextFocusUpId(input.getId());
+                cancelButton.setNextFocusRightId(connectButton.getId());
+                connectButton.setNextFocusLeftId(cancelButton.getId());
+            }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
@@ -211,7 +224,9 @@ public class YouTubeAssistantActivity extends Activity {
                 dialog.dismiss();
                 pair(code);
             });
-            input.requestFocus();
+            // styleDialog posts its default button focus; override it after layout so the
+            // first D-pad focus lands in the pairing-code field, not on Cancel.
+            input.post(input::requestFocus);
         });
         dialog.show();
     }
