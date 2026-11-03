@@ -4040,7 +4040,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 condition.setTextColor(0xFFE8EBF0);
                 condition.setTextSize(13);
                 condition.setGravity(Gravity.CENTER);
-                // Narrower cards may wrap the condition, but must never cut off its text.
+                // Let the label shrink slightly when each of the seven forecast columns is narrow.
+                // Keep up to two lines so the full Traditional Chinese condition remains readable.
+                condition.setAutoSizeTextTypeUniformWithConfiguration(10, 13, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
                 condition.setMaxLines(2);
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4058,6 +4061,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 precipitation.setTextColor(0xFFD5D9E0);
                 precipitation.setTextSize(12);
                 precipitation.setGravity(Gravity.CENTER);
+                // Rain probability also adapts to the available column width instead of clipping.
+                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
                 precipitation.setMaxLines(2);
                 dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
 
