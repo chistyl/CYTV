@@ -324,8 +324,10 @@ public class AdsFilterVpnService extends VpnService {
             Log.i(TAG, "Auto DNS negotiated: " + discovered.size()
                     + " network DNS server(s); " + upstreamServers.size() + " total candidates");
         } catch (Exception e) {
-            upstreamServers = Collections.emptyList();
-            Log.w(TAG, "Unable to read network DNS; automatic mode will fail open", e);
+            // If DHCP DNS discovery fails, retain public resolver fallbacks instead
+            // of leaving the DNS worker with an empty upstream list.
+            upstreamServers = fallbackDnsServers();
+            Log.w(TAG, "Unable to read network DNS; using public resolver fallbacks", e);
         }
     }
 
