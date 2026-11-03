@@ -556,7 +556,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
         weatherParent.removeView(weeklyWeatherView);
         FrameLayout.LayoutParams weatherOverlayLp = new FrameLayout.LayoutParams(
-                clockBlock.getWidth(), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.START);
         int glassIndex = root.indexOfChild(findViewById(R.id.glass));
         root.addView(weeklyWeatherView, Math.max(0, glassIndex), weatherOverlayLp);
         placeWeatherOverlay = () -> {
@@ -565,8 +566,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
-            lp.width = clockBlock.getWidth();
             lp.leftMargin = clockPos[0] - rootPos[0];
+            // The weather card is an overlay, so it can use the full content width below the top bar.
+            // Do not use leftBlock.getWidth(): RelativeLayout limits that view to the space before topButtons,
+            // which would make the forecast card shrink whenever the right-side buttons grow or appear.
+            int rightInset = (int) (56 * density);
+            lp.width = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setLayoutParams(lp);
         };
