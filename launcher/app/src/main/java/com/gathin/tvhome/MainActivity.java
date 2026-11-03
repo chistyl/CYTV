@@ -2012,6 +2012,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .getString("custom_wallpaper_uri", null));
     }
 
+    /** 背景主題啟用時，隱藏前五個 APP 左側的彩色環境光效果。 */
+    private boolean hideLeftColorEffectForPosition(int position) {
+        return position >= 0 && position < 5
+                && getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
+                .getBoolean("hide_left_color_effect", false);
+    }
+
     private void showHero(int position, float dockTopInRoot) {
         boolean hideAllNames = getSharedPreferences("tv_app_customizations", MODE_PRIVATE)
                 .getBoolean("hide_all_names", true);
@@ -2019,7 +2026,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         boolean customWallpaperActive = isCustomWallpaperActive();
-        if (customWallpaperActive) {
+        boolean hideDockLeftGlow = hideLeftColorEffectForPosition(position);
+        if (customWallpaperActive || hideDockLeftGlow) {
             ambient.animate().cancel();
             ambient.setAlpha(0f);
         }
@@ -2059,7 +2067,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             hero.setY(heroY);
             hero.setTranslationX(0f);
             hero.setAlpha(1f);
-            if (ambientGlow && !customWallpaperActive) {
+            if (ambientGlow && !customWallpaperActive && !hideDockLeftGlow) {
                 setAmbient(color);
                 ambient.setAlpha(1f);
             }
@@ -2088,9 +2096,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 hero.setTranslationX(12 * density);
                 hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
             }).start();
-            if (ambientGlow && !customWallpaperActive && advancedEffects) {
+            if (ambientGlow && !customWallpaperActive && !hideDockLeftGlow && advancedEffects) {
                 transitionAmbient(color);
-            } else if (ambientGlow && !customWallpaperActive && color != ambientColor) {
+            } else if (ambientGlow && !customWallpaperActive && !hideDockLeftGlow && color != ambientColor) {
                 ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
                     setAmbient(color);
                     ambient.animate().alpha(1f).setDuration(500).start();
@@ -2320,6 +2328,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * name above the dock does not show (every grid tile has its name underneath).
      */
     private void showGlowOnly(int position) {
+        if (hideLeftColorEffectForPosition(position)) {
+            stopAmbientAnimation();
+            ambient.animate().cancel();
+            ambient.setAlpha(0f);
+            return;
+        }
         int color = adapter.ambientColorAt(position);
         stopAmbientAnimation();
         hero.animate().cancel();
@@ -3803,7 +3817,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
         addSettingsMenuRow(rows, popup, "桌面設定", this::showHomeAppVisibilityDialog);
-        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
+        addSettingsMenuRow(rows, popup, "背景主題", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
