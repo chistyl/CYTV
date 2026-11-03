@@ -4929,7 +4929,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
         GradientDrawable cancelBg = new GradientDrawable();
-        cancelBg.setColor(0xFF343B47); cancelBg.setCornerRadius(14*density); cancel.setBackground(cancelBg);
+        cancelBg.setColor(0xFF343B47); cancelBg.setCornerRadius(14*density);
+        GradientDrawable cancelFocusedBg = new GradientDrawable();
+        cancelFocusedBg.setColor(0xFF46566B);
+        cancelFocusedBg.setCornerRadius(14*density);
+        cancelFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
+        cancel.setBackground(cancelBg);
+        // 與其他桌布操作按鈕一致：遙控器焦點移到「取消」時顯示白色外框。
+        cancel.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setBackground(hasFocus ? cancelFocusedBg : cancelBg);
+            v.setElevation(hasFocus ? 5*density : 0f);
+        });
         cancel.setOnClickListener(v -> dialog.dismiss());
         panel.addView(cancel, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         dialog.setContentView(panel);
