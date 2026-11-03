@@ -5793,9 +5793,14 @@ private GradientDrawable roundSurface(int color, float radius) {
                 LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
                 nameLp.topMargin = (int)(3*density); tile.addView(name, nameLp);
                 tile.setOnClickListener(v -> {
-                    Intent launch = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-                            .setComponent(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                    Intent launch = folderPm.getLaunchIntentForPackage(packageName);
+                    if (launch == null) {
+                        // Fallback ResolveInfo entries may be LAUNCHER-only or vendor-provided.
+                        // Do not force LEANBACK_LAUNCHER on an activity that does not declare it.
+                        launch = new Intent(Intent.ACTION_MAIN)
+                                .setComponent(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name));
+                    }
+                    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                     try { startActivity(launch); } catch (ActivityNotFoundException ignored) { }
                     dialog.dismiss();
                 });
@@ -6127,12 +6132,40 @@ private GradientDrawable roundSurface(int color, float radius) {
 
     /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
     private void showSystemFolderAssignment() {
-        List<ResolveInfo> installed = getPackageManager().queryIntentActivities(
-                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
+        PackageManager assignmentPm = getPackageManager();
         java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (ResolveInfo ri : installed) {
-            if (ri.activityInfo == null || !ri.activityInfo.exported || ri.activityInfo.packageName.equals(getPackageName())) continue;
-            candidates.put(ri.activityInfo.packageName, ri);
+        List<ResolveInfo> tvInstalled = assignmentPm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
+        List<ResolveInfo> phoneInstalled = assignmentPm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+        if (tvInstalled != null) for (ResolveInfo ri : tvInstalled) {
+            if (ri.activityInfo != null && ri.activityInfo.exported
+                    && !ri.activityInfo.packageName.equals(getPackageName()))
+                candidates.put(ri.activityInfo.packageName, ri);
+        }
+        if (phoneInstalled != null) for (ResolveInfo ri : phoneInstalled) {
+            if (ri.activityInfo != null && ri.activityInfo.exported
+                    && !ri.activityInfo.packageName.equals(getPackageName()))
+                candidates.putIfAbsent(ri.activityInfo.packageName, ri);
+        }
+        // Include system apps that have a package launch intent but are absent from both launcher queries.
+        List<ApplicationInfo> assignmentInstalled;
+        try { assignmentInstalled = assignmentPm.getInstalledApplications(PackageManager.MATCH_ALL); }
+        catch (Exception ignored) { assignmentInstalled = assignmentPm.getInstalledApplications(0); }
+        for (ApplicationInfo app : assignmentInstalled) {
+            String pkg = app.packageName;
+            if (pkg == null || pkg.equals(getPackageName())
+                    || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+                    || candidates.containsKey(pkg)) continue;
+            try {
+                Intent launch = assignmentPm.getLaunchIntentForPackage(pkg);
+                if (launch == null || launch.getComponent() == null) continue;
+                ActivityInfo activity = assignmentPm.getActivityInfo(launch.getComponent(), 0);
+                if (activity == null || !activity.exported) continue;
+                ResolveInfo fallback = new ResolveInfo();
+                fallback.activityInfo = activity;
+                candidates.put(pkg, fallback);
+            } catch (PackageManager.NameNotFoundException | RuntimeException ignored) { }
         }
         java.util.ArrayList<String> packages = new java.util.ArrayList<>(candidates.keySet());
         boolean[] checked = new boolean[packages.size()];
