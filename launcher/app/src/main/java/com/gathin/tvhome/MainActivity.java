@@ -4752,15 +4752,142 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showWallpaperPicker() {
-        Dialog dialog = new Dialog(this);
+        final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setClipChildren(false); panel.setClipToPadding(false);
-        panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
-        GradientDrawable bg = new GradientDrawable(); bg.setColor(Color.rgb(28, 32, 40));
-        bg.setCornerRadius(22*density); bg.setStroke(Math.max(1, (int)density), 0x28FFFFFF); panel.setBackground(bg);
-        TextView title = new TextView(this); title.setText("桌布設定"); title.setTextColor(Color.WHITE);
-        title.setTextSize(20); title.setPadding(0, 0, 0, (int)(12*density)); panel.addView(title);
+        panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
+        panel.setBackground(roundSurface(Color.rgb(28, 32, 40), 22*density));
+        TextView title = new TextView(this);
+        title.setText("背景主題");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(21);
+        title.setPadding(0, 0, 0, (int)(12*density));
+        panel.addView(title);
+
+        final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
+        final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        LinearLayout randomRow = new LinearLayout(this);
+        randomRow.setOrientation(LinearLayout.HORIZONTAL);
+        randomRow.setGravity(Gravity.CENTER_VERTICAL);
+        randomRow.setPadding((int)(12*density), 0, (int)(8*density), 0);
+        TextView randomLabel = new TextView(this);
+        randomLabel.setText("主題隨機播放");
+        randomLabel.setTextColor(Color.WHITE);
+        randomLabel.setTextSize(16);
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        android.widget.Switch randomSwitch = new android.widget.Switch(this);
+        randomSwitch.setTextOn("");
+        randomSwitch.setTextOff("");
+        randomSwitch.setShowText(false);
+        randomSwitch.setChecked(wallpaperPrefs.getBoolean("builtin_random_play", false));
+        randomSwitch.setOnCheckedChangeListener((button, checked) -> {
+            SharedPreferences.Editor edit = wallpaperPrefs.edit()
+                    .putBoolean("builtin_random_play", checked);
+            if (checked) {
+                int selectedTheme = wallpaperPrefs.getInt("builtin_wallpaper", 0);
+                if (selectedTheme < 1 || selectedTheme > 6
+                        || wallpaperPrefs.getString("custom_wallpaper_uri", null) != null
+                        || wallpaperPrefs.getString("custom_wallpaper_file", null) != null) {
+                    int randomTheme = 1 + new java.util.Random().nextInt(6);
+                    edit.putInt("builtin_wallpaper", randomTheme)
+                            .remove("custom_wallpaper_uri")
+                            .remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true);
+                    File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+                    if (localWallpaper.exists()) localWallpaper.delete();
+                    edit.apply();
+                    dialog.dismiss();
+                    recreate();
+                    return;
+                }
+            }
+            edit.apply();
+        });
+        randomRow.addView(randomSwitch);
+        randomRow.setFocusable(true);
+        randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        LinearLayout choices = new LinearLayout(this);
+        choices.setOrientation(LinearLayout.VERTICAL);
+        final int columnsCount = 3;
+        final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
+        for (int row = 0; row < rowsCount; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < columnsCount; col++) {
+                final int index = row * columnsCount + col;
+                if (index >= names.length) {
+                    View empty = new View(this);
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(92*density), 1f));
+                    continue;
+                }
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setGravity(Gravity.CENTER);
+                item.setFocusable(true);
+                item.setFocusableInTouchMode(true);
+                item.setClickable(true);
+                item.setId(View.generateViewId());
+                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
+                GradientDrawable normal = new GradientDrawable();
+                normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
+                GradientDrawable focused = new GradientDrawable();
+                focused.setColor(0xFF46566B); focused.setCornerRadius(12*density);
+                focused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
+                item.setBackground(normal);
+
+                ImageView preview = new ImageView(this);
+                preview.setImageResource(previews[index]);
+                preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                preview.setAdjustViewBounds(true);
+                preview.setBackgroundColor(0xFF252B35);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
+                item.addView(preview, imageLp);
+
+                // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
+                imageLp.height = (int)(80*density);
+                preview.setLayoutParams(imageLp);
+
+                item.setOnFocusChangeListener((v, hasFocus) -> {
+                    v.setBackground(hasFocus ? focused : normal);
+                    v.setElevation(hasFocus ? 5*density : 0f);
+                });
+                item.setOnClickListener(v -> {
+                    SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+                    prefs.edit().putInt("builtin_wallpaper", index + 1).putBoolean("builtin_random_play", false)
+                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true).apply();
+                    dialog.dismiss();
+                    recreate();
+                });
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
+                if (col > 0) itemLp.leftMargin = (int)(5*density);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
+                rowLayout.addView(item, itemLp);
+            }
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            if (row < rowsCount - 1) {
+                View gap = new View(this);
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+            }
+        }
+        scroll.setFillViewport(false);
+        // 隱藏右側捲動條，保留遙控器上下捲動功能。
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.addView(choices);
+        // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        scrollLp.topMargin = (int)(2*density);
+        scrollLp.bottomMargin = (int)(6*density);
+        panel.addView(scroll, scrollLp);
         addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
@@ -4775,47 +4902,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_path").putBoolean("hide_left_color_effect", false).apply();
+                    .remove("builtin_wallpaper").remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .putBoolean("hide_left_color_effect", false).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
-        TextView cancel = new TextView(this); cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4);
-        cancel.setTextSize(16); cancel.setGravity(Gravity.CENTER);
-        cancel.setFocusable(true); cancel.setFocusableInTouchMode(true); cancel.setClickable(true);
-        cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
-        GradientDrawable cancelNormal = new GradientDrawable();
-        cancelNormal.setColor(0xFF343B47); cancelNormal.setCornerRadius(14*density);
-        GradientDrawable cancelFocused = new GradientDrawable();
-        cancelFocused.setColor(0xFF46566B); cancelFocused.setCornerRadius(14*density);
-        cancelFocused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
-        cancel.setBackground(cancelNormal);
-        cancel.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? cancelFocused : cancelNormal);
-            cancel.setTextColor(focused ? Color.WHITE : 0xFF80CBC4);
-            v.setElevation(focused ? 4*density : 0f);
-        });
-        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        cancelLp.topMargin = (int)(10*density); panel.addView(cancel, cancelLp);
+        TextView cancel = new TextView(this);
+        cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
+        cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
+        cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
+        GradientDrawable cancelBg = new GradientDrawable();
+        cancelBg.setColor(0xFF343B47); cancelBg.setCornerRadius(14*density); cancel.setBackground(cancelBg);
         cancel.setOnClickListener(v -> dialog.dismiss());
-        View firstWallpaperAction = panel.getChildAt(1);
-        View secondWallpaperAction = panel.getChildAt(2);
-        View lastWallpaperAction = panel.getChildAt(panel.getChildCount()-2);
-        if (firstWallpaperAction != null && secondWallpaperAction != null) {
-            firstWallpaperAction.setNextFocusUpId(cancel.getId());
-            firstWallpaperAction.setNextFocusDownId(secondWallpaperAction.getId());
-            secondWallpaperAction.setNextFocusUpId(firstWallpaperAction.getId());
-            secondWallpaperAction.setNextFocusDownId(lastWallpaperAction.getId());
-        }
-        if (lastWallpaperAction != null) {
-            lastWallpaperAction.setNextFocusUpId(secondWallpaperAction.getId());
-            lastWallpaperAction.setNextFocusDownId(cancel.getId());
-            cancel.setNextFocusUpId(lastWallpaperAction.getId());
-        }
-        dialog.setContentView(panel); dialog.show();
+        panel.addView(cancel, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        dialog.setContentView(panel);
+        dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout(Math.min((int)(460*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)), -2);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            dialog.getWindow().setLayout(
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
+                    (int)(screenHeight * 0.90f));
         }
-        panel.getChildAt(1).post(() -> panel.getChildAt(1).requestFocus());
+        choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());
+    }
+
+private GradientDrawable roundSurface(int color, float radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(radius);
+        drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        return drawable;
     }
 
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳圖片並直接設為桌布。 */
