@@ -571,7 +571,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // across almost the entire TV screen. Use a proportion of the available content width.
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * 0.78f);
+            lp.width = Math.round(availableWidth * 0.75f);
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setLayoutParams(lp);
         };
