@@ -6195,11 +6195,20 @@ private GradientDrawable roundSurface(int color, float radius) {
             SharedPreferences.Editor edit = prefs.edit()
                     .putStringSet("system_folder_excluded", excludedNow)
                     .putStringSet("system_folder_added", addedNow);
-            Set<String> generalFolders = prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
+            // A package can belong to only one folder. Remove every APP selected for the
+            // System folder from all ordinary folders, including system packages (not just
+            // user-added apps). The previous code removed only addedNow, so built-in system
+            // apps could remain checked in both places and the two dialogs drifted out of sync.
+            java.util.HashSet<String> selectedForSystem = new java.util.HashSet<>();
+            for (int i = 0; i < packages.size(); i++) {
+                if (selected[i]) selectedForSystem.add(packages.get(i));
+            }
+            Set<String> generalFolders = new java.util.HashSet<>(prefs.getStringSet(
+                    "home_folders", java.util.Collections.<String>emptySet()));
             for (String folder : generalFolders) {
                 java.util.HashSet<String> set = new java.util.HashSet<>(prefs.getStringSet(
                         "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
-                set.removeAll(addedNow);
+                set.removeAll(selectedForSystem);
                 edit.putStringSet("folder_apps_" + folder, set);
             }
             edit.apply();
