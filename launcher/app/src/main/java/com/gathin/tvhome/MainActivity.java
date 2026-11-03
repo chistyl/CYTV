@@ -4817,6 +4817,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
                 R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
                 R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        LinearLayout randomRow = new LinearLayout(this);
+        randomRow.setOrientation(LinearLayout.HORIZONTAL);
+        randomRow.setGravity(Gravity.CENTER_VERTICAL);
+        randomRow.setPadding((int)(12*density), 0, (int)(8*density), 0);
+        TextView randomLabel = new TextView(this);
+        randomLabel.setText("主題隨機播放");
+        randomLabel.setTextColor(Color.WHITE);
+        randomLabel.setTextSize(16);
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        android.widget.Switch randomSwitch = new android.widget.Switch(this);
+        randomSwitch.setTextOn("");
+        randomSwitch.setTextOff("");
+        randomSwitch.setShowText(false);
+        randomSwitch.setChecked(wallpaperPrefs.getBoolean("builtin_random_play", false));
+        randomSwitch.setOnCheckedChangeListener((button, checked) ->
+                wallpaperPrefs.edit().putBoolean("builtin_random_play", checked).apply());
+        randomRow.addView(randomSwitch);
+        randomRow.setFocusable(true);
+        randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
         scroll.setVerticalScrollBarEnabled(true);
@@ -4836,12 +4858,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 LinearLayout item = new LinearLayout(this);
                 item.setOrientation(LinearLayout.VERTICAL);
-                item.setGravity(Gravity.CENTER_HORIZONTAL);
+                item.setGravity(Gravity.CENTER);
                 item.setFocusable(true);
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
                 item.setId(View.generateViewId());
-                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
+                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 GradientDrawable normal = new GradientDrawable();
                 normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
                 GradientDrawable focused = new GradientDrawable();
@@ -4867,7 +4889,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
                 item.setOnClickListener(v -> {
                     SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
-                    prefs.edit().putInt("builtin_wallpaper", index + 1)
+                    prefs.edit().putInt("builtin_wallpaper", index + 1).putBoolean("builtin_random_play", false)
                             .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                             .putBoolean("hide_left_color_effect", true).apply();
                     dialog.dismiss();
