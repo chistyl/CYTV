@@ -5776,7 +5776,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
-                    cardSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    cardSurface.setStroke(Math.max(1, Math.round(3f * density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
                     tvCard.setElevation(focused ? 10f * density : 0f);
                 });
@@ -5857,7 +5857,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
-                    addSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    addSurface.setStroke(Math.max(1, Math.round(3f * density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
                     addCard.setElevation(focused ? 10f * density : 0f);
                 });
@@ -5952,8 +5952,18 @@ private GradientDrawable roundSurface(int color, float radius) {
             lastFolderDpadDown[0] = keyCode;
             View focused = dialog.getCurrentFocus();
             int index = folderFocusTiles.indexOf(focused);
+            if (focused == close) {
+                // The close button is a first-class stop in the remote-control focus loop.
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !folderFocusTiles.isEmpty()) {
+                    folderFocusTiles.get(folderFocusTiles.size() - 1).requestFocus();
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !folderFocusTiles.isEmpty()) {
+                    folderFocusTiles.get(0).requestFocus();
+                }
+                return true;
+            }
             if (index < 0) {
                 if (!folderFocusTiles.isEmpty()) folderFocusTiles.get(0).requestFocus();
+                else close.requestFocus();
                 return true;
             }
             int target = -1;
@@ -5962,8 +5972,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
                     && index + 1 < folderFocusTiles.size()) target = index + 1;
             else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
-                    && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
+                else close.requestFocus();
+            }
             if (target >= 0) {
                 View next = folderFocusTiles.get(target);
                 next.requestFocus();
