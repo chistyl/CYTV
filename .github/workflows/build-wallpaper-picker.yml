@@ -3,7 +3,7 @@ name: Build CYTV Wallpaper Picker
 on:
   push:
     branches:
-      - feature/theme-background-on-60-weather
+      - feature/theme-background-on-60-weather-clean
     paths:
       - 'launcher/**'
       - '.github/workflows/build-wallpaper-picker.yml'
