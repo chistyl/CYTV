@@ -5809,9 +5809,6 @@ private GradientDrawable roundSurface(int color, float radius) {
                     return true;
                 });
                 int tileIndex = folderFocusTiles.size();
-                int totalTiles = matches.size() + 1; // include the trailing "+" tile
-                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
-                boolean incompleteLastRow = totalTiles % folderColumns != 0 && tileIndex >= lastRowStart;
                 int rowIndex = tileIndex / folderColumns;
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
@@ -5821,12 +5818,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
                 }
-                // Full rows share the available width; a partial final row keeps fixed-width
-                // cards and starts at the left edge on every Android TV vendor implementation.
+                // Every folder row uses four fixed-width slots. Incomplete rows keep their
+                // remaining space empty instead of stretching the cards to fill the row.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
-                        incompleteLastRow ? 0f : 1f);
+                        Math.round(folderTileDp * density),
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 folderRows.get(rowIndex).addView(tile, lp);
                 folderFocusTiles.add(tile);
@@ -5875,9 +5871,6 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // a weighted column: GridLayout would stretch it across the entire row.
                 // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
                 int addIndex = folderFocusTiles.size();
-                int totalTiles = matches.size() + 1;
-                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
-                boolean incompleteLastRow = totalTiles % folderColumns != 0 && addIndex >= lastRowStart;
                 int rowIndex = addIndex / folderColumns;
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
@@ -5887,10 +5880,10 @@ private GradientDrawable roundSurface(int color, float radius) {
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
                 }
+                // The "+" tile occupies one fixed column just like every app tile.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
-                        incompleteLastRow ? 0f : 1f);
+                        Math.round(folderTileDp * density),
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 folderRows.get(rowIndex).addView(add, lp);
                 add.setId(View.generateViewId());
