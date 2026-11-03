@@ -5759,8 +5759,16 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // Shared folder-card border: visible neutral outline when idle, same 3dp
                 // yellow outline for focus in both system and ordinary folders.
                 cardSurface.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
-                tvCard.setBackground(cardSurface); tvCard.setClipToOutline(true);
+                tvCard.setBackground(cardSurface);
+                // Keep the focus stroke outside the clipping layer. Clipping the card itself
+                // cuts the centered stroke in half on some Android TV renderers.
+                tvCard.setClipToOutline(false);
                 ImageView artwork = new ImageView(this);
+                GradientDrawable artworkClip = new GradientDrawable();
+                artworkClip.setColor(Color.TRANSPARENT);
+                artworkClip.setCornerRadius(20 * density);
+                artwork.setBackground(artworkClip);
+                artwork.setClipToOutline(true);
                 Drawable banner = loadFolderTvBanner(ri, packageName, prefs);
                 if (banner != null) {
                     artwork.setImageDrawable(banner);
@@ -5851,8 +5859,15 @@ private GradientDrawable roundSurface(int color, float radius) {
                 GradientDrawable addSurface = new GradientDrawable();
                 addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(20*density);
                 addSurface.setStroke(Math.max(1, Math.round(1.5f * density)), 0x66727D8B);
-                addCard.setBackground(addSurface); addCard.setClipToOutline(true);
+                addCard.setBackground(addSurface);
+                // Match APP cards: never clip the centered focus stroke at the outer card edge.
+                addCard.setClipToOutline(false);
                 TextView plus = new TextView(this); plus.setText("+"); plus.setTextColor(Color.WHITE);
+                GradientDrawable plusClip = new GradientDrawable();
+                plusClip.setColor(Color.TRANSPARENT);
+                plusClip.setCornerRadius(20 * density);
+                plus.setBackground(plusClip);
+                plus.setClipToOutline(true);
                 plus.setTextSize(38); plus.setGravity(Gravity.CENTER);
                 addCard.addView(plus, new FrameLayout.LayoutParams(-1, -1));
                 add.addView(addCard, new LinearLayout.LayoutParams(-1,
