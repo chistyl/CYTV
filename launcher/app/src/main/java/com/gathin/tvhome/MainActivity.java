@@ -4788,6 +4788,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setText("主題隨機播放");
         randomLabel.setTextColor(Color.WHITE);
         randomLabel.setTextSize(16);
+        randomLabel.setGravity(Gravity.CENTER_VERTICAL);
+        randomLabel.setIncludeFontPadding(false);
         randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
