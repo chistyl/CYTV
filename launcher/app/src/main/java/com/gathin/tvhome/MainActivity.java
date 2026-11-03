@@ -4040,8 +4040,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 condition.setTextColor(0xFFE8EBF0);
                 condition.setTextSize(13);
                 condition.setGravity(Gravity.CENTER);
-                condition.setMaxLines(1);
-                condition.setEllipsize(TextUtils.TruncateAt.END);
+                // Narrower cards may wrap the condition, but must never cut off its text.
+                condition.setMaxLines(2);
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
                 TextView temperature = new TextView(this);
@@ -4058,6 +4058,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 precipitation.setTextColor(0xFFD5D9E0);
                 precipitation.setTextSize(12);
                 precipitation.setGravity(Gravity.CENTER);
+                precipitation.setMaxLines(2);
                 dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
 
                 LinearLayout.LayoutParams columnLp = new LinearLayout.LayoutParams(0, -2, 1f);
