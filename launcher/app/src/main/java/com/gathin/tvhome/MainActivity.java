@@ -5918,8 +5918,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         closeNormal.setStroke(Math.max(1, Math.round(1f * density)), 0x24FFFFFF);
         GradientDrawable closeFocused = new GradientDrawable();
         closeFocused.setColor(0xFF46566B); closeFocused.setCornerRadius(14*density);
-        // Match the same 3dp yellow focus outline used by app and add tiles.
-        closeFocused.setStroke(Math.max(1, Math.round(3f * density)), 0xFFFFD54F);
+        // Keep the close action visually distinct with a thinner white focus outline.
+        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), Color.WHITE);
         close.setBackground(closeNormal);
         close.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? closeFocused : closeNormal));
         close.setOnClickListener(v -> dialog.dismiss());
