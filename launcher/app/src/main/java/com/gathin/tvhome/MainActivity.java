@@ -3905,52 +3905,98 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void fetchCityForecast(String city) {
         try {
-            // Stable Taiwan city coordinates avoid geocoder failures for localized city names.
-            String normalizedCity = city.replace("臺", "台").trim();
-            if (normalizedCity.contains("桃園")) { fetchForecast(24.9936, 121.3010, "桃園市"); return; }
-            if (normalizedCity.contains("台北")) { fetchForecast(25.0330, 121.5654, "台北市"); return; }
-            if (normalizedCity.contains("新北")) { fetchForecast(25.0169, 121.4628, "新北市"); return; }
-            if (normalizedCity.contains("台中")) { fetchForecast(24.1477, 120.6736, "台中市"); return; }
-            if (normalizedCity.contains("台南")) { fetchForecast(22.9999, 120.2269, "台南市"); return; }
-            if (normalizedCity.contains("高雄")) { fetchForecast(22.6273, 120.3014, "高雄市"); return; }
-            String q = URLEncoder.encode(city, "UTF-8");
-            JSONObject geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q + "&count=10&language=zh&format=json");
+            String normalized = city == null ? "" : city.trim().replace("臺", "台");
+            if (normalized.isEmpty()) throw new IOException("請輸入城市名稱");
+
+            // Use deterministic representative coordinates for Taiwan's 22 counties/cities.
+            // Exact-name matching avoids accidentally mapping a district or overseas city to a county centre.
+            String[][] taiwan = {
+                    {"桃園市", "桃園", "24.9936", "121.3010"},
+                    {"台北市", "台北", "25.0330", "121.5654"},
+                    {"新北市", "新北", "25.0169", "121.4628"},
+                    {"基隆市", "基隆", "25.1276", "121.7392"},
+                    {"新竹市", "新竹市", "24.8138", "120.9675"},
+                    {"新竹縣", "新竹縣", "24.8392", "121.0177"},
+                    {"苗栗縣", "苗栗", "24.5602", "120.8214"},
+                    {"台中市", "台中", "24.1477", "120.6736"},
+                    {"彰化縣", "彰化", "24.0747", "120.5383"},
+                    {"南投縣", "南投", "23.9157", "120.6850"},
+                    {"雲林縣", "雲林", "23.7092", "120.4313"},
+                    {"嘉義市", "嘉義市", "23.4801", "120.4491"},
+                    {"嘉義縣", "嘉義縣", "23.4589", "120.5740"},
+                    {"台南市", "台南", "22.9999", "120.2269"},
+                    {"高雄市", "高雄", "22.6273", "120.3014"},
+                    {"屏東縣", "屏東", "22.6761", "120.4942"},
+                    {"宜蘭縣", "宜蘭", "24.7021", "121.7378"},
+                    {"花蓮縣", "花蓮", "23.9872", "121.6015"},
+                    {"台東縣", "台東", "22.7972", "121.0714"},
+                    {"澎湖縣", "澎湖", "23.5711", "119.5793"},
+                    {"金門縣", "金門", "24.4321", "118.3171"},
+                    {"連江縣", "連江", "26.1605", "119.9517"}
+            };
+            for (String[] item : taiwan) {
+                String canonical = item[0].replace("臺", "台");
+                if (normalized.equals(canonical) || normalized.equals(item[1])) {
+                    fetchForecast(Double.parseDouble(item[2]), Double.parseDouble(item[3]), item[0]);
+                    return;
+                }
+            }
+
+            // For districts and overseas cities, geocode the exact user input. Prefer Taiwan matches when present;
+            // never silently choose an unrelated first result when a Taiwan result exists further down the list.
+            String q = URLEncoder.encode(normalized, "UTF-8");
+            JSONObject geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
+                    + "&count=10&language=zh&format=json");
             JSONArray results = geo.optJSONArray("results");
             if (results == null || results.length() == 0) {
-                String fallback = city;
-                if (city.contains("桃園")) fallback = "Taoyuan";
-                else if (city.contains("台北") || city.contains("臺北")) fallback = "Taipei";
-                else if (city.contains("新北")) fallback = "New Taipei";
-                else if (city.contains("台中") || city.contains("臺中")) fallback = "Taichung";
-                else if (city.contains("台南") || city.contains("臺南")) fallback = "Tainan";
-                else if (city.contains("高雄")) fallback = "Kaohsiung";
-                String fq = URLEncoder.encode(fallback, "UTF-8");
-                geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + fq + "&count=10&language=en&format=json");
+                geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
+                        + "&count=10&language=en&format=json");
                 results = geo.optJSONArray("results");
             }
             if (results == null || results.length() == 0) throw new IOException("找不到城市：" + city);
-            JSONObject place = results.getJSONObject(0);
+
+            JSONObject selected = null;
             for (int i = 0; i < results.length(); i++) {
                 JSONObject candidate = results.getJSONObject(i);
-                if ("TW".equalsIgnoreCase(candidate.optString("country_code"))) { place = candidate; break; }
+                if ("TW".equalsIgnoreCase(candidate.optString("country_code"))) {
+                    selected = candidate;
+                    break;
+                }
             }
-            fetchForecast(place.getDouble("latitude"), place.getDouble("longitude"), city);
-        } catch (Exception e) { showWeatherError("城市定位失敗：" + e.getMessage()); }
+            if (selected == null) selected = results.getJSONObject(0);
+            String displayName = selected.optString("name", normalized);
+            String admin = selected.optString("admin1", "");
+            String country = selected.optString("country", "");
+            if (!admin.isEmpty() && !admin.equals(displayName)) displayName += "・" + admin;
+            if (!country.isEmpty() && !"台灣".equals(country) && !"Taiwan".equalsIgnoreCase(country))
+                displayName += "・" + country;
+            fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"), displayName);
+        } catch (Exception e) {
+            showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+        }
     }
 
     private void fetchForecast(double lat, double lon, String place) {
         try {
+            if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
+                    || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180)
+                throw new IOException("城市座標無效");
             String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                     + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
                     + "&forecast_days=7&timezone=auto";
-            JSONObject root = getJson(url);
-            JSONObject daily = root.getJSONObject("daily");
+            JSONObject response = getJson(url);
+            if (response.optBoolean("error", false))
+                throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
+            JSONObject daily = response.getJSONObject("daily");
             JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
             JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
-            weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain));
-
-        } catch (Exception e) { showWeatherError("天氣資料讀取失敗：" + e.getMessage()); }
+            if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
+                throw new IOException("預報資料不足七天，請稍後重試");
+            weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain, place));
+        } catch (Exception e) {
+            showWeatherError("天氣資料讀取失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+        }
     }
 
     private void showWeeklyWeatherStatus(String message) {
@@ -3964,14 +4010,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.addView(status, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain) {
+    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
         if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView heading = new TextView(this);
-        heading.setText("一週天氣・桃園市");
+        heading.setText("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
