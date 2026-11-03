@@ -107,9 +107,9 @@ final class WallpaperPlayer {
     private void showFirst() {
         int builtIn = preferences.getInt("builtin_wallpaper", 0);
         if (builtIn >= 1 && builtIn <= 6) {
-            int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
-                    R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
-                    R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06};
+            int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
+                    R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
+                    R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
             image.setImageResource(themes[builtIn - 1]);
             root.setBackground(null);
             displayed = "builtin_" + builtIn;
