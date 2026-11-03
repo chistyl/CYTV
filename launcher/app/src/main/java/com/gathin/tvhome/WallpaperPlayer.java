@@ -10,6 +10,8 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,6 +43,29 @@ final class WallpaperPlayer {
     private final SharedPreferences preferences;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
     private final Random random = new Random();
+    private final Handler rotationHandler = new Handler(Looper.getMainLooper());
+    private static final long BUILTIN_RANDOM_INTERVAL_MS = 30 * 60_000L;
+    private final Runnable builtinRandomTick = new Runnable() {
+        @Override public void run() {
+            if (!active || closed) return;
+            if (preferences.getBoolean("builtin_random_play", false)
+                    && preferences.getString("custom_wallpaper_uri", null) == null
+                    && preferences.getString("custom_wallpaper_file", null) == null) {
+                int currentTheme = preferences.getInt("builtin_wallpaper", 0);
+                if (currentTheme >= 1 && currentTheme <= 6) {
+                    int nextTheme = 1 + random.nextInt(5);
+                    if (nextTheme >= currentTheme) nextTheme++;
+                    int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
+                            R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
+                            R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+                    image.setImageResource(themes[nextTheme - 1]);
+                    displayed = "builtin_" + nextTheme;
+                    preferences.edit().putInt("builtin_wallpaper", nextTheme).apply();
+                }
+            }
+            rotationHandler.postDelayed(this, BUILTIN_RANDOM_INTERVAL_MS);
+        }
+    };
     private final int width;
     /** config wallpaper_true_color: ARGB_8888 instead of RGB_565. */
     private final Bitmap.Config bitmapConfig;
@@ -195,11 +220,14 @@ final class WallpaperPlayer {
 
     void start() {
         active = true;
+        rotationHandler.removeCallbacks(builtinRandomTick);
+        rotationHandler.postDelayed(builtinRandomTick, BUILTIN_RANDOM_INTERVAL_MS);
         update();
     }
 
     void stop() {
         active = false;
+        rotationHandler.removeCallbacks(builtinRandomTick);
     }
 
     /** The pictures the rotation picks from now: wallpaper_moods' group for the time of day, or the whole collection. */
@@ -216,6 +244,7 @@ final class WallpaperPlayer {
     void close() {
         active = false;
         closed = true;
+        rotationHandler.removeCallbacks(builtinRandomTick);
         decoder.shutdownNow();
     }
 
