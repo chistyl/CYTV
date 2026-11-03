@@ -527,8 +527,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
-        // 全桌面停用左側隨焦點變色的 Ambient Glow；保留 APP 焦點框與其他視覺效果。
-        ambientGlow = false;
+        // 左側色彩效果預設關閉；可由「桌布設定」中的「左側色彩效果(還原)」重新啟用。
+        ambientGlow = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
+                .getBoolean("left_color_effect_enabled", false);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
@@ -1261,7 +1262,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (importCustomWallpaper(uri)) {
                 getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
                         .remove("custom_wallpaper_uri")
-                        .putBoolean("hide_left_color_effect", true).apply();
+                        .putBoolean("hide_left_color_effect", true)
+                        .putBoolean("left_color_effect_enabled", false).apply();
                 recreate();
             } else {
                 Toast.makeText(this, "圖片讀取失敗，請改選 JPG 或 PNG 圖片", Toast.LENGTH_LONG).show();
@@ -4796,7 +4798,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     edit.putInt("builtin_wallpaper", randomTheme)
                             .remove("custom_wallpaper_uri")
                             .remove("custom_wallpaper_file")
-                            .putBoolean("hide_left_color_effect", true);
+                            .putBoolean("hide_left_color_effect", true)
+                            .putBoolean("left_color_effect_enabled", false);
                     File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
                     if (localWallpaper.exists()) localWallpaper.delete();
                     edit.apply();
@@ -4864,7 +4867,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
                     prefs.edit().putInt("builtin_wallpaper", index + 1).putBoolean("builtin_random_play", false)
                             .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                            .putBoolean("hide_left_color_effect", true).apply();
+                            .putBoolean("hide_left_color_effect", true)
+                            .putBoolean("left_color_effect_enabled", false).apply();
                     dialog.dismiss();
                     recreate();
                 });
@@ -4904,10 +4908,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
                     .remove("builtin_wallpaper").remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .putBoolean("hide_left_color_effect", false).apply();
+                    .putBoolean("hide_left_color_effect", false)
+                    .putBoolean("left_color_effect_enabled", false).apply();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
+        });
+        addRoundedAction(panel, "左側色彩效果(還原)", () -> {
+            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
+                    .putBoolean("left_color_effect_enabled", true)
+                    .putBoolean("hide_left_color_effect", false).apply();
+            dialog.dismiss();
+            recreate();
         });
         TextView cancel = new TextView(this);
         cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
