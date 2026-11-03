@@ -527,7 +527,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
-        // 使用背景主題時，停用桌面左側隨焦點變色的 Ambient Glow；保留 APP 焦點框與其他視覺效果。
+        // 全桌面停用左側隨焦點變色的 Ambient Glow；保留 APP 焦點框與其他視覺效果。
         ambientGlow = false;
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
@@ -4759,7 +4759,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
         panel.setBackground(roundSurface(Color.rgb(28, 32, 40), 22*density));
         TextView title = new TextView(this);
-        title.setText("背景主題");
+        title.setText("桌布設定");
         title.setTextColor(Color.WHITE);
         title.setTextSize(21);
         title.setPadding(0, 0, 0, (int)(12*density));
