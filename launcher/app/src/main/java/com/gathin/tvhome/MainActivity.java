@@ -5810,8 +5810,10 @@ private GradientDrawable roundSurface(int color, float radius) {
                 int totalTiles = matches.size() + 1; // include the trailing "+" tile
                 int lastRowStart = (totalTiles / folderColumns) * folderColumns;
                 boolean incompleteLastRow = totalTiles % folderColumns != 0 && tileIndex >= lastRowStart;
+                // Set both row and column explicitly. An undefined row combined with a fixed
+                // column can make GridLayout auto-place the first item in a later row on some TV builds.
                 android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
-                        android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
+                        android.widget.GridLayout.spec(tileIndex / folderColumns),
                         incompleteLastRow
                                 ? android.widget.GridLayout.spec(tileIndex % folderColumns, 1)
                                 : android.widget.GridLayout.spec(tileIndex % folderColumns, 1, 1f));
@@ -5871,7 +5873,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 int lastRowStart = (totalTiles / folderColumns) * folderColumns;
                 boolean incompleteLastRow = totalTiles % folderColumns != 0 && addIndex >= lastRowStart;
                 android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(
-                        android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
+                        android.widget.GridLayout.spec(addIndex / folderColumns),
                         incompleteLastRow
                                 ? android.widget.GridLayout.spec(addIndex % folderColumns, 1)
                                 : android.widget.GridLayout.spec(addIndex % folderColumns, 1, 1f));
