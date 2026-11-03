@@ -527,9 +527,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
-        // 左側色彩效果預設關閉；可由「桌布設定」中的「左側色彩效果(還原)」重新啟用。
+        // 全新安裝／尚未設定時，左側色彩效果預設開啟；選擇六款內建主題或隨機播放時再依設定關閉。
         ambientGlow = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
-                .getBoolean("left_color_effect_enabled", false);
+                .getBoolean("left_color_effect_enabled", true);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
