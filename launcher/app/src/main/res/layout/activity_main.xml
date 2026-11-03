@@ -302,7 +302,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <HorizontalScrollView
+                <LinearLayout
                     android:id="@+id/weeklyWeather"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -313,9 +313,7 @@
                     android:paddingEnd="10dp"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    android:fillViewport="true"
-                    android:scrollbars="none"
-                    android:overScrollMode="never"
+                    android:orientation="vertical"
                     android:visibility="gone">
                     <LinearLayout
                         android:id="@+id/weeklyWeatherDays"
@@ -323,7 +321,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center_vertical" />
-                </HorizontalScrollView>
+                </LinearLayout>
 
             </LinearLayout>
 
