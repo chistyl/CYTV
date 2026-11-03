@@ -1,13 +1,13 @@
 # Weather
 
 The weather for one city, full screen on the TV: now (temperature, feels-like, conditions), the US air quality
-index as a coloured pill, and the next three days. For the [Clean Your TV](../../README.md) launcher it declares a
+index as a coloured pill, and the next seven days. For the [Clean Your TV](../../README.md) launcher it declares a
 [module card](../../docs/modules.md), so once you answer **Show card** its tile reads "Weather" with a
 sky-blue glow; on any other Android TV home it is an ordinary app.
 
 ![The weather page](https://raw.githubusercontent.com/Sumyabazar1/cleanyourtv/pr-assets/addon-weather/addon-3-weather.png)
 
-- **The city** is chosen once: type its name with the remote's keyboard (or voice), pick it from the matches,
+- **The city** is chosen once: type its name with the remote's keyboard (or voice), pick it from the matches. Taiwanese city/county names also use English-name fallback searches when Chinese geocoding returns no Taiwan match,
   and it is kept. **Change city** at the bottom chooses another.
 - **Data** comes from [Open-Meteo](https://open-meteo.com/), which needs no account or key: the weather from
   DWD's ICON model (Open-Meteo's default blend called light snow over Ulaanbaatar "overcast"; ICON matched
@@ -24,7 +24,7 @@ Set in `app/src/main/res/values/options.xml` before building. With the defaults 
 
 | Option | Default | What it does |
 |---|---|---|
-| `forecast_days` | `3` | Days in the forecast row after today, 3 to 7. Above 3 the day cards share the row, with short day names, so a week fits on screen. |
+| `forecast_days` | `7` | Days in the forecast row after today, 3 to 7. Above 3 the day cards share the row, with short day names, so a week fits on screen. |
 | `show_humidity` | `false` | The relative humidity now, after "Feels like". |
 | `show_wind` | `false` | The wind speed now in km/h, after "Feels like" (mph with `temperature_unit` `f`). |
 | `temperature_unit` | `c` | `f` shows degrees Fahrenheit for the temperature now, feels-like and the days' highs and lows, converted from the reading before rounding. |
