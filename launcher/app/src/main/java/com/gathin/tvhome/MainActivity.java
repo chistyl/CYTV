@@ -5714,9 +5714,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         grid.setBackgroundColor(Color.TRANSPARENT);
         grid.setForeground(null);
         grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        int availableWidthDp = Math.max(320, (int) (getResources().getDisplayMetrics().widthPixels / density) - 64);
+        // Match the actual dialog width, not the full TV screen width. The old calculation
+        // sized four cards for a wider area than the dialog's padded content, clipping the
+        // rightmost card on wide screens. Include the outer padding and each slot's side margins.
+        int screenWidthDp = (int) (getResources().getDisplayMetrics().widthPixels / density);
+        int folderDialogWidthDp = Math.min(760, screenWidthDp - 48);
+        int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
         int folderColumns = 4;
-        int folderTileDp = Math.max(92, Math.min(184, (availableWidthDp - 56) / folderColumns));
+        int folderTileDp = Math.max(72, Math.min(184, (folderContentWidthDp - 48) / folderColumns));
         java.util.ArrayList<LinearLayout> folderRows = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         android.graphics.drawable.GradientDrawable scrollClip = new android.graphics.drawable.GradientDrawable();
@@ -5813,13 +5818,15 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    row.setGravity(Gravity.TOP | Gravity.START);
+                    // Center each row within the same content width so incomplete rows
+                    // retain equal left/right outer spacing without stretching their cards.
+                    row.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
                 }
-                // Every folder row uses four fixed-width slots. Incomplete rows keep their
-                // remaining space empty instead of stretching the cards to fill the row.
+                // Every folder row uses four fixed-width slots. Incomplete rows keep
+                // equal outer spacing and never stretch the remaining cards.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
                         Math.round((folderTileDp * 9f / 16f + 42f)*density));
