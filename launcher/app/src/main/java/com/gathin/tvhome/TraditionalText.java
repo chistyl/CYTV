@@ -26,6 +26,14 @@ public final class TraditionalText {
     public static String display(Context context, CharSequence value) {
         if (value == null) return "";
         String text = value.toString();
-        return isEnabled(context) ? CONVERTER.transliterate(text) : text;
+        return isEnabled(context) ? toTraditional(text) : text;
+    }
+
+    /** Always convert display text to Traditional Chinese, independent of the global UI preference. */
+    public static String toTraditional(CharSequence value) {
+        if (value == null) return "";
+        synchronized (CONVERTER) {
+            return CONVERTER.transliterate(value.toString());
+        }
     }
 }
