@@ -5903,7 +5903,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         };
         populate.run();
-        // 明確設定遙控器焦點路徑：每列五個，左右相鄰、上下對應同欄。
+        // Some Android TV remotes report directional keys only on ACTION_UP.
+        // Remember DOWN events so normal DOWN+UP pairs move once, while UP-only remotes still work.
+        final int[] lastDpadDownKey = { KeyEvent.KEYCODE_UNKNOWN };
+        // 明確設定遙控器焦點路徑：每列四個，左右相鄰、上下對應同欄。
         for (int i = 0; i < folderFocusTiles.size(); i++) {
             View item = folderFocusTiles.get(i);
             if (i % folderColumns > 0) item.setNextFocusLeftId(folderFocusTiles.get(i - 1).getId());
@@ -5923,9 +5926,17 @@ private GradientDrawable roundSurface(int color, float radius) {
                 boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP
                         || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
                 if (!horizontal && !vertical) return false;
-                // Consume both phases so Android's default focus finder cannot steal DPAD
-                // navigation from the folder grid (some TV remotes deliver key-up only).
-                if (action != KeyEvent.ACTION_DOWN) return true;
+                // Handle normal DOWN+UP remotes once, and fall back to UP-only remotes.
+                if (action == KeyEvent.ACTION_DOWN) {
+                    lastDpadDownKey[0] = keyCode;
+                } else if (action == KeyEvent.ACTION_UP) {
+                    if (lastDpadDownKey[0] == keyCode) {
+                        lastDpadDownKey[0] = KeyEvent.KEYCODE_UNKNOWN;
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
                 int index = folderFocusTiles.indexOf(v);
                 if (index < 0) return true;
                 int column = index % folderColumns;
