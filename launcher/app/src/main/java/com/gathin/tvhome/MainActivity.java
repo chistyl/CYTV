@@ -5818,9 +5818,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    // Center each row within the same content width so incomplete rows
-                    // retain equal left/right outer spacing without stretching their cards.
-                    row.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+                    // Keep folder items in natural left-to-right order; incomplete rows start at the first column.
+                    row.setGravity(Gravity.TOP | Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
@@ -5882,9 +5881,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    // Keep the add-tile row centered exactly like app rows so its outer
-                    // left/right spacing remains equal, including when the folder is empty.
-                    row.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+                    // Keep the add tile after the last app, starting at the first column on incomplete rows.
+                    row.setGravity(Gravity.TOP | Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
