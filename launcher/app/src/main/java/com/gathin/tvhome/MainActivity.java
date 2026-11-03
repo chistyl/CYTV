@@ -4853,7 +4853,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(100*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(92*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -4863,7 +4863,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
                 item.setId(View.generateViewId());
-                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
                 GradientDrawable normal = new GradientDrawable();
                 normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
                 GradientDrawable focused = new GradientDrawable();
@@ -4880,7 +4880,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                imageLp.height = (int)(88*density);
+                imageLp.height = (int)(80*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -4895,12 +4895,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     dialog.dismiss();
                     recreate();
                 });
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(108*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(108*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
