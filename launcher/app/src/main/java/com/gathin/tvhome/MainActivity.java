@@ -3944,6 +3944,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!admin.isEmpty() && !admin.equals(displayName)) displayName += "・" + admin;
             if (!country.isEmpty() && !"台灣".equals(country) && !"Taiwan".equalsIgnoreCase(country))
                 displayName += "・" + country;
+            displayName = TraditionalText.toTraditional(displayName);
             fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"), displayName);
         } catch (Exception e) {
             showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
@@ -3977,7 +3978,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (weeklyWeatherDays == null) return;
         weeklyWeatherDays.removeAllViews();
         TextView status = new TextView(this);
-        status.setText(TraditionalText.display(this, message));
+        status.setText(TraditionalText.toTraditional(message));
         status.setTextColor(Color.WHITE);
         status.setTextSize(15);
         status.setPadding((int)(12*density), (int)(8*density), (int)(12*density), (int)(8*density));
@@ -3991,7 +3992,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView heading = new TextView(this);
-        heading.setText("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place));
+        heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -4030,7 +4031,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dayColumn.addView(iconView, iconLp);
 
                 TextView condition = new TextView(this);
-                condition.setText(weatherLabel(code));
+                condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
                 condition.setTextColor(0xFFE8EBF0);
                 condition.setTextSize(13);
                 condition.setGravity(Gravity.CENTER);
@@ -4048,7 +4049,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dayColumn.addView(temperature, tempLp);
 
                 TextView precipitation = new TextView(this);
-                precipitation.setText("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--"));
+                precipitation.setText(TraditionalText.toTraditional("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
                 precipitation.setTextColor(0xFFD5D9E0);
                 precipitation.setTextSize(12);
                 precipitation.setGravity(Gravity.CENTER);
