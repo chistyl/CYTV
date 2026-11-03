@@ -4916,13 +4916,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
-        addRoundedAction(panel, "左側色彩效果(還原)", () -> {
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putBoolean("left_color_effect_enabled", true)
-                    .putBoolean("hide_left_color_effect", false).apply();
-            dialog.dismiss();
-            recreate();
-        });
         TextView cancel = new TextView(this);
         cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
