@@ -1257,12 +1257,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri uri = data.getData();
-            try { getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
-            catch (SecurityException ignored) { }
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_uri", uri.toString())
-                    .putBoolean("hide_left_color_effect", true).apply();
-            recreate();
+            if (importCustomWallpaper(uri)) {
+                getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
+                        .remove("custom_wallpaper_uri")
+                        .putBoolean("hide_left_color_effect", true).apply();
+                recreate();
+            } else {
+                Toast.makeText(this, "圖片讀取失敗，請改選 JPG 或 PNG 圖片", Toast.LENGTH_LONG).show();
+            }
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
@@ -4721,6 +4723,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         catch (PackageManager.NameNotFoundException ignored) { return getDrawable(android.R.drawable.sym_def_app_icon); }
     }
 
+    /**
+     * Import the selected image into app-private storage under an ASCII-only fixed name.
+     * The original filename is deliberately ignored so Chinese names and provider-specific
+     * document IDs never become part of the wallpaper loading path.
+     */
+    private boolean importCustomWallpaper(Uri uri) {
+        java.io.File target = new java.io.File(getFilesDir(), "custom-wallpaper-image");
+        java.io.File temporary = new java.io.File(getFilesDir(), "custom-wallpaper-image.tmp");
+        try (java.io.InputStream input = getContentResolver().openInputStream(uri);
+             java.io.FileOutputStream output = new java.io.FileOutputStream(temporary)) {
+            if (input == null) return false;
+            byte[] buffer = new byte[16 * 1024];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            output.flush();
+            if (temporary.length() <= 0) return false;
+            if (target.exists() && !target.delete()) return false;
+            if (!temporary.renameTo(target)) return false;
+            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
+                    .putString("custom_wallpaper_path", target.getAbsolutePath()).apply();
+            return true;
+        } catch (Exception | OutOfMemoryError failure) {
+            temporary.delete();
+            return false;
+        }
+    }
+
     private void showWallpaperPicker() {
         Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
@@ -4745,7 +4774,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .remove("custom_wallpaper_uri").putBoolean("hide_left_color_effect", false).apply();
+                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_path").putBoolean("hide_left_color_effect", false).apply();
             dialog.dismiss(); recreate();
         });
         TextView cancel = new TextView(this); cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4);
