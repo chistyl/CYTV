@@ -4853,7 +4853,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(108*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(100*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
