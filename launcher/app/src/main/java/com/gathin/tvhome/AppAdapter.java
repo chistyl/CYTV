@@ -450,7 +450,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         for (ResolveInfo ri : launchables) if (ri.activityInfo != null) resolved.put(ri.activityInfo.packageName, ri);
         int[][] positions = {{112, 62}, {332, 62}, {112, 190}, {332, 190}};
         int cellW = 196, cellH = 110, index = 0;
-        for (String pkg : packages) {
+        // HashSet iteration order is not stable; sort so the folder preview does not reshuffle on reload.
+        List<String> previewPackages = new ArrayList<>(packages);
+        Collections.sort(previewPackages, String.CASE_INSENSITIVE_ORDER);
+        for (String pkg : previewPackages) {
             if (index >= 4) break;
             int x = positions[index][0], y = positions[index][1];
             paint.setColor(custom.getInt("background_" + pkg, Color.WHITE));
