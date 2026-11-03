@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
@@ -402,9 +403,23 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String pkg = ri.activityInfo.packageName;
             try {
                 int flags = pm.getApplicationInfo(pkg, 0).flags;
-                if ((flags & (android.content.pm.ApplicationInfo.FLAG_SYSTEM | android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
+                if ((flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0
                         && !systemExcluded.contains(pkg)) systemMembers.add(pkg);
             } catch (PackageManager.NameNotFoundException ignored) { }
+        }
+        // Match the opened System folder: include vendor system apps that have a launch intent but
+        // are omitted from both LEANBACK_LAUNCHER and LAUNCHER package queries.
+        List<ApplicationInfo> installedSystemApps;
+        try { installedSystemApps = pm.getInstalledApplications(PackageManager.MATCH_ALL); }
+        catch (Exception ignored) { installedSystemApps = pm.getInstalledApplications(0); }
+        for (ApplicationInfo app : installedSystemApps) {
+            String pkg = app.packageName;
+            if (pkg == null || pkg.equals(ctx.getPackageName())
+                    || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+                    || systemExcluded.contains(pkg)) continue;
+            try {
+                if (pm.getLaunchIntentForPackage(pkg) != null) systemMembers.add(pkg);
+            } catch (RuntimeException ignored) { }
         }
         systemMembers.removeIf(pkg -> folderPrefs.getBoolean("home_hidden_" + pkg, false));
         if (!folderPrefs.getBoolean("home_hidden_folder_系統", false)) {
@@ -445,9 +460,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         SharedPreferences custom = ctx.getSharedPreferences("tv_app_customizations", Context.MODE_PRIVATE);
         Map<String, ResolveInfo> resolved = new HashMap<>();
-        List<ResolveInfo> launchables = ctx.getPackageManager().queryIntentActivities(
+        PackageManager previewPm = ctx.getPackageManager();
+        List<ResolveInfo> launchables = previewPm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-        for (ResolveInfo ri : launchables) if (ri.activityInfo != null) resolved.put(ri.activityInfo.packageName, ri);
+        List<ResolveInfo> phoneLaunchables = previewPm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+        if (launchables != null) for (ResolveInfo ri : launchables)
+            if (ri.activityInfo != null) resolved.put(ri.activityInfo.packageName, ri);
+        if (phoneLaunchables != null) for (ResolveInfo ri : phoneLaunchables)
+            if (ri.activityInfo != null) resolved.putIfAbsent(ri.activityInfo.packageName, ri);
         int[][] positions = {{112, 62}, {332, 62}, {112, 190}, {332, 190}};
         int cellW = 196, cellH = 110, index = 0;
         // HashSet iteration order is not stable; sort so the folder preview does not reshuffle on reload.
