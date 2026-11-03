@@ -5569,7 +5569,20 @@ private GradientDrawable roundSurface(int color, float radius) {
             List<String> packages = new ArrayList<>(labels.keySet());
             boolean[] checked = new boolean[packages.size()];
             Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
-            for (int i=0;i<packages.size();i++) checked[i] = members.contains(packages.get(i));
+            Set<String> systemExcluded = prefs.getStringSet("system_folder_excluded",
+                    java.util.Collections.<String>emptySet());
+            Set<String> systemAdded = prefs.getStringSet("system_folder_added",
+                    java.util.Collections.<String>emptySet());
+            for (int i = 0; i < packages.size(); i++) {
+                String pkg = packages.get(i);
+                boolean belongsToSystem = systemAdded.contains(pkg);
+                try {
+                    int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
+                    boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+                    belongsToSystem = belongsToSystem || (isSystem && !systemExcluded.contains(pkg));
+                } catch (PackageManager.NameNotFoundException ignored) { }
+                checked[i] = members.contains(pkg) && !belongsToSystem;
+            }
             Map<String, ResolveInfo> appInfos = new java.util.HashMap<>();
             for (ResolveInfo ri : found) if (ri.activityInfo != null) appInfos.put(ri.activityInfo.packageName, ri);
             showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, appInfos, checked, selected -> {
@@ -6172,11 +6185,21 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         Set<String> excluded = prefs.getStringSet("system_folder_excluded", java.util.Collections.<String>emptySet());
         Set<String> added = prefs.getStringSet("system_folder_added", java.util.Collections.<String>emptySet());
-        for (int i=0;i<packages.size();i++) {
+        Set<String> assignedToRegularFolder = new java.util.HashSet<>();
+        Set<String> regularFolders = prefs.getStringSet("home_folders",
+                java.util.Collections.<String>emptySet());
+        for (String folder : regularFolders) {
+            assignedToRegularFolder.addAll(prefs.getStringSet("folder_apps_" + folder,
+                    java.util.Collections.<String>emptySet()));
+        }
+        for (int i = 0; i < packages.size(); i++) {
+            String pkg = packages.get(i);
             try {
-                int flags = getPackageManager().getApplicationInfo(packages.get(i), 0).flags;
+                int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
                 boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
-                checked[i] = added.contains(packages.get(i)) || (isSystem && !excluded.contains(packages.get(i)));
+                boolean belongsToSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
+                // A package already assigned to an ordinary folder must not also appear checked here.
+                checked[i] = belongsToSystem && !assignedToRegularFolder.contains(pkg);
             } catch (PackageManager.NameNotFoundException ignored) { }
         }
         showAppSelectionDialog("勾選要放入「系統」資料夾的 APP", packages, candidates, checked, selected -> {
