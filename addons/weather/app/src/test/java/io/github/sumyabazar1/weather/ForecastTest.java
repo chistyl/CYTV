@@ -58,6 +58,23 @@ public class ForecastTest {
     }
 
     @Test
+    public void taiwanCitiesHaveEnglishGeocodingFallbacks() {
+        assertEquals("Taoyuan", Forecast.citySearchTerms("桃園市").get(0));
+        assertEquals("Taipei", Forecast.citySearchTerms("臺北市").get(0));
+        assertEquals("New Taipei City", Forecast.citySearchTerms("新北市").get(0));
+        assertEquals("Taichung", Forecast.citySearchTerms("台中市").get(0));
+        assertEquals("Tainan", Forecast.citySearchTerms("臺南市").get(0));
+        assertEquals("Kaohsiung", Forecast.citySearchTerms("高雄市").get(0));
+    }
+
+    @Test
+    public void originalCityTextRemainsAsGeocodingFallback() {
+        assertEquals("新北市", Forecast.citySearchTerms("新北市").get(1));
+        assertEquals("Osaka", Forecast.citySearchTerms("Osaka").get(0));
+        assertEquals(1, Forecast.citySearchTerms("Osaka").size());
+    }
+
+    @Test
     public void wetBulbMatchesStull() {
         // Stull (2011): 20 °C and 50 % give a wet-bulb of about 13.7 °C.
         assertEquals(13.7, Forecast.wetBulb(20, 50), 0.1);
