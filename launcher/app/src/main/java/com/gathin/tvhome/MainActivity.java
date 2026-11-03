@@ -4813,13 +4813,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         title.setPadding(0, 0, 0, (int)(12*density));
         panel.addView(title);
 
-        final String[] names = {"阿龍之友", "山城夜色", "莓躍入水", "漂流瓶", "愛心小倉", "阿布的魚"};
-        final int[] previews = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
-                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
-                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06};
-        final int[] assets = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
-                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
-                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06};
+        final String[] names = {"漂流瓶", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "阿龍之友"};
+        final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
         ScrollView scroll = new ScrollView(this);
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
