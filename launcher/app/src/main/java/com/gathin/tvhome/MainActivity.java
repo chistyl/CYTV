@@ -4832,8 +4832,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomSwitch.setTextOff("");
         randomSwitch.setShowText(false);
         randomSwitch.setChecked(wallpaperPrefs.getBoolean("builtin_random_play", false));
-        randomSwitch.setOnCheckedChangeListener((button, checked) ->
-                wallpaperPrefs.edit().putBoolean("builtin_random_play", checked).apply());
+        randomSwitch.setOnCheckedChangeListener((button, checked) -> {
+            SharedPreferences.Editor edit = wallpaperPrefs.edit()
+                    .putBoolean("builtin_random_play", checked);
+            if (checked) {
+                int selectedTheme = wallpaperPrefs.getInt("builtin_wallpaper", 0);
+                if (selectedTheme < 1 || selectedTheme > 6
+                        || wallpaperPrefs.getString("custom_wallpaper_uri", null) != null
+                        || wallpaperPrefs.getString("custom_wallpaper_file", null) != null) {
+                    int randomTheme = 1 + new java.util.Random().nextInt(6);
+                    edit.putInt("builtin_wallpaper", randomTheme)
+                            .remove("custom_wallpaper_uri")
+                            .remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true);
+                    File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+                    if (localWallpaper.exists()) localWallpaper.delete();
+                    edit.apply();
+                    dialog.dismiss();
+                    recreate();
+                    return;
+                }
+            }
+            edit.apply();
+        });
         randomRow.addView(randomSwitch);
         randomRow.setFocusable(true);
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
