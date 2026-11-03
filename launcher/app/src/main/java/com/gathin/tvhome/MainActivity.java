@@ -567,11 +567,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
             lp.leftMargin = clockPos[0] - rootPos[0];
-            // The weather card is an overlay, so it can use the full content width below the top bar.
-            // Do not use leftBlock.getWidth(): RelativeLayout limits that view to the space before topButtons,
-            // which would make the forecast card shrink whenever the right-side buttons grow or appear.
+            // Keep the forecast card independent of the right-side buttons, but avoid stretching it
+            // across almost the entire TV screen. Use a proportion of the available content width.
             int rightInset = (int) (56 * density);
-            lp.width = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
+            int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
+            lp.width = Math.round(availableWidth * 0.78f);
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setLayoutParams(lp);
         };
