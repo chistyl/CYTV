@@ -210,7 +210,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean advancedEffects;
     private TextView greeting;
     private View clockBlock;
-    private HorizontalScrollView weeklyWeatherView;
+    private View weeklyWeatherView;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
     private boolean weatherHiddenByScroll;
