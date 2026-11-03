@@ -4822,6 +4822,86 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(true);
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
+        final int columnsCount = 3;
+        final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
+        for (int row = 0; row < rowsCount; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < columnsCount; col++) {
+                final int index = row * columnsCount + col;
+                if (index >= names.length) {
+                    View empty = new View(this);
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(132*density), 1f));
+                    continue;
+                }
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setGravity(Gravity.CENTER_HORIZONTAL);
+                item.setFocusable(true);
+                item.setFocusableInTouchMode(true);
+                item.setClickable(true);
+                item.setId(View.generateViewId());
+                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
+                GradientDrawable normal = new GradientDrawable();
+                normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
+                GradientDrawable focused = new GradientDrawable();
+                focused.setColor(0xFF46566B); focused.setCornerRadius(12*density);
+                focused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
+                item.setBackground(normal);
+
+                ImageView preview = new ImageView(this);
+                preview.setImageResource(previews[index]);
+                preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                preview.setAdjustViewBounds(true);
+                preview.setBackgroundColor(0xFF252B35);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(82*density));
+                item.addView(preview, imageLp);
+
+                TextView label = new TextView(this);
+                label.setText(names[index]);
+                label.setTextColor(Color.WHITE);
+                label.setTextSize(13);
+                label.setGravity(Gravity.CENTER);
+                label.setSingleLine(true);
+                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+                labelLp.topMargin = (int)(4*density);
+                item.addView(label, labelLp);
+
+                TextView apply = new TextView(this);
+                apply.setText("套用");
+                apply.setTextColor(0xFF80CBC4);
+                apply.setTextSize(12);
+                apply.setGravity(Gravity.CENTER);
+                item.addView(apply, new LinearLayout.LayoutParams(-1, (int)(20*density)));
+
+                item.setOnFocusChangeListener((v, hasFocus) -> {
+                    v.setBackground(hasFocus ? focused : normal);
+                    v.setElevation(hasFocus ? 5*density : 0f);
+                });
+                item.setOnClickListener(v -> {
+                    SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+                    prefs.edit().putInt("builtin_wallpaper", index + 1)
+                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                            .putBoolean("hide_left_color_effect", true).apply();
+                    dialog.dismiss();
+                    recreate();
+                });
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(132*density), 1f);
+                if (col > 0) itemLp.leftMargin = (int)(5*density);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
+                rowLayout.addView(item, itemLp);
+            }
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(132*density)));
+            if (row < rowsCount - 1) {
+                View gap = new View(this);
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
+            }
+        }
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        LinearLayout choices = new LinearLayout(this);
+        choices.setOrientation(LinearLayout.VERTICAL);
         for (int row = 0; row < (names.length + 1) / 2; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
             rowLayout.setOrientation(LinearLayout.HORIZONTAL);
