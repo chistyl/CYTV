@@ -122,9 +122,11 @@ final class LocalWallpaperServer extends Thread {
     }
 
     private void respond(Socket socket, int code, String status, String message) throws Exception {
-        byte[] body = ("<!doctype html><meta charset='utf-8'><meta name='viewport' content='width=device-width'><body style='font:20px sans-serif;padding:24px'>" + message + "</body>").getBytes(StandardCharsets.UTF_8);
+        // Upload uses fetch(...).text() and inserts the response into a text node.
+        // Return plain UTF-8 text so the browser never displays HTML markup literally.
+        byte[] body = message.getBytes(StandardCharsets.UTF_8);
         OutputStream out = socket.getOutputStream();
-        out.write(("HTTP/1.1 " + code + " " + status + "\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " + body.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+        out.write(("HTTP/1.1 " + code + " " + status + "\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: " + body.length + "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
         out.write(body); out.flush();
     }
 
