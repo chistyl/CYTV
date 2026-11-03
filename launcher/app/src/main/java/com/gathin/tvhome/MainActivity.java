@@ -3780,23 +3780,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * True only when an Internet-capable Wi-Fi network is present and no Ethernet network
-     * is present. Android 9 supports getAllNetworks()/NetworkCapabilities.
+     * Detect a wired Ethernet interface even when Android temporarily drops INTERNET
+     * capability while a local VPN is being established. Android 9 supports this API.
      */
+    private boolean isEthernetAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        for (Network network : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return true;
+        }
+        Network active = cm.getActiveNetwork();
+        NetworkCapabilities activeCaps = active == null ? null : cm.getNetworkCapabilities(active);
+        return activeCaps != null && activeCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+    }
+
+    /** Wi-Fi-only visibility is retained when no wired Ethernet interface is present. */
     private boolean isWifiWithoutEthernetAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return false;
         boolean wifi = false;
-        boolean ethernet = false;
         for (Network network : cm.getAllNetworks()) {
             NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-            if (caps == null || !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-                continue;
-            }
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) ethernet = true;
+            if (caps == null || !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue;
             if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifi = true;
         }
-        return wifi && !ethernet;
+        return wifi && !isEthernetAvailable();
     }
 
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
@@ -3819,12 +3828,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     popup.dismiss();
                     recreate();
                 });
+        // Ethernet 連線時將「阻擋廣告」提前顯示；Wi-Fi-only 時維持原本的選單位置。
+        boolean ethernetAvailable = isEthernetAvailable();
+        if (ethernetAvailable) {
+            addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
+                popup.dismiss();
+                startActivity(new Intent(this, AdsBlockerActivity.class));
+            });
+        }
         addSettingsMenuRow(rows, popup, "YouTube廣告助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
-        // 廣告阻擋功能僅在 Wi-Fi 網路顯示；有線網路優先判定為 Ethernet。
-        if (isWifiWithoutEthernetAvailable()) {
+        if (!ethernetAvailable && isWifiWithoutEthernetAvailable()) {
             addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
                 popup.dismiss();
                 startActivity(new Intent(this, AdsBlockerActivity.class));
