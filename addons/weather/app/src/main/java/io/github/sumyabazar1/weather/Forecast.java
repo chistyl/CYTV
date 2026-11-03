@@ -92,21 +92,66 @@ final class Forecast {
         }
     }
 
-    /** Up to five places matching what was typed, best match first. Empty when nothing matches. */
-    static List<Place> search(String name) throws IOException, JSONException {
-        JSONObject reply = get("https://geocoding-api.open-meteo.com/v1/search?count=5&format=json&name="
-                + URLEncoder.encode(name.trim(), "UTF-8") + "&language=" + Locale.getDefault().getLanguage());
-        List<Place> out = new ArrayList<>();
-        JSONArray results = reply.optJSONArray("results");
-        if (results == null) return out;
-        for (int i = 0; i < results.length(); i++) {
-            JSONObject r = results.getJSONObject(i);
-            StringBuilder detail = new StringBuilder(r.optString("admin1"));
-            String country = r.optString("country");
-            if (!country.isEmpty()) detail.append(detail.length() > 0 ? ", " : "").append(country);
-            out.add(new Place(r.getString("name"), detail.toString(), r.getDouble("latitude"), r.getDouble("longitude")));
+    /** Taiwanese city/county aliases: search Latin names first because geocoders may not index every Chinese suffix. */
+    private static final String[][] TAIWAN_ALIASES = {
+            {"桃園", "Taoyuan"}, {"桃園市", "Taoyuan"},
+            {"台北", "Taipei"}, {"台北市", "Taipei"}, {"臺北", "Taipei"}, {"臺北市", "Taipei"},
+            {"新北", "New Taipei City"}, {"新北市", "New Taipei City"},
+            {"基隆", "Keelung"}, {"基隆市", "Keelung"},
+            {"新竹", "Hsinchu"}, {"新竹市", "Hsinchu City"}, {"新竹縣", "Hsinchu County"},
+            {"台中", "Taichung"}, {"台中市", "Taichung"}, {"臺中", "Taichung"}, {"臺中市", "Taichung"},
+            {"彰化", "Changhua"}, {"彰化縣", "Changhua County"},
+            {"南投", "Nantou"}, {"南投縣", "Nantou County"},
+            {"雲林", "Yunlin"}, {"雲林縣", "Yunlin County"},
+            {"嘉義", "Chiayi"}, {"嘉義市", "Chiayi City"}, {"嘉義縣", "Chiayi County"},
+            {"台南", "Tainan"}, {"台南市", "Tainan"}, {"臺南", "Tainan"}, {"臺南市", "Tainan"},
+            {"高雄", "Kaohsiung"}, {"高雄市", "Kaohsiung"},
+            {"屏東", "Pingtung"}, {"屏東縣", "Pingtung County"},
+            {"宜蘭", "Yilan"}, {"宜蘭縣", "Yilan County"},
+            {"花蓮", "Hualien"}, {"花蓮縣", "Hualien County"},
+            {"台東", "Taitung"}, {"台東縣", "Taitung County"}, {"臺東", "Taitung"}, {"臺東縣", "Taitung County"},
+            {"澎湖", "Penghu"}, {"澎湖縣", "Penghu County"},
+            {"金門", "Kinmen"}, {"金門縣", "Kinmen County"},
+            {"連江", "Lienchiang"}, {"連江縣", "Lienchiang County"}
+    };
+
+    /** Search terms in priority order; Taiwan aliases are followed by the original text as a fallback. */
+    static List<String> citySearchTerms(String typed) {
+        String name = typed == null ? "" : typed.trim();
+        List<String> terms = new ArrayList<>();
+        for (String[] alias : TAIWAN_ALIASES) {
+            if (alias[0].equalsIgnoreCase(name)) {
+                terms.add(alias[1]);
+                break;
+            }
         }
-        return out;
+        if (!name.isEmpty() && !terms.contains(name)) terms.add(name);
+        return terms;
+    }
+
+    /** Up to ten matching places. Prefer a Taiwan-specific English alias, then retry the original city name. */
+    static List<Place> search(String name) throws IOException, JSONException {
+        List<String> terms = citySearchTerms(name);
+        for (String term : terms) {
+            String language = term.equals(name.trim()) ? Locale.getDefault().getLanguage() : "en";
+            JSONObject reply = get("https://geocoding-api.open-meteo.com/v1/search?count=10&format=json&name="
+                    + URLEncoder.encode(term, "UTF-8") + "&language=" + URLEncoder.encode(language, "UTF-8"));
+            List<Place> out = new ArrayList<>();
+            JSONArray results = reply.optJSONArray("results");
+            if (results == null) continue;
+            boolean taiwanQuery = terms.size() > 1;
+            for (int i = 0; i < results.length(); i++) {
+                JSONObject r = results.getJSONObject(i);
+                if (taiwanQuery && !"TW".equalsIgnoreCase(r.optString("country_code"))) continue;
+                StringBuilder detail = new StringBuilder(r.optString("admin1"));
+                String country = r.optString("country");
+                if (!country.isEmpty()) detail.append(detail.length() > 0 ? ", " : "").append(country);
+                out.add(new Place(r.getString("name"), detail.toString(),
+                        r.getDouble("latitude"), r.getDouble("longitude")));
+            }
+            if (!out.isEmpty()) return out;
+        }
+        return new ArrayList<>();
     }
 
     /** Days after today to show: the option, kept between {@link #MIN_DAYS} and {@link #MAX_DAYS}. */
