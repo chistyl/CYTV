@@ -4787,8 +4787,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomSwitch.setShowText(false);
         randomSwitch.setChecked(wallpaperPrefs.getBoolean("builtin_random_play", false));
         randomSwitch.setOnCheckedChangeListener((button, checked) -> {
+            // 六款內建主題與隨機播放都固定關閉左側色彩效果；切換隨機開關時也要強制寫入，
+            // 避免目前已是有效主題時只更新隨機旗標，卻沿用先前開啟的左側效果。
             SharedPreferences.Editor edit = wallpaperPrefs.edit()
-                    .putBoolean("builtin_random_play", checked);
+                    .putBoolean("builtin_random_play", checked)
+                    .putBoolean("hide_left_color_effect", true)
+                    .putBoolean("left_color_effect_enabled", false);
             if (checked) {
                 int selectedTheme = wallpaperPrefs.getInt("builtin_wallpaper", 0);
                 if (selectedTheme < 1 || selectedTheme > 6
@@ -4797,9 +4801,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     int randomTheme = 1 + new java.util.Random().nextInt(6);
                     edit.putInt("builtin_wallpaper", randomTheme)
                             .remove("custom_wallpaper_uri")
-                            .remove("custom_wallpaper_file")
-                            .putBoolean("hide_left_color_effect", true)
-                            .putBoolean("left_color_effect_enabled", false);
+                            .remove("custom_wallpaper_file");
                     File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
                     if (localWallpaper.exists()) localWallpaper.delete();
                     edit.apply();
