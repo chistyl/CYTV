@@ -4909,7 +4909,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
                     .remove("builtin_wallpaper").remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", false)
-                    .putBoolean("left_color_effect_enabled", false).apply();
+                    .putBoolean("left_color_effect_enabled", true).apply();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
