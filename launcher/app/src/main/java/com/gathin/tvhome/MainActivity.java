@@ -4813,7 +4813,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         title.setPadding(0, 0, 0, (int)(12*density));
         panel.addView(title);
 
-        final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "阿龍之友"};
+        final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
         final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
                 R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
                 R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
