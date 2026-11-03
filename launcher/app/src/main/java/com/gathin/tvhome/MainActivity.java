@@ -1274,7 +1274,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (copied) {
                 getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
                         .putString("custom_wallpaper_file", target.getAbsolutePath())
-                        .remove("custom_wallpaper_uri")
+                        .remove("builtin_wallpaper").remove("custom_wallpaper_uri")
                         .putBoolean("hide_left_color_effect", true).apply();
                 recreate();
             }
@@ -4965,7 +4965,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
             if (isFinishing() || isDestroyed()) return;
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_uri", uri.toString())
+                    .putString("custom_wallpaper_uri", uri.toString()).remove("builtin_wallpaper").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", true).apply();
             Toast.makeText(this, "圖片已接收，正在設定桌布", Toast.LENGTH_LONG).show();
             dialog.dismiss();
