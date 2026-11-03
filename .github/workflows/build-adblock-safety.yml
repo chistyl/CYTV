@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - r138-adblock-safety-ui-r1
+      - fix/adblock-ethernet-safety-27fb0538
     paths:
       - 'launcher/**'
       - '.github/workflows/build-adblock-safety.yml'
