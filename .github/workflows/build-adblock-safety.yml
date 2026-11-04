@@ -1,9 +1,13 @@
 name: Build CYTV AdBlock Safety R1
 
 on:
+  pull_request:
+    branches:
+      - fix/folder-app-assignment-sync
   push:
     branches:
       - r138-adblock-safety-ui-r1
+      - fix/adblock-ethernet-safety-27fb0538
     paths:
       - 'launcher/**'
       - '.github/workflows/build-adblock-safety.yml'
