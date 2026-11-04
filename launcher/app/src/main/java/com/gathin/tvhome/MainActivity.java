@@ -6330,16 +6330,10 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
 
         TextView sizeTitle = new TextView(this);
-        sizeTitle.setText("圖標大小（-50% ～ +200%）");
+        sizeTitle.setText("圖標大小");
         sizeTitle.setTextColor(Color.WHITE);
         sizeTitle.setTextSize(15);
         panel.addView(sizeTitle);
-
-        TextView sizeValue = new TextView(this);
-        sizeValue.setTextColor(0xFFE8EBF0);
-        sizeValue.setTextSize(13);
-        sizeValue.setGravity(Gravity.CENTER);
-        panel.addView(sizeValue);
 
         SeekBar sizeBar = new SeekBar(this);
         sizeBar.setMax(250);
@@ -6387,13 +6381,10 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         updateCombinedPreview[0] = () -> {
             int adjustment=sizeBar.getProgress()-50;
-            sizeValue.setText("調整幅度：" + (adjustment>0?"+":"") + adjustment
-                    + "%　｜　實際圖標比例：" + Math.round(125f*(1f+adjustment/100f)) + "%");
-            int side=Math.max((int)(18*density),Math.min((int)(72*density),
-                    Math.round(preview.iconBaseDp*density*(1f+adjustment/100f))));
-            FrameLayout.LayoutParams iconLp=(FrameLayout.LayoutParams)preview.targetIcon.getLayoutParams();
-            iconLp.width=side; iconLp.height=side; iconLp.gravity=Gravity.CENTER;
-            preview.targetIcon.setLayoutParams(iconLp);
+            float scale=Math.max(0.5f,Math.min(3f,1f+adjustment/100f));
+            // 與電視桌面 APP 卡片使用相同的內距縮放公式，預覽直接呈現實際比例。
+            int iconPadding=Math.max((int)(3*density),(int)(13*density/scale));
+            preview.targetIcon.setPadding(iconPadding,iconPadding,iconPadding,iconPadding);
             GradientDrawable bg=new GradientDrawable();
             bg.setColor(Color.rgb(rgb[0],rgb[1],rgb[2]));
             bg.setCornerRadius(14*density);
@@ -6437,6 +6428,52 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(650*density),getResources().getDisplayMetrics().heightPixels-(int)(40*density)));
         }
+
+        // 遙控器焦點固定沿著圖標大小、RGB 三條滑桿，再到取消／恢復預設／套用。
+        sizeBar.setId(View.generateViewId());
+        for (SeekBar bar : channelBars) bar.setId(View.generateViewId());
+        sizeBar.setNextFocusDownId(channelBars[0].getId());
+        channelBars[0].setNextFocusUpId(sizeBar.getId());
+        for (int i=0;i<channelBars.length;i++) {
+            if (i>0) channelBars[i].setNextFocusUpId(channelBars[i-1].getId());
+            if (i<channelBars.length-1) channelBars[i].setNextFocusDownId(channelBars[i+1].getId());
+        }
+
+        Button cancelButton=dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        Button resetButton=dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+        Button applyButton=dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        Button[] actionButtons={cancelButton,resetButton,applyButton};
+        GradientDrawable actionNormal=new GradientDrawable();
+        actionNormal.setColor(0xFF343B47);
+        actionNormal.setCornerRadius(12*density);
+        GradientDrawable actionFocused=new GradientDrawable();
+        actionFocused.setColor(0xFF46566B);
+        actionFocused.setCornerRadius(12*density);
+        actionFocused.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
+        for(int i=0;i<actionButtons.length;i++) {
+            Button button=actionButtons[i];
+            if(button==null) continue;
+            button.setId(View.generateViewId());
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setAllCaps(false);
+            button.setBackground(actionNormal);
+            button.setTextColor(0xFFE8EBF0);
+            button.setOnFocusChangeListener((v,focused)->{
+                v.setBackground(focused?actionFocused:actionNormal);
+                ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
+            });
+            button.setNextFocusUpId(channelBars[2].getId());
+            if(i>0 && actionButtons[i-1]!=null) {
+                button.setNextFocusLeftId(actionButtons[i-1].getId());
+                actionButtons[i-1].setNextFocusRightId(button.getId());
+            }
+        }
+        channelBars[2].setNextFocusDownId(cancelButton!=null?cancelButton.getId():resetButton.getId());
+        if(cancelButton!=null) cancelButton.setNextFocusDownId(sizeBar.getId());
+        if(resetButton!=null) resetButton.setNextFocusDownId(sizeBar.getId());
+        if(applyButton!=null) applyButton.setNextFocusDownId(sizeBar.getId());
         sizeBar.post(sizeBar::requestFocus);
     }
 
@@ -6768,7 +6805,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         final LinearLayout view;
         FrameLayout targetCard;
         ImageView targetIcon;
-        final int iconBaseDp = 36;
         AppIconPreviewStrip(LinearLayout view) { this.view = view; }
     }
 
@@ -6794,9 +6830,10 @@ private GradientDrawable roundSurface(int color, float radius) {
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
-        int iconSide = Math.max((int)(18*density),
-                Math.min((int)(72*density), Math.round(result.iconBaseDp*density*(1f+adjust/100f))));
-        card.addView(icon, new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER));
+        float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
+        int iconPadding = Math.max((int)(3*density), (int)(13*density/scale));
+        icon.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+        card.addView(icon, new FrameLayout.LayoutParams(-1, -1));
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
         TextView name = new TextView(this);
