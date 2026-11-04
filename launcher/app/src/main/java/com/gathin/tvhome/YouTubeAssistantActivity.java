@@ -241,9 +241,18 @@ public class YouTubeAssistantActivity extends Activity {
                     // Do not translate the action row: it must remain fully inside the fixed dialog.
                     buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
                             dp(20), 0);
-                    ((LinearLayout) buttons).setClipChildren(false);
-                    ((LinearLayout) buttons).setClipToPadding(false);
+                    // Keep every existing coordinate; remove clipping from the action row
+                    // and its ancestor containers so the full button height can render.
                     buttons.setTranslationY(0f);
+                    android.view.ViewParent parent = buttons.getParent();
+                    while (parent instanceof android.view.ViewGroup) {
+                        android.view.ViewGroup group = (android.view.ViewGroup) parent;
+                        group.setClipChildren(false);
+                        group.setClipToPadding(false);
+                        parent = group.getParent();
+                    }
+                    ((android.view.ViewGroup) buttons).setClipChildren(false);
+                    ((android.view.ViewGroup) buttons).setClipToPadding(false);
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
