@@ -4437,6 +4437,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             negative.setGravity(Gravity.CENTER);
             negative.setFocusable(true);
             negative.setFocusableInTouchMode(true);
+            // Android TV firmware may draw a square system focus halo over custom rounded backgrounds.
+            negative.setDefaultFocusHighlightEnabled(false);
             negative.setPadding((int)(20 * density), (int)(12 * density),
                     (int)(20 * density), (int)(12 * density));
             negative.setOnFocusChangeListener(focusStyle);
@@ -4453,6 +4455,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         positive.setGravity(Gravity.CENTER);
         positive.setFocusable(true);
         positive.setFocusableInTouchMode(true);
+        // Keep DPAD focus feedback strictly inside the rounded custom pill.
+        positive.setDefaultFocusHighlightEnabled(false);
         positive.setPadding((int)(20 * density), (int)(12 * density),
                 (int)(20 * density), (int)(12 * density));
         positive.setOnFocusChangeListener(focusStyle);
