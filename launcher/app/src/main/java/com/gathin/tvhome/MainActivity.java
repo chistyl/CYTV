@@ -5818,9 +5818,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                 actionPanel.setClipToPadding(false);
                 actionPanel.setPadding(
                         actionPanel.getPaddingLeft(),
-                        actionPanel.getPaddingTop() + (int)(12*density),
+                        actionPanel.getPaddingTop() + (int)(32*density),
                         actionPanel.getPaddingRight(),
-                        actionPanel.getPaddingBottom() + (int)(16*density));
+                        Math.max(0, actionPanel.getPaddingBottom() - (int)(8*density)));
             }
             LinearLayout.LayoutParams cancelSpacing = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
             cancelSpacing.topMargin = (int)(6*density);
