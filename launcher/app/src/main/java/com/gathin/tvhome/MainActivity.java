@@ -799,6 +799,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.post(this::refitGlass);
         });
 
+        // The layout-change listener above is not guaranteed to run for the initial layout:
+        // this Activity can attach it after the RecyclerView already has its final bounds.
+        // Explicitly calculate the dock inset once the first measure/layout has completed.
+        // Without this pass the XML's 10dp padding remains in place and the dock starts at
+        // the top of the app list, with the rest of the apps exposed underneath it.
+        if (dockRow && !singleRow) {
+            grid.post(() -> {
+                if (grid == null || adapter == null || adapter.appCount() == 0) return;
+                int h = grid.getHeight();
+                int inner = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+                if (h <= 0 || inner <= 0) return;
+                int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, 0, cfg.dockTitle, true, density);
+                int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+                int dockExtent = itemH + Math.round(AppAdapter.DOCK_EXTRA_DP * density);
+                int shelfClearance = cfg.appLibrary
+                        ? hero.getMeasuredHeight() + Math.round(40 * density) : 0;
+                int want = Math.max(shelfClearance,
+                        h - dockExtent - Math.round(AppAdapter.BOTTOM_ROOM_DP * density));
+                want += Math.round(25 * density);
+                if (grid.getPaddingTop() != want) {
+                    grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+                    grid.requestLayout();
+                    grid.post(this::refitGlass);
+                }
+            });
+        }
+
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             // Hide any app row as soon as it starts crossing the grid's upper clipping edge.
