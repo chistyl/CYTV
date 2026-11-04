@@ -5742,13 +5742,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setFocusableInTouchMode(true);
             cancelButton.setDefaultFocusHighlightEnabled(false);
             saveButton.setDefaultFocusHighlightEnabled(false);
-            // 放大按鈕本體；上下外距各 10dp。對話框視窗高度維持原本固定上限。
-            cancelButton.setMinHeight((int)(60*density));
-            saveButton.setMinHeight((int)(60*density));
-            cancelButton.setPadding(cancelButton.getPaddingLeft(), (int)(10*density),
-                    cancelButton.getPaddingRight(), (int)(10*density));
-            saveButton.setPadding(saveButton.getPaddingLeft(), (int)(10*density),
-                    saveButton.getPaddingRight(), (int)(10*density));
+            // 保持按鈕原本高度與內距，只增加上下外距；外層視窗高度不變。
+            cancelButton.setMinHeight((int)(48*density));
+            saveButton.setMinHeight((int)(48*density));
             cancelButton.setId(View.generateViewId());
             saveButton.setId(View.generateViewId());
             GradientDrawable buttonNormal = new GradientDrawable();
