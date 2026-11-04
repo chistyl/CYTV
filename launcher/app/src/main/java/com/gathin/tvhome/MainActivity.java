@@ -4361,10 +4361,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private android.graphics.drawable.Drawable remoteWeatherFocusBackground(boolean focused) {
-        // Match the launcher menu: subtle transparent rows, white selected pill.
+        // Match the shared EMOTN palette with a clear teal remote-focus outline.
         GradientDrawable shape = new GradientDrawable();
-        shape.setColor(focused ? 0xFFF4F4F4 : Color.TRANSPARENT);
+        shape.setColor(focused ? 0xFF465366 : Color.TRANSPARENT);
         shape.setCornerRadius(16 * density);
+        if (focused) shape.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
         return shape;
     }
 
@@ -4410,17 +4411,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         toggle.setBackground(remoteWeatherFocusBackground(false));
         toggle.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(remoteWeatherFocusBackground(focused));
-            toggle.setTextColor(focused ? 0xFF80C9C2 : 0xFFF5F6FA);
+            toggle.setTextColor(0xFFF5F6FA);
             v.setScaleX(1f); v.setScaleY(1f);
         });
-        // 高對比灰階開關：開啟時亮色軌道＋深色滑鈕，關閉時深色軌道＋亮色滑鈕。
+        // 開關沿用青綠色選取狀態與藍灰色未選取狀態。
         int[][] switchStates = new int[][] {
                 new int[] { android.R.attr.state_checked }, new int[] {}
         };
         toggle.setThumbTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFF252B34, 0xFFF4F4F4 }));
+                new int[] { 0xFF80C9C2, 0xFFACB8C1 }));
         toggle.setTrackTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFFE8EBEF, 0xFF4A5360 }));
+                new int[] { 0xFF465366, 0xFF343A46 }));
         toggle.setChecked(prefs.getBoolean("enabled", false));
         toggle.setClickable(true);
         toggle.setOnKeyListener((v, keyCode, event) -> {
@@ -4450,7 +4451,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             option.setOnFocusChangeListener((v, focused) -> {
                 android.widget.RadioButton radio = (android.widget.RadioButton) v;
                 v.setBackground(remoteWeatherFocusBackground(focused));
-                radio.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+                radio.setTextColor(0xFFF5F6FA);
                 // Radio checked state uses grayscale, matching the neutral dialog palette.
                 v.setScaleX(1f); v.setScaleY(1f);
             });
@@ -4460,7 +4461,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 new int[] { android.R.attr.state_checked }, new int[] {}
         };
         android.content.res.ColorStateList radioTint = new android.content.res.ColorStateList(
-                radioStates, new int[] { 0xFFDCE1E7, 0xFF9AA3AD });
+                radioStates, new int[] { 0xFF80C9C2, 0xFFACB8C1 });
         device.setButtonTintList(radioTint);
         cityMode.setButtonTintList(radioTint);
         boolean fixed = "city".equals(prefs.getString("location_mode", "device"));
@@ -4523,9 +4524,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
             GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
             GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
+            focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
             View.OnFocusChangeListener focus = (v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button) v).setTextColor(hasFocus ? 0xFFF5F6FA : 0xFFF5F6FA);
+                ((Button) v).setTextColor(0xFFF5F6FA);
                 v.setScaleX(1f); v.setScaleY(1f);
             };
             cancelWeather.setBackground(normal); saveWeather.setBackground(normal);
@@ -4558,7 +4560,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             toggle.setNextFocusUpId(saveWeather.getId());
             toggle.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(remoteWeatherFocusBackground(hasFocus));
-                toggle.setTextColor(hasFocus ? 0xFF202124 : Color.WHITE);
+                toggle.setTextColor(0xFFF5F6FA);
                 v.setAlpha(1f);
                 v.setElevation(0f);
             });
@@ -5043,7 +5045,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
-        title.setTextColor(Color.WHITE);
+        title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
         title.setPadding(0, 0, 0, (int)(12*density));
         panel.addView(title);
@@ -5089,7 +5091,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setClickable(true);
         randomRow.setBackgroundColor(Color.TRANSPARENT);
         randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            randomLabel.setTextColor(hasFocus ? 0xFF80C9C2 : 0xFFF5F6FA);
+            randomLabel.setTextColor(0xFFF5F6FA);
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
@@ -5664,7 +5666,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
-            check.setTextColor(Color.WHITE);
+            check.setTextColor(0xFFF5F6FA);
             check.setTextSize(14);
             check.setChecked(checked[i]);
             check.setFocusable(false);
