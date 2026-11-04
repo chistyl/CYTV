@@ -4410,7 +4410,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         toggle.setBackground(remoteWeatherFocusBackground(false));
         toggle.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(remoteWeatherFocusBackground(focused));
-            toggle.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+            toggle.setTextColor(focused ? 0xFF80C9C2 : 0xFFF5F6FA);
             v.setScaleX(1f); v.setScaleY(1f);
         });
         // 高對比灰階開關：開啟時亮色軌道＋深色滑鈕，關閉時深色軌道＋亮色滑鈕。
@@ -4479,7 +4479,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cityNormal.setStroke(Math.max(1,(int)(1*density)), 0xFF9AA3AD);
         GradientDrawable cityFocused = new GradientDrawable();
         cityFocused.setColor(0xFFF8F9FA); cityFocused.setCornerRadius(14*density);
-        cityFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF252B34);
+        cityFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         cityField.setBackground(cityNormal);
         cityField.setPadding((int)(3*density), (int)(3*density), (int)(3*density), (int)(3*density));
         cityField.addView(city, new FrameLayout.LayoutParams(-1, -1));
@@ -4502,7 +4502,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }).create();
         weatherDialog.setOnShowListener(ignored -> {
             android.graphics.drawable.GradientDrawable rounded = new android.graphics.drawable.GradientDrawable();
-            rounded.setColor(Color.rgb(58, 62, 70));
+            rounded.setColor(Color.rgb(29, 33, 43));
             rounded.setCornerRadius(22 * density);
             rounded.setStroke(Math.max(1, (int) density), 0x30FFFFFF);
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
@@ -4521,11 +4521,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343B47); normal.setCornerRadius(14*density);
-            GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFFF4F4F4); focused.setCornerRadius(14*density);
+            GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
+            GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
             View.OnFocusChangeListener focus = (v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button) v).setTextColor(hasFocus ? 0xFF202124 : 0xFFF1F2F4);
+                ((Button) v).setTextColor(hasFocus ? 0xFFF5F6FA : 0xFFF5F6FA);
                 v.setScaleX(1f); v.setScaleY(1f);
             };
             cancelWeather.setBackground(normal); saveWeather.setBackground(normal);
