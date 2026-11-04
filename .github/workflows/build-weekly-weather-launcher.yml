@@ -24,6 +24,7 @@ on:
       - fix/weekly-weather-dialog-fixed-size-white-actions
       - fix/weather-dialog-viewgroup-clip-methods
       - fix/weekly-weather-dialog-button-clipping-ancestors
+      - feature/traditional-chinese-folder-app-lists
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
