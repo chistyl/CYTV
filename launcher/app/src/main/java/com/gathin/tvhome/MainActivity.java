@@ -997,8 +997,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
-        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;        if (iconOnlyVpn) {            vpnPlainBackground = btnVpn.getBackground().getConstantState();            vpnPlainInk = btnVpn.getCompoundDrawableTintList();
-            makeIconOnly(btnVpn);
+        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;        if (iconOnlyVpn) {            vpnPlainBackground = btnVpn.getBackground().getConstantState();            vpnPlainInk = btnVpn.getCompoundDrawableTintList();            makeIconOnly(btnVpn);
         }
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
@@ -1997,8 +1996,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);        View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
         if (card == null || card.getWidth() <= 0 || !card.isFocused()) return;        float pad = 6f * density;
         float scale = adapter.focusScale();        int w = (int) (card.getWidth() * scale + 2 * pad);
-        int h = (int) (card.getHeight() * scale + 2 * pad);
-        if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
+        int h = (int) (card.getHeight() * scale + 2 * pad);        if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
             onTileFocused(pos, card);
         }
     }
@@ -2997,8 +2995,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void refreshPillsAfterNextDraw() {
         root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {            @Override
             public boolean onPreDraw() {
-                root.getViewTreeObserver().removeOnPreDrawListener(this);
-                // Posted from inside the frame's traversal, so it runs after that frame is drawn. A post straight
+                root.getViewTreeObserver().removeOnPreDrawListener(this);                // Posted from inside the frame's traversal, so it runs after that frame is drawn. A post straight
                 // from onResume would run first: the frame is only scheduled after onResume returns.
                 handler.post(() -> {
                     if (isDestroyed()) return;
@@ -3997,8 +3994,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heading.setTextColor(Color.WHITE);        heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
         heading.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(7*density));
-        // Heading spans the visible card width; the forecast row scrolls horizontally below it.
-        weeklyWeatherDays.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        // Heading spans the visible card width; the forecast row scrolls horizontally below it.        weeklyWeatherDays.addView(heading, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout forecast = new LinearLayout(this);
         forecast.setOrientation(LinearLayout.HORIZONTAL);
@@ -4997,8 +4993,7 @@ private GradientDrawable roundSurface(int color, float radius) {
     private void showQrWallpaperTransferDialog() {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(Color.rgb(28, 32, 40)); surface.setCornerRadius(22*density);
@@ -5997,8 +5992,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 });
             }
             return true;
-        });
-        dialog.setContentView(outer);
+        });        dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
             // show() 後再指定透明 Window 背景，避免主題的預設 Dialog panel
@@ -6392,68 +6386,49 @@ private GradientDrawable roundSurface(int color, float radius) {
     }
 
     private AppIconPreviewStrip createAppIconPreviewStrip(String targetPackage, SharedPreferences prefs) {
-        LinearLayout strip = new LinearLayout(this);
-        strip.setOrientation(LinearLayout.HORIZONTAL);
-        strip.setGravity(Gravity.CENTER);
-        strip.setClipChildren(false);
-        strip.setClipToPadding(false);
-        strip.setPadding((int)(2*density), (int)(8*density), (int)(2*density), (int)(12*density));
-        AppIconPreviewStrip result = new AppIconPreviewStrip(strip);
-        int count = adapter == null ? 0 : adapter.appCount();
-        java.util.ArrayList<String> packages = new java.util.ArrayList<>();
-        for (int i = 0; i < count && packages.size() < 5; i++) {
-            String candidate = adapter.packageAt(i);
-            if (candidate != null && !candidate.equals(getPackageName()) && !packages.contains(candidate))
-                packages.add(candidate);
+        LinearLayout previewArea = new LinearLayout(this);
+        previewArea.setOrientation(LinearLayout.VERTICAL);
+        previewArea.setGravity(Gravity.CENTER_HORIZONTAL);
+        previewArea.setClipChildren(false);
+        previewArea.setClipToPadding(false);
+        previewArea.setPadding((int)(4*density), (int)(12*density), (int)(4*density), (int)(14*density));
+        AppIconPreviewStrip result = new AppIconPreviewStrip(previewArea);
+
+        // Only preview the APP currently being edited. Do not show or adjust other APPs.
+        FrameLayout card = new FrameLayout(this);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(prefs.getInt("background_" + targetPackage, Color.WHITE));
+        background.setCornerRadius(14*density);
+        card.setBackground(background);
+        card.setClipToOutline(true);
+        int cardWidth = (int)(260*density);
+        int cardHeight = Math.round(cardWidth * 9f / 16f);
+        ImageView icon = new ImageView(this);
+        icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
+        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
+        int iconSide = Math.max((int)(18*density),
+                Math.min((int)(72*density), Math.round(result.iconBaseDp*density*(1f+adjust/100f))));
+        card.addView(icon, new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER));
+        previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
+
+        TextView name = new TextView(this);
+        String label = targetPackage;
+        for (int i = 0; adapter != null && i < adapter.appCount(); i++) {
+            if (targetPackage.equals(adapter.packageAt(i))) { label = adapter.labelAt(i); break; }
         }
-        if (!packages.contains(targetPackage)) {
-            if (packages.size() == 5) packages.remove(4);
-            packages.add(targetPackage);
-        }
-        for (String pkg : packages) {
-            LinearLayout item = new LinearLayout(this);
-            item.setOrientation(LinearLayout.VERTICAL);
-            item.setGravity(Gravity.CENTER_HORIZONTAL);
-            item.setPadding((int)(3*density), 0, (int)(3*density), 0);
-            FrameLayout card = new FrameLayout(this);
-            GradientDrawable background = new GradientDrawable();
-            background.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
-            background.setCornerRadius(10*density);
-            card.setBackground(background);
-            card.setClipToOutline(true);
-            int cardWidth = (int)(96*density);
-            int cardHeight = Math.round(cardWidth * 9f / 16f);
-            ImageView icon = new ImageView(this);
-            icon.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-            int iconSide = Math.max((int)(18*density),
-                    Math.min((int)(72*density), Math.round(result.iconBaseDp*density*(1f+adjust/100f))));
-            card.addView(icon, new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER));
-            item.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
-            TextView name = new TextView(this);
-            String label = pkg;
-            for (int i = 0; adapter != null && i < adapter.appCount(); i++) {
-                if (pkg.equals(adapter.packageAt(i))) { label = adapter.labelAt(i); break; }
-            }
-            name.setText(label);
-            name.setTextColor(0xFFE8EBF0);
-            name.setTextSize(10);
-            name.setGravity(Gravity.CENTER);
-            name.setMaxLines(1);
-            name.setEllipsize(TextUtils.TruncateAt.END);
-            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(cardWidth, (int)(20*density));
-            nameLp.topMargin = (int)(4*density);
-            item.addView(name, nameLp);
-            LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(cardWidth, -2);
-            itemLp.leftMargin = (int)(2*density);
-            itemLp.rightMargin = (int)(2*density);
-            strip.addView(item, itemLp);
-            if (pkg.equals(targetPackage)) {
-                result.targetCard = card;
-                result.targetIcon = icon;
-            }
-        }
+        name.setText(label);
+        name.setTextColor(0xFFE8EBF0);
+        name.setTextSize(12);
+        name.setGravity(Gravity.CENTER);
+        name.setMaxLines(1);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(cardWidth, (int)(24*density));
+        nameLp.topMargin = (int)(5*density);
+        previewArea.addView(name, nameLp);
+
+        result.targetCard = card;
+        result.targetIcon = icon;
         return result;
     }
 
@@ -6997,8 +6972,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         ((TextView) panel.findViewById(R.id.identity)).setText(
                 getString(R.string.card_prompt_identity, card.pkg, Cards.shortDigest(card.digest)));
         TextView keep = panel.findViewById(R.id.btnKeep);
-        TextView show = panel.findViewById(R.id.btnShow);
-        if (rtl) {
+        TextView show = panel.findViewById(R.id.btnShow);        if (rtl) {
             LinearLayout buttons = (LinearLayout) keep.getParent();
             buttons.removeAllViews();
             buttons.addView(show);
