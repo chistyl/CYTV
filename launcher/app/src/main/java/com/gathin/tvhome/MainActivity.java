@@ -5517,8 +5517,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setHint("輸入資料夾名稱");
         LinearLayout nameWrap = new LinearLayout(this);
         nameWrap.setOrientation(LinearLayout.VERTICAL);
-        nameWrap.setPadding((int) (24 * density), (int) (12 * density),
-                (int) (24 * density), (int) (8 * density));
+        // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
+        nameWrap.setPadding((int) (24 * density), (int) (8 * density),
+                (int) (24 * density), (int) (4 * density));
         nameWrap.setClipChildren(false); nameWrap.setClipToPadding(false);
         GradientDrawable fieldNormal = new GradientDrawable();
         fieldNormal.setColor(0xFF343A46); fieldNormal.setCornerRadius(12*density);
@@ -5566,9 +5567,25 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancelButton.setMinWidth((int)(104*density)); createButton.setMinWidth((int)(104*density));
             cancelButton.setMinHeight((int)(50*density)); createButton.setMinHeight((int)(50*density));
             LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelLp.rightMargin = (int)(20*density); cancelButton.setLayoutParams(cancelLp);
+            cancelLp.width = (int)(112*density);
+            cancelLp.height = (int)(54*density);
+            cancelLp.rightMargin = (int)(12*density);
+            cancelButton.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams createLp = (LinearLayout.LayoutParams) createButton.getLayoutParams();
-            createLp.leftMargin = (int)(6*density); createButton.setLayoutParams(createLp);
+            createLp.width = (int)(112*density);
+            createLp.height = (int)(54*density);
+            createLp.leftMargin = 0;
+            createButton.setLayoutParams(createLp);
+            // 將兩顆等寬操作按鈕整組靠右，保留一致的右側內距與較緊湊間距。
+            ViewParent buttonParent = cancelButton.getParent();
+            if (buttonParent instanceof LinearLayout) {
+                LinearLayout buttonRow = (LinearLayout) buttonParent;
+                buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+                buttonRow.setPadding(buttonRow.getPaddingLeft(), buttonRow.getPaddingTop(),
+                        (int)(24*density), buttonRow.getPaddingBottom());
+                buttonRow.setClipChildren(false);
+                buttonRow.setClipToPadding(false);
+            }
             cancelButton.setId(View.generateViewId());
             createButton.setId(View.generateViewId());
             name.setNextFocusDownId(cancelButton.getId());
