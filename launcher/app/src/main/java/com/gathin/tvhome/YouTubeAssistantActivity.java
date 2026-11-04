@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -179,56 +180,111 @@ public class YouTubeAssistantActivity extends Activity {
         input.setSingleLine(true);
         input.setFocusable(true);
         input.setFocusableInTouchMode(true);
+        input.setShowSoftInputOnFocus(true);
         input.setHint("輸入電視上的配對代碼");
         input.setTextColor(Color.WHITE);
         input.setHintTextColor(MUTED);
         input.setTextSize(18);
+        input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
                 | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        input.setPadding(dp(14), dp(12), dp(14), dp(12));
-        input.setBackground(round(PANEL, dp(10)));
+        input.setPadding(dp(16), dp(13), dp(16), dp(13));
+        input.setBackground(round(PANEL, dp(12)));
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(8), dp(8), dp(8), dp(4));
+        box.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        box.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        box.setPadding(dp(8), dp(6), dp(8), dp(8));
+
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
-        box.addView(help);
-        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
-        inputLp.topMargin = dp(14);
+        help.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        box.addView(help, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, dp(68));
+        inputLp.topMargin = dp(16);
         box.addView(input, inputLp);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(android.view.Gravity.END);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, dp(60));
+        actionsLp.topMargin = dp(14);
+        box.addView(actions, actionsLp);
+
+        android.widget.Button cancelButton = pairingDialogButton("取消");
+        android.widget.Button connectButton = pairingDialogButton("連接");
+        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, -1, 1f);
+        cancelLp.rightMargin = dp(8);
+        LinearLayout.LayoutParams connectLp = new LinearLayout.LayoutParams(0, -1, 1f);
+        connectLp.leftMargin = dp(8);
+        actions.addView(cancelButton, cancelLp);
+        actions.addView(connectButton, connectLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("連接 YouTube TV")
                 .setView(box)
-                .setPositiveButton("連接", null)
-                .setNegativeButton("取消", (d, w) -> d.dismiss())
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
-            android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            // D-pad traversal: code field -> action row; left/right switches Cancel/Connect.
-            if (cancelButton != null && connectButton != null) {
-                input.setNextFocusDownId(cancelButton.getId());
-                cancelButton.setNextFocusUpId(input.getId());
-                connectButton.setNextFocusUpId(input.getId());
-                cancelButton.setNextFocusRightId(connectButton.getId());
-                connectButton.setNextFocusLeftId(cancelButton.getId());
-            }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            input.setNextFocusDownId(cancelButton.getId());
+            cancelButton.setNextFocusUpId(input.getId());
+            connectButton.setNextFocusUpId(input.getId());
+            cancelButton.setNextFocusRightId(connectButton.getId());
+            connectButton.setNextFocusLeftId(cancelButton.getId());
+            cancelButton.setOnClickListener(v -> dialog.dismiss());
+            connectButton.setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
                     input.setError("請輸入配對代碼");
+                    input.requestFocus();
                     return;
                 }
                 dialog.dismiss();
                 pair(code);
             });
-            // styleDialog posts its default button focus; override it after layout so the
-            // first D-pad focus lands in the pairing-code field, not on Cancel.
-            input.post(input::requestFocus);
+            // Explicitly start D-pad focus in the code field. The custom action row avoids
+            // AlertDialog's tightly packed system button panel and its competing focus request.
+            input.post(() -> {
+                input.requestFocus();
+                input.setSelection(input.length());
+            });
+            if (dialog.getWindow() != null) {
+                android.view.WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+                params.gravity = android.view.Gravity.CENTER;
+                params.y = -dp(8);
+                dialog.getWindow().setAttributes(params);
+            }
         });
         dialog.show();
+    }
+
+    private android.widget.Button pairingDialogButton(String label) {
+        android.widget.Button button = new android.widget.Button(this);
+        button.setId(View.generateViewId());
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(16);
+        button.setTextColor(0xFFE8EBF0);
+        button.setGravity(android.view.Gravity.CENTER);
+        button.setMinHeight(dp(56));
+        button.setPadding(dp(16), dp(8), dp(16), dp(8));
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        button.setClickable(true);
+        button.setDefaultFocusHighlightEnabled(false);
+        GradientDrawable normal = round(0xFF343A46, dp(18));
+        GradientDrawable focused = round(FOCUS, dp(18));
+        focused.setStroke(dp(2), 0xFF80C9C2);
+        button.setBackground(normal);
+        button.setOnFocusChangeListener((view, hasFocus) -> {
+            view.setBackground(hasFocus
+                    ? focused.getConstantState().newDrawable().mutate()
+                    : normal.getConstantState().newDrawable().mutate());
+            view.setTextColor(hasFocus ? 0xFF202124 : 0xFFE8EBF0);
+            view.setElevation(hasFocus ? dp(3) : 0f);
+        });
+        return button;
     }
 
     private void pair(String code) {
