@@ -794,9 +794,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     grid.requestLayout();
                 });
             }
-            // Cold start or column count > 4: the first focus can run before the grid has its final width or
-            // padding, leaving the glass at the XML design size until a key is pressed.
-            grid.post(this::refitGlass);
+            // Cold start: focus the first dock tile once the grid has its final bottom-dock padding.
+            // onTileFocused then applies the same vertical parking correction used when returning to the dock,
+            // so the first frame starts with the dock at the bottom instead of exposing the whole app grid.
+            grid.post(() -> {
+                if (lastFocusedKey == null && adapter != null && adapter.appCount() > 0 && !grid.hasFocus()) {
+                    focusTile(0);
+                }
+                refitGlass();
+            });
         });
 
         // Keep the glass glued to its tile while the grid scrolls.
