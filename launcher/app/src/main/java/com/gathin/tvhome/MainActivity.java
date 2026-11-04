@@ -4378,26 +4378,136 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return shape;
     }
 
+    /**
+     * CYTV dark-glass dialog used for reboot confirmation and reboot permission errors.
+     * Native AlertDialog styling varies by TV vendor and can fall back to a flat grey panel.
+     */
+    private Dialog showCytvMessageDialog(String title, String message,
+                                         String positiveLabel, Runnable positiveAction,
+                                         String negativeLabel, Runnable negativeAction) {
+        Dialog dialog = new Dialog(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding((int)(28 * density), (int)(24 * density),
+                (int)(28 * density), (int)(20 * density));
+        GradientDrawable panelBackground = new GradientDrawable();
+        panelBackground.setColor(0xF21D202A);
+        panelBackground.setCornerRadius(24 * density);
+        panelBackground.setStroke(Math.max(1, (int)(1 * density)), 0xFF414653);
+        panel.setBackground(panelBackground);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(23);
+        titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setGravity(Gravity.CENTER_VERTICAL);
+        panel.addView(titleView, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView messageView = new TextView(this);
+        messageView.setText(message);
+        messageView.setTextColor(0xFFE7E9EE);
+        messageView.setTextSize(18);
+        messageView.setLineSpacing(3 * density, 1f);
+        LinearLayout.LayoutParams messageLp = new LinearLayout.LayoutParams(-1, -2);
+        messageLp.topMargin = (int)(14 * density);
+        panel.addView(messageView, messageLp);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, -2);
+        actionsLp.topMargin = (int)(26 * density);
+        panel.addView(actions, actionsLp);
+
+        View.OnFocusChangeListener focusStyle = (view, focused) -> {
+            GradientDrawable state = new GradientDrawable();
+            state.setCornerRadius(12 * density);
+            state.setColor(focused ? 0xFFF3F3F3 : Color.TRANSPARENT);
+            view.setBackground(state);
+            if (view instanceof TextView) {
+                ((TextView) view).setTextColor(focused ? 0xFF303033 : 0xFFF5F5F5);
+            }
+        };
+
+        if (negativeLabel != null && !negativeLabel.isEmpty()) {
+            TextView negative = new TextView(this);
+            negative.setText(negativeLabel);
+            negative.setTextSize(17);
+            negative.setGravity(Gravity.CENTER);
+            negative.setFocusable(true);
+            negative.setFocusableInTouchMode(true);
+            // Android TV firmware may draw a square system focus halo over custom rounded backgrounds.
+            negative.setDefaultFocusHighlightEnabled(false);
+            negative.setPadding((int)(20 * density), (int)(12 * density),
+                    (int)(20 * density), (int)(12 * density));
+            negative.setOnFocusChangeListener(focusStyle);
+            negative.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (negativeAction != null) negativeAction.run();
+            });
+            actions.addView(negative, new LinearLayout.LayoutParams(-2, (int)(52 * density)));
+        }
+
+        TextView positive = new TextView(this);
+        positive.setText(positiveLabel);
+        positive.setTextSize(17);
+        positive.setGravity(Gravity.CENTER);
+        positive.setFocusable(true);
+        positive.setFocusableInTouchMode(true);
+        // Keep DPAD focus feedback strictly inside the rounded custom pill.
+        positive.setDefaultFocusHighlightEnabled(false);
+        positive.setPadding((int)(20 * density), (int)(12 * density),
+                (int)(20 * density), (int)(12 * density));
+        positive.setOnFocusChangeListener(focusStyle);
+        positive.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (positiveAction != null) positiveAction.run();
+        });
+        LinearLayout.LayoutParams positiveLp = new LinearLayout.LayoutParams(-2, (int)(52 * density));
+        if (negativeLabel != null && !negativeLabel.isEmpty()) positiveLp.leftMargin = (int)(8 * density);
+        actions.addView(positive, positiveLp);
+
+        dialog.setContentView(panel);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            android.view.WindowManager.LayoutParams attrs = window.getAttributes();
+            attrs.dimAmount = 0.68f;
+            window.setAttributes(attrs);
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            window.setLayout(Math.min((int)(520 * density), screenWidth - (int)(48 * density)),
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        dialog.setOnShowListener(ignored -> {
+            if (negativeLabel != null && !negativeLabel.isEmpty() && actions.getChildCount() > 1) {
+                actions.getChildAt(0).requestFocus();
+            } else {
+                positive.requestFocus();
+            }
+        });
+        dialog.show();
+        if (window != null) window.setLayout(
+                Math.min((int)(520 * density), getResources().getDisplayMetrics().widthPixels - (int)(48 * density)),
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+        return dialog;
+    }
+
     private void requestDeviceReboot() {
-        new AlertDialog.Builder(this)
-                .setTitle("重新開機")
-                .setMessage("確定要重新啟動電視嗎？")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("重新開機", (dialog, which) -> {
+        showCytvMessageDialog("重新開機", "確定要重新啟動電視嗎？",
+                "重新開機", () -> {
                     try {
                         android.os.PowerManager power =
                                 (android.os.PowerManager) getSystemService(POWER_SERVICE);
                         if (power == null) throw new SecurityException("Power service unavailable");
                         power.reboot(null);
                     } catch (RuntimeException error) {
-                        new AlertDialog.Builder(this)
-                                .setTitle("電視系統未允許直接重新開機")
-                                .setMessage("這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。")
-                                .setPositiveButton("確定", null)
-                                .show();
+                        showCytvMessageDialog("電視系統未允許直接重新開機",
+                                "這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。",
+                                "確定", null, null, null);
                     }
-                })
-                .show();
+                }, "取消", null);
     }
 
     private void showWeeklyWeatherSettings() {
@@ -4518,6 +4628,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
         });
         weatherDialog.show();
+        insetDialogActionPanel(weatherDialog);
+        if (weatherDialog.getWindow() != null) {
+            int availableHeight = getResources().getDisplayMetrics().heightPixels - (int)(104*density);
+            weatherDialog.getWindow().setLayout(
+                    Math.min((int)(760*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(620*density), availableHeight));
+        }
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelWeather != null && saveWeather != null) {
@@ -5788,8 +5905,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setBackgroundDrawable(rounded);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+                    Math.min((int)(620*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(104*density)));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -5971,10 +6088,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
     }
 
+    /** Keep AlertDialog action buttons inside a consistent, safely inset footer on TV screens. */
+    private void insetDialogActionPanel(AlertDialog dialog) {
+        if (dialog == null) return;
+        int panelId = getResources().getIdentifier("buttonPanel", "id", "android");
+        View panel = panelId == 0 ? null : dialog.findViewById(panelId);
+        if (panel instanceof ViewGroup) {
+            ViewGroup buttons = (ViewGroup) panel;
+            buttons.setPadding((int)(20*density), (int)(8*density),
+                    (int)(20*density), (int)(18*density));
+            buttons.setClipToPadding(false);
+            buttons.setClipChildren(false);
+        }
+    }
+
     private void styleRemoteDialogActions(AlertDialog dialog) {
         Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancel == null || save == null) return;
+        insetDialogActionPanel(dialog);
         cancel.setFocusable(true); save.setFocusable(true);
         cancel.setFocusableInTouchMode(true); save.setFocusableInTouchMode(true);
         cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
@@ -6730,7 +6862,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
+            int dialogHeight = Math.min((int)(540*density), screenHeight-(int)(104*density));
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     dialogHeight);
         }
