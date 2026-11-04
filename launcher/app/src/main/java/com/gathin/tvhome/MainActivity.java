@@ -5891,7 +5891,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancel.setBackground(normal);
             cancel.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFF80CBC4);
+                ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFFACB8C1);
             });
             if (!folderRows.isEmpty()) {
                 View last = folderRows.get(folderRows.size()-1);
@@ -5911,9 +5911,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         edit.setPadding((int)(12*density), (int)(10*density), (int)(12*density), (int)(10*density));
         edit.setBackgroundTintList(new ColorStateList(
                 new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
-                new int[]{0xFF00D5C8, 0xFF80CBC4}));
+                new int[]{0xFF80C9C2, 0xFFACB8C1}));
         edit.setOnFocusChangeListener((v, focused) -> {
-            v.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xFF00D5C8 : 0xFF80CBC4));
+            v.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xFF80C9C2 : 0xFFACB8C1));
             v.setElevation(focused ? 4f*density : 0f);
         });
     }
@@ -5927,10 +5927,10 @@ private GradientDrawable roundSurface(int color, float radius) {
         cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
         cancel.setAllCaps(false); save.setAllCaps(false);
         GradientDrawable normal = new GradientDrawable();
-        normal.setColor(0xFF343B47); normal.setCornerRadius(14*density);
+        normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
         GradientDrawable focused = new GradientDrawable();
-        focused.setColor(0xFF00AFA5); focused.setCornerRadius(14*density);
-        focused.setStroke(Math.max(3,(int)(3*density)), Color.WHITE);
+        focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
+        focused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         View.OnFocusChangeListener focus = (v, hasFocus) -> {
             v.setBackground(hasFocus ? focused : normal);
             ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFF80CBC4);
