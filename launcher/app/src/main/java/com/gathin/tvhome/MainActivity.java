@@ -213,6 +213,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View weeklyWeatherView;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
+    private TextView weeklyWeatherHeading;
     private boolean weatherHiddenByScroll;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
@@ -553,6 +554,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock = findViewById(R.id.leftBlock);
         weeklyWeatherView = findViewById(R.id.weeklyWeather);
         weeklyWeatherDays = findViewById(R.id.weeklyWeatherDays);
+        weeklyWeatherHeading = findViewById(R.id.weeklyWeatherHeading);
         // Keep the weather card visually below the clock, but outside leftBlock's measurement.
         // Otherwise enabling the forecast shrinks the weighted grid viewport and changes Dock sizing/scroll geometry.
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
@@ -3733,13 +3735,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
         if (anchor == null || root == null) return;
 
+        // Use the anchor's own window token and decor bounds. Folder app tiles live inside
+        // a Dialog window; showing their popup from the Activity root puts it behind that Dialog
+        // and calculates its coordinates against the wrong window.
+        View windowRoot = anchor.getRootView();
+        if (windowRoot == null) windowRoot = root;
         int rootLocation[] = new int[2];
         int anchorLocation[] = new int[2];
-        root.getLocationInWindow(rootLocation);
+        windowRoot.getLocationInWindow(rootLocation);
         anchor.getLocationInWindow(anchorLocation);
 
-        int availableWidth = Math.max(1, root.getWidth());
-        int availableHeight = Math.max(1, root.getHeight());
+        int availableWidth = Math.max(1, windowRoot.getWidth());
+        int availableHeight = Math.max(1, windowRoot.getHeight());
         int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
         int menuWidth = Math.min(desiredWidth, availableWidth - (int) (24 * density));
         menuWidth = Math.max(1, menuWidth);
@@ -3772,7 +3779,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(showBelow ? 0f : menuHeight);
         panel.setScaleY(0.92f);
         panel.setTranslationY((showBelow ? -8f : 8f) * density);
-        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT, x, y);
+        // showAtLocation(anchor) inherits the anchor's window token (including folder Dialogs).
+        popup.showAtLocation(anchor, Gravity.TOP | Gravity.LEFT, x, y);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f)
                 .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
@@ -4061,12 +4069,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading = new TextView(this);
-        heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
-        heading.setTextColor(Color.WHITE);        heading.setTextSize(16);
-        heading.setTypeface(null, android.graphics.Typeface.BOLD);
-        heading.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(7*density));
-        // Heading spans the visible card width; the forecast row scrolls horizontally below it.        weeklyWeatherDays.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        // Keep the city heading in its own permanent card row, separate from forecast content.
+        // This prevents any forecast refresh/scroll container update from replacing or clipping it.
+        if (weeklyWeatherHeading != null) {
+            weeklyWeatherHeading.setText(TraditionalText.toTraditional(
+                    "一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+            weeklyWeatherHeading.setVisibility(View.VISIBLE);
+        }
 
         LinearLayout forecast = new LinearLayout(this);
         forecast.setOrientation(LinearLayout.HORIZONTAL);
@@ -4283,8 +4292,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             float unit = Math.min(getWidth() / 64f, getHeight() / 48f);
             if (unit <= 0f) return;
             canvas.save();
-            canvas.translate((getWidth() - 64*unit)/2f, (getHeight() - 48*unit)/2f);
-            canvas.scale(unit, unit);
+            // Keep the forecast slot and card layout unchanged; scale only the artwork to 75%.
+            float iconScale = unit * 0.75f;
+            canvas.translate((getWidth() - 64*iconScale)/2f, (getHeight() - 48*iconScale)/2f);
+            canvas.scale(iconScale, iconScale);
 
             boolean fog = weatherCode == 45 || weatherCode == 48;
             boolean sunny = weatherCode == 0 || weatherCode == 1 || weatherCode == 2;
@@ -5777,10 +5788,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             rounded.setCornerRadius(22*density);
             rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
-            dialog.getWindow().setLayout(Math.min((int)(760*density),
-                    getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            // Match the approved TV reference: approximately 69% screen width and 89% height.
+            // Relative sizing keeps the dialog proportions consistent across TV resolutions/densities.
+            int dialogWidth = Math.max((int)(520 * density), Math.round(metrics.widthPixels * 0.69f));
+            int dialogHeight = Math.max((int)(480 * density), Math.round(metrics.heightPixels * 0.89f));
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(Math.min(dialogWidth, metrics.widthPixels - (int)(32 * density)),
+                    Math.min(dialogHeight, metrics.heightPixels - (int)(32 * density)));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -6529,18 +6544,15 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(14*density), (int)(2*density), (int)(14*density), (int)(2*density));
+        panel.setPadding((int)(18*density), (int)(6*density), (int)(18*density), (int)(8*density));
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
-        if (preview.view.getChildAt(0) != null) {
-            LinearLayout.LayoutParams previewCardLp = (LinearLayout.LayoutParams) preview.view.getChildAt(0).getLayoutParams();
-            previewCardLp.width = (int)(220*density);
-            previewCardLp.height = Math.round(previewCardLp.width * 9f / 16f);
-            preview.view.getChildAt(0).setLayoutParams(previewCardLp);
-        }
+        preview.view.setPadding(0, (int)(2*density), 0, (int)(4*density));
+        // Keep the preview card dimensions owned by the shared preview builder.
+        // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
             previewNameLp.height = (int)(20*density);
@@ -6613,16 +6625,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
 
         updateCombinedPreview[0] = () -> {
-            int adjustment=sizeBar.getProgress()-50;
-            float scale=Math.max(0.5f,Math.min(3f,1f+adjustment/100f));
-            // 與電視桌面 APP 卡片使用相同的內距縮放公式，預覽直接呈現實際比例。
-            int iconPadding=Math.max((int)(3*density),(int)(13*density/scale));
-            preview.targetIcon.setPadding(iconPadding,iconPadding,iconPadding,iconPadding);
-            GradientDrawable bg=new GradientDrawable();
-            bg.setColor(Color.rgb(rgb[0],rgb[1],rgb[2]));
-            bg.setCornerRadius(14*density);
+            int adjustment = sizeBar.getProgress() - 50;
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            // Match AppAdapter.iconBanner(): a 240px square mark on a 640px-wide 16:9 tile.
+            int cardWidth = preview.targetCard.getWidth() > 0
+                    ? preview.targetCard.getWidth()
+                    : preview.targetCard.getLayoutParams().width;
+            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
+            iconLp.width = iconSide;
+            iconLp.height = iconSide;
+            iconLp.gravity = Gravity.CENTER;
+            preview.targetIcon.setPadding(0, 0, 0, 0);
+            preview.targetIcon.setLayoutParams(iconLp);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
+            bg.setCornerRadius(14 * density);
             preview.targetCard.setBackground(bg);
-            for(int i=0;i<3;i++) channelLabels[i].setText(channelNames[i]+"："+rgb[i]);
+            for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){if(updateCombinedPreview[0]!=null) updateCombinedPreview[0].run();}
@@ -6715,10 +6736,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setCornerRadius(22*density);
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
-            int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
-            dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    dialogHeight);
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            int screenWidth = metrics.widthPixels;
+            int dialogWidth = Math.min((int)(760*density), Math.round(screenWidth * 0.86f));
+            // Let the content determine height; keep the dialog centered with breathing room
+            // instead of stretching it to almost the full TV screen.
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
@@ -7101,7 +7125,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         previewArea.setGravity(Gravity.CENTER_HORIZONTAL);
         previewArea.setClipChildren(false);
         previewArea.setClipToPadding(false);
-        previewArea.setPadding((int)(4*density), (int)(12*density), (int)(4*density), (int)(14*density));
+        previewArea.setPadding((int)(4*density), (int)(8*density), (int)(4*density), (int)(10*density));
         AppIconPreviewStrip result = new AppIconPreviewStrip(previewArea);
 
         // Only preview the APP currently being edited. Do not show or adjust other APPs.
@@ -7111,16 +7135,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         background.setCornerRadius(14*density);
         card.setBackground(background);
         card.setClipToOutline(true);
-        int cardWidth = (int)(260*density);
+        // A more compact 16:9 preview card leaves the settings controls visually balanced.
+        int cardWidth = (int)(220*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
-        float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-        int iconPadding = Math.max((int)(3*density), (int)(13*density/scale));
-        icon.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-        card.addView(icon, new FrameLayout.LayoutParams(-1, -1));
+        float iconScale = Math.max(0.10f, Math.min(3.75f,
+                1.25f * (1f + adjust / 100f)));
+        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
         TextView name = new TextView(this);
@@ -7335,9 +7361,12 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         Runnable updatePreview = () -> {
             int adjustment = size.getProgress() - 50;
-            float scale = 1f + adjustment / 100f;
-            int side = Math.max((int)(18*density),
-                    Math.min((int)(72*density), Math.round(livePreview.iconBaseDp * density * scale)));
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            int cardWidth = livePreview.targetCard.getWidth() > 0
+                    ? livePreview.targetCard.getWidth()
+                    : livePreview.targetCard.getLayoutParams().width;
+            int side = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
             if (livePreview.targetIcon != null) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) livePreview.targetIcon.getLayoutParams();
                 lp.width = side;
@@ -7346,7 +7375,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 livePreview.targetIcon.setLayoutParams(lp);
             }
             value.setText("調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
-                    + "%　｜　實際圖標比例：" + Math.round(125f * (1f + adjustment / 100f)) + "%");
+                    + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%");
         };
         size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
