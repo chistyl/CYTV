@@ -5798,10 +5798,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setBackgroundDrawable(rounded);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
             // AlertDialog 標題與系統按鈕列各自保留空間，清單只使用中間可用高度。
-            int safeDialogHeight = Math.max((int)(260*density), screenHeight-(int)(140*density));
+            int safeDialogHeight = Math.max((int)(260*density), screenHeight-(int)(200*density));
+            dialog.getWindow().setGravity(Gravity.CENTER);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(620*density), safeDialogHeight));
+                    Math.min((int)(580*density), safeDialogHeight));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -5856,9 +5857,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
                 for (int i = lastRowStart; i < selectionTiles.size(); i++)
                     selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
-                // 第一列向上回到操作列；中間列仍依同欄上下移動。
-                for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
-                    selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
+                // 最後一列向下進入操作列；第一列向上不跳到按鈕，避免焦點繞行。
                 cancelButton.setNextFocusUpId(lastRowTile.getId());
                 saveButton.setNextFocusUpId(lastRowTile.getId());
             } else {
