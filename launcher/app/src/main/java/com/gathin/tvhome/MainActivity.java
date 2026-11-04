@@ -4970,6 +4970,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
                 R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
                 R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        final View[] thumbnailItems = new View[names.length];
+        final ImageView[] thumbnailImages = new ImageView[names.length];
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
         final int[] draftTheme = {wallpaperPrefs.getInt("builtin_wallpaper", 0)};
         final boolean[] draftRandom = {wallpaperPrefs.getBoolean("builtin_random_play", false)};
@@ -5035,7 +5037,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
                 item.setId(View.generateViewId());
-                // 六款主題直接顯示縮圖，不加卡片底色、內距或外框。
+                thumbnailItems[index] = item;
+                // 卡片本身維持透明，選取框只覆蓋縮圖，不改變圖片尺寸或裁切。
                 item.setPadding(0, 0, 0, 0);
                 item.setBackgroundColor(Color.TRANSPARENT);
 
@@ -5044,6 +5047,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
+                thumbnailImages[index] = preview;
                 LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
                 item.addView(preview, imageLp);
 
@@ -5052,15 +5056,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
-                    // 保持遙控器焦點與點選操作，但縮圖不顯示外框或色塊。
-                    v.setBackgroundColor(Color.TRANSPARENT);
+                    // 焦點框與已選取框都沿用縮圖外型，不加卡片底色。
+                    setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, hasFocus);
                     v.setElevation(0f);
                 });
+                setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
                     draftTheme[0] = index + 1;
                     draftRandom[0] = false;
                     randomSwitch.setChecked(false);
-                    // 先暫存選取項目，按下「儲存」才正式套用。
+                    for (int i = 0; i < thumbnailImages.length; i++) {
+                        if (thumbnailImages[i] != null) {
+                            setWallpaperThumbnailBorder(thumbnailImages[i], i == index,
+                                    thumbnailItems[i] != null && thumbnailItems[i].hasFocus());
+                        }
+                    }
+                    // 選取框立即顯示；實際套用仍要按「儲存」。
                 });
                 LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
@@ -5078,6 +5089,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
+        // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
+        for (int i = 0; i < thumbnailItems.length; i++) {
+            View tile = thumbnailItems[i];
+            if (tile == null) continue;
+            int col = i % columnsCount;
+            int row = i / columnsCount;
+            if (col > 0) tile.setNextFocusLeftId(thumbnailItems[i - 1].getId());
+            if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
+                tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
+            if (row == 0) tile.setNextFocusUpId(randomRow.getId());
+            else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
+            if (i + columnsCount < thumbnailItems.length)
+                tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
+        }
+        randomRow.setNextFocusDownId(thumbnailItems[1].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(2*density);
@@ -5146,14 +5172,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
-        actionLp.rightMargin = (int)(6*density);
-        bottomActions.addView(save, actionLp);
         LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
-        cancelLp.leftMargin = (int)(6*density);
+        cancelLp.rightMargin = (int)(6*density);
         bottomActions.addView(cancel, cancelLp);
-        save.setNextFocusRightId(cancel.getId());
-        cancel.setNextFocusLeftId(save.getId());
+        LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
+        saveLp.leftMargin = (int)(6*density);
+        bottomActions.addView(save, saveLp);
+        // 操作列固定為「取消」在左、「儲存」在右；遙控器左右鍵順序一致。
+        cancel.setNextFocusRightId(save.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        for (int i = columnsCount; i < thumbnailItems.length; i++) {
+            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(cancel.getId());
+        }
+        cancel.setNextFocusUpId(thumbnailItems[4].getId());
+        save.setNextFocusUpId(thumbnailItems[4].getId());
         panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         dialog.setContentView(panel);
         dialog.show();
@@ -5164,7 +5196,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
                     (int)(screenHeight * 0.90f));
         }
-        choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());    }
+        thumbnailItems[draftTheme[0] - 1].post(() -> thumbnailItems[draftTheme[0] - 1].requestFocus());
+    }
+
+    /** 縮圖選取／遙控器焦點框：只畫在圖片前景，不改變縮圖比例與內容。 */
+    private void setWallpaperThumbnailBorder(ImageView preview, boolean selected, boolean focused) {
+        GradientDrawable border = new GradientDrawable();
+        border.setColor(Color.TRANSPARENT);
+        border.setCornerRadius(2 * density);
+        int strokeColor = selected ? 0xFF80CBC4 : (focused ? 0xFFF4F6F8 : Color.TRANSPARENT);
+        border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
+        preview.setForeground(border);
+    }
 
 private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable drawable = new GradientDrawable();
