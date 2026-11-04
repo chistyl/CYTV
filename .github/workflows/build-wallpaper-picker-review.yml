@@ -3,7 +3,7 @@ name: Build CYTV Wallpaper Picker Review
 on:
   push:
     branches:
-      - fix/app-appearance-preview-remote-3e65a4b
+      - fix/app-appearance-no-scroll-spacing-3e65a4b
     paths:
       - 'launcher/**'
       - '.github/workflows/build-wallpaper-picker-review.yml'
