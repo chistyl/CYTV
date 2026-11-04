@@ -5193,6 +5193,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
                 imageLp.height = (int)(80*density);
                 preview.setLayoutParams(imageLp);
+                // Keep the preview image at 80dp; the row container adds only 4dp below it.
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     // 焦點框與已選取框都沿用縮圖外型，不加卡片底色。
