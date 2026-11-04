@@ -776,23 +776,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (singleRow && !cfg.alwaysShowNames) want += (int) (29 * density);
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
-                // A vertical grid parks the dock on the new padding line by scrolling (onTileFocused); a sideways
-                // row cannot scroll vertically, and the layout request made from inside this layout pass is
-                // dropped, so lay the row out again on the next frame. The glass and the title were placed for the
-                // old position, so fit them again once it has moved.
-                if (singleRow) grid.post(() -> {
-                    grid.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            grid.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            int pos = Math.max(0, Math.min(lastFocused, adapter.appCount() - 1));
-                            RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
-                            View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
-                            if (card != null && card.isFocused()) onTileFocused(pos, card);
+                // setPadding is applied after the first focus callback on a cold start. Re-run the dock
+                // positioning only after the new padding has completed a layout, otherwise the first row
+                // remains at its pre-dock position until the user presses a direction key.
+                grid.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        grid.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        View focused = grid.findFocus();
+                        RecyclerView.ViewHolder holder = focused == null ? null : grid.findContainingViewHolder(focused);
+                        View card = holder == null ? null : holder.itemView.findViewById(R.id.card);
+                        if (card != null && card.isFocused()) {
+                            int pos = holder.getBindingAdapterPosition();
+                            if (pos != RecyclerView.NO_POSITION && pos < adapter.appCount()) onTileFocused(pos, card);
                         }
-                    });
-                    grid.requestLayout();
+                        refitGlass();
+                    }
                 });
+                // A vertical grid needs the next frame to apply its new padding; the sideways row does too.
+                grid.post(grid::requestLayout);
             }
             // Cold start: focus the first dock tile once the grid has its final bottom-dock padding.
             // onTileFocused then applies the same vertical parking correction used when returning to the dock,
