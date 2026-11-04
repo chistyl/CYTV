@@ -4207,7 +4207,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             canvas.scale(scale, scale);
 
             // Soft, rounded cloud silhouette with a cool blue lower edge and gentle depth.
-            Path silhouette = new Path();
+            android.graphics.Path silhouette = new android.graphics.Path();
             silhouette.moveTo(-23, 7);
             silhouette.cubicTo(-25, 1, -21, -7, -13, -8);
             silhouette.cubicTo(-10, -20, 2, -24, 12, -17);
@@ -4259,7 +4259,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         private void drawRainDrop(Canvas canvas, float x, float y) {
-            Path drop = new Path();
+            android.graphics.Path drop = new android.graphics.Path();
             drop.moveTo(x, y - 5.5f);
             drop.cubicTo(x - 1.8f, y - 2.5f, x - 5f, y + 1.5f, x - 4.2f, y + 4f);
             drop.cubicTo(x - 3.3f, y + 8f, x + 3.3f, y + 8f, x + 4.2f, y + 4f);
@@ -4319,7 +4319,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             if (thunder) {
                 paint.setShader(new LinearGradient(0,28,0,49,0xFFFFF18A,0xFFFFB72B,Shader.TileMode.CLAMP));
-                Path bolt = new Path();
+                android.graphics.Path bolt = new android.graphics.Path();
                 bolt.moveTo(34, 28); bolt.lineTo(26, 40); bolt.lineTo(33, 40);
                 bolt.lineTo(29, 49); bolt.lineTo(42, 35); bolt.lineTo(35, 35);
                 bolt.close();
