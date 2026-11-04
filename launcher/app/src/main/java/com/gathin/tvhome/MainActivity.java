@@ -5983,7 +5983,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             for (ApplicationInfo app : installedApps) {
                 String pkg = app.packageName;
                 if (pkg == null || pkg.equals(getPackageName()) || excluded.contains(pkg)) continue;
-                if ((app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0) continue;
+                if (!isPreinstalledSystemApp(app)) continue;
                 try {
                     Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
                     if (launch != null) current.add(pkg);
@@ -6719,7 +6719,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 boolean isSystem = false;
                 try {
                     int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                    isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+                    isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(packageName, 0));
                 } catch (PackageManager.NameNotFoundException ignored) { }
                 if (isSystem) {
                     java.util.HashSet<String> excluded = new java.util.HashSet<>(prefs.getStringSet(
@@ -6811,7 +6811,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         for (ApplicationInfo app : installed) {
             String pkg = app.packageName;
             if (pkg == null || pkg.equals(getPackageName())
-                    || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+                    || !isPreinstalledSystemApp(app)
                     || candidates.containsKey(pkg)) continue;
             try {
                 Intent launch = pm.getLaunchIntentForPackage(pkg);
@@ -6838,7 +6838,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             String pkg = packages.get(i);
             try {
                 int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
-                boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+                boolean isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0));
                 boolean belongsToSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
                 // The system-folder preference is authoritative for system apps. Do not
                 // mask its checkbox based on stale ordinary-folder membership: that can make
