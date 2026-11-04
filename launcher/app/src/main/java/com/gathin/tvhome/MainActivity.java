@@ -5940,7 +5940,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 for (String packageName : chosen) {
                     try {
                         int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                        if (isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0)))
+                        if (isPreinstalledSystemApp(getPackageManager().getApplicationInfo(packageName, 0)))
                             systemExcluded.add(packageName);
                     } catch (PackageManager.NameNotFoundException ignored) { }
                 }
@@ -6855,7 +6855,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 boolean isSystem = false;
                 try {
                     int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                    isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+                    isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(packageName, 0));
                 } catch (PackageManager.NameNotFoundException ignored) { }
                 if (selected[i] && !isSystem) addedNow.add(packageName);
                 if (!selected[i] && isSystem) excludedNow.add(packageName);
