@@ -4403,6 +4403,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .show();
     }
 
+    /** Best-effort IP geolocation for the fixed-city weather option; GPS permission is not required. */
+    private String detectWeatherCityFromNetwork() {
+        try {
+            JSONObject location = getJson("https://ipwho.is/");
+            if (!location.optBoolean("success", false)
+                    || !"TW".equalsIgnoreCase(location.optString("country_code", ""))) return null;
+            String region = location.optString("region", "").trim();
+            String city = location.optString("city", "").trim();
+            String source = (region + " " + city).replace("臺", "台").toLowerCase(java.util.Locale.ROOT);
+            String[][] names = {
+                    {"taoyuan", "桃園市"}, {"taipei", "台北市"}, {"new taipei", "新北市"},
+                    {"keelung", "基隆市"}, {"hsinchu county", "新竹縣"}, {"hsinchu", "新竹市"},
+                    {"miaoli", "苗栗縣"}, {"taichung", "台中市"}, {"changhua", "彰化縣"},
+                    {"nantou", "南投縣"}, {"yunlin", "雲林縣"}, {"chiayi", "嘉義市"},
+                    {"tainan", "台南市"}, {"kaohsiung", "高雄市"}, {"pingtung", "屏東縣"},
+                    {"yilan", "宜蘭縣"}, {"hualien", "花蓮縣"}, {"taitung", "台東縣"},
+                    {"penghu", "澎湖縣"}, {"kinmen", "金門縣"}, {"lienchiang", "連江縣"}
+            };
+            for (String[] entry : names) {
+                if (source.contains(entry[0])) return entry[1];
+            }
+            return null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void showWeeklyWeatherSettings() {
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         LinearLayout content = new LinearLayout(this);
@@ -4503,8 +4530,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(58*density)));
         city.setVisibility(fixed ? View.VISIBLE : View.GONE);
-        modes.setOnCheckedChangeListener((g, checked) ->
-                city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
+        final String initialCity = city.getText().toString().trim();
+        final boolean[] cityEditedByUser = {false};
+        city.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().trim().equals(initialCity)) cityEditedByUser[0] = true;
+            }
+            @Override public void afterTextChanged(android.text.Editable s) { }
+        });
+        final boolean[] lookupStarted = {false};
+        modes.setOnCheckedChangeListener((g, checked) -> {
+            boolean showCity = checked == cityMode.getId();
+            city.setVisibility(showCity ? View.VISIBLE : View.GONE);
+            // Only auto-fill the untouched default city. A previously saved custom city is preserved.
+            if (showCity && !lookupStarted[0]
+                    && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
+                lookupStarted[0] = true;
+                weatherExecutor.execute(() -> {
+                    String detected = detectWeatherCityFromNetwork();
+                    if (detected == null) return;
+                    weatherHandler.post(() -> {
+                        if (!cityEditedByUser[0]
+                                && initialCity.equals(city.getText().toString().trim())) {
+                            city.setText(detected);
+                            city.setSelection(city.length());
+                        }
+                    });
+                });
+            }
+        });
+        if (fixed && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
+            // Also perform the lookup when the dialog opens with fixed-city mode already selected.
+            cityMode.setChecked(false);
+            cityMode.setChecked(true);
+        }
         AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
