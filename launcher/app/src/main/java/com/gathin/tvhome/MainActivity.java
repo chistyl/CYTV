@@ -6540,12 +6540,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(14*density), (int)(2*density), (int)(14*density), (int)(2*density));
+        panel.setPadding((int)(18*density), (int)(6*density), (int)(18*density), (int)(8*density));
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
+        preview.view.setPadding(0, (int)(2*density), 0, (int)(4*density));
         // Keep the preview card dimensions owned by the shared preview builder.
         // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
         if (preview.view.getChildAt(1) != null) {
@@ -6731,10 +6732,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setCornerRadius(22*density);
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
-            int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
-            dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    dialogHeight);
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            int screenWidth = metrics.widthPixels;
+            int dialogWidth = Math.min((int)(760*density), Math.round(screenWidth * 0.86f));
+            // Let the content determine height; keep the dialog centered with breathing room
+            // instead of stretching it to almost the full TV screen.
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
@@ -7117,7 +7121,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         previewArea.setGravity(Gravity.CENTER_HORIZONTAL);
         previewArea.setClipChildren(false);
         previewArea.setClipToPadding(false);
-        previewArea.setPadding((int)(4*density), (int)(12*density), (int)(4*density), (int)(14*density));
+        previewArea.setPadding((int)(4*density), (int)(8*density), (int)(4*density), (int)(10*density));
         AppIconPreviewStrip result = new AppIconPreviewStrip(previewArea);
 
         // Only preview the APP currently being edited. Do not show or adjust other APPs.
@@ -7127,7 +7131,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         background.setCornerRadius(14*density);
         card.setBackground(background);
         card.setClipToOutline(true);
-        int cardWidth = (int)(260*density);
+        // A more compact 16:9 preview card leaves the settings controls visually balanced.
+        int cardWidth = (int)(220*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
