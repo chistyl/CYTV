@@ -21,6 +21,7 @@ on:
     branches:
       - feature/weather-icons-emotn-inspired-67c7d53
       - feature/unified-settings-ui-7c7345f
+      - fix/icon-appearance-dialog-layout-be2fbe5
       - fix/weather-city-heading-visible-506e839
     paths:
       - 'launcher/**'
