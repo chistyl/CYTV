@@ -3859,6 +3859,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 startActivity(new Intent(this, AdsBlockerActivity.class));
             });
         }
+        // 系統重啟固定放在設定選單最下方；先顯示系統電源選單，無障礙服務不可用時再走安全確認流程。
+        addSettingsMenuRow(rows, popup, "系統重啟", this::openSystemPowerMenuFromSettings);
         // 只縮小右上角「設定」下拉選單的選項高度，不影響其他彈出選單。
         for (int i = 0; i < rows.getChildCount(); i++) {
             View menuItem = rows.getChildAt(i);
