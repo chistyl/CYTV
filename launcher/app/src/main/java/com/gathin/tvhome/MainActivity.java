@@ -5036,6 +5036,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setFocusable(true);
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
+                item.setDefaultFocusHighlightEnabled(false);
                 item.setId(View.generateViewId());
                 thumbnailItems[index] = item;
                 // 卡片本身維持透明，選取框只覆蓋縮圖，不改變圖片尺寸或裁切。
@@ -5103,17 +5104,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
         }
-        randomRow.setNextFocusDownId(thumbnailItems[1].getId());
+        randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(2*density);
         scrollLp.bottomMargin = (int)(6*density);
         panel.addView(scroll, scrollLp);
-        addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
+        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
         });
-        addRoundedAction(panel, "選擇圖片", () -> {
+        TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
@@ -5121,7 +5122,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
             catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
         });
-        addRoundedAction(panel, "還原預設", () -> {
+        TextView resetAction = addRoundedAction(panel, "還原預設", () -> {
             getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
                     .remove("builtin_wallpaper").remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", false)
@@ -5130,6 +5131,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
+        // 遙控器焦點採固定路徑：縮圖往下進入 QR、選圖、還原，再到取消／儲存。
+        thumbnailItems[3].setNextFocusDownId(qrAction.getId());
+        thumbnailItems[4].setNextFocusDownId(qrAction.getId());
+        thumbnailItems[5].setNextFocusDownId(qrAction.getId());
+        qrAction.setNextFocusUpId(thumbnailItems[4].getId());
+        qrAction.setNextFocusDownId(chooseAction.getId());
+        chooseAction.setNextFocusUpId(qrAction.getId());
+        chooseAction.setNextFocusDownId(resetAction.getId());
+        resetAction.setNextFocusUpId(chooseAction.getId());
         LinearLayout bottomActions = new LinearLayout(this);
         bottomActions.setOrientation(LinearLayout.HORIZONTAL);
         bottomActions.setGravity(Gravity.CENTER_VERTICAL);
@@ -5181,11 +5191,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 操作列固定為「取消」在左、「儲存」在右；遙控器左右鍵順序一致。
         cancel.setNextFocusRightId(save.getId());
         save.setNextFocusLeftId(cancel.getId());
-        for (int i = columnsCount; i < thumbnailItems.length; i++) {
-            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(cancel.getId());
-        }
-        cancel.setNextFocusUpId(thumbnailItems[4].getId());
-        save.setNextFocusUpId(thumbnailItems[4].getId());
+        resetAction.setNextFocusDownId(cancel.getId());
+        cancel.setNextFocusUpId(resetAction.getId());
+        save.setNextFocusUpId(resetAction.getId());
+        cancel.setNextFocusRightId(save.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        // 底部兩個按鈕各自保持可聚焦，避免遙控器焦點落到對話框空白處。
+        cancel.setFocusable(true);
+        cancel.setFocusableInTouchMode(true);
+        save.setFocusable(true);
+        save.setFocusableInTouchMode(true);
         panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         dialog.setContentView(panel);
         dialog.show();
@@ -5196,7 +5211,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
                     (int)(screenHeight * 0.90f));
         }
-        thumbnailItems[draftTheme[0] - 1].post(() -> thumbnailItems[draftTheme[0] - 1].requestFocus());
+        dialog.getWindow().getDecorView().post(() -> {
+            View initial = thumbnailItems[draftTheme[0] - 1];
+            if (initial != null && initial.requestFocus()) {
+                scroll.post(() -> {
+                    int[] loc = new int[2];
+                    initial.getLocationOnScreen(loc);
+                    int[] scrollLoc = new int[2];
+                    scroll.getLocationOnScreen(scrollLoc);
+                    int top = loc[1] - scrollLoc[1];
+                    if (top < 0 || top + initial.getHeight() > scroll.getHeight()) {
+                        scroll.smoothScrollTo(0, Math.max(0, initial.getTop() - (int)(8*density)));
+                    }
+                });
+            } else if (qrAction.requestFocus()) {
+                // TV 韌體若暫時拒絕縮圖焦點，至少將焦點放在第一個可操作項目。
+            }
+        });
     }
 
     /** 縮圖選取／遙控器焦點框：只畫在圖片前景，不改變縮圖比例與內容。 */
@@ -5300,7 +5331,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.requestFocus();
     }
 
-    private void addRoundedAction(LinearLayout panel, String text, Runnable action) {
+    private TextView addRoundedAction(LinearLayout panel, String text, Runnable action) {
         TextView row = new TextView(this);
         row.setText(text);
         row.setTextColor(Color.WHITE);
@@ -5331,6 +5362,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         lp.bottomMargin = (int)(8*density);
         panel.addView(row, lp);
         row.setOnClickListener(v -> action.run());
+        return row;
     }
 
     /** 從設定選單直接新增一般資料夾。 */
