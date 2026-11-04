@@ -18,11 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
-    private static final int BG = Color.rgb(12, 14, 19);
-    private static final int PANEL = Color.rgb(28, 31, 39);
-    private static final int FOCUS = Color.rgb(245, 247, 250);
+    private static final int BG = Color.rgb(29, 33, 43);
+    private static final int PANEL = Color.rgb(52, 58, 70);
+    private static final int FOCUS = Color.rgb(245, 246, 250);
     private static final int TEXT = Color.rgb(245, 247, 250);
-    private static final int MUTED = Color.rgb(157, 164, 177);
+    private static final int MUTED = Color.rgb(172, 184, 193);
 
     private TextView pairingStatus;
     private TextView featureStatus;
@@ -68,7 +68,7 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction = text("", 15, true, TEXT);
         pairingAction.setGravity(android.view.Gravity.CENTER);
         pairingAction.setPadding(dp(16), dp(12), dp(16), dp(12));
-        pairingAction.setBackground(round(0xFF343B47, dp(12)));
+        pairingAction.setBackground(round(0xFF343A46, dp(12)));
         pairingAction.setId(View.generateViewId());
         pairingAction.setFocusable(true);
         pairingAction.setFocusableInTouchMode(true);
@@ -123,8 +123,8 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
-                hasFocus ? 0xFF46566B : 0xFF343B47, dp(12));
-        if (hasFocus) background.setStroke(dp(2), 0xFFF4F6F8);
+                hasFocus ? 0xFF465366 : 0xFF343B47, dp(12));
+        if (hasFocus) background.setStroke(dp(2), 0xFF80C9C2);
         view.setBackground(background);
         view.setElevation(hasFocus ? dp(5) : 0f);
     }
