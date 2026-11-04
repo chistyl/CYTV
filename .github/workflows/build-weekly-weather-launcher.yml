@@ -12,6 +12,7 @@ on:
       - fix/folder-app-menu-window-anchor-a692da0
       - fix/weather-city-heading-visible-506e839
       - fix/icon-appearance-preview-match-desktop-12c6bf4
+      - fix/dialog-content-footer-fit-be2fbe5
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
@@ -53,22 +54,20 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - name: Run launcher unit tests and build debug APK
-        working-directory: launcher
         run: |
+          cd launcher
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace testDebugUnitTest :app:assembleDebug
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
       - name: Upload launcher APK
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-Weekly-Weather-Launcher-APK
-          path: launcher/app/build/outputs/apk/debug/*.apk
+          path: launcher/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-Weekly-Weather-Launcher-source.zip . \
-            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-Weekly-Weather-Launcher-source.zip'
+          git archive --format=zip --output=CYTV-Weekly-Weather-Launcher-source.zip HEAD
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
