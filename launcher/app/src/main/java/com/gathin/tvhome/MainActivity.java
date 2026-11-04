@@ -4589,7 +4589,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int measuredWidth = decor.getWidth();
                 int measuredHeight = decor.getHeight();
                 if (measuredWidth > 0 && measuredHeight > 0) {
-                    int extraHeight = (int) (20 * density);
+                    int extraHeight = (int) (30 * density);
                     int screenHeight = getResources().getDisplayMetrics().heightPixels;
                     int maxHeight = screenHeight - (int) (32 * density);
                     weatherWindow.setLayout(measuredWidth, Math.min(measuredHeight + extraHeight, maxHeight));
