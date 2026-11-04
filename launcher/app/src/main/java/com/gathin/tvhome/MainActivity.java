@@ -4609,10 +4609,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            // Move the action buttons slightly lower while preserving the dialog's measured size.
+            // Keep the action-button panel inside the fixed dialog bounds so both buttons remain fully visible.
             ViewParent weatherButtonParent = cancelWeather.getParent();
             if (weatherButtonParent instanceof View) {
-                ((View) weatherButtonParent).setTranslationY(4 * density);
+                ((View) weatherButtonParent).setTranslationY(0f);
+                ((View) weatherButtonParent).setClipChildren(false);
+                ((View) weatherButtonParent).setClipToPadding(false);
             }
             GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
             GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
