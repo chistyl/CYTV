@@ -4102,6 +4102,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView iconView = new TextView(this);
                 iconView.setText(weatherIcon(code));
                 iconView.setTextSize(38);
+                // Weather glyphs must remain fully opaque over translucent/custom wallpapers.
+                iconView.setAlpha(1f);
                 iconView.setGravity(Gravity.CENTER);
                 LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, -2);
                 iconLp.topMargin = (int)(2*density);
@@ -4197,7 +4199,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (code == 0) return "☀️";
         if (code == 1 || code == 2) return "🌤️";
         if (code == 3) return "☁️";
-        if (code == 45 || code == 48) return "🌫️";
+        // Avoid the platform's semi-transparent fog tile glyph on Android TV; use a solid cloud glyph.
+        if (code == 45 || code == 48) return "☁️";
         if (code >= 51 && code <= 57) return "🌦️";
         if (code >= 61 && code <= 67) return "🌧️";
         if (code >= 71 && code <= 77) return "❄️";
@@ -6114,6 +6117,21 @@ private GradientDrawable roundSurface(int color, float radius) {
                 Toast.makeText(this, "找不到可用的圖片選擇器", Toast.LENGTH_LONG).show();
             }
         });
+        addSettingsMenuRow(rows, popup, "圖標外觀設定", () ->
+                showAppAppearanceSettingsMenu(anchor, packageName, prefs, folderName,
+                        systemFolder, folderDialog));
+
+        dropIn(popup, panel, anchor, Gravity.START);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    /** 圖標大小與背景色整合在同一入口，保留原本各自的設定視窗及儲存方式。 */
+    private void showAppAppearanceSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
+                                               String folderName, boolean systemFolder, Dialog folderDialog) {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+
         addSettingsMenuRow(rows, popup, "調整圖標大小", () -> {
             pendingFolderNameAfterAppEdit = folderName;
             pendingSystemFolderAfterAppEdit = systemFolder;
