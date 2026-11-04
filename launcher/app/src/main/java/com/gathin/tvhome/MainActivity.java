@@ -6460,22 +6460,22 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(14*density), (int)(2*density), (int)(14*density), (int)(2*density));
+        panel.setPadding((int)(16*density), (int)(8*density), (int)(16*density), (int)(8*density));
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
+        preview.view.setPadding(0, (int)(4*density), 0, (int)(4*density));
         if (preview.view.getChildAt(0) != null) {
             LinearLayout.LayoutParams previewCardLp = (LinearLayout.LayoutParams) preview.view.getChildAt(0).getLayoutParams();
-            previewCardLp.width = (int)(220*density);
+            previewCardLp.width = (int)(200*density);
             previewCardLp.height = Math.round(previewCardLp.width * 9f / 16f);
             preview.view.getChildAt(0).setLayoutParams(previewCardLp);
         }
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
             previewNameLp.height = (int)(20*density);
-            previewNameLp.topMargin = (int)(2*density);
+            previewNameLp.topMargin = (int)(4*density);
             preview.view.getChildAt(1).setLayoutParams(previewNameLp);
         }
         panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
@@ -6484,7 +6484,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeTitle.setText("圖標大小");
         sizeTitle.setTextColor(Color.WHITE);
         sizeTitle.setTextSize(15);
-        panel.addView(sizeTitle);
+        LinearLayout.LayoutParams sizeTitleLp = new LinearLayout.LayoutParams(-1, -2);
+        sizeTitleLp.topMargin = (int)(4*density);
+        panel.addView(sizeTitle, sizeTitleLp);
 
         SeekBar sizeBar = new SeekBar(this);
         sizeBar.setMax(250);
@@ -6492,7 +6494,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
         LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
-        sizeBarLp.bottomMargin = (int)(5*density);
+        sizeBarLp.bottomMargin = (int)(8*density);
         panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
@@ -6502,7 +6504,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
         LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
         // 將「背景色自訂」標題與第一行「紅色：數值」明確拉開。
-        colorTitleLp.bottomMargin = (int)(14*density);
+        colorTitleLp.bottomMargin = (int)(10*density);
         panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -6516,8 +6518,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             label.setTextSize(13);
             // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = i == 0 ? 0 : (int)(5*density);
-            labelLp.bottomMargin = (int)(2*density);
+            labelLp.topMargin = i == 0 ? 0 : (int)(4*density);
+            labelLp.bottomMargin = (int)(3*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
 
@@ -6527,7 +6529,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
             LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(34*density));
-            barLp.bottomMargin = (int)(4*density);
+            barLp.bottomMargin = (int)(5*density);
             panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -6564,7 +6566,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
         actionRow.setGravity(Gravity.CENTER_VERTICAL);
-        actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
+        actionRow.setPadding(0, (int)(4*density), 0, (int)(4*density));
         Button resetButton = new Button(this);
         resetButton.setText("恢復預設");
         Button cancelButton = new Button(this);
@@ -6609,7 +6611,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
-        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        LinearLayout.LayoutParams actionRowLp = new LinearLayout.LayoutParams(-1, (int)(53*density));
+        actionRowLp.topMargin = (int)(6*density);
+        panel.addView(actionRow, actionRowLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
