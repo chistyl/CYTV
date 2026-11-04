@@ -5553,7 +5553,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (createDialog.getWindow() != null) {
             GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(29,33,43));
             rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            createDialog.getWindow().setBackgroundDrawable(rounded);
+            // Add visible safe space below and beside the action row on TV screens.
+            int horizontalInset = (int) (16 * density);
+            int bottomInset = (int) (18 * density);
+            createDialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.InsetDrawable(
+                            rounded, horizontalInset, 0, horizontalInset, bottomInset));
         }
         // TV remote focus order: name field -> Cancel -> Create. Avoid relying on
         // theme-dependent AlertDialog focus defaults, which vary across TV devices.
