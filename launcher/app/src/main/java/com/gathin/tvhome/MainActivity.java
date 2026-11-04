@@ -4613,7 +4613,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ViewParent weatherButtonParent = cancelWeather.getParent();
             if (weatherButtonParent instanceof ViewGroup) {
                 ViewGroup weatherButtonContainer = (ViewGroup) weatherButtonParent;
-                weatherButtonContainer.setTranslationY(0f);
+                // Nudge the action buttons slightly lower while keeping them fully inside the dialog.
+                weatherButtonContainer.setTranslationY(8f * density);
                 weatherButtonContainer.setClipChildren(false);
                 weatherButtonContainer.setClipToPadding(false);
             }
