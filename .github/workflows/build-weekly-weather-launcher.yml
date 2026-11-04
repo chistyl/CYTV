@@ -20,6 +20,7 @@ on:
       - fix/folder-app-picker-inner-layout-be2fbe5
       - fix/create-folder-dialog-content-layout
       - fix/create-folder-dialog-fixed-size-content-position
+      - fix/weekly-weather-dialog-fixed-size-white-actions
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
