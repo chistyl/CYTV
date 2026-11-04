@@ -294,8 +294,8 @@ public final class LauncherSettingsActivity extends Activity {
         }
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.open_on_start_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    dialog.dismiss();
+                .setSingleChoiceItems(labels, checked, (choiceDialog, which) -> {
+                    choiceDialog.dismiss();
                     if (which == 0) choices.edit().remove(OpenOnStart.KEY).apply();
                     else {
                         OpenOnStart.skipThisBoot(this);
