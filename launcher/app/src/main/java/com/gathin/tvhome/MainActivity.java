@@ -5933,7 +5933,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         focused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         View.OnFocusChangeListener focus = (v, hasFocus) -> {
             v.setBackground(hasFocus ? focused : normal);
-            ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFF80CBC4);
+            ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFFACB8C1);
             v.setScaleX(hasFocus ? 1.03f : 1f); v.setScaleY(hasFocus ? 1.03f : 1f);
         };
         cancel.setBackground(normal); save.setBackground(normal);
