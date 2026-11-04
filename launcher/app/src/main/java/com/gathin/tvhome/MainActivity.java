@@ -4972,8 +4972,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int safeDialogHeight = Math.max((int)(280*density), screenHeight-(int)(96*density));
+            // 外層填滿視窗可用高度，ScrollView 取得剩餘空間，操作列維持固定可見。
+            outer.setLayoutParams(new LinearLayout.LayoutParams(-1, -1));
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
+                    Math.min((int)(640*density), safeDialogHeight));
         }
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
         View firstRow = null, lastRow = null;
@@ -5792,10 +5796,12 @@ private GradientDrawable roundSurface(int color, float radius) {
             rounded.setCornerRadius(22*density);
             rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            // AlertDialog 標題與系統按鈕列各自保留空間，清單只使用中間可用高度。
+            int safeDialogHeight = Math.max((int)(260*density), screenHeight-(int)(140*density));
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+                    Math.min((int)(620*density), safeDialogHeight));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
