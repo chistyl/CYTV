@@ -5730,13 +5730,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setMinHeight((int)(52*density));
             LinearLayout.LayoutParams cancelParams = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
             cancelParams.rightMargin = (int)(18*density);
-            cancelParams.topMargin = (int)(10*density);
-            cancelParams.bottomMargin = (int)(10*density);
             cancelButton.setLayoutParams(cancelParams);
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
             saveParams.leftMargin = (int)(4*density);
-            saveParams.topMargin = (int)(10*density);
-            saveParams.bottomMargin = (int)(10*density);
             saveButton.setLayoutParams(saveParams);
             cancelButton.setFocusable(true);
             saveButton.setFocusable(true);
@@ -5746,6 +5742,12 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setDefaultFocusHighlightEnabled(false);
             cancelButton.setMinHeight((int)(48*density));
             saveButton.setMinHeight((int)(48*density));
+            // 增加按鈕底部色塊的上下內距；外層視窗維持固定高度，
+            // ScrollView 由對話框剩餘可用空間自動縮小顯示高度。
+            cancelButton.setPadding(cancelButton.getPaddingLeft(), (int)(15*density),
+                    cancelButton.getPaddingRight(), (int)(15*density));
+            saveButton.setPadding(saveButton.getPaddingLeft(), (int)(15*density),
+                    saveButton.getPaddingRight(), (int)(15*density));
             cancelButton.setId(View.generateViewId());
             saveButton.setId(View.generateViewId());
             GradientDrawable buttonNormal = new GradientDrawable();
