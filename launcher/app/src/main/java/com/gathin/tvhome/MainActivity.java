@@ -5589,17 +5589,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         List<String> folders = new ArrayList<>(prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet()));
         if (!folders.contains(folder)) return;
-        List<ResolveInfo> found = getPackageManager().queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-            java.util.LinkedHashMap<String,String> labels = new java.util.LinkedHashMap<>();
-            for (ResolveInfo ri : found) if (ri.activityInfo != null && ri.activityInfo.exported && !ri.activityInfo.packageName.equals(getPackageName()))
-                labels.put(ri.activityInfo.packageName, String.valueOf(ri.loadLabel(getPackageManager())));
-            List<String> packages = new ArrayList<>(labels.keySet());
+        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
+            List<String> packages = new ArrayList<>(candidates.keySet());
             boolean[] checked = new boolean[packages.size()];
             Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
-            for (int i=0;i<packages.size();i++) checked[i] = members.contains(packages.get(i));
-            Map<String, ResolveInfo> appInfos = new java.util.HashMap<>();
-            for (ResolveInfo ri : found) if (ri.activityInfo != null) appInfos.put(ri.activityInfo.packageName, ri);
-            showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, appInfos, checked, selected -> {
+            // The ordinary folder's own saved membership controls this dialog's checkboxes.
+            // Do not hide a saved selection merely because the system-folder preferences are stale;
+            // the save action below resolves the conflict and moves selected packages here.
+            for (int i = 0; i < packages.size(); i++) {
+                checked[i] = members.contains(packages.get(i));
+            }
+            showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, candidates, checked, selected -> {
                 java.util.LinkedHashSet<String> chosen = new java.util.LinkedHashSet<>();
                 for (int i=0;i<packages.size();i++) if (selected[i]) chosen.add(packages.get(i));
                 SharedPreferences.Editor edit = prefs.edit().putStringSet("folder_apps_" + folder, chosen);
@@ -5741,9 +5741,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         grid.setBackgroundColor(Color.TRANSPARENT);
         grid.setForeground(null);
         grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        int availableWidthDp = Math.max(320, (int) (getResources().getDisplayMetrics().widthPixels / density) - 64);
+        // Match the actual dialog width, not the full TV screen width. The old calculation
+        // sized four cards for a wider area than the dialog's padded content, clipping the
+        // rightmost card on wide screens. Include the outer padding and each slot's side margins.
+        int screenWidthDp = (int) (getResources().getDisplayMetrics().widthPixels / density);
+        int folderDialogWidthDp = Math.min(760, screenWidthDp - 48);
+        int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
         int folderColumns = 4;
-        int folderTileDp = Math.max(92, Math.min(184, (availableWidthDp - 56) / folderColumns));
+        int folderTileDp = Math.max(72, Math.min(184, (folderContentWidthDp - 48) / folderColumns));
         java.util.ArrayList<LinearLayout> folderRows = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         android.graphics.drawable.GradientDrawable scrollClip = new android.graphics.drawable.GradientDrawable();
@@ -5797,10 +5802,13 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.addView(tvCard, cardLp);
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
-                    // Focus frame belongs to the icon card only; app name text stays outside the frame.
-                    cardSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    // Make remote focus unmistakable: thicker gold frame, gentle card scale,
+                    // and stronger elevation. The app-name row and measured tile dimensions stay unchanged.
+                    cardSurface.setStroke(Math.max(1, (int)(focused ? 7*density : density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
-                    tvCard.setElevation(focused ? 10f * density : 0f);
+                    tvCard.animate().scaleX(focused ? 1.045f : 1f).scaleY(focused ? 1.045f : 1f)
+                            .translationZ(focused ? 8f*density : 0f).setDuration(120).start();
+                    tvCard.setElevation(focused ? 16f * density : 0f);
                 });
                 tile.setOnKeyListener((v, keyCode, event) -> {
                     if (event.getAction() == KeyEvent.ACTION_UP
@@ -5836,24 +5844,21 @@ private GradientDrawable roundSurface(int color, float radius) {
                     return true;
                 });
                 int tileIndex = folderFocusTiles.size();
-                int totalTiles = matches.size() + 1; // include the trailing "+" tile
-                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
-                boolean incompleteLastRow = totalTiles % folderColumns != 0 && tileIndex >= lastRowStart;
                 int rowIndex = tileIndex / folderColumns;
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
+                    // Keep folder items in natural left-to-right order; incomplete rows start at the first column.
                     row.setGravity(Gravity.TOP | Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
                 }
-                // Full rows share the available width; a partial final row keeps fixed-width
-                // cards and starts at the left edge on every Android TV vendor implementation.
+                // Every folder row uses four fixed-width slots. Incomplete rows keep
+                // equal outer spacing and never stretch the remaining cards.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
-                        incompleteLastRow ? 0f : 1f);
+                        Math.round(folderTileDp * density),
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 folderRows.get(rowIndex).addView(tile, lp);
                 folderFocusTiles.add(tile);
@@ -5881,10 +5886,12 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addLabelLp.topMargin = (int)(3*density);
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
-                    // The add tile uses the same icon-card-only focus outline.
-                    addSurface.setStroke(Math.max(1, (int)(focused ? 4*density : density)),
+                    // Keep the "+" tile focus treatment consistent with app cards.
+                    addSurface.setStroke(Math.max(1, (int)(focused ? 7*density : density)),
                             focused ? 0xFFFFD54F : 0x24FFFFFF);
-                    addCard.setElevation(focused ? 10f * density : 0f);
+                    addCard.animate().scaleX(focused ? 1.045f : 1f).scaleY(focused ? 1.045f : 1f)
+                            .translationZ(focused ? 8f*density : 0f).setDuration(120).start();
+                    addCard.setElevation(focused ? 16f * density : 0f);
                 });
                 add.setOnKeyListener((v, keyCode, event) -> {
                     if (event.getAction() == KeyEvent.ACTION_UP
@@ -5902,22 +5909,20 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // a weighted column: GridLayout would stretch it across the entire row.
                 // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
                 int addIndex = folderFocusTiles.size();
-                int totalTiles = matches.size() + 1;
-                int lastRowStart = (totalTiles / folderColumns) * folderColumns;
-                boolean incompleteLastRow = totalTiles % folderColumns != 0 && addIndex >= lastRowStart;
                 int rowIndex = addIndex / folderColumns;
                 while (folderRows.size() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
+                    // Keep the add tile after the last app, starting at the first column on incomplete rows.
                     row.setGravity(Gravity.TOP | Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
                     folderRows.add(row);
                 }
+                // The "+" tile occupies one fixed column just like every app tile.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        incompleteLastRow ? Math.round(folderTileDp * density) : 0,
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density),
-                        incompleteLastRow ? 0f : 1f);
+                        Math.round(folderTileDp * density),
+                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 folderRows.get(rowIndex).addView(add, lp);
                 add.setId(View.generateViewId());
@@ -5925,7 +5930,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         };
         populate.run();
-        // 明確設定遙控器焦點路徑：每列五個，左右相鄰、上下對應同欄。
+        // Some Android TV remotes report directional keys only on ACTION_UP.
+        // Remember DOWN events so normal DOWN+UP pairs move once, while UP-only remotes still work.
+        final int[] lastDpadDownKey = { KeyEvent.KEYCODE_UNKNOWN };
+        // 明確設定遙控器焦點路徑：每列四個，左右相鄰、上下對應同欄。
         for (int i = 0; i < folderFocusTiles.size(); i++) {
             View item = folderFocusTiles.get(i);
             if (i % folderColumns > 0) item.setNextFocusLeftId(folderFocusTiles.get(i - 1).getId());
@@ -5937,32 +5945,47 @@ private GradientDrawable roundSurface(int color, float radius) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                         || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A
                         || keyCode == KeyEvent.KEYCODE_SPACE) {
-                    if (action == KeyEvent.ACTION_UP) {
-                        v.performClick();
+                    if (action == KeyEvent.ACTION_UP) v.performClick();
+                    return true;
+                }
+                boolean horizontal = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+                boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+                if (!horizontal && !vertical) return false;
+                // Handle normal DOWN+UP remotes once, and fall back to UP-only remotes.
+                if (action == KeyEvent.ACTION_DOWN) {
+                    lastDpadDownKey[0] = keyCode;
+                } else if (action == KeyEvent.ACTION_UP) {
+                    if (lastDpadDownKey[0] == keyCode) {
+                        lastDpadDownKey[0] = KeyEvent.KEYCODE_UNKNOWN;
                         return true;
                     }
+                } else {
                     return true;
                 }
-                if (action != KeyEvent.ACTION_DOWN) return false;
                 int index = folderFocusTiles.indexOf(v);
-                if (index < 0) return false;
+                if (index < 0) return true;
+                int column = index % folderColumns;
                 int target = -1;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && index % folderColumns > 0) target = index - 1;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && index % folderColumns < folderColumns - 1
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
                         && index + 1 < folderFocusTiles.size()) target = index + 1;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index - folderColumns >= 0) target = index - folderColumns;
-                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                        && index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
                 if (target >= 0) {
                     View next = folderFocusTiles.get(target);
-                    next.requestFocus();
-                    next.post(() -> {
-                        android.graphics.Rect rect = new android.graphics.Rect();
-                        next.getDrawingRect(rect);
-                        scroll.requestChildRectangleOnScreen(next, rect, true);
-                    });
-                    return true;
+                    if (next.requestFocus()) {
+                        next.post(() -> {
+                            android.graphics.Rect rect = new android.graphics.Rect();
+                            next.getDrawingRect(rect);
+                            scroll.requestChildRectangleOnScreen(next, rect, true);
+                        });
+                    }
                 }
-                return false;
+                // At row/column edges stay on the current tile instead of losing focus.
+                return true;
             });
         }
         Button close = new Button(this);
@@ -6157,13 +6180,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         showFolderContents(folderName, systemFolder);
     }
 
-    /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
-    private void showSystemFolderAssignment() {
-        PackageManager assignmentPm = getPackageManager();
+    /**
+     * One canonical app catalogue for both System and ordinary folder assignment dialogs.
+     * Package-name sorting is case-insensitive so the same apps always appear in the same order.
+     * Include TV launchers, phone launchers, and launchable system apps omitted by vendor TV queries.
+     */
+    private java.util.TreeMap<String, ResolveInfo> getFolderAssignmentCandidates() {
+        PackageManager pm = getPackageManager();
         java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        List<ResolveInfo> tvInstalled = assignmentPm.queryIntentActivities(
+        List<ResolveInfo> tvInstalled = pm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
-        List<ResolveInfo> phoneInstalled = assignmentPm.queryIntentActivities(
+        List<ResolveInfo> phoneInstalled = pm.queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
         if (tvInstalled != null) for (ResolveInfo ri : tvInstalled) {
             if (ri.activityInfo != null && ri.activityInfo.exported
@@ -6175,35 +6202,46 @@ private GradientDrawable roundSurface(int color, float radius) {
                     && !ri.activityInfo.packageName.equals(getPackageName()))
                 candidates.putIfAbsent(ri.activityInfo.packageName, ri);
         }
-        // Include system apps that have a package launch intent but are absent from both launcher queries.
-        List<ApplicationInfo> assignmentInstalled;
-        try { assignmentInstalled = assignmentPm.getInstalledApplications(PackageManager.MATCH_ALL); }
-        catch (Exception ignored) { assignmentInstalled = assignmentPm.getInstalledApplications(0); }
-        for (ApplicationInfo app : assignmentInstalled) {
+        List<ApplicationInfo> installed;
+        try { installed = pm.getInstalledApplications(PackageManager.MATCH_ALL); }
+        catch (Exception ignored) { installed = pm.getInstalledApplications(0); }
+        for (ApplicationInfo app : installed) {
             String pkg = app.packageName;
             if (pkg == null || pkg.equals(getPackageName())
                     || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
                     || candidates.containsKey(pkg)) continue;
             try {
-                Intent launch = assignmentPm.getLaunchIntentForPackage(pkg);
+                Intent launch = pm.getLaunchIntentForPackage(pkg);
                 if (launch == null || launch.getComponent() == null) continue;
-                ActivityInfo activity = assignmentPm.getActivityInfo(launch.getComponent(), 0);
+                ActivityInfo activity = pm.getActivityInfo(launch.getComponent(), 0);
                 if (activity == null || !activity.exported) continue;
                 ResolveInfo fallback = new ResolveInfo();
                 fallback.activityInfo = activity;
                 candidates.put(pkg, fallback);
             } catch (PackageManager.NameNotFoundException | RuntimeException ignored) { }
         }
+        return candidates;
+    }
+
+    /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
+    private void showSystemFolderAssignment() {
+        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
         java.util.ArrayList<String> packages = new java.util.ArrayList<>(candidates.keySet());
         boolean[] checked = new boolean[packages.size()];
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         Set<String> excluded = prefs.getStringSet("system_folder_excluded", java.util.Collections.<String>emptySet());
         Set<String> added = prefs.getStringSet("system_folder_added", java.util.Collections.<String>emptySet());
-        for (int i=0;i<packages.size();i++) {
+        for (int i = 0; i < packages.size(); i++) {
+            String pkg = packages.get(i);
             try {
-                int flags = getPackageManager().getApplicationInfo(packages.get(i), 0).flags;
+                int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
                 boolean isSystem = (flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
-                checked[i] = added.contains(packages.get(i)) || (isSystem && !excluded.contains(packages.get(i)));
+                boolean belongsToSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
+                // The system-folder preference is authoritative for system apps. Do not
+                // mask its checkbox based on stale ordinary-folder membership: that can make
+                // the same package appear unchecked in BOTH dialogs. Saving this dialog
+                // removes selected packages from every ordinary folder below.
+                checked[i] = belongsToSystem;
             } catch (PackageManager.NameNotFoundException ignored) { }
         }
         showAppSelectionDialog("勾選要放入「系統」資料夾的 APP", packages, candidates, checked, selected -> {
@@ -6222,11 +6260,20 @@ private GradientDrawable roundSurface(int color, float radius) {
             SharedPreferences.Editor edit = prefs.edit()
                     .putStringSet("system_folder_excluded", excludedNow)
                     .putStringSet("system_folder_added", addedNow);
-            Set<String> generalFolders = prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
+            // A package can belong to only one folder. Remove every APP selected for the
+            // System folder from all ordinary folders, including system packages (not just
+            // user-added apps). The previous code removed only addedNow, so built-in system
+            // apps could remain checked in both places and the two dialogs drifted out of sync.
+            java.util.HashSet<String> selectedForSystem = new java.util.HashSet<>();
+            for (int i = 0; i < packages.size(); i++) {
+                if (selected[i]) selectedForSystem.add(packages.get(i));
+            }
+            Set<String> generalFolders = new java.util.HashSet<>(prefs.getStringSet(
+                    "home_folders", java.util.Collections.<String>emptySet()));
             for (String folder : generalFolders) {
                 java.util.HashSet<String> set = new java.util.HashSet<>(prefs.getStringSet(
                         "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
-                set.removeAll(addedNow);
+                set.removeAll(selectedForSystem);
                 edit.putStringSet("folder_apps_" + folder, set);
             }
             edit.apply();
