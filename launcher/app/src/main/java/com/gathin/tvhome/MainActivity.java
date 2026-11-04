@@ -6738,7 +6738,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             // Let the content determine height; keep the dialog centered with breathing room
             // instead of stretching it to almost the full TV screen.
             dialog.getWindow().setGravity(Gravity.CENTER);
-            dialog.getWindow().setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
