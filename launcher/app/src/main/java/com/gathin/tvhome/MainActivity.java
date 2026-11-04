@@ -6361,7 +6361,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         colorTitle.setTextSize(15);
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
         LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
-        colorTitleLp.bottomMargin = (int)(3*density);
+        // 將「背景色自訂」標題與第一行「紅色：數值」明確拉開。
+        colorTitleLp.bottomMargin = (int)(14*density);
         panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -6375,7 +6376,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             label.setTextSize(13);
             // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = (int)(5*density);
+            labelLp.topMargin = i == 0 ? 0 : (int)(5*density);
             labelLp.bottomMargin = (int)(2*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
