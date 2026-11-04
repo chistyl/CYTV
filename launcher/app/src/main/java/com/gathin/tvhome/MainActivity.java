@@ -4197,22 +4197,85 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             super(context);
             weatherCode = code;
             setAlpha(1f);
+            // Software rendering keeps gradients and soft cloud shadows consistent on Android TV devices.
             setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
 
-        private void fill(Canvas canvas, int color) {
+        private void cloud(Canvas canvas, float cx, float cy, float scale) {
+            canvas.save();
+            canvas.translate(cx, cy);
+            canvas.scale(scale, scale);
+
+            // Soft, rounded cloud silhouette with a cool blue lower edge and gentle depth.
+            Path silhouette = new Path();
+            silhouette.moveTo(-23, 7);
+            silhouette.cubicTo(-25, 1, -21, -7, -13, -8);
+            silhouette.cubicTo(-10, -20, 2, -24, 12, -17);
+            silhouette.cubicTo(17, -14, 19, -9, 19, -5);
+            silhouette.cubicTo(29, -5, 34, 2, 32, 10);
+            silhouette.cubicTo(31, 16, 26, 19, 19, 19);
+            silhouette.lineTo(-13, 19);
+            silhouette.cubicTo(-21, 19, -26, 14, -23, 7);
+            silhouette.close();
+
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0xFF000000 | (color & 0x00FFFFFF));
             paint.setShader(null);
+            paint.setColor(0xFFB7D0E3);
+            paint.setShadowLayer(3.2f, 0f, 2.2f, 0x553B7190);
+            canvas.drawPath(silhouette, paint);
+            paint.clearShadowLayer();
+            paint.setShader(new LinearGradient(0, -22, 0, 20,
+                    new int[]{0xFFFFFFFF, 0xFFF4F8FC, 0xFFB8D7EC},
+                    new float[]{0f, 0.56f, 1f}, Shader.TileMode.CLAMP));
+            canvas.drawPath(silhouette, paint);
+            paint.setShader(null);
+
+            // Subtle top-left sheen; deliberately restrained to match the small EMOTN-style icons.
+            paint.setShader(new RadialGradient(-8, -12, 22,
+                    new int[]{0x66FFFFFF, 0x00FFFFFF},
+                    null, Shader.TileMode.CLAMP));
+            canvas.drawOval(-21, -21, 16, 10, paint);
+            paint.setShader(null);
+            canvas.restore();
         }
 
-        private void cloud(Canvas c, float cx, float cy, float scale, int color) {
-            fill(c, color);
-            c.drawCircle(cx - 10*scale, cy + 1*scale, 10*scale, paint);
-            c.drawCircle(cx + 1*scale, cy - 6*scale, 14*scale, paint);
-            c.drawCircle(cx + 13*scale, cy + 2*scale, 9*scale, paint);
-            c.drawRoundRect(cx - 19*scale, cy, cx + 21*scale, cy + 12*scale,
-                    6*scale, 6*scale, paint);
+        private void drawSun(Canvas canvas) {
+            paint.setShader(null);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(3.2f);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(0xFFFFC83D);
+            float[][] rays={{21,1,21,5},{21,29,21,33},{5,17,9,17},{33,17,37,17},
+                    {10,6,13,9},{29,25,32,28},{10,28,13,25},{29,9,32,6}};
+            for (float[] ray : rays) canvas.drawLine(ray[0],ray[1],ray[2],ray[3],paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(new RadialGradient(17, 12, 15,
+                    new int[]{0xFFFFF18A,0xFFFFD34D,0xFFFFAE24},
+                    null, Shader.TileMode.CLAMP));
+            canvas.drawCircle(21,17,11.5f,paint);
+            paint.setShader(null);
+            paint.setColor(0x66FFFFFF);
+            canvas.drawCircle(17.5f,13.5f,3.1f,paint);
+        }
+
+        private void drawRainDrop(Canvas canvas, float x, float y) {
+            Path drop = new Path();
+            drop.moveTo(x, y - 5.5f);
+            drop.cubicTo(x - 1.8f, y - 2.5f, x - 5f, y + 1.5f, x - 4.2f, y + 4f);
+            drop.cubicTo(x - 3.3f, y + 8f, x + 3.3f, y + 8f, x + 4.2f, y + 4f);
+            drop.cubicTo(x + 5f, y + 1.5f, x + 1.8f, y - 2.5f, x, y - 5.5f);
+            drop.close();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(new LinearGradient(x-2, y-5, x+2, y+7,
+                    new int[]{0xFFB9F0FF,0xFF55C7F5,0xFF168DDB},
+                    null, Shader.TileMode.CLAMP));
+            canvas.drawPath(drop, paint);
+            paint.setShader(null);
+            paint.setColor(0x99FFFFFF);
+            paint.setStrokeWidth(1.1f);
+            paint.setStyle(Paint.Style.STROKE);
+            canvas.drawLine(x-1.3f,y-1.5f,x-2.2f,y+1f,paint);
+            paint.setStyle(Paint.Style.FILL);
         }
 
         @Override protected void onDraw(Canvas canvas) {
@@ -4225,63 +4288,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
             boolean fog = weatherCode == 45 || weatherCode == 48;
             boolean sunny = weatherCode == 0 || weatherCode == 1 || weatherCode == 2;
-            boolean cloudy = weatherCode == 3 || fog || weatherCode < 0;
             boolean snow = (weatherCode >= 71 && weatherCode <= 77)
                     || (weatherCode >= 85 && weatherCode <= 86);
             boolean thunder = weatherCode >= 95;
             boolean rain = (weatherCode >= 51 && weatherCode <= 67)
                     || (weatherCode >= 80 && weatherCode <= 82) || thunder;
 
-            if (sunny) {
-                fill(canvas, 0xFFFFC233);
-                canvas.drawCircle(21, 17, 11, paint);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(4);
-                paint.setStrokeCap(Paint.Cap.ROUND);
-                canvas.drawLine(21, 1, 21, 4, paint);
-                canvas.drawLine(21, 30, 21, 34, paint);
-                canvas.drawLine(5, 17, 8, 17, paint);
-                canvas.drawLine(34, 17, 38, 17, paint);
-                canvas.drawLine(10, 6, 13, 9, paint);
-                canvas.drawLine(30, 26, 33, 29, paint);
-                paint.setStyle(Paint.Style.FILL);
-            }
-
-            int cloudColor = fog ? 0xFFB8C1CB : 0xFFBFD4E5;
-            cloud(canvas, sunny ? 39 : 32, sunny ? 27 : 24, sunny ? 0.83f : 1f, cloudColor);
+            if (sunny) drawSun();
+            cloud(canvas, sunny ? 39 : 32, sunny ? 27 : 24, sunny ? 0.83f : 1f);
 
             if (fog) {
-                fill(canvas, 0xFFE1E5E9);
+                paint.setShader(null);
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(3.5f);
+                paint.setStrokeWidth(3.2f);
                 paint.setStrokeCap(Paint.Cap.ROUND);
+                paint.setColor(0xFFEAF4FA);
                 canvas.drawLine(8, 39, 56, 39, paint);
                 canvas.drawLine(14, 45, 50, 45, paint);
                 paint.setStyle(Paint.Style.FILL);
-            } else if (rain || snow) {
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(3.5f);
-                paint.setStrokeCap(Paint.Cap.ROUND);
-                if (snow) {
-                    fill(canvas, 0xFFF4F7FA);
-                    canvas.drawCircle(22, 41, 2.8f, paint);
-                    canvas.drawCircle(34, 44, 2.8f, paint);
-                    canvas.drawCircle(46, 40, 2.8f, paint);
-                } else {
-                    paint.setColor(0xFF63B8F2);
-                    canvas.drawLine(22, 38, 18, 45, paint);
-                    canvas.drawLine(35, 38, 31, 45, paint);
-                    canvas.drawLine(48, 38, 44, 45, paint);
-                }
-                paint.setStyle(Paint.Style.FILL);
+            } else if (rain) {
+                drawRainDrop(canvas, 20, 41);
+                drawRainDrop(canvas, 33, 43);
+                drawRainDrop(canvas, 46, 41);
+            } else if (snow) {
+                paint.setShader(null);
+                paint.setColor(0xFFF5FAFF);
+                canvas.drawCircle(22, 41, 2.8f, paint);
+                canvas.drawCircle(34, 44, 2.8f, paint);
+                canvas.drawCircle(46, 40, 2.8f, paint);
             }
             if (thunder) {
-                fill(canvas, 0xFFFFD34D);
-                android.graphics.Path bolt = new android.graphics.Path();
+                paint.setShader(new LinearGradient(0,28,0,49,0xFFFFF18A,0xFFFFB72B,Shader.TileMode.CLAMP));
+                Path bolt = new Path();
                 bolt.moveTo(34, 28); bolt.lineTo(26, 40); bolt.lineTo(33, 40);
                 bolt.lineTo(29, 49); bolt.lineTo(42, 35); bolt.lineTo(35, 35);
                 bolt.close();
                 canvas.drawPath(bolt, paint);
+                paint.setShader(null);
             }
             canvas.restore();
         }
