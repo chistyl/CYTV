@@ -4758,7 +4758,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
                     check.setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                            new int[]{Color.WHITE, 0xFF9AA4B2}));
+                            new int[]{0xFF80C9C2, 0xFFACB8C1}));
                     check.setChecked(Boolean.TRUE.equals(selected.get("app:" + pkg)));
                     check.setFocusable(false);
                     check.setOnCheckedChangeListener((button, value) -> selected.put("app:" + pkg, value));
@@ -4828,7 +4828,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
                     check.setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                            new int[]{Color.WHITE, 0xFF9AA4B2}));
+                            new int[]{0xFF80C9C2, 0xFFACB8C1}));
                     check.setChecked(Boolean.TRUE.equals(selected.get("folder:" + folder)));
                     check.setFocusable(false);
                     check.setOnCheckedChangeListener((button, value) -> selected.put("folder:" + folder, value));
@@ -5670,7 +5670,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                    new int[]{Color.WHITE, 0xFF9AA4B2}));
+                    new int[]{0xFF80C9C2, 0xFFACB8C1}));
             LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(64*density), 1f);
             checkLp.leftMargin = (int)(7*density);
             check.setLayoutParams(checkLp);
@@ -5683,13 +5683,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setBackground(tileBg);
             tile.setDefaultFocusHighlightEnabled(false);
             tile.setOnFocusChangeListener((v, focused) -> {
-                tileBg.setColor(focused ? 0xFFF4F4F4 : 0x18333333);
-                check.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+                tileBg.setColor(focused ? 0xFF465366 : 0x18343A46);
+                tileBg.setStroke(focused ? Math.max(2, (int)(2*density)) : 0,
+                        focused ? 0xFF80C9C2 : Color.TRANSPARENT);
+                check.setTextColor(0xFFF5F6FA);
                 check.setButtonTintList(new ColorStateList(
                         new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                        new int[]{focused ? 0xFF202124 : Color.WHITE,
-                                focused ? 0xFF7B8490 : 0xFF9AA4B2}));
-                v.setElevation(focused ? 2f * density : 0f);
+                        new int[]{0xFF80C9C2, 0xFFACB8C1}));
+                v.setElevation(focused ? 3f * density : 0f);
                 if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                         new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
