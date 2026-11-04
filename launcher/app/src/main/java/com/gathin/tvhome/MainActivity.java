@@ -4766,7 +4766,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         surface.setStroke(Math.max(1, (int)density), 0x2880C9C2);
         outer.setBackground(surface);
         TextView title = new TextView(this);
-        title.setText("勾選要隱藏APP或資料夾"); title.setTextColor(0xFFF5F6FA); title.setTextSize(20);
+        title.setText(TraditionalText.display(this, "勾選要隱藏APP或資料夾")); title.setTextColor(0xFFF5F6FA); title.setTextSize(20);
         title.setPadding((int)(4*density), 0, 0, (int)(12*density));
         outer.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4855,7 +4855,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
                     TextView label = new TextView(this);
                     String custom = prefs.getString("label_" + pkg, null);
-                    label.setText(custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager())));
+                    label.setText(TraditionalText.display(this, custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager()))));
                     label.setTextColor(Color.WHITE); label.setTextSize(13); label.setMaxLines(2);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
@@ -4926,7 +4926,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     folderGlyph.setPadding((int)(28*density), (int)(16*density), (int)(28*density), (int)(16*density));
                     art.addView(folderGlyph, new FrameLayout.LayoutParams(-1, -1));
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
-                    TextView label = new TextView(this); label.setText(folder); label.setTextColor(Color.WHITE); label.setTextSize(14);
+                    TextView label = new TextView(this); label.setText(TraditionalText.display(this, folder)); label.setTextColor(Color.WHITE); label.setTextSize(14);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
