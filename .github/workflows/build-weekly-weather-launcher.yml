@@ -56,8 +56,9 @@ jobs:
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - name: Run launcher unit tests and build debug APK
         run: |
+          cd launcher
           chmod +x ./gradlew
-          ./gradlew :launcher:app:testDebugUnitTest :launcher:app:assembleDebug --no-daemon
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
       - name: Upload launcher APK
         uses: actions/upload-artifact@v4
         with:
