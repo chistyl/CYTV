@@ -209,9 +209,13 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
-            // Preserve the platform-measured outer dialog width exactly; only centre its position.
-            // Internal content and action spacing are adjusted without resizing the outer surface.
+            // The shared dialog style clips the decor to its rounded outline. For this fixed-size
+            // pairing dialog that outline clips the bottom of the action buttons. Keep the same
+            // layout coordinates and outer dimensions, but disable decor outline clipping.
             android.view.Window window = dialog.getWindow();
+            if (window != null) {
+                window.getDecorView().setClipToOutline(false);
+            }
             if (window != null) {
                 // Lock the already-measured outer dimensions. Subsequent inner spacing changes
                 // must not resize the dialog surface.
