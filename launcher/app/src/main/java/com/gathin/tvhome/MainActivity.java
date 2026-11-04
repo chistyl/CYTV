@@ -5836,7 +5836,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
-            check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
+            check.setText(TraditionalText.display(this, ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager()))));
             check.setTextColor(0xFFF5F6FA);
             check.setTextSize(15);
             check.setChecked(checked[i]);
@@ -5915,7 +5915,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(title).setView(scroll)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
@@ -6291,7 +6291,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
         TextView heading = new TextView(this);
-        heading.setText(folderName);
+        heading.setText(TraditionalText.display(this, folderName));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(20);
         heading.setGravity(Gravity.CENTER_VERTICAL);
@@ -6408,7 +6408,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
                 TextView name = new TextView(this);
                 String customName = prefs.getString("label_" + packageName, null);
-                name.setText(customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager())));
+                name.setText(TraditionalText.display(this, customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager()))));
                 name.setTextColor(Color.WHITE); name.setTextSize(11); name.setGravity(Gravity.CENTER);
                 name.setMaxLines(2); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
