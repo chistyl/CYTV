@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -290,9 +292,23 @@ public final class LauncherSettingsActivity extends Activity {
         if (list != null) {
             list.setBackgroundColor(0xFF1D212B);
             list.setCacheColorHint(0xFF1D212B);
-            list.setSelector(android.graphics.drawable.ColorDrawable.TRANSPARENT);
+            list.setSelector(settingsChoiceListSelector());
             list.setDivider(new android.graphics.drawable.ColorDrawable(0xFF343A46));
             list.setDividerHeight(1);
+            list.setItemsCanFocus(false);
+            list.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+                @Override public void onScrollStateChanged(android.widget.AbsListView view, int scrollState) { }
+                @Override public void onScroll(android.widget.AbsListView view, int first, int visible, int total) {
+                    for (int i = 0; i < view.getChildCount(); i++) {
+                        styleDialogListItem(view.getChildAt(i));
+                    }
+                }
+            });
+            list.post(() -> {
+                for (int i = 0; i < list.getChildCount(); i++) {
+                    styleDialogListItem(list.getChildAt(i));
+                }
+            });
         }
         android.widget.Button[] buttons = {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE),
@@ -315,6 +331,35 @@ public final class LauncherSettingsActivity extends Activity {
         if (cancel != null && primary != null) {
             cancel.setNextFocusRightId(primary.getId());
             primary.setNextFocusLeftId(cancel.getId());
+        }
+    }
+
+    private StateListDrawable settingsChoiceListSelector() {
+        StateListDrawable selector = new StateListDrawable();
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0x55465366);
+        focused.setCornerRadius(10 * getResources().getDisplayMetrics().density);
+        focused.setStroke(Math.max(2, (int) (2 * getResources().getDisplayMetrics().density)), 0xFF80C9C2);
+        GradientDrawable selected = new GradientDrawable();
+        selected.setColor(0x33465366);
+        selected.setCornerRadius(10 * getResources().getDisplayMetrics().density);
+        selected.setStroke(Math.max(1, (int) getResources().getDisplayMetrics().density), 0xFF80C9C2);
+        selector.addState(new int[]{android.R.attr.state_focused}, focused);
+        selector.addState(new int[]{android.R.attr.state_activated}, selected);
+        selector.addState(new int[]{android.R.attr.state_selected}, selected);
+        selector.addState(new int[]{}, new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        return selector;
+    }
+
+    private void styleDialogListItem(View item) {
+        if (item instanceof TextView) {
+            ((TextView) item).setTextColor(0xFFF5F6FA);
+            ((TextView) item).setTextSize(16);
+        } else if (item instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) item;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                styleDialogListItem(group.getChildAt(i));
+            }
         }
     }
 
