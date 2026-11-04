@@ -5276,7 +5276,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GradientDrawable actionFocusedBg = new GradientDrawable();
         actionFocusedBg.setColor(0xFF465366);
         actionFocusedBg.setCornerRadius(14*density);
-        actionFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        actionFocusedBg.setStroke(Math.max(3, (int)(3*density)), 0xFF80C9C2);
         save.setBackground(actionBg);
         save.setOnFocusChangeListener((v, hasFocus) -> {
             v.setBackground(hasFocus ? actionFocusedBg : actionBg);
@@ -5359,8 +5359,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GradientDrawable border = new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(2 * density);
-        int strokeColor = (selected || focused) ? 0xFF80C9C2 : Color.TRANSPARENT;
-        border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
+        // 已選桌布與遙控器目前焦點分開呈現：選取狀態使用低對比細框，
+        // 只有目前焦點使用明亮青綠粗框，避免縮圖選取框與按鈕焦點同時搶眼。
+        int strokeColor = focused ? 0xFF80C9C2
+                : (selected ? 0xFF667786 : Color.TRANSPARENT);
+        int strokeWidth = focused ? Math.max(3, (int)(3 * density))
+                : (selected ? Math.max(1, (int)(1 * density)) : 0);
+        border.setStroke(strokeWidth, strokeColor);
         preview.setForeground(border);
     }
 
