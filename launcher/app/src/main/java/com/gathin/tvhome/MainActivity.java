@@ -213,6 +213,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View weeklyWeatherView;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
+    private TextView weeklyWeatherHeading;
     private boolean weatherHiddenByScroll;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
@@ -553,6 +554,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock = findViewById(R.id.leftBlock);
         weeklyWeatherView = findViewById(R.id.weeklyWeather);
         weeklyWeatherDays = findViewById(R.id.weeklyWeatherDays);
+        weeklyWeatherHeading = findViewById(R.id.weeklyWeatherHeading);
         // Keep the weather card visually below the clock, but outside leftBlock's measurement.
         // Otherwise enabling the forecast shrinks the weighted grid viewport and changes Dock sizing/scroll geometry.
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
@@ -3733,13 +3735,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
         if (anchor == null || root == null) return;
 
+        // Use the anchor's own window token and decor bounds. Folder app tiles live inside
+        // a Dialog window; showing their popup from the Activity root puts it behind that Dialog
+        // and calculates its coordinates against the wrong window.
+        View windowRoot = anchor.getRootView();
+        if (windowRoot == null) windowRoot = root;
         int rootLocation[] = new int[2];
         int anchorLocation[] = new int[2];
-        root.getLocationInWindow(rootLocation);
+        windowRoot.getLocationInWindow(rootLocation);
         anchor.getLocationInWindow(anchorLocation);
 
-        int availableWidth = Math.max(1, root.getWidth());
-        int availableHeight = Math.max(1, root.getHeight());
+        int availableWidth = Math.max(1, windowRoot.getWidth());
+        int availableHeight = Math.max(1, windowRoot.getHeight());
         int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
         int menuWidth = Math.min(desiredWidth, availableWidth - (int) (24 * density));
         menuWidth = Math.max(1, menuWidth);
@@ -3772,7 +3779,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(showBelow ? 0f : menuHeight);
         panel.setScaleY(0.92f);
         panel.setTranslationY((showBelow ? -8f : 8f) * density);
-        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT, x, y);
+        // showAtLocation(anchor) inherits the anchor's window token (including folder Dialogs).
+        popup.showAtLocation(anchor, Gravity.TOP | Gravity.LEFT, x, y);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f)
                 .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
@@ -4061,12 +4069,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading = new TextView(this);
-        heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
-        heading.setTextColor(Color.WHITE);        heading.setTextSize(16);
-        heading.setTypeface(null, android.graphics.Typeface.BOLD);
-        heading.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(7*density));
-        // Heading spans the visible card width; the forecast row scrolls horizontally below it.        weeklyWeatherDays.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        // Keep the city heading in its own permanent card row, separate from forecast content.
+        // This prevents any forecast refresh/scroll container update from replacing or clipping it.
+        if (weeklyWeatherHeading != null) {
+            weeklyWeatherHeading.setText(TraditionalText.toTraditional(
+                    "一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+            weeklyWeatherHeading.setVisibility(View.VISIBLE);
+        }
 
         LinearLayout forecast = new LinearLayout(this);
         forecast.setOrientation(LinearLayout.HORIZONTAL);
