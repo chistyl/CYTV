@@ -1,4 +1,5 @@
 name: Build CYTV Weekly Weather Launcher
+# CI includes the folder app picker layout validation branch.
 
 on:
   push:
