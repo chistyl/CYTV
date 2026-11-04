@@ -6660,7 +6660,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
         actionRow.setGravity(Gravity.CENTER_VERTICAL);
-        actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
+        actionRow.setPadding((int)(4*density), (int)(5*density), (int)(4*density), (int)(5*density));
         Button resetButton = new Button(this);
         resetButton.setText("恢復預設");
         Button cancelButton = new Button(this);
@@ -6707,7 +6707,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionRow.addView(applyButton,applyLp);
         LinearLayout dialogRoot = new LinearLayout(this);
         dialogRoot.setOrientation(LinearLayout.VERTICAL);
-        dialogRoot.setPadding(0, 0, 0, (int)(4*density));
+        // 對話框內縮，避免操作列貼齊螢幕左右與下緣；保留內容區獨立捲動。
+        dialogRoot.setPadding((int)(18*density), 0, (int)(18*density), (int)(14*density));
         ScrollView appearanceScroll = new ScrollView(this);
         appearanceScroll.setFillViewport(false);
         appearanceScroll.setVerticalScrollBarEnabled(false);
@@ -6751,10 +6752,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int safeHeight = Math.max((int)(260*density), screenHeight-(int)(48*density));
+            // 四周保留明確安全邊距；高度保留足夠空間，超出時只捲動內容，不裁切操作列。
+            int safeHeight = Math.max((int)(300*density), screenHeight-(int)(64*density));
             int dialogHeight = Math.min((int)(590*density), safeHeight);
-            dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    dialogHeight);
+            int safeWidth = Math.max((int)(320*density),
+                    getResources().getDisplayMetrics().widthPixels-(int)(96*density));
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(Math.min((int)(620*density), safeWidth), dialogHeight);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
