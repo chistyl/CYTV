@@ -190,7 +190,8 @@ public class YouTubeAssistantActivity extends Activity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(4), dp(6), dp(4), dp(8));
+        // Give the help text and code field balanced left/right insets inside the fixed dialog.
+        box.setPadding(dp(20), dp(6), dp(20), dp(8));
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
         box.addView(help);
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
