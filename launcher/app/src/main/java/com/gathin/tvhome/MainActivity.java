@@ -4474,7 +4474,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             window.setAttributes(attrs);
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
             window.setLayout(Math.min((int)(520 * density), screenWidth - (int)(48 * density)),
-                    Window.LayoutParams.WRAP_CONTENT);
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
         dialog.setOnShowListener(ignored -> {
             if (negativeLabel != null && !negativeLabel.isEmpty() && actions.getChildCount() > 1) {
@@ -4486,7 +4486,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.show();
         if (window != null) window.setLayout(
                 Math.min((int)(520 * density), getResources().getDisplayMetrics().widthPixels - (int)(48 * density)),
-                Window.LayoutParams.WRAP_CONTENT);
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
 
