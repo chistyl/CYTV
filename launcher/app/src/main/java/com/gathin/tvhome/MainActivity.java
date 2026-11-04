@@ -5234,7 +5234,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         bottomActions.setOrientation(LinearLayout.HORIZONTAL);
         bottomActions.setGravity(Gravity.CENTER_VERTICAL);
         TextView save = new TextView(this);
-        save.setText("儲存"); save.setTextColor(Color.WHITE); save.setTextSize(16);
+        save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
         GradientDrawable actionBg = new GradientDrawable();
@@ -5263,7 +5263,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
         });
         TextView cancel = new TextView(this);
-        cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
+        cancel.setText("取消"); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
         cancel.setBackground(actionBg);
@@ -5325,7 +5325,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GradientDrawable border = new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(2 * density);
-        int strokeColor = selected ? 0xFF80CBC4 : (focused ? 0xFFF4F6F8 : Color.TRANSPARENT);
+        int strokeColor = (selected || focused) ? 0xFF80C9C2 : Color.TRANSPARENT;
         border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
         preview.setForeground(border);
     }
