@@ -4716,6 +4716,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final boolean[] showingApps = {true};
         Runnable render = () -> {
             list.removeAllViews();
+            // 每次切換 APP／資料夾分頁都回到清單頂端，避免沿用另一分頁的舊捲動位置。
+            scroll.scrollTo(0, 0);
             GradientDrawable active = new GradientDrawable(); active.setColor(0xFF465366); active.setCornerRadius(12*density);
             GradientDrawable idle = new GradientDrawable(); idle.setColor(0xFF343A46); idle.setCornerRadius(12*density);
             appTab.setBackground(showingApps[0] ? active : idle);
@@ -4884,8 +4886,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         appTab.setId(View.generateViewId());
         folderTab.setId(View.generateViewId());
+        // 分頁列左右與上方設為邊界，避免焦點從視窗頂部／左右端跳到視窗外。
+        appTab.setNextFocusLeftId(appTab.getId());
         appTab.setNextFocusRightId(folderTab.getId());
+        appTab.setNextFocusUpId(appTab.getId());
         folderTab.setNextFocusLeftId(appTab.getId());
+        folderTab.setNextFocusRightId(folderTab.getId());
+        folderTab.setNextFocusUpId(folderTab.getId());
         Runnable showApps = () -> { showingApps[0] = true; render.run(); appTab.requestFocus(); };
         Runnable showFolders = () -> { showingApps[0] = false; render.run(); folderTab.requestFocus(); };
         appTab.setOnClickListener(v -> showApps.run());
@@ -4972,7 +4979,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
         cancel.setNextFocusUpId(lastRow != null ? lastRow.getId() : appTab.getId());
         save.setNextFocusUpId(cancel.getId());
-        cancel.setNextFocusRightId(save.getId()); save.setNextFocusLeftId(cancel.getId());
+        // 操作列的四個方向都有明確邊界；焦點只在取消／儲存按鈕間移動，不可離開視窗。
+        cancel.setNextFocusLeftId(cancel.getId());
+        cancel.setNextFocusRightId(save.getId());
+        cancel.setNextFocusDownId(cancel.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusRightId(save.getId());
+        save.setNextFocusDownId(save.getId());
         outer.post(() -> appTab.requestFocus());
     }
 
@@ -5737,10 +5750,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             View tile = selectionTiles.get(i);
             int row = i / 2;
             int column = i % 2;
-            if (column == 0 && i + 1 < selectionTiles.size())
-                tile.setNextFocusRightId(selectionTiles.get(i + 1).getId());
-            if (column == 1)
-                tile.setNextFocusLeftId(selectionTiles.get(i - 1).getId());
+            tile.setNextFocusLeftId(column == 1 ? selectionTiles.get(i - 1).getId() : tile.getId());
+            tile.setNextFocusRightId(column == 0 && i + 1 < selectionTiles.size()
+                    ? selectionTiles.get(i + 1).getId() : tile.getId());
             int down = i + 2;
             if (down < selectionTiles.size()) tile.setNextFocusDownId(selectionTiles.get(down).getId());
             int up = i - 2;
@@ -5811,16 +5823,25 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusLeftId(cancelButton.getId());
             if (!selectionTiles.isEmpty()) {
                 View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
-                lastRowTile.setNextFocusDownId(cancelButton.getId());
+                int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+                // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
+                for (int i = lastRowStart; i < selectionTiles.size(); i++)
+                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
+                // 第一列向上回到操作列；中間列仍依同欄上下移動。
+                for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
+                    selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(lastRowTile.getId());
                 saveButton.setNextFocusUpId(lastRowTile.getId());
-            }
-            if (!selectionTiles.isEmpty()) {
-                View first = selectionTiles.get(0);
-                first.setNextFocusUpId(cancelButton.getId());
             } else {
                 cancelButton.post(cancelButton::requestFocus);
             }
+            // 操作列的焦點邊界封閉在 Dialog 內。
+            cancelButton.setNextFocusLeftId(cancelButton.getId());
+            cancelButton.setNextFocusRightId(saveButton.getId());
+            cancelButton.setNextFocusDownId(cancelButton.getId());
+            saveButton.setNextFocusLeftId(cancelButton.getId());
+            saveButton.setNextFocusRightId(saveButton.getId());
+            saveButton.setNextFocusDownId(saveButton.getId());
         }
         if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
@@ -5866,6 +5887,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
                 return false;
             });
+            item.setNextFocusLeftId(item.getId());
+            item.setNextFocusRightId(item.getId());
             if (!folderRows.isEmpty()) {
                 View previous = folderRows.get(folderRows.size()-1);
                 previous.setNextFocusDownId(item.getId()); item.setNextFocusUpId(previous.getId());
@@ -5901,9 +5924,15 @@ private GradientDrawable roundSurface(int color, float radius) {
                 ((Button)v).setTextColor(0xFFF5F6FA);
             });
             if (!folderRows.isEmpty()) {
+                View first = folderRows.get(0);
                 View last = folderRows.get(folderRows.size()-1);
-                last.setNextFocusDownId(cancel.getId()); cancel.setNextFocusUpId(last.getId());
+                first.setNextFocusUpId(first.getId());
+                last.setNextFocusDownId(cancel.getId());
+                cancel.setNextFocusUpId(last.getId());
             }
+            cancel.setNextFocusDownId(cancel.getId());
+            cancel.setNextFocusLeftId(cancel.getId());
+            cancel.setNextFocusRightId(cancel.getId());
         }
         if (!folderRows.isEmpty()) folderRows.get(0).post(folderRows.get(0)::requestFocus);
         else if (cancel != null) cancel.post(cancel::requestFocus);
