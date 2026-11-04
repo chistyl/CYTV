@@ -7619,18 +7619,27 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.setFocusableInTouchMode(true);
         row.setClickable(true);
         row.setDefaultFocusHighlightEnabled(false);
+        // Use drawable state, not only a focus callback: Android TV launchers may restore
+        // focus after PopupWindow layout and skip an early OnFocusChangeListener transition.
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(Color.TRANSPARENT);
         normal.setCornerRadius(18 * density);
-        GradientDrawable selected = new GradientDrawable();        selected.setColor(0xFF465366);
-        selected.setCornerRadius(18 * density);
-        selected.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
-        row.setBackground(normal);
-        row.setPadding((int)(12*density), 0, (int)(12*density), 0);
-        row.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? selected : normal);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0xFF465366);
+        focused.setCornerRadius(18 * density);
+        focused.setStroke(Math.max(2, (int) (2 * density)), 0xFF80C9C2);
+        android.graphics.drawable.StateListDrawable focusBackground =
+                new android.graphics.drawable.StateListDrawable();
+        focusBackground.addState(new int[]{android.R.attr.state_focused}, focused);
+        focusBackground.addState(new int[]{android.R.attr.state_selected}, focused);
+        focusBackground.addState(new int[]{}, normal);
+        row.setBackground(focusBackground);
+        row.setPadding((int) (12 * density), 0, (int) (12 * density), 0);
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setSelected(hasFocus);
             rowTitle.setTextColor(0xFFF5F6FA);
-            v.setElevation(focused ? 2*density : 0f);
+            v.setElevation(hasFocus ? 2 * density : 0f);
+            v.refreshDrawableState();
         });
         row.setOnClickListener(v -> {
             popup.dismiss();
