@@ -6033,6 +6033,51 @@ private GradientDrawable roundSurface(int color, float radius) {
     }
 
     /**
+     * Groups the three existing per-app appearance actions behind one remote-friendly
+     * entry. Each action keeps its original picker/dialog and persistence behavior.
+     */
+    private void showAppIconSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
+                                         String folderName, boolean systemFolder, Dialog folderDialog) {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (220 * density));
+
+        addSettingsMenuRow(rows, popup, "更換圖標", () -> {
+            pendingIconPackage = packageName;
+            pendingFolderNameAfterAppEdit = folderName;
+            pendingSystemFolderAfterAppEdit = systemFolder;
+            if (folderDialog != null) folderDialog.dismiss();
+            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            pick.addCategory(Intent.CATEGORY_OPENABLE);
+            pick.setType("image/*");
+            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            try {
+                startActivityForResult(pick, APP_ICON_PICK_REQUEST);
+            } catch (ActivityNotFoundException ex) {
+                pendingIconPackage = null;
+                pendingFolderNameAfterAppEdit = null;
+                pendingSystemFolderAfterAppEdit = false;
+                Toast.makeText(this, "找不到可用的圖片選擇器", Toast.LENGTH_LONG).show();
+            }
+        });
+        addSettingsMenuRow(rows, popup, "調整圖標大小", () -> {
+            pendingFolderNameAfterAppEdit = folderName;
+            pendingSystemFolderAfterAppEdit = systemFolder;
+            if (folderDialog != null) folderDialog.dismiss();
+            showAppIconSizeDialog(packageName, prefs);
+        });
+        addSettingsMenuRow(rows, popup, "更換背景色／自訂色彩", () -> {
+            pendingFolderNameAfterAppEdit = folderName;
+            pendingSystemFolderAfterAppEdit = systemFolder;
+            if (folderDialog != null) folderDialog.dismiss();
+            showAppBackgroundColorDialog(packageName, prefs);
+        });
+
+        dropIn(popup, panel, anchor, Gravity.START);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    /**
      * Folder app long-press menu mirrors the desktop app menu. Folder-specific
      * "移出資料夾" is added at the end; edits refresh the folder after saving.
      */
@@ -6072,35 +6117,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             showFolderContents(folderName, systemFolder);
         });
 
-        addSettingsMenuRow(rows, popup, "更換圖標", () -> {
-            pendingIconPackage = packageName;
-            pendingFolderNameAfterAppEdit = folderName;
-            pendingSystemFolderAfterAppEdit = systemFolder;
-            folderDialog.dismiss();
-            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE);
-            pick.setType("image/*");
-            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            try { startActivityForResult(pick, APP_ICON_PICK_REQUEST); }
-            catch (ActivityNotFoundException ex) {
-                pendingIconPackage = null;
-                pendingFolderNameAfterAppEdit = null;
-                Toast.makeText(this, "找不到可用的圖片選擇器", Toast.LENGTH_LONG).show();
-            }
-        });
-
-        addSettingsMenuRow(rows, popup, "調整圖標大小", () -> {
-            pendingFolderNameAfterAppEdit = folderName;
-            pendingSystemFolderAfterAppEdit = systemFolder;
-            folderDialog.dismiss();
-            showAppIconSizeDialog(packageName, prefs);
-        });
-        addSettingsMenuRow(rows, popup, "更換背景色／自訂色彩", () -> {
-            pendingFolderNameAfterAppEdit = folderName;
-            pendingSystemFolderAfterAppEdit = systemFolder;
-            folderDialog.dismiss();
-            showAppBackgroundColorDialog(packageName, prefs);
-        });
+        addSettingsMenuRow(rows, popup, "圖標設定", () ->
+                showAppIconSettingsMenu(anchor, packageName, prefs, folderName, systemFolder, folderDialog));
 
         if (prefs.contains("label_" + packageName) || prefs.contains("hide_" + packageName)
                 || prefs.contains("icon_" + packageName) || prefs.contains("icon_scale_" + packageName)
@@ -6796,22 +6814,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             appPrefs.edit().putBoolean("hide_all_names", !allNamesHidden).apply();
             reloadApps(false);
         });
-        addSettingsMenuRow(rows, popup, "更換圖標", () -> {
-            pendingIconPackage = pkg;
-            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE);
-            pick.setType("image/*");
-            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            try { startActivityForResult(pick, APP_ICON_PICK_REQUEST); }
-            catch (ActivityNotFoundException ex) {
-                pendingIconPackage = null;
-                pendingFolderNameAfterAppEdit = null;
-                pendingSystemFolderAfterAppEdit = false;
-                Toast.makeText(this, "找不到可用的圖片選擇器", Toast.LENGTH_LONG).show();
-            }
-        });
-        addSettingsMenuRow(rows, popup, "調整圖標大小", () -> showAppIconSizeDialog(pkg, appPrefs));
-        addSettingsMenuRow(rows, popup, "更換背景色／自訂色彩", () -> showAppBackgroundColorDialog(pkg, appPrefs));
+        addSettingsMenuRow(rows, popup, "圖標設定", () ->
+                showAppIconSettingsMenu(card, pkg, appPrefs, null, false, null));
         if (appPrefs.contains("label_" + pkg) || appPrefs.contains("hide_" + pkg)
                 || appPrefs.contains("icon_" + pkg) || appPrefs.contains("icon_scale_" + pkg)
                 || appPrefs.contains("icon_scale_adjust_" + pkg) || appPrefs.contains("icon_scale_override_" + pkg)
