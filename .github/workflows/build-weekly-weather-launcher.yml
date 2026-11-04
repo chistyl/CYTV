@@ -27,6 +27,7 @@ on:
       - fix/weekly-weather-dialog-button-clipping-ancestors
       - feature/traditional-chinese-folder-app-lists
       - fix/youtube-pair-dialog-layout-remote-focus
+      - fix/youtube-pair-dialog-buttons-lower-9ad8825
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
