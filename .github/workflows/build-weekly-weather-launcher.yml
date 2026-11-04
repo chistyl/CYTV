@@ -22,6 +22,7 @@ on:
       - feature/weather-icons-emotn-inspired-67c7d53
       - feature/unified-settings-ui-7c7345f
       - fix/weather-city-heading-visible-506e839
+      - fix/icon-appearance-preview-match-desktop-12c6bf4
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
