@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#0E182E</color>
+
+    <!-- CYTV unified EMOTN-inspired settings palette -->
+    <color name="cytv_surface">#FF1D212B</color>
+    <color name="cytv_surface_elevated">#FF343A46</color>
+    <color name="cytv_surface_focused">#FF465366</color>
+    <color name="cytv_accent">#FF80C9C2</color>
+    <color name="cytv_text_primary">#FFF5F6FA</color>
+    <color name="cytv_text_secondary">#FFACB8C1</color>
 </resources>

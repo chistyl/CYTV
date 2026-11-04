@@ -10,6 +10,9 @@ import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -123,6 +126,10 @@ public final class LauncherSettingsActivity extends Activity {
             reverseRow(dockChoices);
             reverseRow(clockChoices);
         }
+        // Explicit row-to-row D-pad routing keeps focus predictable on TV firmware.
+        connectChoiceRows(columnChoices, rowChoices);
+        connectChoiceRows(rowChoices, dockChoices);
+        connectChoiceRows(dockChoices, clockChoices);
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
@@ -139,12 +146,14 @@ public final class LauncherSettingsActivity extends Activity {
             if (advancedEffects) {
                 setAdvanced(false);
             } else {
-                new AlertDialog.Builder(this)
+                AlertDialog dialog = new AlertDialog.Builder(this)
                         .setTitle(R.string.advanced_effects)
                         .setMessage(R.string.advanced_effects_warning)
-                        .setPositiveButton(R.string.enable, (dialog, which) -> setAdvanced(true))
+                        .setPositiveButton(R.string.enable, (d, which) -> setAdvanced(true))
                         .setNegativeButton(android.R.string.cancel, null)
-                        .show();
+                        .create();
+                dialog.show();
+                styleSettingsDialog(dialog);
             }
         });
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
@@ -175,8 +184,47 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
+        for (TextView clock : clockChoices) clock.setNextFocusDownId(wallpaperChoice.getId());
+        wallpaperChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+        connectSettingsVertical(reorderChoice, config.launcherSettingsButton,
+                wallpaperChoice, animationsChoice, advancedChoice, openOnStartChoice,
+                followThemeChoice, findViewById(R.id.defaultHomeChoice),
+                findViewById(R.id.tvSettingsChoice));
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    private void connectChoiceRows(TextView[] upper, TextView[] lower) {
+        for (int i = 0; i < upper.length; i++) {
+            TextView current = upper[i];
+            TextView next = lower[Math.min(i, lower.length - 1)];
+            current.setNextFocusDownId(next.getId());
+            next.setNextFocusUpId(current.getId());
+        }
+        wireHorizontalFocus(upper);
+        wireHorizontalFocus(lower);
+    }
+
+    private void wireHorizontalFocus(TextView[] choices) {
+        if (choices.length == 0) return;
+        LinearLayout row = (LinearLayout) choices[0].getParent();
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View current = row.getChildAt(i);
+            if (i > 0) current.setNextFocusLeftId(row.getChildAt(i - 1).getId());
+            if (i + 1 < row.getChildCount()) current.setNextFocusRightId(row.getChildAt(i + 1).getId());
+        }
+    }
+
+    private void connectSettingsVertical(View reorder, boolean showReorder, View... items) {
+        View previous = showReorder ? reorder : null;
+        for (View item : items) {
+            if (item == null || item.getVisibility() != View.VISIBLE) continue;
+            if (previous != null) {
+                previous.setNextFocusDownId(item.getId());
+                item.setNextFocusUpId(previous.getId());
+            }
+            previous = item;
+        }
     }
 
     private void reverseRow(TextView[] views) {
@@ -198,7 +246,7 @@ public final class LauncherSettingsActivity extends Activity {
         String current = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         int checked = "none".equals(current) ? images.size()
                 : indexOf(images, current);
-        new AlertDialog.Builder(this)
+        AlertDialog wallpaperDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.wallpaper_label)
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     dialog.dismiss();
@@ -218,7 +266,9 @@ public final class LauncherSettingsActivity extends Activity {
                     refresh();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        wallpaperDialog.show();
+        styleSettingsDialog(wallpaperDialog);
     }
 
     /** Off, then every app with a TV entry point by name. Saved at once; it is read on the next boot. */
@@ -242,10 +292,10 @@ public final class LauncherSettingsActivity extends Activity {
             labels[i + 1] = apps.get(i)[0];
             if (apps.get(i)[1].equals(current)) checked = i + 1;
         }
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.open_on_start_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    dialog.dismiss();
+                .setSingleChoiceItems(labels, checked, (choiceDialog, which) -> {
+                    choiceDialog.dismiss();
                     if (which == 0) choices.edit().remove(OpenOnStart.KEY).apply();
                     else {
                         OpenOnStart.skipThisBoot(this);
@@ -254,7 +304,115 @@ public final class LauncherSettingsActivity extends Activity {
                     refresh();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        dialog.show();
+        styleSettingsDialog(dialog);
+    }
+
+
+    /** Shared deep-blue grey surface and teal D-pad focus for settings dialogs. */
+    private void styleSettingsDialog(AlertDialog dialog) {
+        if (dialog.getWindow() != null) {
+            GradientDrawable surface = new GradientDrawable();
+            surface.setColor(0xFF1D212B);
+            surface.setCornerRadius(getResources().getDisplayMetrics().density * 20);
+            surface.setStroke(1, 0x2880C9C2);
+            dialog.getWindow().setBackgroundDrawable(surface);
+            dialog.getWindow().setDimAmount(0.62f);
+        }
+        int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+        TextView title = titleId == 0 ? null : dialog.findViewById(titleId);
+        if (title != null) {
+            title.setTextColor(0xFFF5F6FA);
+            title.setTextSize(20);
+        }
+        TextView message = dialog.findViewById(android.R.id.message);
+        if (message != null) {
+            message.setTextColor(0xFFACB8C1);
+            message.setTextSize(16);
+        }
+        android.widget.ListView list = dialog.getListView();
+        if (list != null) {
+            list.setBackgroundColor(0xFF1D212B);
+            list.setCacheColorHint(0xFF1D212B);
+            list.setSelector(settingsChoiceListSelector());
+            list.setDivider(new android.graphics.drawable.ColorDrawable(0xFF343A46));
+            list.setDividerHeight(1);
+            list.setItemsCanFocus(false);
+            list.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+                @Override public void onScrollStateChanged(android.widget.AbsListView view, int scrollState) { }
+                @Override public void onScroll(android.widget.AbsListView view, int first, int visible, int total) {
+                    for (int i = 0; i < view.getChildCount(); i++) {
+                        styleDialogListItem(view.getChildAt(i));
+                    }
+                }
+            });
+            list.post(() -> {
+                for (int i = 0; i < list.getChildCount(); i++) {
+                    styleDialogListItem(list.getChildAt(i));
+                }
+            });
+        }
+        android.widget.Button[] buttons = {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE),
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL),
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        };
+        for (android.widget.Button button : buttons) {
+            if (button == null) continue;
+            button.setAllCaps(false);
+            button.setTextColor(0xFFF5F6FA);
+            button.setTextSize(15);
+            button.setMinHeight((int) (48 * getResources().getDisplayMetrics().density));
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setBackground(settingsButtonBackground(false));
+            button.setOnFocusChangeListener((view, focused) ->
+                    view.setBackground(settingsButtonBackground(focused)));
+        }
+        android.widget.Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        android.widget.Button primary = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (cancel != null && primary != null) {
+            cancel.setNextFocusRightId(primary.getId());
+            primary.setNextFocusLeftId(cancel.getId());
+        }
+    }
+
+    private StateListDrawable settingsChoiceListSelector() {
+        StateListDrawable selector = new StateListDrawable();
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0x55465366);
+        focused.setCornerRadius(10 * getResources().getDisplayMetrics().density);
+        focused.setStroke(Math.max(2, (int) (2 * getResources().getDisplayMetrics().density)), 0xFF80C9C2);
+        GradientDrawable selected = new GradientDrawable();
+        selected.setColor(0x33465366);
+        selected.setCornerRadius(10 * getResources().getDisplayMetrics().density);
+        selected.setStroke(Math.max(1, (int) getResources().getDisplayMetrics().density), 0xFF80C9C2);
+        selector.addState(new int[]{android.R.attr.state_focused}, focused);
+        selector.addState(new int[]{android.R.attr.state_activated}, selected);
+        selector.addState(new int[]{android.R.attr.state_selected}, selected);
+        selector.addState(new int[]{}, new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        return selector;
+    }
+
+    private void styleDialogListItem(View item) {
+        if (item instanceof TextView) {
+            ((TextView) item).setTextColor(0xFFF5F6FA);
+            ((TextView) item).setTextSize(16);
+        } else if (item instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) item;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                styleDialogListItem(group.getChildAt(i));
+            }
+        }
+    }
+
+    private GradientDrawable settingsButtonBackground(boolean focused) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(focused ? 0xFF465366 : 0xFF343A46);
+        drawable.setCornerRadius(14 * getResources().getDisplayMetrics().density);
+        if (focused) drawable.setStroke(
+                (int) (2 * getResources().getDisplayMetrics().density), 0xFF80C9C2);
+        return drawable;
     }
 
     /** The picked app's name, its package when it is gone, or Off. */

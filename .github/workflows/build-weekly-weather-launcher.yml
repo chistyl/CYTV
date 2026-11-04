@@ -1,4 +1,7 @@
 name: Build CYTV Weekly Weather Launcher
+# CI includes the folder app picker layout validation branch.
+# Pull-request base branch is enabled for CI.
+# Rebuild after the larger app tile and checkbox proportion update.
 
 on:
   push:
@@ -8,12 +11,25 @@ on:
       - fix/folder-app-assignment-sync
       - fix/folder-dialog-dpad-from-baseline
       - feature/weather-icons-emotn-inspired-67c7d53
+      - feature/unified-settings-ui-7c7345f
+      - fix/folder-app-menu-window-anchor-a692da0
+      - fix/weather-city-heading-visible-506e839
+      - fix/icon-appearance-dialog-layout-be2fbe5
+      - fix/icon-appearance-preview-match-desktop-12c6bf4
+      - fix/weather-icons-smaller-be2fbe5
+      - fix/folder-app-picker-inner-layout-be2fbe5
+      - fix/create-folder-dialog-content-layout
+      - fix/create-folder-dialog-fixed-size-content-position
+      - fix/weekly-weather-dialog-fixed-size-white-actions
+      - fix/weather-dialog-viewgroup-clip-methods
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
   pull_request:
     branches:
-      - feature/theme-background-on-60-weather-clean
+      - feature/weather-icons-emotn-inspired-67c7d53
+      - feature/unified-settings-ui-7c7345f
+      - fix/weather-city-heading-visible-506e839
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'

@@ -1,6 +1,8 @@
 package io.github.maxhayim.adblocking;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
@@ -43,7 +45,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(0xFF0D1117);
+        page.setBackgroundColor(0xFF1D212B);
         page.setPadding(px(48), px(32), px(48), px(24));
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
@@ -51,7 +53,7 @@ public class MainActivity extends Activity {
         title.setTextColor(0xFFFFFFFF);
         status = new TextView(this);
         status.setTextSize(15);
-        status.setTextColor(0xFF8B949E);
+        status.setTextColor(0xFFACB8C1);
         status.setPadding(0, 0, 0, px(16));
         page.addView(title);
         page.addView(status);
@@ -180,20 +182,83 @@ public class MainActivity extends Activity {
         field.setSingleLine(true);
         field.setText(start);
         field.setSelection(start.length());
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        field.setTextColor(0xFFF5F6FA);
+        field.setHintTextColor(0xFFACB8C1);
+        field.setTextSize(17);
+        field.setPadding(px(14), px(12), px(14), px(12));
+        field.setBackground(round(0xFF343A46, px(10)));
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(px(8), px(8), px(8), px(4));
+        content.addView(field, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(title)
-                .setView(field)
-                .setPositiveButton("Save", (d, w) -> done.done(field.getText().toString()))
-                .setNegativeButton("Cancel", null)
-                .show();
-        field.requestFocus();
+                .setView(content)
+                .setPositiveButton("儲存", (d, w) -> done.done(field.getText().toString()))
+                .setNegativeButton("取消", null)
+                .create();
+        dialog.setOnShowListener(ignored -> {
+            styleDialog(dialog);
+            field.post(field::requestFocus);
+        });
+        dialog.show();
+    }
+
+    /** Keeps the input dialog visually aligned with CYTV's shared settings palette. */
+    private void styleDialog(AlertDialog dialog) {
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(round(0xFF1D212B, px(20)));
+            dialog.getWindow().setDimAmount(0.62f);
+        }
+        TextView title = dialog.findViewById(getResources().getIdentifier(
+                "alertTitle", "id", "android"));
+        if (title != null) {
+            title.setTextColor(0xFFF5F6FA);
+            title.setTextSize(20);
+        }
+        android.widget.Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        android.widget.Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        android.widget.Button[] buttons = {cancel, save};
+        for (android.widget.Button button : buttons) {
+            if (button == null) continue;
+            button.setAllCaps(false);
+            button.setTextSize(15);
+            button.setTextColor(0xFFF5F6FA);
+            button.setMinHeight(px(48));
+            button.setMinWidth(px(96));
+            button.setPadding(px(16), px(8), px(16), px(8));
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setBackground(round(0xFF343A46, px(14)));
+            button.setOnFocusChangeListener((view, focused) -> {
+                view.setBackground(round(focused ? 0xFF465366 : 0xFF343A46, px(14)));
+                if (focused) {
+                    GradientDrawable outline = round(0xFF465366, px(14));
+                    outline.setStroke(px(2), 0xFF80C9C2);
+                    view.setBackground(outline);
+                }
+            });
+        }
+        if (cancel != null && save != null) {
+            cancel.setNextFocusRightId(save.getId());
+            save.setNextFocusLeftId(cancel.getId());
+        }
+    }
+
+    private GradientDrawable round(int color, int radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(radius);
+        return drawable;
     }
 
     private void heading(String text) {
         TextView h = new TextView(this);
         h.setText(text);
         h.setTextSize(13);
-        h.setTextColor(0xFFE84855);
+        h.setTextColor(0xFF80C9C2);
         h.setPadding(px(16), px(18), 0, px(4));
         rows.addView(h);
     }

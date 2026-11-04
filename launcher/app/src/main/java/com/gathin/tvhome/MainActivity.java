@@ -68,6 +68,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.SoundEffectConstants;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
@@ -213,6 +214,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View weeklyWeatherView;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
+    private TextView weeklyWeatherHeading;
     private boolean weatherHiddenByScroll;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
@@ -553,6 +555,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock = findViewById(R.id.leftBlock);
         weeklyWeatherView = findViewById(R.id.weeklyWeather);
         weeklyWeatherDays = findViewById(R.id.weeklyWeatherDays);
+        weeklyWeatherHeading = findViewById(R.id.weeklyWeatherHeading);
         // Keep the weather card visually below the clock, but outside leftBlock's measurement.
         // Otherwise enabling the forecast shrinks the weighted grid viewport and changes Dock sizing/scroll geometry.
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
@@ -3733,13 +3736,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
         if (anchor == null || root == null) return;
 
+        // Use the anchor's own window token and decor bounds. Folder app tiles live inside
+        // a Dialog window; showing their popup from the Activity root puts it behind that Dialog
+        // and calculates its coordinates against the wrong window.
+        View windowRoot = anchor.getRootView();
+        if (windowRoot == null) windowRoot = root;
         int rootLocation[] = new int[2];
         int anchorLocation[] = new int[2];
-        root.getLocationInWindow(rootLocation);
+        windowRoot.getLocationInWindow(rootLocation);
         anchor.getLocationInWindow(anchorLocation);
 
-        int availableWidth = Math.max(1, root.getWidth());
-        int availableHeight = Math.max(1, root.getHeight());
+        int availableWidth = Math.max(1, windowRoot.getWidth());
+        int availableHeight = Math.max(1, windowRoot.getHeight());
         int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
         int menuWidth = Math.min(desiredWidth, availableWidth - (int) (24 * density));
         menuWidth = Math.max(1, menuWidth);
@@ -3772,7 +3780,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(showBelow ? 0f : menuHeight);
         panel.setScaleY(0.92f);
         panel.setTranslationY((showBelow ? -8f : 8f) * density);
-        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT, x, y);
+        // showAtLocation(anchor) inherits the anchor's window token (including folder Dialogs).
+        popup.showAtLocation(anchor, Gravity.TOP | Gravity.LEFT, x, y);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f)
                 .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
@@ -4061,12 +4070,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
-        TextView heading = new TextView(this);
-        heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
-        heading.setTextColor(Color.WHITE);        heading.setTextSize(16);
-        heading.setTypeface(null, android.graphics.Typeface.BOLD);
-        heading.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(7*density));
-        // Heading spans the visible card width; the forecast row scrolls horizontally below it.        weeklyWeatherDays.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        // Keep the city heading in its own permanent card row, separate from forecast content.
+        // This prevents any forecast refresh/scroll container update from replacing or clipping it.
+        if (weeklyWeatherHeading != null) {
+            weeklyWeatherHeading.setText(TraditionalText.toTraditional(
+                    "一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+            weeklyWeatherHeading.setVisibility(View.VISIBLE);
+        }
 
         LinearLayout forecast = new LinearLayout(this);
         forecast.setOrientation(LinearLayout.HORIZONTAL);
@@ -4283,8 +4293,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             float unit = Math.min(getWidth() / 64f, getHeight() / 48f);
             if (unit <= 0f) return;
             canvas.save();
-            canvas.translate((getWidth() - 64*unit)/2f, (getHeight() - 48*unit)/2f);
-            canvas.scale(unit, unit);
+            // Keep the forecast slot and card layout unchanged; scale only the artwork to 75%.
+            float iconScale = unit * 0.75f;
+            canvas.translate((getWidth() - 64*iconScale)/2f, (getHeight() - 48*iconScale)/2f);
+            canvas.scale(iconScale, iconScale);
 
             boolean fog = weatherCode == 45 || weatherCode == 48;
             boolean sunny = weatherCode == 0 || weatherCode == 1 || weatherCode == 2;
@@ -4361,10 +4373,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private android.graphics.drawable.Drawable remoteWeatherFocusBackground(boolean focused) {
-        // Match the launcher menu: subtle transparent rows, white selected pill.
+        // Match the shared EMOTN palette with a clear teal remote-focus outline.
         GradientDrawable shape = new GradientDrawable();
-        shape.setColor(focused ? 0xFFF4F4F4 : Color.TRANSPARENT);
+        shape.setColor(focused ? 0xFF465366 : Color.TRANSPARENT);
         shape.setCornerRadius(16 * density);
+        if (focused) shape.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
         return shape;
     }
 
@@ -4390,18 +4403,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .show();
     }
 
+    /** Best-effort IP geolocation for the fixed-city weather option; GPS permission is not required. */
+    private String detectWeatherCityFromNetwork() {
+        try {
+            JSONObject location = getJson("https://ipwho.is/");
+            if (!location.optBoolean("success", false)
+                    || !"TW".equalsIgnoreCase(location.optString("country_code", ""))) return null;
+            String region = location.optString("region", "").trim();
+            String city = location.optString("city", "").trim();
+            String source = (region + " " + city).replace("臺", "台").toLowerCase(java.util.Locale.ROOT);
+            String[][] names = {
+                    {"taoyuan", "桃園市"}, {"taipei", "台北市"}, {"new taipei", "新北市"},
+                    {"keelung", "基隆市"}, {"hsinchu county", "新竹縣"}, {"hsinchu", "新竹市"},
+                    {"miaoli", "苗栗縣"}, {"taichung", "台中市"}, {"changhua", "彰化縣"},
+                    {"nantou", "南投縣"}, {"yunlin", "雲林縣"}, {"chiayi", "嘉義市"},
+                    {"tainan", "台南市"}, {"kaohsiung", "高雄市"}, {"pingtung", "屏東縣"},
+                    {"yilan", "宜蘭縣"}, {"hualien", "花蓮縣"}, {"taitung", "台東縣"},
+                    {"penghu", "澎湖縣"}, {"kinmen", "金門縣"}, {"lienchiang", "連江縣"}
+            };
+            for (String[] entry : names) {
+                if (source.contains(entry[0])) return entry[1];
+            }
+            return null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void showWeeklyWeatherSettings() {
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (20 * density);
-        content.setPadding(pad, pad, pad, pad);
+        int pad = (int) (12 * density);
+        // Keep the dialog's outer dimensions fixed; shift the content slightly upward internally.
+        content.setPadding(pad, (int) (8 * density), pad, pad);
         android.widget.Switch toggle = new android.widget.Switch(this);
         toggle.setText("顯示一週天氣"); toggle.setTextColor(Color.WHITE);
         toggle.setFocusable(true); toggle.setFocusableInTouchMode(true);
         toggle.setDefaultFocusHighlightEnabled(false);
         toggle.setPadding((int)(10*density), (int)(8*density), (int)(10*density), (int)(8*density));
-        toggle.setMinHeight((int)(58*density));
+        toggle.setMinHeight((int)(48*density));
         toggle.setMinWidth((int)(150*density));
         toggle.setSwitchMinWidth((int)(76*density));
         // 開關只保留滑鈕與軌道，不顯示「開啟／關閉」文字，避免文字重疊。 
@@ -4410,17 +4451,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         toggle.setBackground(remoteWeatherFocusBackground(false));
         toggle.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(remoteWeatherFocusBackground(focused));
-            toggle.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+            toggle.setTextColor(0xFFF5F6FA);
             v.setScaleX(1f); v.setScaleY(1f);
         });
-        // 高對比灰階開關：開啟時亮色軌道＋深色滑鈕，關閉時深色軌道＋亮色滑鈕。
+        // 開關沿用青綠色選取狀態與藍灰色未選取狀態。
         int[][] switchStates = new int[][] {
                 new int[] { android.R.attr.state_checked }, new int[] {}
         };
         toggle.setThumbTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFF252B34, 0xFFF4F4F4 }));
+                new int[] { 0xFF80C9C2, 0xFFACB8C1 }));
         toggle.setTrackTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFFE8EBEF, 0xFF4A5360 }));
+                new int[] { 0xFF465366, 0xFF343A46 }));
         toggle.setChecked(prefs.getBoolean("enabled", false));
         toggle.setClickable(true);
         toggle.setOnKeyListener((v, keyCode, event) -> {
@@ -4444,13 +4485,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode}) {
             option.setFocusable(true); option.setFocusableInTouchMode(true);
             option.setDefaultFocusHighlightEnabled(false);
-            option.setMinHeight((int)(48*density));
+            option.setMinHeight((int)(42*density));
             option.setPadding((int)(10*density), (int)(5*density), (int)(10*density), (int)(5*density));
             option.setBackground(remoteWeatherFocusBackground(false));
             option.setOnFocusChangeListener((v, focused) -> {
                 android.widget.RadioButton radio = (android.widget.RadioButton) v;
                 v.setBackground(remoteWeatherFocusBackground(focused));
-                radio.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+                radio.setTextColor(0xFFF5F6FA);
                 // Radio checked state uses grayscale, matching the neutral dialog palette.
                 v.setScaleX(1f); v.setScaleY(1f);
             });
@@ -4460,7 +4501,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 new int[] { android.R.attr.state_checked }, new int[] {}
         };
         android.content.res.ColorStateList radioTint = new android.content.res.ColorStateList(
-                radioStates, new int[] { 0xFFDCE1E7, 0xFF9AA3AD });
+                radioStates, new int[] { 0xFF80C9C2, 0xFFACB8C1 });
         device.setButtonTintList(radioTint);
         cityMode.setButtonTintList(radioTint);
         boolean fixed = "city".equals(prefs.getString("location_mode", "device"));
@@ -4479,7 +4520,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cityNormal.setStroke(Math.max(1,(int)(1*density)), 0xFF9AA3AD);
         GradientDrawable cityFocused = new GradientDrawable();
         cityFocused.setColor(0xFFF8F9FA); cityFocused.setCornerRadius(14*density);
-        cityFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF252B34);
+        cityFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         cityField.setBackground(cityNormal);
         cityField.setPadding((int)(3*density), (int)(3*density), (int)(3*density), (int)(3*density));
         cityField.addView(city, new FrameLayout.LayoutParams(-1, -1));
@@ -4488,10 +4529,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             city.setTextColor(0xFF202124);
             v.setScaleX(1f); v.setScaleY(1f);
         });
-        content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(58*density)));
+        content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(52*density)));
         city.setVisibility(fixed ? View.VISIBLE : View.GONE);
-        modes.setOnCheckedChangeListener((g, checked) ->
-                city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
+        final String initialCity = city.getText().toString().trim();
+        final boolean[] cityEditedByUser = {false};
+        city.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().trim().equals(initialCity)) cityEditedByUser[0] = true;
+            }
+            @Override public void afterTextChanged(android.text.Editable s) { }
+        });
+        final boolean[] lookupStarted = {false};
+        modes.setOnCheckedChangeListener((g, checked) -> {
+            boolean showCity = checked == cityMode.getId();
+            city.setVisibility(showCity ? View.VISIBLE : View.GONE);
+            // Only auto-fill the untouched default city. A previously saved custom city is preserved.
+            if (showCity && !lookupStarted[0]
+                    && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
+                lookupStarted[0] = true;
+                weatherExecutor.execute(() -> {
+                    String detected = detectWeatherCityFromNetwork();
+                    if (detected == null) return;
+                    weatherHandler.post(() -> {
+                        if (!cityEditedByUser[0]
+                                && initialCity.equals(city.getText().toString().trim())) {
+                            city.setText(detected);
+                            city.setSelection(city.length());
+                        }
+                    });
+                });
+            }
+        });
+        if (fixed && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
+            // Also perform the lookup when the dialog opens with fixed-city mode already selected.
+            cityMode.setChecked(false);
+            cityMode.setChecked(true);
+        }
         AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
@@ -4502,16 +4576,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }).create();
         weatherDialog.setOnShowListener(ignored -> {
             android.graphics.drawable.GradientDrawable rounded = new android.graphics.drawable.GradientDrawable();
-            rounded.setColor(Color.rgb(58, 62, 70));
+            rounded.setColor(Color.rgb(29, 33, 43));
             rounded.setCornerRadius(22 * density);
             rounded.setStroke(Math.max(1, (int) density), 0x30FFFFFF);
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
         });
         weatherDialog.show();
+        // Lock the dialog to its measured width and height; only its inner content is repositioned.
+        if (weatherDialog.getWindow() != null) {
+            final android.view.Window weatherWindow = weatherDialog.getWindow();
+            weatherWindow.getDecorView().post(() -> {
+                View decor = weatherWindow.getDecorView();
+                int measuredWidth = decor.getWidth();
+                int measuredHeight = decor.getHeight();
+                if (measuredWidth > 0 && measuredHeight > 0) {
+                    weatherWindow.setLayout(measuredWidth, measuredHeight);
+                }
+            });
+        }
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelWeather != null && saveWeather != null) {
             cancelWeather.setAllCaps(false); saveWeather.setAllCaps(false);
+            // The action labels remain white in both focused and unfocused states.
+            cancelWeather.setTextColor(Color.WHITE); saveWeather.setTextColor(Color.WHITE);
             cancelWeather.setFocusable(true); saveWeather.setFocusable(true);
             cancelWeather.setFocusableInTouchMode(true); saveWeather.setFocusableInTouchMode(true);
             cancelWeather.setDefaultFocusHighlightEnabled(false); saveWeather.setDefaultFocusHighlightEnabled(false);
@@ -4521,11 +4609,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343B47); normal.setCornerRadius(14*density);
-            GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFFF4F4F4); focused.setCornerRadius(14*density);
+            // Keep the action-button panel inside the fixed dialog bounds so both buttons remain fully visible.
+            ViewParent weatherButtonParent = cancelWeather.getParent();
+            if (weatherButtonParent instanceof ViewGroup) {
+                ViewGroup weatherButtonContainer = (ViewGroup) weatherButtonParent;
+                // Move the action buttons down by 10dp; keep clipping disabled so both remain fully visible.
+                weatherButtonContainer.setTranslationY(10f * density);
+                weatherButtonContainer.setClipChildren(false);
+                weatherButtonContainer.setClipToPadding(false);
+                weatherButtonContainer.setClipChildren(false);
+                weatherButtonContainer.setClipToPadding(false);
+            }
+            GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
+            GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
+            focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
             View.OnFocusChangeListener focus = (v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button) v).setTextColor(hasFocus ? 0xFF202124 : 0xFFF1F2F4);
+                ((Button) v).setTextColor(0xFFF5F6FA);
                 v.setScaleX(1f); v.setScaleY(1f);
             };
             cancelWeather.setBackground(normal); saveWeather.setBackground(normal);
@@ -4558,7 +4658,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             toggle.setNextFocusUpId(saveWeather.getId());
             toggle.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(remoteWeatherFocusBackground(hasFocus));
-                toggle.setTextColor(hasFocus ? 0xFF202124 : Color.WHITE);
+                toggle.setTextColor(0xFFF5F6FA);
                 v.setAlpha(1f);
                 v.setElevation(0f);
             });
@@ -4660,12 +4760,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(20*density), (int)(16*density), (int)(20*density), (int)(16*density));
         GradientDrawable surface = new GradientDrawable();
-        surface.setColor(Color.rgb(28, 32, 40));
+        surface.setColor(Color.rgb(29, 33, 43));
         surface.setCornerRadius(22*density);
-        surface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        surface.setStroke(Math.max(1, (int)density), 0x2880C9C2);
         outer.setBackground(surface);
         TextView title = new TextView(this);
-        title.setText("勾選要隱藏APP或資料夾"); title.setTextColor(Color.WHITE); title.setTextSize(20);
+        title.setText("勾選要隱藏APP或資料夾"); title.setTextColor(0xFFF5F6FA); title.setTextSize(20);
         title.setPadding((int)(4*density), 0, 0, (int)(12*density));
         outer.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4704,7 +4804,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding((int)(5*density), (int)(5*density), (int)(5*density), (int)(5*density));
         GradientDrawable listSurface = new GradientDrawable();
-        listSurface.setColor(0xFF222832); listSurface.setCornerRadius(16*density);
+        listSurface.setColor(0xFF343A46); listSurface.setCornerRadius(16*density);
         scroll.setBackground(listSurface); scroll.setClipToOutline(true);
         scroll.addView(list);
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
@@ -4714,15 +4814,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final boolean[] showingApps = {true};
         Runnable render = () -> {
             list.removeAllViews();
-            GradientDrawable active = new GradientDrawable(); active.setColor(0xFF465365); active.setCornerRadius(12*density);
-            GradientDrawable idle = new GradientDrawable(); idle.setColor(0xFF303743); idle.setCornerRadius(12*density);
+            // 每次切換 APP／資料夾分頁都回到清單頂端，避免沿用另一分頁的舊捲動位置。
+            scroll.scrollTo(0, 0);
+            GradientDrawable active = new GradientDrawable(); active.setColor(0xFF465366); active.setCornerRadius(12*density);
+            GradientDrawable idle = new GradientDrawable(); idle.setColor(0xFF343A46); idle.setCornerRadius(12*density);
             appTab.setBackground(showingApps[0] ? active : idle);
             folderTab.setBackground(showingApps[0] ? idle : active);
             // Re-apply the focus ring after each tab redraw so selection remains visible.
             if (appTab.hasFocus()) ((GradientDrawable) appTab.getBackground()).setStroke(
-                    Math.max(2, (int)(2*density)), Color.WHITE);
+                    Math.max(2, (int)(2*density)), 0xFF80C9C2);
             if (folderTab.hasFocus()) ((GradientDrawable) folderTab.getBackground()).setStroke(
-                    Math.max(2, (int)(2*density)), Color.WHITE);
+                    Math.max(2, (int)(2*density)), 0xFF80C9C2);
             appTab.setClipToOutline(true); folderTab.setClipToOutline(true);
             if (showingApps[0]) {
                 List<View> appFocusItems = new ArrayList<>();
@@ -4758,7 +4860,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
                     check.setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                            new int[]{Color.WHITE, 0xFF9AA4B2}));
+                            new int[]{0xFF80C9C2, 0xFFACB8C1}));
                     check.setChecked(Boolean.TRUE.equals(selected.get("app:" + pkg)));
                     check.setFocusable(false);
                     check.setOnCheckedChangeListener((button, value) -> selected.put("app:" + pkg, value));
@@ -4768,8 +4870,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     GradientDrawable rowBg = new GradientDrawable(); rowBg.setColor(0x00222832); rowBg.setCornerRadius(10*density);
                     row.setBackground(rowBg); row.setDefaultFocusHighlightEnabled(false);
                     row.setOnFocusChangeListener((v, focused) -> {
-                        rowBg.setColor(focused ? 0xFF394454 : 0x00222832);
-                        rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? Color.WHITE : Color.TRANSPARENT);
+                        rowBg.setColor(focused ? 0xFF465366 : 0x00222832);
+                        rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                         if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                                 new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
                     });
@@ -4828,7 +4930,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
                     check.setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                            new int[]{Color.WHITE, 0xFF9AA4B2}));
+                            new int[]{0xFF80C9C2, 0xFFACB8C1}));
                     check.setChecked(Boolean.TRUE.equals(selected.get("folder:" + folder)));
                     check.setFocusable(false);
                     check.setOnCheckedChangeListener((button, value) -> selected.put("folder:" + folder, value));
@@ -4839,7 +4941,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.setBackground(rowBg); row.setDefaultFocusHighlightEnabled(false);
                     row.setOnFocusChangeListener((v, focused) -> {
                         rowBg.setColor(focused ? 0xFF394454 : 0x00222832);
-                        rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? Color.WHITE : Color.TRANSPARENT);
+                        rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                         if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                                 new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
                     });
@@ -4882,8 +4984,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         appTab.setId(View.generateViewId());
         folderTab.setId(View.generateViewId());
+        // 分頁列左右與上方設為邊界，避免焦點從視窗頂部／左右端跳到視窗外。
+        appTab.setNextFocusLeftId(appTab.getId());
         appTab.setNextFocusRightId(folderTab.getId());
+        appTab.setNextFocusUpId(appTab.getId());
         folderTab.setNextFocusLeftId(appTab.getId());
+        folderTab.setNextFocusRightId(folderTab.getId());
+        folderTab.setNextFocusUpId(folderTab.getId());
         Runnable showApps = () -> { showingApps[0] = true; render.run(); appTab.requestFocus(); };
         Runnable showFolders = () -> { showingApps[0] = false; render.run(); folderTab.requestFocus(); };
         appTab.setOnClickListener(v -> showApps.run());
@@ -4901,7 +5008,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnFocusChangeListener tabFocus = (v, focused) -> {
             GradientDrawable shape = (GradientDrawable) v.getBackground();
             shape.setStroke(focused ? Math.max(2, (int)(2*density)) : 0,
-                    focused ? Color.WHITE : Color.TRANSPARENT);
+                    focused ? 0xFF80C9C2 : Color.TRANSPARENT);
         };
         appTab.setOnFocusChangeListener(tabFocus);
         folderTab.setOnFocusChangeListener(tabFocus);
@@ -4919,10 +5026,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         save.setPadding((int)(24*density), (int)(12*density), (int)(24*density), (int)(12*density));
         cancel.setMinWidth((int)(92*density)); save.setMinWidth((int)(104*density));
         cancel.setMinHeight((int)(52*density)); save.setMinHeight((int)(52*density));
-        GradientDrawable saveBg = new GradientDrawable(); saveBg.setColor(0xFF52647B); saveBg.setCornerRadius(10*density); save.setBackground(saveBg);
-        GradientDrawable actionNormal = new GradientDrawable(); actionNormal.setColor(0xFF343B47); actionNormal.setCornerRadius(10*density);
-        GradientDrawable actionFocused = new GradientDrawable(); actionFocused.setColor(0xFF46566B); actionFocused.setCornerRadius(10*density);
-        actionFocused.setStroke(Math.max(2, (int)(2*density)), Color.WHITE);
+        GradientDrawable saveBg = new GradientDrawable(); saveBg.setColor(0xFF465366); saveBg.setCornerRadius(10*density); save.setBackground(saveBg);
+        GradientDrawable actionNormal = new GradientDrawable(); actionNormal.setColor(0xFF343A46); actionNormal.setCornerRadius(10*density);
+        GradientDrawable actionFocused = new GradientDrawable(); actionFocused.setColor(0xFF465366); actionFocused.setCornerRadius(10*density);
+        actionFocused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
         cancel.setBackground(actionNormal); save.setBackground(saveBg);
         View.OnFocusChangeListener actionFocus = (v, focused) -> v.setBackground(focused ? actionFocused :
                 (v == save ? saveBg : actionNormal));
@@ -4967,10 +5074,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         appTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
         folderTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
+        // 最後一列可能有左右兩個項目，兩者向下都必須進入操作列。
+        if (list.getChildCount() > 0) {
+            android.view.ViewGroup finalGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
+            for (int i = 0; i < finalGrid.getChildCount(); i++) {
+                View candidate = finalGrid.getChildAt(i);
+                if (candidate.isFocusable()) candidate.setNextFocusDownId(cancel.getId());
+            }
+        }
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
         cancel.setNextFocusUpId(lastRow != null ? lastRow.getId() : appTab.getId());
         save.setNextFocusUpId(cancel.getId());
-        cancel.setNextFocusRightId(save.getId()); save.setNextFocusLeftId(cancel.getId());
+        // 操作列的四個方向都有明確邊界；焦點只在取消／儲存按鈕間移動，不可離開視窗。
+        cancel.setNextFocusLeftId(cancel.getId());
+        cancel.setNextFocusRightId(save.getId());
+        cancel.setNextFocusDownId(cancel.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusRightId(save.getId());
+        save.setNextFocusDownId(save.getId());
         outer.post(() -> appTab.requestFocus());
     }
 
@@ -5039,13 +5160,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
-        panel.setBackground(roundSurface(Color.rgb(28, 32, 40), 22*density));
+        panel.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
-        title.setTextColor(Color.WHITE);
+        title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
-        title.setPadding(0, 0, 0, (int)(12*density));
+        title.setPadding(0, 0, 0, (int)(8*density));
         panel.addView(title);
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
@@ -5069,7 +5190,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        randomLabel.setPadding((int)(12*density), 0, 0, 0);
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(42*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
         randomSwitch.setTextOff("");
@@ -5087,13 +5209,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setFocusable(true);
         randomRow.setFocusableInTouchMode(true);
         randomRow.setClickable(true);
-        randomRow.setBackgroundColor(Color.TRANSPARENT);
+        randomRow.setDefaultFocusHighlightEnabled(false);
+        randomRow.setBackground(remoteWeatherFocusBackground(false));
         randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            randomLabel.setTextColor(hasFocus ? 0xFFB9D8D5 : Color.WHITE);
+            v.setBackground(remoteWeatherFocusBackground(hasFocus));
+            randomLabel.setTextColor(0xFFF5F6FA);
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(50*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5138,7 +5262,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                imageLp.height = (int)(80*density);
+                imageLp.height = (int)(72*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5160,15 +5284,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // 選取框立即顯示；實際套用仍要按「儲存」。
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(80*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(72*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(80*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -5193,8 +5317,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-        scrollLp.topMargin = (int)(2*density);
-        scrollLp.bottomMargin = (int)(6*density);
+        scrollLp.topMargin = (int)(4*density);
+        scrollLp.bottomMargin = (int)(8*density);
         panel.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
@@ -5229,19 +5353,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout bottomActions = new LinearLayout(this);
         bottomActions.setOrientation(LinearLayout.HORIZONTAL);
         bottomActions.setGravity(Gravity.CENTER_VERTICAL);
+        // 焦點外框與 elevation 陰影需要額外空間，避免被操作列裁切。
+        bottomActions.setClipChildren(false);
+        bottomActions.setClipToPadding(false);
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
         TextView save = new TextView(this);
-        save.setText("儲存"); save.setTextColor(Color.WHITE); save.setTextSize(16);
+        save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
-        GradientDrawable actionBg = new GradientDrawable();
-        actionBg.setColor(0xFF343B47); actionBg.setCornerRadius(14*density);
-        GradientDrawable actionFocusedBg = new GradientDrawable();
-        actionFocusedBg.setColor(0xFF46566B);
-        actionFocusedBg.setCornerRadius(14*density);
-        actionFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
-        save.setBackground(actionBg);
+        // 取消與儲存必須各自持有獨立 Drawable，避免 Android TV 焦點切換時
+        // 共用 Drawable callback/state，造成「儲存」焦點框繪製錯位或殘影。
+        GradientDrawable saveNormalBg = new GradientDrawable();
+        saveNormalBg.setColor(0xFF343A46);
+        saveNormalBg.setCornerRadius(14*density);
+        GradientDrawable saveFocusedBg = new GradientDrawable();
+        saveFocusedBg.setColor(0xFF465366);
+        saveFocusedBg.setCornerRadius(14*density);
+        saveFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        save.setBackground(saveNormalBg);
         save.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? saveFocusedBg : saveNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         save.setOnClickListener(v -> {
@@ -5259,12 +5391,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
         });
         TextView cancel = new TextView(this);
-        cancel.setText("取消"); cancel.setTextColor(0xFF80CBC4); cancel.setTextSize(16);
+        cancel.setText("取消"); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
-        cancel.setBackground(actionBg);
+        GradientDrawable cancelNormalBg = new GradientDrawable();
+        cancelNormalBg.setColor(0xFF343A46);
+        cancelNormalBg.setCornerRadius(14*density);
+        GradientDrawable cancelFocusedBg = new GradientDrawable();
+        cancelFocusedBg.setColor(0xFF465366);
+        cancelFocusedBg.setCornerRadius(14*density);
+        cancelFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        cancel.setBackground(cancelNormalBg);
         cancel.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? cancelFocusedBg : cancelNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
@@ -5287,7 +5426,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setFocusableInTouchMode(true);
         save.setFocusable(true);
         save.setFocusableInTouchMode(true);
-        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(56*density)));
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -5321,7 +5460,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GradientDrawable border = new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(2 * density);
-        int strokeColor = selected ? 0xFF80CBC4 : (focused ? 0xFFF4F6F8 : Color.TRANSPARENT);
+        int strokeColor = (selected || focused) ? 0xFF80C9C2 : Color.TRANSPARENT;
         border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
         preview.setForeground(border);
     }
@@ -5430,7 +5569,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable rowFocused = new GradientDrawable();
         rowFocused.setColor(0xFF46566B);
         rowFocused.setCornerRadius(14*density);
-        rowFocused.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
+        rowFocused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
         row.setBackground(rowNormal);
         row.setClipToOutline(true);
         row.setFocusable(true);
@@ -5440,12 +5579,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.setId(View.generateViewId());
         row.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(focused ? rowFocused : rowNormal);
-            row.setTextColor(focused ? Color.WHITE : 0xFFE8EBF0);
+            row.setTextColor(0xFFF5F6FA);
             v.setElevation(focused ? 4*density : 0f);
             // No scaling: keep the complete rounded focus outline inside the dialog.
         });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        lp.bottomMargin = (int)(8*density);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(46*density));
+        lp.bottomMargin = (int)(6*density);
         panel.addView(row, lp);
         row.setOnClickListener(v -> action.run());
         return row;
@@ -5458,21 +5597,22 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setFocusable(true);
         name.setFocusableInTouchMode(true);
         name.setSelectAllOnFocus(false);
-        name.setTextSize(20f); name.setTextColor(Color.WHITE); name.setHintTextColor(0xFF9AA4B2);
+        name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
         name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         name.setHint("輸入資料夾名稱");
         LinearLayout nameWrap = new LinearLayout(this);
         nameWrap.setOrientation(LinearLayout.VERTICAL);
-        nameWrap.setPadding((int) (24 * density), (int) (12 * density),
-                (int) (24 * density), (int) (8 * density));
+        // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
+        nameWrap.setPadding((int) (24 * density), (int) (8 * density),
+                (int) (24 * density), (int) (4 * density));
         nameWrap.setClipChildren(false); nameWrap.setClipToPadding(false);
         GradientDrawable fieldNormal = new GradientDrawable();
-        fieldNormal.setColor(0xFF242A34); fieldNormal.setCornerRadius(12*density);
-        fieldNormal.setStroke(Math.max(1,(int)density), 0x554F5B6B);
+        fieldNormal.setColor(0xFF343A46); fieldNormal.setCornerRadius(12*density);
+        fieldNormal.setStroke(Math.max(1,(int)density), 0x6680C9C2);
         GradientDrawable fieldFocused = new GradientDrawable();
-        fieldFocused.setColor(0xFF293640); fieldFocused.setCornerRadius(12*density);
-        fieldFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80CBC4);
+        fieldFocused.setColor(0xFF465366); fieldFocused.setCornerRadius(12*density);
+        fieldFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         name.setBackground(fieldNormal);
         name.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(focused ? fieldFocused : fieldNormal);
@@ -5500,8 +5640,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }).create();
         createDialog.show();
         if (createDialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(28,32,40));
-            rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x28FFFFFF);
+            GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(29,33,43));
+            rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             createDialog.getWindow().setBackgroundDrawable(rounded);
         }
         // TV remote focus order: name field -> Cancel -> Create. Avoid relying on
@@ -5513,9 +5653,26 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancelButton.setMinWidth((int)(104*density)); createButton.setMinWidth((int)(104*density));
             cancelButton.setMinHeight((int)(50*density)); createButton.setMinHeight((int)(50*density));
             LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelLp.rightMargin = (int)(20*density); cancelButton.setLayoutParams(cancelLp);
+            cancelLp.width = (int)(112*density);
+            cancelLp.height = (int)(54*density);
+            cancelLp.rightMargin = (int)(12*density);
+            cancelButton.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams createLp = (LinearLayout.LayoutParams) createButton.getLayoutParams();
-            createLp.leftMargin = (int)(6*density); createButton.setLayoutParams(createLp);
+            createLp.width = (int)(112*density);
+            createLp.height = (int)(54*density);
+            createLp.leftMargin = 0;
+            createButton.setLayoutParams(createLp);
+            // 將兩顆等寬操作按鈕整組靠右，保留一致的右側內距與較緊湊間距。
+            ViewParent buttonParent = cancelButton.getParent();
+            if (buttonParent instanceof LinearLayout) {
+                LinearLayout buttonRow = (LinearLayout) buttonParent;
+                buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+                // 增加按鈕列上方留白，讓操作按鈕往下移；外層視窗寬度不變。
+                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(10*density),
+                        (int)(24*density), 0);
+                buttonRow.setClipChildren(false);
+                buttonRow.setClipToPadding(false);
+            }
             cancelButton.setId(View.generateViewId());
             createButton.setId(View.generateViewId());
             name.setNextFocusDownId(cancelButton.getId());
@@ -5528,15 +5685,16 @@ private GradientDrawable roundSurface(int color, float radius) {
                 button.setTextColor(0xFFF1F2F4);
                 button.setElevation(0f);
                 GradientDrawable normal = new GradientDrawable();
-                normal.setColor(0xFF343B47);
+                normal.setColor(0xFF343A46);
                 normal.setCornerRadius(14*density);
                 GradientDrawable focused = new GradientDrawable();
-                focused.setColor(0xFFF4F4F4);
+                focused.setColor(0xFF465366);
                 focused.setCornerRadius(14*density);
+                focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
                 button.setBackground(normal);
                 button.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setBackground(hasFocus ? focused : normal);
-                    ((Button) v).setTextColor(hasFocus ? 0xFF202124 : 0xFFF1F2F4);
+                    ((Button) v).setTextColor(0xFFF5F6FA);
                     v.setElevation(hasFocus ? 2f*density : 0f);
                     v.setScaleX(1f);
                     v.setScaleY(1f);
@@ -5544,7 +5702,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 button.setMinHeight((int)(54*density));
                 button.setMinWidth((int)(112*density));
             }
-            // Make the focused action unmistakable on TV: bright teal fill + thick white ring.
+            // Use the shared teal focus outline for TV remote actions.
             cancelButton.setNextFocusRightId(createButton.getId());
             createButton.setNextFocusLeftId(cancelButton.getId());
             name.setNextFocusDownId(cancelButton.getId());
@@ -5585,6 +5743,21 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancelButton.setOnKeyListener(actionNavigation);
             createButton.setOnKeyListener(actionNavigation);
         }
+        // 外層視窗只增加高度，寬度沿用 AlertDialog 原本實際寬度。
+        if (createDialog.getWindow() != null) {
+            createDialog.getWindow().getDecorView().post(() -> {
+                android.view.Window window = createDialog.getWindow();
+                if (window == null) return;
+                View decor = window.getDecorView();
+                int originalWidth = decor.getWidth();
+                int originalHeight = decor.getHeight();
+                if (originalWidth <= 0 || originalHeight <= 0) return;
+                int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                int targetHeight = Math.min(originalHeight + (int)(20*density),
+                        screenHeight - (int)(48*density));
+                window.setLayout(originalWidth, targetHeight);
+            });
+        }
         name.setId(View.generateViewId());
         name.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
         if (cancelButton != null) {
@@ -5616,7 +5789,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setClipChildren(false);
         list.setClipToPadding(false);
-        list.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
+        list.setPadding((int)(18*density), (int)(8*density), (int)(18*density), (int)(8*density));
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
 
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
@@ -5635,7 +5808,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
             tile.setId(View.generateViewId());
-            tile.setPadding((int)(7*density), (int)(5*density), (int)(7*density), (int)(5*density));
+            tile.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
             tile.setMinimumHeight((int)(82*density));
 
             FrameLayout art = new FrameLayout(this);
@@ -5659,36 +5832,37 @@ private GradientDrawable roundSurface(int color, float radius) {
                 image.setPadding(pad, pad, pad, pad);
             }
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            tile.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
+            tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
-            check.setTextColor(Color.WHITE);
-            check.setTextSize(14);
+            check.setTextColor(0xFFF5F6FA);
+            check.setTextSize(15);
             check.setChecked(checked[i]);
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                    new int[]{Color.WHITE, 0xFF9AA4B2}));
-            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(64*density), 1f);
-            checkLp.leftMargin = (int)(7*density);
+                    new int[]{0xFF80C9C2, 0xFFACB8C1}));
+            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(68*density), 1f);
+            checkLp.leftMargin = (int)(10*density);
             check.setLayoutParams(checkLp);
             check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
             tile.addView(check);
 
             GradientDrawable tileBg = new GradientDrawable();
-            tileBg.setColor(0x18333333);
+            tileBg.setColor(0x18343A46);
             tileBg.setCornerRadius(10*density);
             tile.setBackground(tileBg);
             tile.setDefaultFocusHighlightEnabled(false);
             tile.setOnFocusChangeListener((v, focused) -> {
-                tileBg.setColor(focused ? 0xFFF4F4F4 : 0x18333333);
-                check.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+                tileBg.setColor(focused ? 0xFF465366 : 0x18343A46);
+                tileBg.setStroke(focused ? Math.max(2, (int)(2*density)) : 0,
+                        focused ? 0xFF80C9C2 : Color.TRANSPARENT);
+                check.setTextColor(0xFFF5F6FA);
                 check.setButtonTintList(new ColorStateList(
                         new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                        new int[]{focused ? 0xFF202124 : Color.WHITE,
-                                focused ? 0xFF7B8490 : 0xFF9AA4B2}));
-                v.setElevation(focused ? 2f * density : 0f);
+                        new int[]{0xFF80C9C2, 0xFFACB8C1}));
+                v.setElevation(focused ? 3f * density : 0f);
                 if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                         new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
@@ -5731,10 +5905,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             View tile = selectionTiles.get(i);
             int row = i / 2;
             int column = i % 2;
-            if (column == 0 && i + 1 < selectionTiles.size())
-                tile.setNextFocusRightId(selectionTiles.get(i + 1).getId());
-            if (column == 1)
-                tile.setNextFocusLeftId(selectionTiles.get(i - 1).getId());
+            tile.setNextFocusLeftId(column == 1 ? selectionTiles.get(i - 1).getId() : tile.getId());
+            tile.setNextFocusRightId(column == 0 && i + 1 < selectionTiles.size()
+                    ? selectionTiles.get(i + 1).getId() : tile.getId());
             int down = i + 2;
             if (down < selectionTiles.size()) tile.setNextFocusDownId(selectionTiles.get(down).getId());
             int up = i - 2;
@@ -5747,15 +5920,16 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.show();
         if (dialog.getWindow() != null) {
             GradientDrawable rounded = new GradientDrawable();
-            rounded.setColor(Color.rgb(28,32,40));
+            rounded.setColor(0xFF1D212B);
             rounded.setCornerRadius(22*density);
-            rounded.setStroke(Math.max(1,(int)density),0x28FFFFFF);
+            rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
                     Math.min((int)(660*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
         }
+        styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
@@ -5771,6 +5945,26 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
             saveParams.leftMargin = (int)(4*density);
             saveButton.setLayoutParams(saveParams);
+
+            // 底部操作列增加明確的上下留白，避免取消／儲存按鈕貼近對話框邊緣。
+            ViewParent actionParent = cancelButton.getParent();
+            if (actionParent instanceof ViewGroup) {
+                ViewGroup actionPanel = (ViewGroup) actionParent;
+                actionPanel.setClipToPadding(false);
+                actionPanel.setPadding(
+                        actionPanel.getPaddingLeft(),
+                        actionPanel.getPaddingTop() + (int)(32*density),
+                        actionPanel.getPaddingRight(),
+                        Math.max(0, actionPanel.getPaddingBottom() - (int)(8*density)));
+            }
+            LinearLayout.LayoutParams cancelSpacing = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+            cancelSpacing.topMargin = (int)(6*density);
+            cancelSpacing.bottomMargin = (int)(6*density);
+            cancelButton.setLayoutParams(cancelSpacing);
+            LinearLayout.LayoutParams saveSpacing = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
+            saveSpacing.topMargin = (int)(6*density);
+            saveSpacing.bottomMargin = (int)(6*density);
+            saveButton.setLayoutParams(saveSpacing);
             cancelButton.setFocusable(true);
             saveButton.setFocusable(true);
             cancelButton.setFocusableInTouchMode(true);
@@ -5785,15 +5979,16 @@ private GradientDrawable roundSurface(int color, float radius) {
             buttonNormal.setColor(0xFF343B47);
             buttonNormal.setCornerRadius(14*density);
             GradientDrawable buttonFocused = new GradientDrawable();
-            buttonFocused.setColor(0xFFF4F4F4);
+            buttonFocused.setColor(0xFF465366);
             buttonFocused.setCornerRadius(14*density);
+            buttonFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
             cancelButton.setBackground(buttonNormal);
             saveButton.setBackground(buttonNormal);
             cancelButton.setTextColor(0xFFF1F2F4);
             saveButton.setTextColor(0xFFF1F2F4);
             View.OnFocusChangeListener buttonFocus = (v, focused) -> {
                 v.setBackground(focused ? buttonFocused : buttonNormal);
-                ((Button)v).setTextColor(focused ? 0xFF202124 : 0xFFF1F2F4);
+                ((Button)v).setTextColor(0xFFF5F6FA);
                 v.setScaleX(1f);
                 v.setScaleY(1f);
             };
@@ -5803,16 +5998,25 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusLeftId(cancelButton.getId());
             if (!selectionTiles.isEmpty()) {
                 View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
-                lastRowTile.setNextFocusDownId(cancelButton.getId());
+                int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+                // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
+                for (int i = lastRowStart; i < selectionTiles.size(); i++)
+                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
+                // 第一列向上回到操作列；中間列仍依同欄上下移動。
+                for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
+                    selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(lastRowTile.getId());
                 saveButton.setNextFocusUpId(lastRowTile.getId());
-            }
-            if (!selectionTiles.isEmpty()) {
-                View first = selectionTiles.get(0);
-                first.setNextFocusUpId(cancelButton.getId());
             } else {
                 cancelButton.post(cancelButton::requestFocus);
             }
+            // 操作列的焦點邊界封閉在 Dialog 內。
+            cancelButton.setNextFocusLeftId(cancelButton.getId());
+            cancelButton.setNextFocusRightId(saveButton.getId());
+            cancelButton.setNextFocusDownId(cancelButton.getId());
+            saveButton.setNextFocusLeftId(cancelButton.getId());
+            saveButton.setNextFocusRightId(saveButton.getId());
+            saveButton.setNextFocusDownId(saveButton.getId());
         }
         if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
@@ -5841,10 +6045,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             item.setFocusable(true); item.setFocusableInTouchMode(true); item.setClickable(true);
             item.setId(View.generateViewId());
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47); normal.setCornerRadius(12*d);
+            normal.setColor(0xFF343A46); normal.setCornerRadius(12*d);
             GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF00AFA5); focused.setCornerRadius(12*d);
-            focused.setStroke(Math.max(3,(int)(3*d)), Color.WHITE);
+            focused.setColor(0xFF465366); focused.setCornerRadius(12*d);
+            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
             item.setBackground(normal); item.setDefaultFocusHighlightEnabled(false);
             item.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
@@ -5858,6 +6062,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
                 return false;
             });
+            item.setNextFocusLeftId(item.getId());
+            item.setNextFocusRightId(item.getId());
             if (!folderRows.isEmpty()) {
                 View previous = folderRows.get(folderRows.size()-1);
                 previous.setNextFocusDownId(item.getId()); item.setNextFocusUpId(previous.getId());
@@ -5883,19 +6089,25 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
             cancel.setDefaultFocusHighlightEnabled(false);
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47); normal.setCornerRadius(14*d);
+            normal.setColor(0xFF343A46); normal.setCornerRadius(14*d);
             GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF00AFA5); focused.setCornerRadius(14*d);
-            focused.setStroke(Math.max(3,(int)(3*d)), Color.WHITE);
+            focused.setColor(0xFF465366); focused.setCornerRadius(14*d);
+            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
             cancel.setBackground(normal);
             cancel.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFF80CBC4);
+                ((Button)v).setTextColor(0xFFF5F6FA);
             });
             if (!folderRows.isEmpty()) {
+                View first = folderRows.get(0);
                 View last = folderRows.get(folderRows.size()-1);
-                last.setNextFocusDownId(cancel.getId()); cancel.setNextFocusUpId(last.getId());
+                first.setNextFocusUpId(first.getId());
+                last.setNextFocusDownId(cancel.getId());
+                cancel.setNextFocusUpId(last.getId());
             }
+            cancel.setNextFocusDownId(cancel.getId());
+            cancel.setNextFocusLeftId(cancel.getId());
+            cancel.setNextFocusRightId(cancel.getId());
         }
         if (!folderRows.isEmpty()) folderRows.get(0).post(folderRows.get(0)::requestFocus);
         else if (cancel != null) cancel.post(cancel::requestFocus);
@@ -5905,14 +6117,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         edit.setFocusable(true);
         edit.setFocusableInTouchMode(true);
         edit.setSelectAllOnFocus(false);
-        edit.setTextColor(Color.WHITE);
-        edit.setHintTextColor(0xFF9AA4B2);
+        edit.setTextColor(0xFFF5F6FA);
+        edit.setHintTextColor(0xFFACB8C1);
         edit.setPadding((int)(12*density), (int)(10*density), (int)(12*density), (int)(10*density));
         edit.setBackgroundTintList(new ColorStateList(
                 new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
-                new int[]{0xFF00D5C8, 0xFF80CBC4}));
+                new int[]{0xFF80C9C2, 0xFFACB8C1}));
         edit.setOnFocusChangeListener((v, focused) -> {
-            v.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xFF00D5C8 : 0xFF80CBC4));
+            v.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xFF80C9C2 : 0xFFACB8C1));
             v.setElevation(focused ? 4f*density : 0f);
         });
     }
@@ -5926,14 +6138,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
         cancel.setAllCaps(false); save.setAllCaps(false);
         GradientDrawable normal = new GradientDrawable();
-        normal.setColor(0xFF343B47); normal.setCornerRadius(14*density);
+        normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
         GradientDrawable focused = new GradientDrawable();
-        focused.setColor(0xFF00AFA5); focused.setCornerRadius(14*density);
-        focused.setStroke(Math.max(3,(int)(3*density)), Color.WHITE);
+        focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
+        focused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         View.OnFocusChangeListener focus = (v, hasFocus) -> {
             v.setBackground(hasFocus ? focused : normal);
-            ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFF80CBC4);
-            v.setScaleX(hasFocus ? 1.03f : 1f); v.setScaleY(hasFocus ? 1.03f : 1f);
+            ((Button)v).setTextColor(0xFFF5F6FA);
+            v.setScaleX(hasFocus ? 1.02f : 1f); v.setScaleY(hasFocus ? 1.02f : 1f);
         };
         cancel.setBackground(normal); save.setBackground(normal);
         cancel.setOnFocusChangeListener(focus); save.setOnFocusChangeListener(focus);
@@ -6073,7 +6285,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         android.graphics.drawable.GradientDrawable outerSurface = new android.graphics.drawable.GradientDrawable();
-        outerSurface.setColor(Color.rgb(28, 32, 40));
+        outerSurface.setColor(Color.rgb(29, 33, 43));
         outerSurface.setCornerRadius(22 * density);
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -6146,8 +6358,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 cardSurface.setColor(savedBackground); cardSurface.setCornerRadius(20*density);
                 tvCard.setBackground(cardSurface);
                 // Draw the border as a foreground overlay, separate from the card fill and
-                // artwork clipping. This keeps the yellow focus stroke at one consistent
-                // physical-pixel width on every row and for both folder types.
+                // artwork clipping. Keep the shared CYTV teal focus stroke consistent
+                // on every row and for both folder types.
                 GradientDrawable cardBorder = new GradientDrawable();
                 cardBorder.setColor(Color.TRANSPARENT);
                 cardBorder.setCornerRadius(20 * density);
@@ -6181,7 +6393,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
                     cardBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
-                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
+                            focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                     tvCard.setElevation(focused ? 10f * density : 0f);
                 });
                 tile.setOnKeyListener((v, keyCode, event) -> {
@@ -6246,7 +6458,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
                 FrameLayout addCard = new FrameLayout(this);
                 GradientDrawable addSurface = new GradientDrawable();
-                addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(20*density);
+                addSurface.setColor(0xFF343A46); addSurface.setCornerRadius(20*density);
                 addCard.setBackground(addSurface);
                 GradientDrawable addBorder = new GradientDrawable();
                 addBorder.setColor(Color.TRANSPARENT);
@@ -6273,7 +6485,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
                     addBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
-                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
+                            focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                     addCard.setElevation(focused ? 10f * density : 0f);
                 });
                 add.setOnKeyListener((v, keyCode, event) -> {
@@ -6329,12 +6541,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.setMinHeight((int)(52*density));
         close.setId(View.generateViewId());
         GradientDrawable closeNormal = new GradientDrawable();
-        closeNormal.setColor(0xFF343B47); closeNormal.setCornerRadius(14*density);
+        closeNormal.setColor(0xFF343A46); closeNormal.setCornerRadius(14*density);
         closeNormal.setStroke(Math.max(1, Math.round(1f * density)), 0x24FFFFFF);
         GradientDrawable closeFocused = new GradientDrawable();
-        closeFocused.setColor(0xFF46566B); closeFocused.setCornerRadius(14*density);
-        // Keep the close action visually distinct with a thinner white focus outline.
-        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), Color.WHITE);
+        closeFocused.setColor(0xFF465366); closeFocused.setCornerRadius(14*density);
+        // Match the shared teal focus outline used by the rest of the launcher.
+        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), 0xFF80C9C2);
         close.setBackground(closeNormal);
         close.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? closeFocused : closeNormal));
         close.setOnClickListener(v -> dialog.dismiss());
@@ -6452,6 +6664,24 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
+    /** Shared TV-remote friendly SeekBar styling for icon size and RGB controls. */
+    private void styleCytvAppearanceSeekBar(SeekBar bar) {
+        ColorStateList thumbColors = new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
+                new int[]{0xFF80C9C2, 0xFFACB8C1});
+        ColorStateList progressColors = new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
+                new int[]{0xFF80C9C2, 0xFF80C9C2});
+        bar.setThumbTintList(thumbColors);
+        bar.setProgressTintList(progressColors);
+        bar.setProgressBackgroundTintList(ColorStateList.valueOf(0xFF465366));
+        bar.setOnFocusChangeListener((v, focused) -> {
+            v.setElevation(focused ? 4f * density : 0f);
+            v.setScaleX(focused ? 1.015f : 1f);
+            bar.setThumbTintList(ColorStateList.valueOf(focused ? 0xFF80C9C2 : 0xFFACB8C1));
+        });
+    }
+
     /** 同一個設定介面同時調整 APP 圖標大小與背景色。 */
     private void showAppAppearanceSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
                                                String folderName, boolean systemFolder, Dialog folderDialog) {
@@ -6466,18 +6696,15 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(14*density), (int)(2*density), (int)(14*density), (int)(2*density));
+        panel.setPadding((int)(18*density), (int)(6*density), (int)(18*density), (int)(8*density));
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
-        if (preview.view.getChildAt(0) != null) {
-            LinearLayout.LayoutParams previewCardLp = (LinearLayout.LayoutParams) preview.view.getChildAt(0).getLayoutParams();
-            previewCardLp.width = (int)(220*density);
-            previewCardLp.height = Math.round(previewCardLp.width * 9f / 16f);
-            preview.view.getChildAt(0).setLayoutParams(previewCardLp);
-        }
+        preview.view.setPadding(0, (int)(2*density), 0, (int)(4*density));
+        // Keep the preview card dimensions owned by the shared preview builder.
+        // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
             previewNameLp.height = (int)(20*density);
@@ -6497,6 +6724,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setProgress(Math.max(0, Math.min(250, currentScale + 50)));
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
+        styleCytvAppearanceSeekBar(sizeBar);
         LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
         sizeBarLp.bottomMargin = (int)(5*density);
         panel.addView(sizeBar, sizeBarLp);
@@ -6532,6 +6760,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setProgress(rgb[i]);
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
+            styleCytvAppearanceSeekBar(bar);
             LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(34*density));
             barLp.bottomMargin = (int)(4*density);
             panel.addView(bar, barLp);
@@ -6548,16 +6777,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
 
         updateCombinedPreview[0] = () -> {
-            int adjustment=sizeBar.getProgress()-50;
-            float scale=Math.max(0.5f,Math.min(3f,1f+adjustment/100f));
-            // 與電視桌面 APP 卡片使用相同的內距縮放公式，預覽直接呈現實際比例。
-            int iconPadding=Math.max((int)(3*density),(int)(13*density/scale));
-            preview.targetIcon.setPadding(iconPadding,iconPadding,iconPadding,iconPadding);
-            GradientDrawable bg=new GradientDrawable();
-            bg.setColor(Color.rgb(rgb[0],rgb[1],rgb[2]));
-            bg.setCornerRadius(14*density);
+            int adjustment = sizeBar.getProgress() - 50;
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            // Match AppAdapter.iconBanner(): a 240px square mark on a 640px-wide 16:9 tile.
+            int cardWidth = preview.targetCard.getWidth() > 0
+                    ? preview.targetCard.getWidth()
+                    : preview.targetCard.getLayoutParams().width;
+            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
+            iconLp.width = iconSide;
+            iconLp.height = iconSide;
+            iconLp.gravity = Gravity.CENTER;
+            preview.targetIcon.setPadding(0, 0, 0, 0);
+            preview.targetIcon.setLayoutParams(iconLp);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
+            bg.setCornerRadius(14 * density);
             preview.targetCard.setBackground(bg);
-            for(int i=0;i<3;i++) channelLabels[i].setText(channelNames[i]+"："+rgb[i]);
+            for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){if(updateCombinedPreview[0]!=null) updateCombinedPreview[0].run();}
@@ -6589,16 +6827,16 @@ private GradientDrawable roundSurface(int color, float radius) {
             button.setFocusableInTouchMode(true);
             button.setDefaultFocusHighlightEnabled(false);
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47);
+            normal.setColor(0xFF343A46);
             normal.setCornerRadius(12*density);
             button.setBackground(normal);
             button.setTextColor(0xFFE8EBF0);
             button.setId(View.generateViewId());
             button.setOnFocusChangeListener((v,focused)->{
                 GradientDrawable bg = new GradientDrawable();
-                bg.setColor(focused ? 0xFF46566B : 0xFF343B47);
+                bg.setColor(focused ? 0xFF465366 : 0xFF343A46);
                 bg.setCornerRadius(12*density);
-                if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
+                if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80C9C2);
                 v.setBackground(bg);
                 ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
             });
@@ -6646,14 +6884,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.show();
         if(dialog.getWindow()!=null) {
             GradientDrawable surface=new GradientDrawable();
-            surface.setColor(0xFF303030);
+            surface.setColor(0xFF1D212B);
             surface.setCornerRadius(22*density);
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
-            int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
-            dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    dialogHeight);
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            int screenWidth = metrics.widthPixels;
+            int dialogWidth = Math.min((int)(760*density), Math.round(screenWidth * 0.86f));
+            // Let the content determine height; keep the dialog centered with breathing room
+            // instead of stretching it to almost the full TV screen.
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
@@ -7036,7 +7277,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         previewArea.setGravity(Gravity.CENTER_HORIZONTAL);
         previewArea.setClipChildren(false);
         previewArea.setClipToPadding(false);
-        previewArea.setPadding((int)(4*density), (int)(12*density), (int)(4*density), (int)(14*density));
+        previewArea.setPadding((int)(4*density), (int)(8*density), (int)(4*density), (int)(10*density));
         AppIconPreviewStrip result = new AppIconPreviewStrip(previewArea);
 
         // Only preview the APP currently being edited. Do not show or adjust other APPs.
@@ -7046,16 +7287,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         background.setCornerRadius(14*density);
         card.setBackground(background);
         card.setClipToOutline(true);
-        int cardWidth = (int)(260*density);
+        // A more compact 16:9 preview card leaves the settings controls visually balanced.
+        int cardWidth = (int)(220*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
-        float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-        int iconPadding = Math.max((int)(3*density), (int)(13*density/scale));
-        icon.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-        card.addView(icon, new FrameLayout.LayoutParams(-1, -1));
+        float iconScale = Math.max(0.10f, Math.min(3.75f,
+                1.25f * (1f + adjust / 100f)));
+        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
         TextView name = new TextView(this);
@@ -7115,8 +7358,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             barNormal.setColor(Color.TRANSPARENT);
             barNormal.setCornerRadius(14 * density);
             GradientDrawable barFocused = new GradientDrawable();
-            barFocused.setColor(0xFFF4F4F4);
+            barFocused.setColor(0xFF465366);
             barFocused.setCornerRadius(14 * density);
+            barFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
             bar.setBackground(barNormal);
             bar.setPadding((int)(10 * density), (int)(5 * density), (int)(10 * density), (int)(5 * density));
             bar.setOnFocusChangeListener((v, focused) -> {
@@ -7171,8 +7415,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionNormal.setColor(0xFF343B47);
         actionNormal.setCornerRadius(14 * density);
         GradientDrawable actionFocused = new GradientDrawable();
-        actionFocused.setColor(0xFFF4F4F4);
+        actionFocused.setColor(0xFF465366);
         actionFocused.setCornerRadius(14 * density);
+        actionFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         for (int i = 0; i < actions.length; i++) {
             Button button = actions[i];
             if (button == null) continue;
@@ -7252,7 +7497,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable seekNormal = new GradientDrawable();
         seekNormal.setColor(0x18333333); seekNormal.setCornerRadius(12*density);
         GradientDrawable seekFocused = new GradientDrawable();
-        seekFocused.setColor(0xFFF4F4F4); seekFocused.setCornerRadius(14*density);
+        seekFocused.setColor(0xFF465366); seekFocused.setCornerRadius(14*density);
+        seekFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         seekWrap.setBackground(seekNormal);
         seekWrap.setDefaultFocusHighlightEnabled(false);
         seekWrap.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? seekFocused : seekNormal));
@@ -7267,9 +7513,12 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         Runnable updatePreview = () -> {
             int adjustment = size.getProgress() - 50;
-            float scale = 1f + adjustment / 100f;
-            int side = Math.max((int)(18*density),
-                    Math.min((int)(72*density), Math.round(livePreview.iconBaseDp * density * scale)));
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            int cardWidth = livePreview.targetCard.getWidth() > 0
+                    ? livePreview.targetCard.getWidth()
+                    : livePreview.targetCard.getLayoutParams().width;
+            int side = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
             if (livePreview.targetIcon != null) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) livePreview.targetIcon.getLayoutParams();
                 lp.width = side;
@@ -7278,7 +7527,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 livePreview.targetIcon.setLayoutParams(lp);
             }
             value.setText("調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
-                    + "%　｜　實際圖標比例：" + Math.round(125f * (1f + adjustment / 100f)) + "%");
+                    + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%");
         };
         size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -7320,7 +7569,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable actionNormal = new GradientDrawable();
         actionNormal.setColor(0xFF343B47); actionNormal.setCornerRadius(14*density);
         GradientDrawable actionFocused = new GradientDrawable();
-        actionFocused.setColor(0xFFF4F4F4); actionFocused.setCornerRadius(14*density);
+        actionFocused.setColor(0xFF465366); actionFocused.setCornerRadius(14*density);
+        actionFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         for (int i = 0; i < actions.length; i++) {
             Button button = actions[i];
             if (button == null) continue;
@@ -7374,6 +7624,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addSettingsMenuRow(folderRows, folderPopup, "重新命名", () -> {
                     EditText edit = new EditText(this);
                     edit.setSingleLine(true);
+                    edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                     edit.setText(oldName);
                     AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
                             .setNegativeButton("取消", null).setPositiveButton("儲存", (dialog, which) -> {
@@ -7383,6 +7634,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                                     return;
                                 }
                                 java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
+                                if (!newName.equals(oldName) && folders.contains(newName)) {
+                                    Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+                                if (newName.equals(oldName)) return;
                                 java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
                                 updated.remove(oldName); updated.add(newName);
                                 java.util.Set<String> members = folderPrefs.getStringSet("folder_apps_" + oldName, java.util.Collections.<String>emptySet());
@@ -7400,7 +7656,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
             if (key.contains("/folder:")) {
                 addSettingsMenuRow(folderRows, folderPopup, "刪除資料夾", () -> {
-                    new AlertDialog.Builder(this).setTitle("刪除資料夾")
+                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除資料夾")
                             .setMessage("刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。")
                             .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
                                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
@@ -7410,7 +7666,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                                 folderPrefs.edit().putStringSet("home_folders", updated)
                                         .remove("folder_apps_" + oldName).apply();
                                 reloadApps(false);
-                            }).show();
+                            }).create();
+                    deleteDialog.show();
+                    styleRemoteDialogActions(deleteDialog);
                 });
             }
             addSettingsMenuRow(folderRows, folderPopup, hidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
@@ -7542,17 +7800,26 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.setFocusableInTouchMode(true);
         row.setClickable(true);
         row.setDefaultFocusHighlightEnabled(false);
+        // Reference menu style: a clean white rounded pill for the focused row,
+        // with plain white text on the dark glass panel for every unfocused row.
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(Color.TRANSPARENT);
         normal.setCornerRadius(18 * density);
-        GradientDrawable selected = new GradientDrawable();        selected.setColor(0xFFF4F4F4);
-        selected.setCornerRadius(18 * density);
-        row.setBackground(normal);
-        row.setPadding((int)(12*density), 0, (int)(12*density), 0);
-        row.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? selected : normal);
-            rowTitle.setTextColor(focused ? 0xFF202124 : Color.WHITE);
-            v.setElevation(focused ? 2*density : 0f);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0xFFF3F3F3);
+        focused.setCornerRadius(18 * density);
+        android.graphics.drawable.StateListDrawable focusBackground =
+                new android.graphics.drawable.StateListDrawable();
+        focusBackground.addState(new int[]{android.R.attr.state_focused}, focused);
+        focusBackground.addState(new int[]{android.R.attr.state_selected}, focused);
+        focusBackground.addState(new int[]{}, normal);
+        row.setBackground(focusBackground);
+        row.setPadding((int) (20 * density), 0, (int) (12 * density), 0);
+        row.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setSelected(hasFocus);
+            rowTitle.setTextColor(hasFocus ? 0xFF303033 : 0xFFF5F5F5);
+            v.setElevation(0f);
+            v.refreshDrawableState();
         });
         row.setOnClickListener(v -> {
             popup.dismiss();

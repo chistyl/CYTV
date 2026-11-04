@@ -315,6 +315,20 @@
                     android:paddingBottom="10dp"
                     android:orientation="vertical"
                     android:visibility="gone">
+                    <TextView
+                        android:id="@+id/weeklyWeatherHeading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="7dp"
+                        android:text="一週天氣"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
                     <LinearLayout
                         android:id="@+id/weeklyWeatherDays"
                         android:layout_width="match_parent"
