@@ -207,26 +207,77 @@ public class YouTubeAssistantActivity extends Activity {
             styleDialog(dialog, false);
             android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
             android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            // D-pad traversal: code field -> action row; left/right switches Cancel/Connect.
+
+            // Keep the pairing panel centered and comfortably inset on TV screens.
+            if (dialog.getWindow() != null) {
+                android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+                int dialogWidth = (int) (metrics.widthPixels * 0.88f);
+                dialog.getWindow().setLayout(dialogWidth,
+                        android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+                dialog.getWindow().setGravity(android.view.Gravity.CENTER);
+                dialog.getWindow().setSoftInputMode(
+                        android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            }
+
+            // Explicit D-pad route for Android TV remotes: input -> Cancel -> Connect.
             if (cancelButton != null && connectButton != null) {
                 input.setNextFocusDownId(cancelButton.getId());
+                input.setNextFocusUpId(input.getId());
                 cancelButton.setNextFocusUpId(input.getId());
-                connectButton.setNextFocusUpId(input.getId());
+                cancelButton.setNextFocusDownId(input.getId());
                 cancelButton.setNextFocusRightId(connectButton.getId());
                 connectButton.setNextFocusLeftId(cancelButton.getId());
+                connectButton.setNextFocusUpId(input.getId());
+                connectButton.setNextFocusDownId(input.getId());
             }
+
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
                     input.setError("請輸入配對代碼");
+                    input.requestFocus();
                     return;
                 }
                 dialog.dismiss();
                 pair(code);
             });
-            // styleDialog posts its default button focus; override it after layout so the
-            // first D-pad focus lands in the pairing-code field, not on Cancel.
-            input.post(input::requestFocus);
+
+            dialog.setOnKeyListener((d, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                View focused = dialog.getCurrentFocus();
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && focused == input
+                        && cancelButton != null) {
+                    cancelButton.requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        && (focused == cancelButton || focused == connectButton)) {
+                    input.requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && focused == cancelButton
+                        && connectButton != null) {
+                    connectButton.requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && focused == connectButton
+                        && cancelButton != null) {
+                    cancelButton.requestFocus();
+                    return true;
+                }
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)
+                        && focused instanceof android.widget.Button) {
+                    focused.performClick();
+                    return true;
+                }
+                return false;
+            });
+
+            // Request focus after the dialog has completed its first layout pass.
+            input.post(() -> {
+                input.requestFocus();
+                input.setSelection(input.length());
+            });
         });
         dialog.show();
     }
