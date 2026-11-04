@@ -12,6 +12,8 @@ on:
       - fix/folder-app-menu-window-anchor-a692da0
       - fix/weather-city-heading-visible-506e839
       - fix/icon-appearance-preview-match-desktop-12c6bf4
+      - fix/icon-appearance-preview-match-desktop-12c6bf4
+      - fix/reboot-dialog-cytv-style-be2fbe5
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
