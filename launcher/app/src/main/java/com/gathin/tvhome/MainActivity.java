@@ -5582,7 +5582,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 LinearLayout buttonRow = (LinearLayout) buttonParent;
                 buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
                 // 增加按鈕列上方留白，讓操作按鈕往下移；外層視窗寬度不變。
-                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(30*density),
+                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(10*density),
                         (int)(24*density), 0);
                 buttonRow.setClipChildren(false);
                 buttonRow.setClipToPadding(false);
