@@ -5,6 +5,7 @@ on:
     branches:
       - feature/merge-app-icon-settings
       - fix/app-appearance-action-button-shadow-29716a8
+      - fix/app-appearance-action-row-lower-29716a8
     paths:
       - 'launcher/**'
       - '.github/workflows/build-merged-icon-settings.yml'
