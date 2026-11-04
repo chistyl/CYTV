@@ -6453,6 +6453,24 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
+    /** Shared TV-remote friendly SeekBar styling for icon size and RGB controls. */
+    private void styleCytvAppearanceSeekBar(SeekBar bar) {
+        ColorStateList thumbColors = new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
+                new int[]{0xFF80C9C2, 0xFFACB8C1});
+        ColorStateList progressColors = new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
+                new int[]{0xFF80C9C2, 0xFF80C9C2});
+        bar.setThumbTintList(thumbColors);
+        bar.setProgressTintList(progressColors);
+        bar.setProgressBackgroundTintList(ColorStateList.valueOf(0xFF465366));
+        bar.setOnFocusChangeListener((v, focused) -> {
+            v.setElevation(focused ? 4f * density : 0f);
+            v.setScaleX(focused ? 1.015f : 1f);
+            bar.setThumbTintList(ColorStateList.valueOf(focused ? 0xFF80C9C2 : 0xFFACB8C1));
+        });
+    }
+
     /** 同一個設定介面同時調整 APP 圖標大小與背景色。 */
     private void showAppAppearanceSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
                                                String folderName, boolean systemFolder, Dialog folderDialog) {
@@ -6498,6 +6516,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setProgress(Math.max(0, Math.min(250, currentScale + 50)));
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
+        styleCytvAppearanceSeekBar(sizeBar);
         LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
         sizeBarLp.bottomMargin = (int)(5*density);
         panel.addView(sizeBar, sizeBarLp);
@@ -6533,6 +6552,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setProgress(rgb[i]);
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
+            styleCytvAppearanceSeekBar(bar);
             LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(34*density));
             barLp.bottomMargin = (int)(4*density);
             panel.addView(bar, barLp);
@@ -6599,7 +6619,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(focused ? 0xFF465366 : 0xFF343A46);
                 bg.setCornerRadius(12*density);
-                if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
+                if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80C9C2);
                 v.setBackground(bg);
                 ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
             });
