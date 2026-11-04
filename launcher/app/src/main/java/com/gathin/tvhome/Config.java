@@ -638,6 +638,11 @@ final class Config {
             glowStyle = string(json, "glow_style", glowStyle);
             glassStyle = string(json, "glass_style", glassStyle);
         }
+        // The home screen must keep its first app row as the bottom-pinned Dock. A theme may customize
+        // its appearance, but must not turn dock_row off and spread the first apps into the ordinary grid.
+        // This does not enable single_row: the remaining apps stay in the normal vertical grid.
+        dockRow = true;
+
         // A top-bar app is moved there, not copied: it leaves the grid.
         for (String pkg : topBarApps) if (!hidden.contains(pkg)) hidden.add(pkg);
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
