@@ -5040,7 +5040,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
-        panel.setBackground(roundSurface(Color.rgb(28, 32, 40), 22*density));
+        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
         title.setTextColor(Color.WHITE);
@@ -5089,7 +5089,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setClickable(true);
         randomRow.setBackgroundColor(Color.TRANSPARENT);
         randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            randomLabel.setTextColor(hasFocus ? 0xFFB9D8D5 : Color.WHITE);
+            randomLabel.setTextColor(hasFocus ? 0xFF80C9C2 : 0xFFF5F6FA);
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
@@ -5234,11 +5234,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
         GradientDrawable actionBg = new GradientDrawable();
-        actionBg.setColor(0xFF343B47); actionBg.setCornerRadius(14*density);
+        actionBg.setColor(0xFF343A46); actionBg.setCornerRadius(14*density);
         GradientDrawable actionFocusedBg = new GradientDrawable();
-        actionFocusedBg.setColor(0xFF46566B);
+        actionFocusedBg.setColor(0xFF465366);
         actionFocusedBg.setCornerRadius(14*density);
-        actionFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
+        actionFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
         save.setBackground(actionBg);
         save.setOnFocusChangeListener((v, hasFocus) -> {
             v.setBackground(hasFocus ? actionFocusedBg : actionBg);
