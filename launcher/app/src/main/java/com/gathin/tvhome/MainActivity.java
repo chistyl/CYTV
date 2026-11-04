@@ -4294,7 +4294,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             boolean rain = (weatherCode >= 51 && weatherCode <= 67)
                     || (weatherCode >= 80 && weatherCode <= 82) || thunder;
 
-            if (sunny) drawSun();
+            if (sunny) drawSun(canvas);
             cloud(canvas, sunny ? 39 : 32, sunny ? 27 : 24, sunny ? 0.83f : 1f);
 
             if (fog) {
