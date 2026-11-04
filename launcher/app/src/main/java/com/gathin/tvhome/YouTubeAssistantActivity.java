@@ -192,6 +192,7 @@ public class YouTubeAssistantActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         // Give the help text and code field balanced left/right insets inside the fixed dialog.
         // Balanced horizontal inset for both helper text and pairing code field.
+        // Keep these insets independent from the fixed outer dialog dimensions.
         box.setPadding(dp(20), dp(6), dp(20), dp(8));
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
         box.addView(help);
