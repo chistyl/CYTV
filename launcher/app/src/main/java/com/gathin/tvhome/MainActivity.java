@@ -4659,6 +4659,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.addView(tabs);
 
         ScrollView scroll = new ScrollView(this);
+        // 隱藏卷軸視覺，但保留 ScrollView 的自動捲動能力。
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding((int)(5*density), (int)(5*density), (int)(5*density), (int)(5*density));
@@ -4673,7 +4677,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final boolean[] showingApps = {true};
         Runnable render = () -> {
             list.removeAllViews();
-            View[] previousFocusableRow = {null};
             GradientDrawable active = new GradientDrawable(); active.setColor(0xFF465365); active.setCornerRadius(12*density);
             GradientDrawable idle = new GradientDrawable(); idle.setColor(0xFF303743); idle.setCornerRadius(12*density);
             appTab.setBackground(showingApps[0] ? active : idle);
@@ -4685,6 +4688,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.max(2, (int)(2*density)), Color.WHITE);
             appTab.setClipToOutline(true); folderTab.setClipToOutline(true);
             if (showingApps[0]) {
+                List<View> appFocusItems = new ArrayList<>();
+                LinearLayout[] appGridRow = {null};
                 for (ResolveInfo ri : appList) {
                     String pkg = ri.activityInfo.packageName;
                     LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
@@ -4723,22 +4728,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.addView(check, new LinearLayout.LayoutParams((int)(56*density), (int)(64*density)));
                     row.setFocusable(true); row.setFocusableInTouchMode(true); row.setClickable(true); row.setMinimumHeight((int)(76*density));
                     row.setId(View.generateViewId());
-                    if (previousFocusableRow[0] != null) {
-                        previousFocusableRow[0].setNextFocusDownId(row.getId());
-                        row.setNextFocusUpId(previousFocusableRow[0].getId());
-                    } else {
-                        row.setNextFocusUpId(showingApps[0] ? appTab.getId() : folderTab.getId());
-                    }
-                    previousFocusableRow[0] = row;
-                    row.setOnFocusChangeListener((v, focused) -> {
-                        if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
-                                new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
-                    });
                     GradientDrawable rowBg = new GradientDrawable(); rowBg.setColor(0x00222832); rowBg.setCornerRadius(10*density);
                     row.setBackground(rowBg); row.setDefaultFocusHighlightEnabled(false);
                     row.setOnFocusChangeListener((v, focused) -> {
                         rowBg.setColor(focused ? 0xFF394454 : 0x00222832);
                         rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? Color.WHITE : Color.TRANSPARENT);
+                        if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
+                                new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
                     });
                     row.setOnClickListener(v -> check.setChecked(!check.isChecked()));
                     row.setOnKeyListener((v,key,event) -> {
@@ -4747,13 +4743,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         }
                         return false;
                     });
-                    LinearLayout.LayoutParams appRowLp = new LinearLayout.LayoutParams(-1, -2);
+                    if (appGridRow[0] == null) {
+                        appGridRow[0] = new LinearLayout(this);
+                        appGridRow[0].setOrientation(LinearLayout.HORIZONTAL);
+                        appGridRow[0].setGravity(Gravity.CENTER_VERTICAL);
+                    }
+                    LinearLayout.LayoutParams appRowLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     appRowLp.setMargins((int)(3*density), (int)(3*density), (int)(3*density), (int)(3*density));
-                    list.addView(row, appRowLp);
-                    View divider = new View(this); divider.setBackgroundColor(0x22FFFFFF);
-                    list.addView(divider, new LinearLayout.LayoutParams(-1, Math.max(1, (int)density)));
+                    appGridRow[0].addView(row, appRowLp);
+                    appFocusItems.add(row);
+                    if (appGridRow[0].getChildCount() == 2) {
+                        list.addView(appGridRow[0], new LinearLayout.LayoutParams(-1, -2));
+                        appGridRow[0] = null;
+                    }
+                }
+                if (appGridRow[0] != null) {
+                    View spacer = new View(this);
+                    appGridRow[0].addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+                    list.addView(appGridRow[0], new LinearLayout.LayoutParams(-1, -2));
+                }
+                for (int i = 0; i < appFocusItems.size(); i++) {
+                    View item = appFocusItems.get(i);
+                    item.setNextFocusLeftId(i % 2 == 1 ? appFocusItems.get(i - 1).getId() : appTab.getId());
+                    item.setNextFocusRightId(i % 2 == 0 && i + 1 < appFocusItems.size()
+                            ? appFocusItems.get(i + 1).getId() : folderTab.getId());
+                    item.setNextFocusUpId(i >= 2 ? appFocusItems.get(i - 2).getId() : appTab.getId());
+                    item.setNextFocusDownId(i + 2 < appFocusItems.size()
+                            ? appFocusItems.get(i + 2).getId() : cancel.getId());
                 }
             } else {
+                List<View> folderFocusItems = new ArrayList<>();
+                LinearLayout[] folderGridRow = {null};
                 for (String folder : folders) {
                     LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
                     row.setPadding((int)(12*density), (int)(6*density), (int)(8*density), (int)(6*density));
@@ -4778,22 +4798,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.addView(check, new LinearLayout.LayoutParams((int)(56*density), (int)(64*density)));
                     row.setFocusable(true); row.setFocusableInTouchMode(true); row.setClickable(true); row.setMinimumHeight((int)(76*density));
                     row.setId(View.generateViewId());
-                    if (previousFocusableRow[0] != null) {
-                        previousFocusableRow[0].setNextFocusDownId(row.getId());
-                        row.setNextFocusUpId(previousFocusableRow[0].getId());
-                    } else {
-                        row.setNextFocusUpId(folderTab.getId());
-                    }
-                    previousFocusableRow[0] = row;
-                    row.setOnFocusChangeListener((v, focused) -> {
-                        if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
-                                new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
-                    });
                     GradientDrawable rowBg = new GradientDrawable(); rowBg.setColor(0x00222832); rowBg.setCornerRadius(10*density);
                     row.setBackground(rowBg); row.setDefaultFocusHighlightEnabled(false);
                     row.setOnFocusChangeListener((v, focused) -> {
                         rowBg.setColor(focused ? 0xFF394454 : 0x00222832);
                         rowBg.setStroke(focused ? Math.max(2,(int)(2*density)) : 0, focused ? Color.WHITE : Color.TRANSPARENT);
+                        if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
+                                new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
                     });
                     row.setOnClickListener(v -> check.setChecked(!check.isChecked()));
                     row.setOnKeyListener((v,key,event) -> {
@@ -4802,11 +4813,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         }
                         return false;
                     });
-                    LinearLayout.LayoutParams folderRowLp = new LinearLayout.LayoutParams(-1, -2);
+                    if (folderGridRow[0] == null) {
+                        folderGridRow[0] = new LinearLayout(this);
+                        folderGridRow[0].setOrientation(LinearLayout.HORIZONTAL);
+                        folderGridRow[0].setGravity(Gravity.CENTER_VERTICAL);
+                    }
+                    LinearLayout.LayoutParams folderRowLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     folderRowLp.setMargins((int)(3*density), (int)(3*density), (int)(3*density), (int)(3*density));
-                    list.addView(row, folderRowLp);
-                    View divider = new View(this); divider.setBackgroundColor(0x22FFFFFF);
-                    list.addView(divider, new LinearLayout.LayoutParams(-1, Math.max(1, (int)density)));
+                    folderGridRow[0].addView(row, folderRowLp);
+                    folderFocusItems.add(row);
+                    if (folderGridRow[0].getChildCount() == 2) {
+                        list.addView(folderGridRow[0], new LinearLayout.LayoutParams(-1, -2));
+                        folderGridRow[0] = null;
+                    }
+                }
+                if (folderGridRow[0] != null) {
+                    View spacer = new View(this);
+                    folderGridRow[0].addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+                    list.addView(folderGridRow[0], new LinearLayout.LayoutParams(-1, -2));
+                }
+                for (int i = 0; i < folderFocusItems.size(); i++) {
+                    View item = folderFocusItems.get(i);
+                    item.setNextFocusLeftId(i % 2 == 1 ? folderFocusItems.get(i - 1).getId() : folderTab.getId());
+                    item.setNextFocusRightId(i % 2 == 0 && i + 1 < folderFocusItems.size()
+                            ? folderFocusItems.get(i + 1).getId() : appTab.getId());
+                    item.setNextFocusUpId(i >= 2 ? folderFocusItems.get(i - 2).getId() : folderTab.getId());
+                    item.setNextFocusDownId(i + 2 < folderFocusItems.size()
+                            ? folderFocusItems.get(i + 2).getId() : cancel.getId());
                 }
             }
         };
