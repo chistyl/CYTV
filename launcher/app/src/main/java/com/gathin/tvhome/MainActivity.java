@@ -807,6 +807,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         });
 
+        // Apply the bottom-dock inset before the first frame is drawn. RecyclerView can complete
+        // its initial measure/layout before the size-change callback above has a usable height;
+        // in that case the first frame exposes the entire app grid at the top. Recompute from
+        // the measured viewport in pre-draw, then let the resulting layout pass draw the dock.
+        if (dockRow && !singleRow) {
+            final ViewTreeObserver.OnPreDrawListener dockFirstFrame = new ViewTreeObserver.OnPreDrawListener() {
+                @Override public boolean onPreDraw() {
+                    if (grid.getHeight() <= 0 || adapter == null || adapter.appCount() == 0) return true;
+                    int h = grid.getHeight();
+                    int inner = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+                    if (inner <= 0) return true;
+                    int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, 0, cfg.dockTitle, true, density);
+                    int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+                    int dockHeight = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);
+                    int want = Math.max(0, h - dockHeight - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
+                    want += (int) (25 * density);
+                    if (grid.getPaddingTop() != want) {
+                        grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+                        grid.requestLayout();
+                        return false;
+                    }
+                    grid.getViewTreeObserver().removeOnPreDrawListener(this);
+                    return true;
+                }
+            };
+            grid.getViewTreeObserver().addOnPreDrawListener(dockFirstFrame);
+            grid.post(grid::requestLayout);
+        }
+
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             // Hide any app row as soon as it starts crossing the grid's upper clipping edge.
