@@ -4502,7 +4502,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         city.setVisibility(fixed ? View.VISIBLE : View.GONE);
         modes.setOnCheckedChangeListener((g, checked) ->
                 city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
-        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
+        ScrollView weatherContentScroll = new ScrollView(this);
+        weatherContentScroll.setFillViewport(false);
+        weatherContentScroll.setVerticalScrollBarEnabled(false);
+        weatherContentScroll.setHorizontalScrollBarEnabled(false);
+        weatherContentScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        weatherContentScroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(weatherContentScroll).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
                     String value = city.getText().toString().trim();
@@ -6694,11 +6700,21 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
-        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        LinearLayout dialogRoot = new LinearLayout(this);
+        dialogRoot.setOrientation(LinearLayout.VERTICAL);
+        dialogRoot.setPadding(0, 0, 0, (int)(4*density));
+        ScrollView appearanceScroll = new ScrollView(this);
+        appearanceScroll.setFillViewport(false);
+        appearanceScroll.setVerticalScrollBarEnabled(false);
+        appearanceScroll.setHorizontalScrollBarEnabled(false);
+        appearanceScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        appearanceScroll.addView(panel, new ScrollView.LayoutParams(-1, -2));
+        dialogRoot.addView(appearanceScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        dialogRoot.addView(actionRow, new LinearLayout.LayoutParams(-1, (int)(53*density)));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
-                .setView(panel)
+                .setView(dialogRoot)
                 .create();
         resetButton.setOnClickListener(v -> {
             prefs.edit().remove("icon_scale_adjust_"+packageName)
@@ -6730,7 +6746,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
+            int safeHeight = Math.max((int)(260*density), screenHeight-(int)(48*density));
+            int dialogHeight = Math.min((int)(590*density), safeHeight);
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     dialogHeight);
         }
