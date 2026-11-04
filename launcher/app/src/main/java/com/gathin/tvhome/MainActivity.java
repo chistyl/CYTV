@@ -5458,7 +5458,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setFocusable(true);
         name.setFocusableInTouchMode(true);
         name.setSelectAllOnFocus(false);
-        name.setTextSize(20f); name.setTextColor(Color.WHITE); name.setHintTextColor(0xFF9AA4B2);
+        name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
         name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         name.setHint("輸入資料夾名稱");
@@ -5678,7 +5678,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.addView(check);
 
             GradientDrawable tileBg = new GradientDrawable();
-            tileBg.setColor(0x18333333);
+            tileBg.setColor(0x18343A46);
             tileBg.setCornerRadius(10*density);
             tile.setBackground(tileBg);
             tile.setDefaultFocusHighlightEnabled(false);
@@ -5749,15 +5749,16 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.show();
         if (dialog.getWindow() != null) {
             GradientDrawable rounded = new GradientDrawable();
-            rounded.setColor(Color.rgb(28,32,40));
+            rounded.setColor(0xFF1D212B);
             rounded.setCornerRadius(22*density);
-            rounded.setStroke(Math.max(1,(int)density),0x28FFFFFF);
+            rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
                     Math.min((int)(660*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
         }
+        styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
