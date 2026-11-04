@@ -997,8 +997,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
-        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;
-        if (iconOnlyVpn) {
+        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;        if (iconOnlyVpn) {
             vpnPlainBackground = btnVpn.getBackground().getConstantState();
             vpnPlainInk = btnVpn.getCompoundDrawableTintList();
             makeIconOnly(btnVpn);
@@ -1997,8 +1996,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void refitGlass() {
         if (isDestroyed() || adapter.appCount() == 0 || libraryFocusPending) return;
         int pos = Math.max(0, Math.min(lastFocused, adapter.appCount() - 1));
-        RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
-        View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
+        RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);        View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
         if (card == null || card.getWidth() <= 0 || !card.isFocused()) return;
         float pad = 6f * density;
         float scale = adapter.focusScale();
@@ -2997,8 +2995,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 default: color = 0x99FFFFFF;
             }
             row.setSpan(new android.text.style.ForegroundColorSpan(color), start, row.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        raceSessions.setText(row);
+        }        raceSessions.setText(row);
         racePanel.setVisibility(View.VISIBLE);
     }
 
@@ -3997,8 +3994,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.addView(status, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
-        if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
+    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {        if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
@@ -4997,8 +4993,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.min((int)(520*density), getResources().getDisplayMetrics().widthPixels-(int)(36*density)),
                     (int)(screenHeight * 0.90f));
         }
-        choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());
-    }
+        choices.getChildAt(0).post(() -> choices.getChildAt(0).requestFocus());    }
 
 private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable drawable = new GradientDrawable();
@@ -5997,8 +5992,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
             int target = -1;
             int column = index % folderColumns;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
                     && index + 1 < folderFocusTiles.size()) target = index + 1;
             else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
             else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -6042,6 +6036,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
 
+        addSettingsMenuRow(rows, popup, "即時預覽", () -> showAppIconLivePreviewDialog(prefs));
         addSettingsMenuRow(rows, popup, "更換圖標", () -> {
             pendingIconPackage = packageName;
             pendingFolderNameAfterAppEdit = folderName;
@@ -6075,6 +6070,107 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         dropIn(popup, panel, anchor, Gravity.START);
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    /** 同一畫面預覽桌面所有 APP 圖標；卡片固定 16:9，圖標置中並套用各 APP 已儲存的比例。 */
+    private void showAppIconLivePreviewDialog(SharedPreferences prefs) {
+        int count = adapter == null ? 0 : adapter.appCount();
+        if (count <= 0) {
+            Toast.makeText(this, "目前沒有可預覽的 APP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setClipChildren(false);
+        scroll.setClipToPadding(false);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding((int)(14*density), (int)(12*density), (int)(14*density), (int)(14*density));
+        content.setClipChildren(false);
+        content.setClipToPadding(false);
+        TextView heading = new TextView(this);
+        heading.setText("所有 APP 圖標即時預覽");
+        heading.setTextColor(Color.WHITE);
+        heading.setTextSize(16);
+        heading.setTypeface(null, Typeface.BOLD);
+        heading.setPadding((int)(4*density), 0, 0, (int)(10*density));
+        content.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
+        final int columns = 5;
+        int dialogWidth = Math.min((int)(820*density),
+                getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+        int cellWidth = Math.max((int)(92*density), (dialogWidth - (int)(28*density)) / columns);
+        LinearLayout currentRow = null;
+        int visible = 0;
+        for (int i = 0; i < count; i++) {
+            String pkg = adapter.packageAt(i);
+            if (pkg == null || pkg.equals(getPackageName())) continue;
+            if (visible % columns == 0) {
+                currentRow = new LinearLayout(this);
+                currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                currentRow.setGravity(Gravity.TOP | Gravity.START);
+                content.addView(currentRow, new LinearLayout.LayoutParams(-1, -2));
+            }
+            FrameLayout tile = new FrameLayout(this);
+            GradientDrawable tileBackground = new GradientDrawable();
+            tileBackground.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
+            tileBackground.setCornerRadius(12*density);
+            tile.setBackground(tileBackground);
+            tile.setClipToOutline(true);
+            ImageView icon = new ImageView(this);
+            icon.setImageDrawable(loadFolderAppIcon(pkg, prefs));
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+            float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
+            int iconSide = Math.max((int)(24*density), Math.min((int)(68*density), Math.round(46*density*scale)));
+            tile.addView(icon, new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER));
+
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER_HORIZONTAL);
+            cell.setPadding((int)(4*density), (int)(4*density), (int)(4*density), (int)(9*density));
+            int tileWidth = cellWidth - (int)(10*density);
+            int tileHeight = Math.round(tileWidth * 9f / 16f);
+            cell.addView(tile, new LinearLayout.LayoutParams(tileWidth, tileHeight));
+            TextView label = new TextView(this);
+            label.setText(adapter.labelAt(i));
+            label.setTextColor(0xFFE8EBF0);
+            label.setTextSize(11);
+            label.setGravity(Gravity.CENTER);
+            label.setMaxLines(1);
+            label.setEllipsize(TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, (int)(22*density));
+            labelLp.topMargin = (int)(3*density);
+            cell.addView(label, labelLp);
+            currentRow.addView(cell, new LinearLayout.LayoutParams(cellWidth, -2));
+            visible++;
+        }
+        if (visible == 0) {
+            Toast.makeText(this, "目前沒有可預覽的 APP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        AlertDialog previewDialog = new AlertDialog.Builder(this)
+                .setTitle("圖標設定｜即時預覽").setView(scroll).setPositiveButton("關閉", null).create();
+        previewDialog.show();
+        if (previewDialog.getWindow() != null) {
+            GradientDrawable surface = new GradientDrawable();
+            surface.setColor(0xFF20242C);
+            surface.setCornerRadius(22*density);
+            surface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+            previewDialog.getWindow().setBackgroundDrawable(surface);
+            previewDialog.getWindow().setLayout(dialogWidth,
+                    Math.min((int)(660*density), getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+        }
+        Button close = previewDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (close != null) {
+            close.setAllCaps(false);
+            close.setFocusable(true);
+            close.setFocusableInTouchMode(true);
+            close.setDefaultFocusHighlightEnabled(false);
+            close.setTextColor(Color.WHITE);
+        }
     }
 
     /**
@@ -6997,8 +7093,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         };
         keep.setOnClickListener(choose);
         show.setOnClickListener(choose);
-        dialog.setOnCancelListener(d -> choose.onClick(keep));
-        dialog.setOnDismissListener(d -> {
+        dialog.setOnCancelListener(d -> choose.onClick(keep));        dialog.setOnDismissListener(d -> {
             if (cardPrompt == dialog) cardPrompt = null;
         });
         // Left and Right move between the two buttons; Up and Down stay put; the ends don't wrap.
