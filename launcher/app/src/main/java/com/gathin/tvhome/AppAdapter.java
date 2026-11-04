@@ -245,7 +245,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.showLibrary = LibraryApps.showPill(cfg.appLibrary, cfg.libraryButton, cfg.showLibraryPill);
         this.reducedMotion = cfg.reducedMotion;
         this.focusOvershoot = cfg.focusOvershoot;
-        this.rowsBelowDock = cfg.rowsBelowDock;
+        // MainActivity keeps only the pinned Dock visible at rest when dock_row is enabled.
+        // Use the same row count for tile sizing; otherwise the adapter shrinks tiles for rows
+        // that the host layout deliberately does not show, so its measured Dock position drifts.
+        this.rowsBelowDock = cfg.dockRow ? 0 : cfg.rowsBelowDock;
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
         this.singleRow = cfg.singleRow;
