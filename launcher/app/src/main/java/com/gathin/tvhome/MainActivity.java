@@ -5809,6 +5809,26 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
             saveParams.leftMargin = (int)(4*density);
             saveButton.setLayoutParams(saveParams);
+
+            // 底部操作列增加明確的上下留白，避免取消／儲存按鈕貼近對話框邊緣。
+            ViewParent actionParent = cancelButton.getParent();
+            if (actionParent instanceof ViewGroup) {
+                ViewGroup actionPanel = (ViewGroup) actionParent;
+                actionPanel.setClipToPadding(false);
+                actionPanel.setPadding(
+                        actionPanel.getPaddingLeft(),
+                        actionPanel.getPaddingTop() + (int)(12*density),
+                        actionPanel.getPaddingRight(),
+                        actionPanel.getPaddingBottom() + (int)(16*density));
+            }
+            LinearLayout.LayoutParams cancelSpacing = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+            cancelSpacing.topMargin = (int)(6*density);
+            cancelSpacing.bottomMargin = (int)(6*density);
+            cancelButton.setLayoutParams(cancelSpacing);
+            LinearLayout.LayoutParams saveSpacing = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
+            saveSpacing.topMargin = (int)(6*density);
+            saveSpacing.bottomMargin = (int)(6*density);
+            saveButton.setLayoutParams(saveSpacing);
             cancelButton.setFocusable(true);
             saveButton.setFocusable(true);
             cancelButton.setFocusableInTouchMode(true);
