@@ -4434,14 +4434,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (20 * density);
+        int pad = (int) (12 * density);
         content.setPadding(pad, pad, pad, pad);
         android.widget.Switch toggle = new android.widget.Switch(this);
         toggle.setText("顯示一週天氣"); toggle.setTextColor(Color.WHITE);
         toggle.setFocusable(true); toggle.setFocusableInTouchMode(true);
         toggle.setDefaultFocusHighlightEnabled(false);
         toggle.setPadding((int)(10*density), (int)(8*density), (int)(10*density), (int)(8*density));
-        toggle.setMinHeight((int)(58*density));
+        toggle.setMinHeight((int)(48*density));
         toggle.setMinWidth((int)(150*density));
         toggle.setSwitchMinWidth((int)(76*density));
         // 開關只保留滑鈕與軌道，不顯示「開啟／關閉」文字，避免文字重疊。 
@@ -4484,7 +4484,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode}) {
             option.setFocusable(true); option.setFocusableInTouchMode(true);
             option.setDefaultFocusHighlightEnabled(false);
-            option.setMinHeight((int)(48*density));
+            option.setMinHeight((int)(42*density));
             option.setPadding((int)(10*density), (int)(5*density), (int)(10*density), (int)(5*density));
             option.setBackground(remoteWeatherFocusBackground(false));
             option.setOnFocusChangeListener((v, focused) -> {
@@ -4528,7 +4528,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             city.setTextColor(0xFF202124);
             v.setScaleX(1f); v.setScaleY(1f);
         });
-        content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(58*density)));
+        content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(52*density)));
         city.setVisibility(fixed ? View.VISIBLE : View.GONE);
         final String initialCity = city.getText().toString().trim();
         final boolean[] cityEditedByUser = {false};
@@ -4594,11 +4594,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            // Move the complete Cancel/Save action row slightly upward in the weekly-weather dialog.
-            ViewParent weatherButtonParent = cancelWeather.getParent();
-            if (weatherButtonParent instanceof View) {
-                ((View) weatherButtonParent).setTranslationY(-12 * density);
-            }
             GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
             GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
             focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
