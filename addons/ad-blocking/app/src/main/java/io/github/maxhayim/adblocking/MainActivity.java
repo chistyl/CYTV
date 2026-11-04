@@ -211,8 +211,7 @@ public class MainActivity extends Activity {
             dialog.getWindow().setBackgroundDrawable(round(0xFF1D212B, px(20)));
             dialog.getWindow().setDimAmount(0.62f);
         }
-        TextView title = dialog.findViewById(androidx.appcompat.R.id.alertTitle);
-        if (title == null) title = dialog.findViewById(getResources().getIdentifier(
+        TextView title = dialog.findViewById(getResources().getIdentifier(
                 "alertTitle", "id", "android"));
         if (title != null) {
             title.setTextColor(0xFFF5F6FA);
@@ -245,8 +244,6 @@ public class MainActivity extends Activity {
         if (cancel != null && save != null) {
             cancel.setNextFocusRightId(save.getId());
             save.setNextFocusLeftId(cancel.getId());
-            cancel.setNextFocusUpId(dialog.getWindow().getDecorView().getId());
-            save.setNextFocusUpId(dialog.getWindow().getDecorView().getId());
         }
     }
 
