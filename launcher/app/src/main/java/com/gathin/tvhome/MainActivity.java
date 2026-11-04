@@ -6411,7 +6411,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
-                .setView(scroll)
+                .setView(panel)
                 .setNegativeButton("取消", (d,w) -> reopenPendingFolderAfterAppEdit())
                 .setNeutralButton("恢復預設", (d,w) -> {
                     prefs.edit().remove("icon_scale_adjust_"+packageName)
