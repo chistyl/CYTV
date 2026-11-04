@@ -6351,14 +6351,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setProgress(Math.max(0, Math.min(250, currentScale + 50)));
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
-        panel.addView(sizeBar, new LinearLayout.LayoutParams(-1, (int)(34*density)));
+        LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
+        sizeBarLp.bottomMargin = (int)(5*density);
+        panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
         colorTitle.setText("背景色自訂");
         colorTitle.setTextColor(Color.WHITE);
         colorTitle.setTextSize(15);
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
-        panel.addView(colorTitle);
+        LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
+        colorTitleLp.bottomMargin = (int)(3*density);
+        panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
         final Runnable[] updateCombinedPreview = new Runnable[1];
@@ -6369,7 +6373,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             TextView label = new TextView(this);
             label.setTextColor(0xFFE8EBF0);
             label.setTextSize(13);
-            panel.addView(label);
+            // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
+            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
+            labelLp.topMargin = (int)(5*density);
+            labelLp.bottomMargin = (int)(2*density);
+            panel.addView(label, labelLp);
             channelLabels[i]=label;
 
             SeekBar bar = new SeekBar(this);
@@ -6377,7 +6385,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setProgress(rgb[i]);
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
-            panel.addView(bar, new LinearLayout.LayoutParams(-1, (int)(30*density)));
+            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(34*density));
+            barLp.bottomMargin = (int)(4*density);
+            panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
