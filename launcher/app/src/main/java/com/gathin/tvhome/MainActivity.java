@@ -3689,14 +3689,55 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return popup;
     }
 
-    /** Drop in: fade and unfold from the top edge, hanging under the anchor pill. */
+    /**
+     * Stable TV context-menu placement: center horizontally on the anchor, prefer above it
+     * when the menu would not fit below, and clamp the final rectangle to the visible root.
+     */
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
+        if (anchor == null || root == null) return;
+
+        int rootLocation[] = new int[2];
+        int anchorLocation[] = new int[2];
+        root.getLocationInWindow(rootLocation);
+        anchor.getLocationInWindow(anchorLocation);
+
+        int availableWidth = Math.max(1, root.getWidth());
+        int availableHeight = Math.max(1, root.getHeight());
+        int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
+        int menuWidth = Math.min(desiredWidth, availableWidth - (int) (24 * density));
+        menuWidth = Math.max(1, menuWidth);
+        popup.setWidth(menuWidth);
+
+        int widthSpec = View.MeasureSpec.makeMeasureSpec(menuWidth, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(availableHeight, View.MeasureSpec.AT_MOST);
+        panel.measure(widthSpec, heightSpec);
+        int menuHeight = Math.min(panel.getMeasuredHeight(), availableHeight - (int) (24 * density));
+        menuHeight = Math.max(1, menuHeight);
+        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        int margin = (int) (12 * density);
+        int gap = (int) (10 * density);
+        int anchorLeft = anchorLocation[0] - rootLocation[0];
+        int anchorTop = anchorLocation[1] - rootLocation[1];
+        int anchorCenter = anchorLeft + anchor.getWidth() / 2;
+        int x = anchorCenter - menuWidth / 2;
+        x = Math.max(margin, Math.min(x, availableWidth - menuWidth - margin));
+
+        int belowY = anchorTop + anchor.getHeight() + gap;
+        int aboveY = anchorTop - gap - menuHeight;
+        boolean fitsBelow = belowY + menuHeight <= availableHeight - margin;
+        boolean fitsAbove = aboveY >= margin;
+        boolean showBelow = fitsBelow || !fitsAbove && (availableHeight - belowY) >= (anchorTop - margin);
+        int y = showBelow ? belowY : aboveY;
+        y = Math.max(margin, Math.min(y, availableHeight - menuHeight - margin));
+
         panel.setAlpha(0f);
-        panel.setPivotY(0f);
+        panel.setPivotY(showBelow ? 0f : menuHeight);
         panel.setScaleY(0.92f);
-        panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), gravity);
-        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
+        panel.setTranslationY((showBelow ? -8f : 8f) * density);
+        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT, x, y);
+        panel.animate().alpha(1f).scaleY(1f).translationY(0f)
+                .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     }
 
