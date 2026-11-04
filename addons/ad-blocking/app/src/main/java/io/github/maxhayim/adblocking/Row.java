@@ -30,6 +30,7 @@ final class Row extends LinearLayout {
         int ph = Math.round(16 * dp), pv = Math.round(10 * dp);
         setPadding(ph, pv, ph, pv);
         setBackgroundResource(R.drawable.row_background);
+        setClipToOutline(true);
         boolean active = onClick != null || onStep != null;
         setFocusable(active);
         setClickable(onClick != null);
@@ -51,7 +52,7 @@ final class Row extends LinearLayout {
         text.addView(label);
         desc = new TextView(context);
         desc.setTextSize(12);
-        desc.setTextColor(0xFF8B949E);
+        desc.setTextColor(0xFFACB8C1);
         desc.setPadding(0, Math.round(2 * dp), Math.round(16 * dp), 0);
         text.addView(desc);
         setDetail(description);
@@ -62,7 +63,7 @@ final class Row extends LinearLayout {
             track.setOrientation(HORIZONTAL);
             track.setBackgroundColor(0x33FFFFFF);
             fill = new View(context);
-            fill.setBackgroundColor(0xFFE84855);
+            fill.setBackgroundColor(0xFF80C9C2);
             rest = new View(context);
             track.addView(fill, new LayoutParams(0, LayoutParams.MATCH_PARENT, 0f));
             track.addView(rest, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1f));
@@ -77,7 +78,7 @@ final class Row extends LinearLayout {
 
         value = new TextView(context);
         value.setTextSize(17);
-        value.setTextColor(0xFFC9D1D9);
+        value.setTextColor(0xFFF5F6FA);
         value.setGravity(Gravity.END);
         value.setMinWidth(Math.round(90 * dp));
         addView(value, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));

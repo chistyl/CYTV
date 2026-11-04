@@ -18,11 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
-    private static final int BG = Color.rgb(12, 14, 19);
-    private static final int PANEL = Color.rgb(28, 31, 39);
-    private static final int FOCUS = Color.rgb(245, 247, 250);
-    private static final int TEXT = Color.rgb(245, 247, 250);
-    private static final int MUTED = Color.rgb(157, 164, 177);
+    private static final int BG = Color.rgb(29, 33, 43);
+    private static final int PANEL = Color.rgb(52, 58, 70);
+    private static final int FOCUS = Color.rgb(70, 83, 102);
+    private static final int TEXT = Color.rgb(245, 246, 250);
+    private static final int MUTED = Color.rgb(172, 184, 193);
 
     private TextView pairingStatus;
     private TextView featureStatus;
@@ -68,7 +68,7 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction = text("", 15, true, TEXT);
         pairingAction.setGravity(android.view.Gravity.CENTER);
         pairingAction.setPadding(dp(16), dp(12), dp(16), dp(12));
-        pairingAction.setBackground(round(0xFF343B47, dp(12)));
+        pairingAction.setBackground(round(0xFF343A46, dp(12)));
         pairingAction.setId(View.generateViewId());
         pairingAction.setFocusable(true);
         pairingAction.setFocusableInTouchMode(true);
@@ -87,7 +87,7 @@ public class YouTubeAssistantActivity extends Activity {
         featureStatus = text("", 15, true, TEXT);
         featureStatus.setGravity(android.view.Gravity.CENTER_VERTICAL);
         featureStatus.setPadding(dp(14), dp(13), dp(14), dp(13));
-        featureStatus.setBackground(round(Color.rgb(38, 43, 53), dp(10)));
+        featureStatus.setBackground(round(Color.rgb(52, 58, 70), dp(10)));
         featureStatus.setId(View.generateViewId());
         // 即使尚未配對也保留焦點，讓 Android TV 遙控器方向鍵可以移到此功能區；
         // 未配對時按確認鍵會提示先連接電視，不會執行開關。
@@ -123,8 +123,8 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
-                hasFocus ? 0xFF46566B : 0xFF343B47, dp(12));
-        if (hasFocus) background.setStroke(dp(2), 0xFFF4F6F8);
+                hasFocus ? 0xFF465366 : 0xFF343A46, dp(12));
+        if (hasFocus) background.setStroke(dp(2), 0xFF80C9C2);
         view.setBackground(background);
         view.setElevation(hasFocus ? dp(5) : 0f);
     }
@@ -269,7 +269,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void styleDialog(AlertDialog dialog, boolean focusPrimary) {
         if (dialog.getWindow() != null) {
-            GradientDrawable surface = round(Color.rgb(28, 32, 41), dp(24));
+            GradientDrawable surface = round(Color.rgb(29, 33, 43), dp(24));
             surface.setStroke(dp(1), 0x28FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             dialog.getWindow().getDecorView().setClipToOutline(true);
@@ -288,9 +288,9 @@ public class YouTubeAssistantActivity extends Activity {
         android.widget.Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         android.widget.Button[] buttons = {negative, neutral, positive};
 
-        GradientDrawable normal = round(0xFF343B47, dp(16));
+        GradientDrawable normal = round(0xFF343A46, dp(16));
         GradientDrawable focused = round(FOCUS, dp(16));
-        focused.setStroke(dp(1), 0xFFFFFFFF);
+        focused.setStroke(dp(2), 0xFF80C9C2);
 
         for (android.widget.Button button : buttons) {
             if (button == null) continue;

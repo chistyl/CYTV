@@ -8,12 +8,13 @@ on:
       - fix/folder-app-assignment-sync
       - fix/folder-dialog-dpad-from-baseline
       - feature/weather-icons-emotn-inspired-67c7d53
+      - feature/unified-settings-ui-7c7345f
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
   pull_request:
     branches:
-      - feature/theme-background-on-60-weather-clean
+      - feature/weather-icons-emotn-inspired-67c7d53
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
