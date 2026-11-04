@@ -5654,7 +5654,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setClipChildren(false);
         list.setClipToPadding(false);
-        list.setPadding((int)(20*density), (int)(14*density), (int)(20*density), (int)(14*density));
+        list.setPadding((int)(18*density), (int)(8*density), (int)(18*density), (int)(8*density));
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
 
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
@@ -5673,8 +5673,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
             tile.setId(View.generateViewId());
-            tile.setPadding((int)(10*density), (int)(8*density), (int)(10*density), (int)(8*density));
-            tile.setMinimumHeight((int)(108*density));
+            tile.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
+            tile.setMinimumHeight((int)(82*density));
 
             FrameLayout art = new FrameLayout(this);
             GradientDrawable artBg = new GradientDrawable();
@@ -5697,19 +5697,19 @@ private GradientDrawable roundSurface(int color, float radius) {
                 image.setPadding(pad, pad, pad, pad);
             }
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            tile.addView(art, new LinearLayout.LayoutParams((int)(150*density), (int)(84*density)));
+            tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
             check.setTextColor(0xFFF5F6FA);
-            check.setTextSize(16);
+            check.setTextSize(15);
             check.setChecked(checked[i]);
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
                     new int[]{0xFF80C9C2, 0xFFACB8C1}));
-            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(88*density), 1f);
-            checkLp.leftMargin = (int)(12*density);
+            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(68*density), 1f);
+            checkLp.leftMargin = (int)(10*density);
             check.setLayoutParams(checkLp);
             check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
             tile.addView(check);
@@ -5756,7 +5756,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0, -2, 1f);
             tileLp.leftMargin = (int)(2*density);
             tileLp.rightMargin = (int)(5*density);
-            tileLp.bottomMargin = (int)(12*density);
+            tileLp.bottomMargin = (int)(8*density);
             if (column == 1) {
                 tileLp.leftMargin = (int)(5*density);
                 tileLp.rightMargin = (int)(2*density);
