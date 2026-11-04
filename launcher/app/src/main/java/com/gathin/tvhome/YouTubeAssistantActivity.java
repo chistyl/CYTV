@@ -190,11 +190,12 @@ public class YouTubeAssistantActivity extends Activity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(8), dp(8), dp(8), dp(4));
+        box.setPadding(dp(4), dp(6), dp(4), dp(8));
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
         box.addView(help);
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
-        inputLp.topMargin = dp(14);
+        inputLp.topMargin = dp(12);
+        inputLp.height = dp(76);
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -205,14 +206,10 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
-            // Use a predictable TV-sized dialog instead of the platform's near-full-width
-            // default. Keep the dialog centred and leave a visible margin around the surface.
+            // Preserve the platform-measured outer dialog width exactly; only centre its position.
+            // Internal content and action spacing are adjusted without resizing the outer surface.
             android.view.Window window = dialog.getWindow();
             if (window != null) {
-                android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-                int maxWidth = metrics.widthPixels - dp(64);
-                int targetWidth = Math.min(maxWidth, (int) (metrics.widthPixels * 0.92f));
-                window.setLayout(Math.max(dp(520), targetWidth), -2);
                 window.setGravity(android.view.Gravity.CENTER);
                 window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             }
@@ -224,16 +221,18 @@ public class YouTubeAssistantActivity extends Activity {
                 View buttons = (View) cancelButton.getParent();
                 if (buttons instanceof LinearLayout) {
                     LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-                    cancelLp.rightMargin = dp(8);
+                    cancelLp.rightMargin = dp(14);
                     cancelButton.setLayoutParams(cancelLp);
                     LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
-                    connectLp.leftMargin = dp(8);
+                    connectLp.leftMargin = dp(14);
                     connectButton.setLayoutParams(connectLp);
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(input.getId());
                 connectButton.setNextFocusUpId(input.getId());
+                cancelButton.setNextFocusRightId(connectButton.getId());
+                connectButton.setNextFocusLeftId(cancelButton.getId());
                 cancelButton.setNextFocusRightId(connectButton.getId());
                 connectButton.setNextFocusLeftId(cancelButton.getId());
                 input.setOnKeyListener((view, keyCode, event) -> {
@@ -253,6 +252,42 @@ public class YouTubeAssistantActivity extends Activity {
                     return false;
                 });
             }
+            // Keep both action labels white in normal and focused states.
+            android.widget.Button[] actionButtons = {cancelButton, connectButton};
+            for (android.widget.Button button : actionButtons) {
+                if (button == null) continue;
+                button.setTextColor(Color.WHITE);
+                button.setOnFocusChangeListener((view, hasFocus) -> {
+                    view.setBackground(round(hasFocus ? FOCUS : PANEL, dp(16)));
+                    android.graphics.drawable.Drawable bg = view.getBackground();
+                    if (hasFocus && bg instanceof GradientDrawable) {
+                        ((GradientDrawable) bg).setStroke(dp(2), 0xFF80C9C2);
+                    }
+                    ((android.widget.Button) view).setTextColor(Color.WHITE);
+                    view.setElevation(hasFocus ? dp(4) : 0f);
+                });
+            }
+            cancelButton.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    connectButton.requestFocus();
+                    return true;
+                }
+                return false;
+            });
+            connectButton.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    cancelButton.requestFocus();
+                    return true;
+                }
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    input.requestFocus();
+                    return true;
+                }
+                return false;
+            });
             connectButton.setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
