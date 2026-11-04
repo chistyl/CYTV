@@ -5721,7 +5721,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             lp.bottomMargin = (int)(8*d); options.addView(item, lp);
         }
         AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle("選擇資料夾")
-                .setView(panel).setNegativeButton("取消", null).create();
+                .setView(scroll).setNegativeButton("取消", null).create();
         folderDialogRef[0] = folderDialog;
         folderDialog.show();
         if (folderDialog.getWindow() != null) {
