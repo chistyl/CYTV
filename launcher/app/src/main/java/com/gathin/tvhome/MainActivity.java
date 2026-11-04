@@ -5569,151 +5569,215 @@ private GradientDrawable roundSurface(int color, float radius) {
                                         AppSelectionListener listener) {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        // Keep rounded focus surfaces fully visible at the viewport edges.
         scroll.setClipChildren(false);
         scroll.setClipToPadding(false);
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setClipChildren(false);
         list.setClipToPadding(false);
         list.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
+
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        java.util.ArrayList<View> selectionRows = new java.util.ArrayList<>();
+        java.util.ArrayList<View> selectionTiles = new java.util.ArrayList<>();
+        java.util.ArrayList<LinearLayout> gridRows = new java.util.ArrayList<>();
+
         for (int i = 0; i < packages.size(); i++) {
             final int index = i;
             String pkg = packages.get(i);
             ResolveInfo ri = appInfos.get(pkg);
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setFocusable(true); row.setFocusableInTouchMode(true); row.setClickable(true);
-            row.setId(View.generateViewId());
-            if (!selectionRows.isEmpty()) {
-                View previous = selectionRows.get(selectionRows.size() - 1);
-                previous.setNextFocusDownId(row.getId());
-                row.setNextFocusUpId(previous.getId());
-            }
-            selectionRows.add(row);
-            row.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
+
+            LinearLayout tile = new LinearLayout(this);
+            tile.setOrientation(LinearLayout.HORIZONTAL);
+            tile.setGravity(Gravity.CENTER_VERTICAL);
+            tile.setFocusable(true);
+            tile.setFocusableInTouchMode(true);
+            tile.setClickable(true);
+            tile.setId(View.generateViewId());
+            tile.setPadding((int)(7*density), (int)(5*density), (int)(7*density), (int)(5*density));
+            tile.setMinimumHeight((int)(82*density));
+
             FrameLayout art = new FrameLayout(this);
             GradientDrawable artBg = new GradientDrawable();
             artBg.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
-            artBg.setCornerRadius(9*density); art.setBackground(artBg); art.setClipToOutline(true);
+            artBg.setCornerRadius(9*density);
+            art.setBackground(artBg);
+            art.setClipToOutline(true);
+
             ImageView image = new ImageView(this);
             Drawable banner = ri == null ? null : loadFolderTvBanner(ri, pkg, prefs);
             if (banner != null) {
-                image.setImageDrawable(banner); image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                image.setImageDrawable(banner);
+                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             } else {
-                image.setImageDrawable(loadFolderAppIcon(pkg, prefs)); image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                image.setImageDrawable(loadFolderAppIcon(pkg, prefs));
+                image.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
                 float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
                 int pad = Math.max((int)(3*density), (int)(13*density/scale));
                 image.setPadding(pad, pad, pad, pad);
             }
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
+            tile.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
+
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
-            check.setTextColor(Color.WHITE); check.setTextSize(14); check.setChecked(checked[i]);
+            check.setTextColor(Color.WHITE);
+            check.setTextSize(14);
+            check.setChecked(checked[i]);
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
                     new int[]{Color.WHITE, 0xFF9AA4B2}));
             LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(64*density), 1f);
-            checkLp.leftMargin = (int)(10*density); check.setLayoutParams(checkLp);
+            checkLp.leftMargin = (int)(7*density);
+            check.setLayoutParams(checkLp);
             check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
-            row.addView(check);
-            row.setMinimumHeight((int)(82*density));
-            row.setOnFocusChangeListener((v, focused) -> {
-                if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
-                        new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
-            });
-            row.setOnClickListener(v -> check.setChecked(!check.isChecked()));
-            GradientDrawable rowBg = new GradientDrawable(); rowBg.setColor(0x18333333);
-            rowBg.setCornerRadius(10*density); row.setBackground(rowBg); row.setDefaultFocusHighlightEnabled(false);
-            row.setOnFocusChangeListener((v, focused) -> {
-                // Use the same white rounded focus pill as the other launcher dialogs.
-                // A stroke was clipped by the ScrollView at the top/bottom of the visible list.
-                rowBg.setColor(focused ? 0xFFF4F4F4 : 0x18333333);
-                rowBg.setStroke(0, Color.TRANSPARENT);
+            tile.addView(check);
+
+            GradientDrawable tileBg = new GradientDrawable();
+            tileBg.setColor(0x18333333);
+            tileBg.setCornerRadius(10*density);
+            tile.setBackground(tileBg);
+            tile.setDefaultFocusHighlightEnabled(false);
+            tile.setOnFocusChangeListener((v, focused) -> {
+                tileBg.setColor(focused ? 0xFFF4F4F4 : 0x18333333);
                 check.setTextColor(focused ? 0xFF202124 : Color.WHITE);
                 check.setButtonTintList(new ColorStateList(
                         new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                        new int[]{focused ? 0xFF202124 : Color.WHITE, focused ? 0xFF7B8490 : 0xFF9AA4B2}));
+                        new int[]{focused ? 0xFF202124 : Color.WHITE,
+                                focused ? 0xFF7B8490 : 0xFF9AA4B2}));
                 v.setElevation(focused ? 2f * density : 0f);
+                if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
+                        new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
-            row.setOnKeyListener((v,key,event) -> {
-                if(event.getAction()==KeyEvent.ACTION_UP && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)) {
-                    check.setChecked(!check.isChecked()); return true;
+            tile.setOnClickListener(v -> check.setChecked(!check.isChecked()));
+            tile.setOnKeyListener((v, key, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_UP
+                        && (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
+                        || key == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                    check.setChecked(!check.isChecked());
+                    return true;
                 }
                 return false;
             });
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
-            rowLp.leftMargin = (int)(2*density);
-            rowLp.rightMargin = (int)(2*density);
-            rowLp.bottomMargin = (int)(7*density);
-            list.addView(row, rowLp);
+
+            int column = i % 2;
+            if (column == 0) {
+                LinearLayout gridRow = new LinearLayout(this);
+                gridRow.setOrientation(LinearLayout.HORIZONTAL);
+                gridRow.setGravity(Gravity.TOP);
+                gridRow.setClipChildren(false);
+                gridRow.setClipToPadding(false);
+                list.addView(gridRow, new LinearLayout.LayoutParams(-1, -2));
+                gridRows.add(gridRow);
+            }
+            LinearLayout gridRow = gridRows.get(gridRows.size() - 1);
+            LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0, -2, 1f);
+            tileLp.leftMargin = (int)(2*density);
+            tileLp.rightMargin = (int)(5*density);
+            tileLp.bottomMargin = (int)(8*density);
+            if (column == 1) {
+                tileLp.leftMargin = (int)(5*density);
+                tileLp.rightMargin = (int)(2*density);
+            }
+            gridRow.addView(tile, tileLp);
+            selectionTiles.add(tile);
         }
+
+        // 遙控器導覽：左右切換同列，上下移動同欄；最後一列可直接前往操作按鈕。
+        for (int i = 0; i < selectionTiles.size(); i++) {
+            View tile = selectionTiles.get(i);
+            int row = i / 2;
+            int column = i % 2;
+            if (column == 0 && i + 1 < selectionTiles.size())
+                tile.setNextFocusRightId(selectionTiles.get(i + 1).getId());
+            if (column == 1)
+                tile.setNextFocusLeftId(selectionTiles.get(i - 1).getId());
+            int down = i + 2;
+            if (down < selectionTiles.size()) tile.setNextFocusDownId(selectionTiles.get(down).getId());
+            int up = i - 2;
+            if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
+        }
+
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(title).setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
         if (dialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(28,32,40));
-            rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x28FFFFFF);
+            GradientDrawable rounded = new GradientDrawable();
+            rounded.setColor(Color.rgb(28,32,40));
+            rounded.setCornerRadius(22*density);
+            rounded.setStroke(Math.max(1,(int)density),0x28FFFFFF);
             dialog.getWindow().setBackgroundDrawable(rounded);
-            dialog.getWindow().setLayout(Math.min((int)(760*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density), getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+            dialog.getWindow().setLayout(Math.min((int)(760*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(660*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
         }
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
-            cancelButton.setAllCaps(false); saveButton.setAllCaps(false);
-            cancelButton.setMinWidth((int)(104*density)); saveButton.setMinWidth((int)(112*density));
-            cancelButton.setMinHeight((int)(52*density)); saveButton.setMinHeight((int)(52*density));
+            cancelButton.setAllCaps(false);
+            saveButton.setAllCaps(false);
+            cancelButton.setMinWidth((int)(104*density));
+            saveButton.setMinWidth((int)(112*density));
+            cancelButton.setMinHeight((int)(52*density));
+            saveButton.setMinHeight((int)(52*density));
             LinearLayout.LayoutParams cancelParams = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
             cancelParams.rightMargin = (int)(18*density);
             cancelButton.setLayoutParams(cancelParams);
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
             saveParams.leftMargin = (int)(4*density);
             saveButton.setLayoutParams(saveParams);
-            cancelButton.setFocusable(true); saveButton.setFocusable(true);
-            cancelButton.setFocusableInTouchMode(true); saveButton.setFocusableInTouchMode(true);
-            cancelButton.setDefaultFocusHighlightEnabled(false); saveButton.setDefaultFocusHighlightEnabled(false);
-            cancelButton.setMinHeight((int)(48*density)); saveButton.setMinHeight((int)(48*density));
-            cancelButton.setId(View.generateViewId()); saveButton.setId(View.generateViewId());
+            cancelButton.setFocusable(true);
+            saveButton.setFocusable(true);
+            cancelButton.setFocusableInTouchMode(true);
+            saveButton.setFocusableInTouchMode(true);
+            cancelButton.setDefaultFocusHighlightEnabled(false);
+            saveButton.setDefaultFocusHighlightEnabled(false);
+            cancelButton.setMinHeight((int)(48*density));
+            saveButton.setMinHeight((int)(48*density));
+            cancelButton.setId(View.generateViewId());
+            saveButton.setId(View.generateViewId());
             GradientDrawable buttonNormal = new GradientDrawable();
-            buttonNormal.setColor(0xFF343B47); buttonNormal.setCornerRadius(14*density);
+            buttonNormal.setColor(0xFF343B47);
+            buttonNormal.setCornerRadius(14*density);
             GradientDrawable buttonFocused = new GradientDrawable();
-            buttonFocused.setColor(0xFFF4F4F4); buttonFocused.setCornerRadius(14*density);
-            cancelButton.setBackground(buttonNormal); saveButton.setBackground(buttonNormal);
-            cancelButton.setTextColor(0xFFF1F2F4); saveButton.setTextColor(0xFFF1F2F4);
+            buttonFocused.setColor(0xFFF4F4F4);
+            buttonFocused.setCornerRadius(14*density);
+            cancelButton.setBackground(buttonNormal);
+            saveButton.setBackground(buttonNormal);
+            cancelButton.setTextColor(0xFFF1F2F4);
+            saveButton.setTextColor(0xFFF1F2F4);
             View.OnFocusChangeListener buttonFocus = (v, focused) -> {
                 v.setBackground(focused ? buttonFocused : buttonNormal);
                 ((Button)v).setTextColor(focused ? 0xFF202124 : 0xFFF1F2F4);
                 v.setScaleX(1f);
                 v.setScaleY(1f);
             };
-            cancelButton.setOnFocusChangeListener(buttonFocus); saveButton.setOnFocusChangeListener(buttonFocus);
+            cancelButton.setOnFocusChangeListener(buttonFocus);
+            saveButton.setOnFocusChangeListener(buttonFocus);
             cancelButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusLeftId(cancelButton.getId());
-            View lastRow = selectionRows.isEmpty() ? null : selectionRows.get(selectionRows.size()-1);
-            if (lastRow != null) {
-                lastRow.setNextFocusDownId(cancelButton.getId());
-                cancelButton.setNextFocusUpId(lastRow.getId());
-                saveButton.setNextFocusUpId(lastRow.getId());
+            if (!selectionTiles.isEmpty()) {
+                View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
+                lastRowTile.setNextFocusDownId(cancelButton.getId());
+                cancelButton.setNextFocusUpId(lastRowTile.getId());
+                saveButton.setNextFocusUpId(lastRowTile.getId());
+            }
+            if (!selectionTiles.isEmpty()) {
+                View first = selectionTiles.get(0);
+                first.setNextFocusUpId(cancelButton.getId());
+            } else {
+                cancelButton.post(cancelButton::requestFocus);
             }
         }
-        if (!selectionRows.isEmpty()) {
-            View first = selectionRows.get(0);
-            first.setNextFocusUpId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
-            first.post(first::requestFocus);
-        } else if (cancelButton != null) {
-            cancelButton.post(cancelButton::requestFocus);
-        }
+        if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
 
     private void showFolderAppAssignment() {
