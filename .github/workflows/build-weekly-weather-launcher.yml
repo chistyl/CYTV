@@ -22,6 +22,7 @@ on:
       - fix/create-folder-dialog-fixed-size-content-position
       - fix/weekly-weather-dialog-fixed-size-white-actions
       - fix/weather-dialog-viewgroup-clip-methods
+      - fix/weekly-weather-dialog-button-clipping-ancestors
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
