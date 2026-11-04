@@ -5118,6 +5118,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
+        // 將「主題隨機播放」文字往右微調，與視窗左側保留一致的視覺間距。
+        randomLabel.setPadding((int)(8*density), 0, 0, 0);
         randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
@@ -5216,10 +5218,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            // 縮小每列縮圖下方的空白，讓兩排主題預覽更緊湊。
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(84*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(2*density)));
             }
         }
         scroll.setFillViewport(false);
