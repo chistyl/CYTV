@@ -4590,7 +4590,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (ApplicationInfo app : installedForVisibility) {
             String pkg = app.packageName;
             if (pkg == null || pkg.equals(getPackageName())
-                    || (app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+                    || !isPreinstalledSystemApp(app)
                     || visibilityApps.containsKey(pkg)) continue;
             try {
                 Intent launch = visibilityPm.getLaunchIntentForPackage(pkg);
@@ -5940,7 +5940,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 for (String packageName : chosen) {
                     try {
                         int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                        if ((flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0)
+                        if (isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0)))
                             systemExcluded.add(packageName);
                     } catch (PackageManager.NameNotFoundException ignored) { }
                 }
@@ -6770,6 +6770,24 @@ private GradientDrawable roundSurface(int color, float radius) {
      * Package-name sorting is case-insensitive so the same apps always appear in the same order.
      * Include TV launchers, phone launchers, and launchable system apps omitted by vendor TV queries.
      */
+    /**
+     * 判斷是否為預載系統 APP。Android 沒有跨廠牌可靠的「可否解除安裝」公開 API，
+     * 因此以系統旗標及 APK 所在的唯讀系統分區路徑判斷，涵蓋部分廠商未標記 FLAG_SYSTEM 的預載 APP。
+     */
+    private boolean isPreinstalledSystemApp(ApplicationInfo app) {
+        if (app == null) return false;
+        if ((app.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0)
+            return true;
+        String source = app.sourceDir;
+        if (source == null) return false;
+        return source.startsWith("/system/")
+                || source.startsWith("/system_ext/")
+                || source.startsWith("/product/")
+                || source.startsWith("/vendor/")
+                || source.startsWith("/odm/")
+                || source.startsWith("/oem/");
+    }
+
     private java.util.TreeMap<String, ResolveInfo> getFolderAssignmentCandidates() {
         PackageManager pm = getPackageManager();
         java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
