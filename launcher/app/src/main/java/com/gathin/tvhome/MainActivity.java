@@ -6544,12 +6544,8 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
         preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
-        if (preview.view.getChildAt(0) != null) {
-            LinearLayout.LayoutParams previewCardLp = (LinearLayout.LayoutParams) preview.view.getChildAt(0).getLayoutParams();
-            previewCardLp.width = (int)(220*density);
-            previewCardLp.height = Math.round(previewCardLp.width * 9f / 16f);
-            preview.view.getChildAt(0).setLayoutParams(previewCardLp);
-        }
+        // Keep the preview card dimensions owned by the shared preview builder.
+        // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
             previewNameLp.height = (int)(20*density);
@@ -6622,16 +6618,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
 
         updateCombinedPreview[0] = () -> {
-            int adjustment=sizeBar.getProgress()-50;
-            float scale=Math.max(0.5f,Math.min(3f,1f+adjustment/100f));
-            // 與電視桌面 APP 卡片使用相同的內距縮放公式，預覽直接呈現實際比例。
-            int iconPadding=Math.max((int)(3*density),(int)(13*density/scale));
-            preview.targetIcon.setPadding(iconPadding,iconPadding,iconPadding,iconPadding);
-            GradientDrawable bg=new GradientDrawable();
-            bg.setColor(Color.rgb(rgb[0],rgb[1],rgb[2]));
-            bg.setCornerRadius(14*density);
+            int adjustment = sizeBar.getProgress() - 50;
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            // Match AppAdapter.iconBanner(): a 240px square mark on a 640px-wide 16:9 tile.
+            int cardWidth = preview.targetCard.getWidth() > 0
+                    ? preview.targetCard.getWidth()
+                    : preview.targetCard.getLayoutParams().width;
+            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
+            iconLp.width = iconSide;
+            iconLp.height = iconSide;
+            iconLp.gravity = Gravity.CENTER;
+            preview.targetIcon.setPadding(0, 0, 0, 0);
+            preview.targetIcon.setLayoutParams(iconLp);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
+            bg.setCornerRadius(14 * density);
             preview.targetCard.setBackground(bg);
-            for(int i=0;i<3;i++) channelLabels[i].setText(channelNames[i]+"："+rgb[i]);
+            for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){if(updateCombinedPreview[0]!=null) updateCombinedPreview[0].run();}
@@ -7126,10 +7131,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
-        float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-        int iconPadding = Math.max((int)(3*density), (int)(13*density/scale));
-        icon.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-        card.addView(icon, new FrameLayout.LayoutParams(-1, -1));
+        float iconScale = Math.max(0.10f, Math.min(3.75f,
+                1.25f * (1f + adjust / 100f)));
+        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
         TextView name = new TextView(this);
@@ -7344,9 +7350,12 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         Runnable updatePreview = () -> {
             int adjustment = size.getProgress() - 50;
-            float scale = 1f + adjustment / 100f;
-            int side = Math.max((int)(18*density),
-                    Math.min((int)(72*density), Math.round(livePreview.iconBaseDp * density * scale)));
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjustment / 100f)));
+            int cardWidth = livePreview.targetCard.getWidth() > 0
+                    ? livePreview.targetCard.getWidth()
+                    : livePreview.targetCard.getLayoutParams().width;
+            int side = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
             if (livePreview.targetIcon != null) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) livePreview.targetIcon.getLayoutParams();
                 lp.width = side;
@@ -7355,7 +7364,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 livePreview.targetIcon.setLayoutParams(lp);
             }
             value.setText("調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
-                    + "%　｜　實際圖標比例：" + Math.round(125f * (1f + adjustment / 100f)) + "%");
+                    + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%");
         };
         size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
