@@ -11,6 +11,7 @@ on:
       - feature/unified-settings-ui-7c7345f
       - fix/folder-app-menu-window-anchor-a692da0
       - fix/weather-city-heading-visible-506e839
+      - fix/icon-appearance-dialog-layout-be2fbe5
       - fix/icon-appearance-preview-match-desktop-12c6bf4
       - fix/weather-icons-smaller-be2fbe5
     paths:
