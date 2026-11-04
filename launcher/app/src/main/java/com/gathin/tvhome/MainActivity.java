@@ -5667,7 +5667,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 int originalHeight = decor.getHeight();
                 if (originalWidth <= 0 || originalHeight <= 0) return;
                 int screenHeight = getResources().getDisplayMetrics().heightPixels;
-                int targetHeight = Math.min(originalHeight + (int)(44*density),
+                int targetHeight = Math.min(originalHeight + (int)(38*density),
                         screenHeight - (int)(48*density));
                 window.setLayout(originalWidth, targetHeight);
             });
