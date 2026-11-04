@@ -5036,7 +5036,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setFocusable(true);
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
+                // Android TV 韌體可能仍在父卡片繪製預設焦點底色；明確以透明前景覆蓋，
+                // 焦點外框只由下方縮圖 ImageView 繪製，避免圖片上下露出兩條色塊。
                 item.setDefaultFocusHighlightEnabled(false);
+                item.setForeground(new ColorDrawable(Color.TRANSPARENT));
                 item.setId(View.generateViewId());
                 thumbnailItems[index] = item;
                 // 卡片本身維持透明，選取框只覆蓋縮圖，不改變圖片尺寸或裁切。
@@ -5074,7 +5077,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                     // 選取框立即顯示；實際套用仍要按「儲存」。
                 });
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
+                // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(80*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
