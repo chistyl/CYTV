@@ -6274,6 +6274,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.addView(colorTitle);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
+        final Runnable[] updateCombinedPreview = new Runnable[1];
         TextView[] channelLabels = new TextView[3];
         SeekBar[] channelBars = new SeekBar[3];
         for (int i=0;i<3;i++) {
@@ -6295,14 +6296,14 @@ private GradientDrawable roundSurface(int color, float radius) {
                 @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
                     rgb[channel]=value;
                     label.setText(channelNames[channel] + "：" + value);
-                    updateCombinedPreview.run();
+                    if (updateCombinedPreview[0] != null) updateCombinedPreview[0].run();
                 }
                 @Override public void onStartTrackingTouch(SeekBar seekBar) { }
                 @Override public void onStopTrackingTouch(SeekBar seekBar) { }
             });
         }
 
-        Runnable updateCombinedPreview = () -> {
+        updateCombinedPreview[0] = () -> {
             int adjustment=sizeBar.getProgress()-50;
             sizeValue.setText("調整幅度：" + (adjustment>0?"+":"") + adjustment
                     + "%　｜　實際圖標比例：" + Math.round(125f*(1f+adjustment/100f)) + "%");
@@ -6322,7 +6323,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             @Override public void onStartTrackingTouch(SeekBar seekBar){}
             @Override public void onStopTrackingTouch(SeekBar seekBar){}
         });
-        updateCombinedPreview.run();
+        updateCombinedPreview[0].run();
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
