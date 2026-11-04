@@ -7375,6 +7375,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addSettingsMenuRow(folderRows, folderPopup, "重新命名", () -> {
                     EditText edit = new EditText(this);
                     edit.setSingleLine(true);
+                    edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                     edit.setText(oldName);
                     AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
                             .setNegativeButton("取消", null).setPositiveButton("儲存", (dialog, which) -> {
@@ -7384,6 +7385,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                                     return;
                                 }
                                 java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
+                                if (!newName.equals(oldName) && folders.contains(newName)) {
+                                    Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+                                if (newName.equals(oldName)) return;
                                 java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
                                 updated.remove(oldName); updated.add(newName);
                                 java.util.Set<String> members = folderPrefs.getStringSet("folder_apps_" + oldName, java.util.Collections.<String>emptySet());
@@ -7401,7 +7407,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
             if (key.contains("/folder:")) {
                 addSettingsMenuRow(folderRows, folderPopup, "刪除資料夾", () -> {
-                    new AlertDialog.Builder(this).setTitle("刪除資料夾")
+                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除資料夾")
                             .setMessage("刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。")
                             .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
                                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
@@ -7411,7 +7417,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                                 folderPrefs.edit().putStringSet("home_folders", updated)
                                         .remove("folder_apps_" + oldName).apply();
                                 reloadApps(false);
-                            }).show();
+                            }).create();
+                    deleteDialog.show();
+                    styleRemoteDialogActions(deleteDialog);
                 });
             }
             addSettingsMenuRow(folderRows, folderPopup, hidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
