@@ -5657,7 +5657,21 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancelButton.setOnKeyListener(actionNavigation);
             createButton.setOnKeyListener(actionNavigation);
         }
-        // 不覆寫 Window 尺寸：外層視窗寬、高沿用原本 AlertDialog 尺寸。
+        // 外層視窗只增加高度，寬度沿用 AlertDialog 原本實際寬度。
+        if (createDialog.getWindow() != null) {
+            createDialog.getWindow().getDecorView().post(() -> {
+                android.view.Window window = createDialog.getWindow();
+                if (window == null) return;
+                View decor = window.getDecorView();
+                int originalWidth = decor.getWidth();
+                int originalHeight = decor.getHeight();
+                if (originalWidth <= 0 || originalHeight <= 0) return;
+                int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                int targetHeight = Math.min(originalHeight + (int)(44*density),
+                        screenHeight - (int)(48*density));
+                window.setLayout(originalWidth, targetHeight);
+            });
+        }
         name.setId(View.generateViewId());
         name.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
         if (cancelButton != null) {
