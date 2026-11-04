@@ -190,11 +190,14 @@ public class YouTubeAssistantActivity extends Activity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(8), dp(8), dp(8), dp(4));
+        // Give the help text and code field balanced left/right insets inside the fixed dialog.
+        // Balanced horizontal inset for both helper text and pairing code field.
+        box.setPadding(dp(20), dp(6), dp(20), dp(8));
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
         box.addView(help);
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
-        inputLp.topMargin = dp(14);
+        inputLp.topMargin = dp(8);
+        inputLp.height = dp(68);
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -205,28 +208,114 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
+            // Preserve the platform-measured outer dialog width exactly; only centre its position.
+            // Internal content and action spacing are adjusted without resizing the outer surface.
+            android.view.Window window = dialog.getWindow();
+            if (window != null) {
+                // Lock the already-measured outer dimensions. Subsequent inner spacing changes
+                // must not resize the dialog surface.
+                View decor = window.getDecorView();
+                int fixedWidth = decor.getWidth();
+                int fixedHeight = decor.getHeight();
+                if (fixedWidth > 0 && fixedHeight > 0) {
+                    window.setLayout(fixedWidth, fixedHeight);
+                }
+                window.setGravity(android.view.Gravity.CENTER);
+                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            }
+
             android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
             android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            // D-pad traversal: code field -> action row; left/right switches Cancel/Connect.
+            // Separate the action pills; AlertDialog otherwise places them edge-to-edge.
             if (cancelButton != null && connectButton != null) {
+                View buttons = (View) cancelButton.getParent();
+                if (buttons instanceof LinearLayout) {
+                    LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+                    cancelLp.rightMargin = dp(14);
+                    cancelButton.setLayoutParams(cancelLp);
+                    LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
+                    connectLp.leftMargin = dp(14);
+                    connectButton.setLayoutParams(connectLp);
+                    // Keep a visible inset below the action row without changing outer dimensions.
+                    buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
+                            buttons.getPaddingRight(), dp(2));
+                    // Move only the bottom action row down; keep the dialog and all other content fixed.
+                    buttons.setTranslationY(dp(10));
+                }
+                // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(input.getId());
                 connectButton.setNextFocusUpId(input.getId());
                 cancelButton.setNextFocusRightId(connectButton.getId());
                 connectButton.setNextFocusLeftId(cancelButton.getId());
+                input.setOnKeyListener((view, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        cancelButton.requestFocus();
+                        return true;
+                    }
+                    return false;
+                });
+                cancelButton.setOnKeyListener((view, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        input.requestFocus();
+                        return true;
+                    }
+                    return false;
+                });
             }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            // Keep both action labels white in normal and focused states.
+            android.widget.Button[] actionButtons = {cancelButton, connectButton};
+            for (android.widget.Button button : actionButtons) {
+                if (button == null) continue;
+                button.setTextColor(Color.WHITE);
+                button.setOnFocusChangeListener((view, hasFocus) -> {
+                    view.setBackground(round(hasFocus ? FOCUS : PANEL, dp(16)));
+                    android.graphics.drawable.Drawable bg = view.getBackground();
+                    if (hasFocus && bg instanceof GradientDrawable) {
+                        ((GradientDrawable) bg).setStroke(dp(2), 0xFF80C9C2);
+                    }
+                    ((android.widget.Button) view).setTextColor(Color.WHITE);
+                    view.setElevation(hasFocus ? dp(4) : 0f);
+                });
+            }
+            cancelButton.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    connectButton.requestFocus();
+                    return true;
+                }
+                return false;
+            });
+            connectButton.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    cancelButton.requestFocus();
+                    return true;
+                }
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    input.requestFocus();
+                    return true;
+                }
+                return false;
+            });
+            connectButton.setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
                     input.setError("請輸入配對代碼");
+                    input.requestFocus();
                     return;
                 }
                 dialog.dismiss();
                 pair(code);
             });
-            // styleDialog posts its default button focus; override it after layout so the
-            // first D-pad focus lands in the pairing-code field, not on Cancel.
-            input.post(input::requestFocus);
+            // Focus the editable field after the window and action row have completed layout.
+            input.post(() -> {
+                input.requestFocus();
+                input.setSelection(input.getText().length());
+            });
         });
         dialog.show();
     }

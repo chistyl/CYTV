@@ -15,7 +15,7 @@ public final class TraditionalText {
 
     public static boolean isEnabled(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getBoolean(KEY_ENABLED, false);
+                .getBoolean(KEY_ENABLED, true);
     }
 
     public static void setEnabled(Context context, boolean enabled) {
