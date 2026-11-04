@@ -6074,7 +6074,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         android.graphics.drawable.GradientDrawable outerSurface = new android.graphics.drawable.GradientDrawable();
-        outerSurface.setColor(Color.rgb(28, 32, 40));
+        outerSurface.setColor(Color.rgb(29, 33, 43));
         outerSurface.setCornerRadius(22 * density);
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -6147,8 +6147,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 cardSurface.setColor(savedBackground); cardSurface.setCornerRadius(20*density);
                 tvCard.setBackground(cardSurface);
                 // Draw the border as a foreground overlay, separate from the card fill and
-                // artwork clipping. This keeps the yellow focus stroke at one consistent
-                // physical-pixel width on every row and for both folder types.
+                // artwork clipping. Keep the shared CYTV teal focus stroke consistent
+                // on every row and for both folder types.
                 GradientDrawable cardBorder = new GradientDrawable();
                 cardBorder.setColor(Color.TRANSPARENT);
                 cardBorder.setCornerRadius(20 * density);
@@ -6182,7 +6182,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
                     cardBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
-                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
+                            focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                     tvCard.setElevation(focused ? 10f * density : 0f);
                 });
                 tile.setOnKeyListener((v, keyCode, event) -> {
@@ -6247,7 +6247,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
                 FrameLayout addCard = new FrameLayout(this);
                 GradientDrawable addSurface = new GradientDrawable();
-                addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(20*density);
+                addSurface.setColor(0xFF343A46); addSurface.setCornerRadius(20*density);
                 addCard.setBackground(addSurface);
                 GradientDrawable addBorder = new GradientDrawable();
                 addBorder.setColor(Color.TRANSPARENT);
@@ -6274,7 +6274,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
                     addBorder.setStroke(focused ? Math.max(1, Math.round(3f * density)) : 0,
-                            focused ? 0xFFFFD54F : Color.TRANSPARENT);
+                            focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                     addCard.setElevation(focused ? 10f * density : 0f);
                 });
                 add.setOnKeyListener((v, keyCode, event) -> {
@@ -6330,12 +6330,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.setMinHeight((int)(52*density));
         close.setId(View.generateViewId());
         GradientDrawable closeNormal = new GradientDrawable();
-        closeNormal.setColor(0xFF343B47); closeNormal.setCornerRadius(14*density);
+        closeNormal.setColor(0xFF343A46); closeNormal.setCornerRadius(14*density);
         closeNormal.setStroke(Math.max(1, Math.round(1f * density)), 0x24FFFFFF);
         GradientDrawable closeFocused = new GradientDrawable();
-        closeFocused.setColor(0xFF46566B); closeFocused.setCornerRadius(14*density);
-        // Keep the close action visually distinct with a thinner white focus outline.
-        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), Color.WHITE);
+        closeFocused.setColor(0xFF465366); closeFocused.setCornerRadius(14*density);
+        // Match the shared teal focus outline used by the rest of the launcher.
+        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), 0xFF80C9C2);
         close.setBackground(closeNormal);
         close.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? closeFocused : closeNormal));
         close.setOnClickListener(v -> dialog.dismiss());
