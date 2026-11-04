@@ -2,6 +2,7 @@ name: Build CYTV Weekly Weather Launcher
 # CI includes the folder app picker layout validation branch.
 # Pull-request base branch is enabled for CI.
 # Rebuild after the larger app tile and checkbox proportion update.
+# Rebuild the weekly weather dialog button lower-position adjustment.
 
 on:
   push:
