@@ -237,9 +237,13 @@ public class YouTubeAssistantActivity extends Activity {
                     LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
                     connectLp.leftMargin = dp(14);
                     connectButton.setLayoutParams(connectLp);
-                    // Keep a visible inset below the action row without changing outer dimensions.
+                    // Align the Connect button's right edge with the code field's right edge.
+                    // Move the complete action row slightly lower while keeping the fixed dialog frame.
                     buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
-                            buttons.getPaddingRight(), dp(2));
+                            dp(20), 0);
+                    buttons.setClipChildren(false);
+                    buttons.setClipToPadding(false);
+                    buttons.setTranslationY(dp(10));
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
