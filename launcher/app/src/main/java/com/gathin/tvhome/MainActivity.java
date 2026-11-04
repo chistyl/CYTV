@@ -6409,25 +6409,82 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
         updateCombinedPreview[0].run();
 
+        // 自訂底部操作列，避免 AlertDialog 系統按鈕佔用高度而遮住藍色滑桿。
+        LinearLayout actionRow = new LinearLayout(this);
+        actionRow.setOrientation(LinearLayout.HORIZONTAL);
+        actionRow.setGravity(Gravity.CENTER_VERTICAL);
+        actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
+        Button resetButton = new Button(this);
+        resetButton.setText("恢復預設");
+        Button cancelButton = new Button(this);
+        cancelButton.setText("取消");
+        Button applyButton = new Button(this);
+        applyButton.setText("套用");
+        Button[] actionButtons = {resetButton, cancelButton, applyButton};
+        for (int i=0;i<actionButtons.length;i++) {
+            Button button=actionButtons[i];
+            button.setAllCaps(false);
+            button.setTextSize(14);
+            button.setMinWidth(0);
+            button.setMinimumWidth(0);
+            button.setPadding((int)(10*density),0,(int)(10*density),0);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            GradientDrawable normal = new GradientDrawable();
+            normal.setColor(0xFF343B47);
+            normal.setCornerRadius(12*density);
+            button.setBackground(normal);
+            button.setTextColor(0xFFE8EBF0);
+            button.setId(View.generateViewId());
+            button.setOnFocusChangeListener((v,focused)->{
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(focused ? 0xFF46566B : 0xFF343B47);
+                bg.setCornerRadius(12*density);
+                if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
+                v.setBackground(bg);
+                ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
+            });
+        }
+        LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams((int)(112*density),(int)(46*density));
+        resetLp.rightMargin=(int)(8*density);
+        actionRow.addView(resetButton,resetLp);
+        View actionSpacer = new View(this);
+        actionRow.addView(actionSpacer,new LinearLayout.LayoutParams(0,1,1f));
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
+        actionLp.leftMargin=(int)(4*density);
+        actionLp.rightMargin=(int)(4*density);
+        actionRow.addView(cancelButton,actionLp);
+        LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
+        applyLp.leftMargin=(int)(4*density);
+        actionRow.addView(applyButton,applyLp);
+        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
                 .setView(panel)
-                .setNegativeButton("取消", (d,w) -> reopenPendingFolderAfterAppEdit())
-                .setNeutralButton("恢復預設", (d,w) -> {
-                    prefs.edit().remove("icon_scale_adjust_"+packageName)
-                            .remove("icon_scale_"+packageName)
-                            .remove("icon_scale_override_"+packageName)
-                            .putInt("background_"+packageName, Color.WHITE).apply();
-                    reloadApps(false);
-                    reopenPendingFolderAfterAppEdit();
-                })
-                .setPositiveButton("套用", (d,w) -> {
-                    prefs.edit().putInt("icon_scale_adjust_"+packageName,sizeBar.getProgress()-50)
-                            .putBoolean("icon_scale_override_"+packageName,true)
-                            .putInt("background_"+packageName,Color.rgb(rgb[0],rgb[1],rgb[2])).apply();
-                    reloadApps(false);
-                    reopenPendingFolderAfterAppEdit();
-                }).create();
+                .create();
+        resetButton.setOnClickListener(v -> {
+            prefs.edit().remove("icon_scale_adjust_"+packageName)
+                    .remove("icon_scale_"+packageName)
+                    .remove("icon_scale_override_"+packageName)
+                    .putInt("background_"+packageName, Color.WHITE).apply();
+            reloadApps(false);
+            dialog.dismiss();
+            reopenPendingFolderAfterAppEdit();
+        });
+        cancelButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            reopenPendingFolderAfterAppEdit();
+        });
+        applyButton.setOnClickListener(v -> {
+            prefs.edit().putInt("icon_scale_adjust_"+packageName,sizeBar.getProgress()-50)
+                    .putBoolean("icon_scale_override_"+packageName,true)
+                    .putInt("background_"+packageName,Color.rgb(rgb[0],rgb[1],rgb[2])).apply();
+            reloadApps(false);
+            dialog.dismiss();
+            reopenPendingFolderAfterAppEdit();
+        });
         dialog.setOnCancelListener(d -> reopenPendingFolderAfterAppEdit());
         dialog.show();
         if(dialog.getWindow()!=null) {
@@ -6436,11 +6493,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setCornerRadius(22*density);
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    Math.min((int)(600*density),getResources().getDisplayMetrics().heightPixels-(int)(28*density)));
+                    dialogHeight);
         }
 
-        // 遙控器焦點固定沿著圖標大小、RGB 三條滑桿，再到取消／恢復預設／套用。
+        // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
         sizeBar.setId(View.generateViewId());
         for (SeekBar bar : channelBars) bar.setId(View.generateViewId());
         sizeBar.setNextFocusDownId(channelBars[0].getId());
@@ -6449,60 +6508,17 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (i>0) channelBars[i].setNextFocusUpId(channelBars[i-1].getId());
             if (i<channelBars.length-1) channelBars[i].setNextFocusDownId(channelBars[i+1].getId());
         }
-
-        Button cancelButton=dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button resetButton=dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-        Button applyButton=dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        Button[] actionButtons={cancelButton,resetButton,applyButton};
-        GradientDrawable actionNormal=new GradientDrawable();
-        actionNormal.setColor(0xFF343B47);
-        actionNormal.setCornerRadius(12*density);
-        GradientDrawable actionFocused=new GradientDrawable();
-        actionFocused.setColor(0xFF46566B);
-        actionFocused.setCornerRadius(12*density);
-        actionFocused.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
-        for(int i=0;i<actionButtons.length;i++) {
-            Button button=actionButtons[i];
-            if(button==null) continue;
-            button.setId(View.generateViewId());
-            button.setFocusable(true);
-            button.setFocusableInTouchMode(true);
-            button.setDefaultFocusHighlightEnabled(false);
-            button.setAllCaps(false);
-            button.setBackground(new GradientDrawable() {{
-                setColor(0xFF343B47);
-                setCornerRadius(12*density);
-            }});
-            button.setTextColor(0xFFE8EBF0);
-            button.setMinWidth((int)(82*density));
-            button.setPadding((int)(12*density), 0, (int)(12*density), 0);
-            // 明確拉開按鈕間距，避免取消與套用兩顆按鈕黏在一起。
-            if (button.getLayoutParams() instanceof LinearLayout.LayoutParams) {
-                LinearLayout.LayoutParams buttonLp = (LinearLayout.LayoutParams) button.getLayoutParams();
-                buttonLp.leftMargin = (int)(5*density);
-                buttonLp.rightMargin = (int)(5*density);
-                buttonLp.topMargin = (int)(2*density);
-                buttonLp.bottomMargin = (int)(2*density);
-                button.setLayoutParams(buttonLp);
-            }
-            button.setOnFocusChangeListener((v,focused)->{
-                GradientDrawable stateBackground = new GradientDrawable();
-                stateBackground.setColor(focused ? 0xFF46566B : 0xFF343B47);
-                stateBackground.setCornerRadius(12*density);
-                if (focused) stateBackground.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
-                v.setBackground(stateBackground);
-                ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
-            });
-            button.setNextFocusUpId(channelBars[2].getId());
-            if(i>0 && actionButtons[i-1]!=null) {
-                button.setNextFocusLeftId(actionButtons[i-1].getId());
-                actionButtons[i-1].setNextFocusRightId(button.getId());
-            }
-        }
-        channelBars[2].setNextFocusDownId(cancelButton!=null?cancelButton.getId():resetButton.getId());
-        if(cancelButton!=null) cancelButton.setNextFocusDownId(sizeBar.getId());
-        if(resetButton!=null) resetButton.setNextFocusDownId(sizeBar.getId());
-        if(applyButton!=null) applyButton.setNextFocusDownId(sizeBar.getId());
+        resetButton.setNextFocusUpId(channelBars[2].getId());
+        cancelButton.setNextFocusUpId(channelBars[2].getId());
+        applyButton.setNextFocusUpId(channelBars[2].getId());
+        channelBars[2].setNextFocusDownId(resetButton.getId());
+        resetButton.setNextFocusRightId(cancelButton.getId());
+        cancelButton.setNextFocusLeftId(resetButton.getId());
+        cancelButton.setNextFocusRightId(applyButton.getId());
+        applyButton.setNextFocusLeftId(cancelButton.getId());
+        resetButton.setNextFocusDownId(sizeBar.getId());
+        cancelButton.setNextFocusDownId(sizeBar.getId());
+        applyButton.setNextFocusDownId(sizeBar.getId());
         sizeBar.post(sizeBar::requestFocus);
     }
 
