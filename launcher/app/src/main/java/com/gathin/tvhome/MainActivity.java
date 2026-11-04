@@ -68,6 +68,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.SoundEffectConstants;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
@@ -5073,13 +5074,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
+        panel.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
-        title.setPadding(0, 0, 0, (int)(12*density));
+        title.setPadding(0, 0, 0, (int)(8*density));
         panel.addView(title);
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
@@ -5103,7 +5104,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        randomLabel.setPadding((int)(12*density), 0, 0, 0);
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(42*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
         randomSwitch.setTextOff("");
@@ -5129,7 +5131,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(50*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5174,7 +5176,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                imageLp.height = (int)(80*density);
+                imageLp.height = (int)(72*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5196,15 +5198,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // 選取框立即顯示；實際套用仍要按「儲存」。
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(80*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(72*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(80*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -5229,8 +5231,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-        scrollLp.topMargin = (int)(2*density);
-        scrollLp.bottomMargin = (int)(6*density);
+        scrollLp.topMargin = (int)(4*density);
+        scrollLp.bottomMargin = (int)(8*density);
         panel.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
@@ -5265,19 +5267,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout bottomActions = new LinearLayout(this);
         bottomActions.setOrientation(LinearLayout.HORIZONTAL);
         bottomActions.setGravity(Gravity.CENTER_VERTICAL);
+        // 焦點外框與 elevation 陰影需要額外空間，避免被操作列裁切。
+        bottomActions.setClipChildren(false);
+        bottomActions.setClipToPadding(false);
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
         TextView save = new TextView(this);
         save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
-        GradientDrawable actionBg = new GradientDrawable();
-        actionBg.setColor(0xFF343A46); actionBg.setCornerRadius(14*density);
-        GradientDrawable actionFocusedBg = new GradientDrawable();
-        actionFocusedBg.setColor(0xFF465366);
-        actionFocusedBg.setCornerRadius(14*density);
-        actionFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
-        save.setBackground(actionBg);
+        // 取消與儲存必須各自持有獨立 Drawable，避免 Android TV 焦點切換時
+        // 共用 Drawable callback/state，造成「儲存」焦點框繪製錯位或殘影。
+        GradientDrawable saveNormalBg = new GradientDrawable();
+        saveNormalBg.setColor(0xFF343A46);
+        saveNormalBg.setCornerRadius(14*density);
+        GradientDrawable saveFocusedBg = new GradientDrawable();
+        saveFocusedBg.setColor(0xFF465366);
+        saveFocusedBg.setCornerRadius(14*density);
+        saveFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        save.setBackground(saveNormalBg);
         save.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? saveFocusedBg : saveNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         save.setOnClickListener(v -> {
@@ -5298,9 +5308,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setText("取消"); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
-        cancel.setBackground(actionBg);
+        GradientDrawable cancelNormalBg = new GradientDrawable();
+        cancelNormalBg.setColor(0xFF343A46);
+        cancelNormalBg.setCornerRadius(14*density);
+        GradientDrawable cancelFocusedBg = new GradientDrawable();
+        cancelFocusedBg.setColor(0xFF465366);
+        cancelFocusedBg.setCornerRadius(14*density);
+        cancelFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        cancel.setBackground(cancelNormalBg);
         cancel.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? cancelFocusedBg : cancelNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
@@ -5323,7 +5340,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setFocusableInTouchMode(true);
         save.setFocusable(true);
         save.setFocusableInTouchMode(true);
-        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(56*density)));
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -5480,8 +5497,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             v.setElevation(focused ? 4*density : 0f);
             // No scaling: keep the complete rounded focus outline inside the dialog.
         });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        lp.bottomMargin = (int)(8*density);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(46*density));
+        lp.bottomMargin = (int)(6*density);
         panel.addView(row, lp);
         row.setOnClickListener(v -> action.run());
         return row;
@@ -5653,7 +5670,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setClipChildren(false);
         list.setClipToPadding(false);
-        list.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
+        list.setPadding((int)(18*density), (int)(8*density), (int)(18*density), (int)(8*density));
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
 
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
@@ -5672,7 +5689,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
             tile.setId(View.generateViewId());
-            tile.setPadding((int)(7*density), (int)(5*density), (int)(7*density), (int)(5*density));
+            tile.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
             tile.setMinimumHeight((int)(82*density));
 
             FrameLayout art = new FrameLayout(this);
@@ -5696,19 +5713,19 @@ private GradientDrawable roundSurface(int color, float radius) {
                 image.setPadding(pad, pad, pad, pad);
             }
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            tile.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
+            tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
             check.setTextColor(0xFFF5F6FA);
-            check.setTextSize(14);
+            check.setTextSize(15);
             check.setChecked(checked[i]);
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
                     new int[]{0xFF80C9C2, 0xFFACB8C1}));
-            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(64*density), 1f);
-            checkLp.leftMargin = (int)(7*density);
+            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(68*density), 1f);
+            checkLp.leftMargin = (int)(10*density);
             check.setLayoutParams(checkLp);
             check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
             tile.addView(check);
@@ -5813,6 +5830,26 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
             saveParams.leftMargin = (int)(4*density);
             saveButton.setLayoutParams(saveParams);
+
+            // 底部操作列增加明確的上下留白，避免取消／儲存按鈕貼近對話框邊緣。
+            ViewParent actionParent = cancelButton.getParent();
+            if (actionParent instanceof ViewGroup) {
+                ViewGroup actionPanel = (ViewGroup) actionParent;
+                actionPanel.setClipToPadding(false);
+                actionPanel.setPadding(
+                        actionPanel.getPaddingLeft(),
+                        actionPanel.getPaddingTop() + (int)(32*density),
+                        actionPanel.getPaddingRight(),
+                        Math.max(0, actionPanel.getPaddingBottom() - (int)(8*density)));
+            }
+            LinearLayout.LayoutParams cancelSpacing = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+            cancelSpacing.topMargin = (int)(6*density);
+            cancelSpacing.bottomMargin = (int)(6*density);
+            cancelButton.setLayoutParams(cancelSpacing);
+            LinearLayout.LayoutParams saveSpacing = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
+            saveSpacing.topMargin = (int)(6*density);
+            saveSpacing.bottomMargin = (int)(6*density);
+            saveButton.setLayoutParams(saveSpacing);
             cancelButton.setFocusable(true);
             saveButton.setFocusable(true);
             cancelButton.setFocusableInTouchMode(true);
