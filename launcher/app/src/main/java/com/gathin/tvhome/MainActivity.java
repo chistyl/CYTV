@@ -4628,6 +4628,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
         });
         weatherDialog.show();
+        insetDialogActionPanel(weatherDialog);
+        if (weatherDialog.getWindow() != null) {
+            int availableHeight = getResources().getDisplayMetrics().heightPixels - (int)(104*density);
+            weatherDialog.getWindow().setLayout(
+                    Math.min((int)(760*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(620*density), availableHeight));
+        }
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelWeather != null && saveWeather != null) {
@@ -5898,8 +5905,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setBackgroundDrawable(rounded);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+                    Math.min((int)(620*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(104*density)));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -6081,10 +6088,27 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
     }
 
+    /** Keep AlertDialog action buttons inside a consistent, safely inset footer on TV screens. */
+    private void insetDialogActionPanel(AlertDialog dialog) {
+        if (dialog == null) return;
+        View buttons = dialog.findViewById(androidx.appcompat.R.id.buttonPanel);
+        if (buttons == null) {
+            int id = getResources().getIdentifier("buttonPanel", "id", "android");
+            if (id != 0) buttons = dialog.findViewById(id);
+        }
+        if (buttons != null) {
+            buttons.setPadding((int)(20*density), (int)(8*density),
+                    (int)(20*density), (int)(18*density));
+            buttons.setClipToPadding(false);
+            buttons.setClipChildren(false);
+        }
+    }
+
     private void styleRemoteDialogActions(AlertDialog dialog) {
         Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancel == null || save == null) return;
+        insetDialogActionPanel(dialog);
         cancel.setFocusable(true); save.setFocusable(true);
         cancel.setFocusableInTouchMode(true); save.setFocusableInTouchMode(true);
         cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
@@ -6840,7 +6864,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
+            int dialogHeight = Math.min((int)(540*density), screenHeight-(int)(104*density));
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     dialogHeight);
         }
