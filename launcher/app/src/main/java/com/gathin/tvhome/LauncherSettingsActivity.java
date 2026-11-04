@@ -184,6 +184,8 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
+        for (TextView clock : clockChoices) clock.setNextFocusDownId(wallpaperChoice.getId());
+        wallpaperChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
         connectSettingsVertical(reorderChoice, config.launcherSettingsButton,
                 wallpaperChoice, animationsChoice, advancedChoice, openOnStartChoice,
                 followThemeChoice, findViewById(R.id.defaultHomeChoice),
@@ -199,14 +201,17 @@ public final class LauncherSettingsActivity extends Activity {
             current.setNextFocusDownId(next.getId());
             next.setNextFocusUpId(current.getId());
         }
-        for (int i = 0; i < upper.length; i++) {
-            TextView current = upper[i];
-            if (i > 0) current.setNextFocusLeftId(upper[i - 1].getId());
-            if (i + 1 < upper.length) current.setNextFocusRightId(upper[i + 1].getId());
-        }
-        for (int i = 0; i < lower.length; i++) {
-            if (i > 0) lower[i].setNextFocusLeftId(lower[i - 1].getId());
-            if (i + 1 < lower.length) lower[i].setNextFocusRightId(lower[i + 1].getId());
+        wireHorizontalFocus(upper);
+        wireHorizontalFocus(lower);
+    }
+
+    private void wireHorizontalFocus(TextView[] choices) {
+        if (choices.length == 0) return;
+        LinearLayout row = (LinearLayout) choices[0].getParent();
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View current = row.getChildAt(i);
+            if (i > 0) current.setNextFocusLeftId(row.getChildAt(i - 1).getId());
+            if (i + 1 < row.getChildCount()) current.setNextFocusRightId(row.getChildAt(i + 1).getId());
         }
     }
 
