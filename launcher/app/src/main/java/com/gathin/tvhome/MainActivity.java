@@ -4435,7 +4435,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (12 * density);
-        content.setPadding(pad, pad, pad, pad);
+        // Keep the dialog's outer dimensions fixed; shift the content slightly upward internally.
+        content.setPadding(pad, (int) (8 * density), pad, pad);
         android.widget.Switch toggle = new android.widget.Switch(this);
         toggle.setText("顯示一週天氣"); toggle.setTextColor(Color.WHITE);
         toggle.setFocusable(true); toggle.setFocusableInTouchMode(true);
@@ -4581,7 +4582,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
         });
         weatherDialog.show();
-        // Keep the measured dialog width exactly as-is; add 20dp of vertical room only.
+        // Lock the dialog to its measured width and height; only its inner content is repositioned.
         if (weatherDialog.getWindow() != null) {
             final android.view.Window weatherWindow = weatherDialog.getWindow();
             weatherWindow.getDecorView().post(() -> {
@@ -4589,10 +4590,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int measuredWidth = decor.getWidth();
                 int measuredHeight = decor.getHeight();
                 if (measuredWidth > 0 && measuredHeight > 0) {
-                    int extraHeight = (int) (30 * density);
-                    int screenHeight = getResources().getDisplayMetrics().heightPixels;
-                    int maxHeight = screenHeight - (int) (32 * density);
-                    weatherWindow.setLayout(measuredWidth, Math.min(measuredHeight + extraHeight, maxHeight));
+                    weatherWindow.setLayout(measuredWidth, measuredHeight);
                 }
             });
         }
@@ -4600,6 +4598,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelWeather != null && saveWeather != null) {
             cancelWeather.setAllCaps(false); saveWeather.setAllCaps(false);
+            // The action labels remain white in both focused and unfocused states.
+            cancelWeather.setTextColor(Color.WHITE); saveWeather.setTextColor(Color.WHITE);
             cancelWeather.setFocusable(true); saveWeather.setFocusable(true);
             cancelWeather.setFocusableInTouchMode(true); saveWeather.setFocusableInTouchMode(true);
             cancelWeather.setDefaultFocusHighlightEnabled(false); saveWeather.setDefaultFocusHighlightEnabled(false);
