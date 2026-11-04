@@ -5074,13 +5074,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(20*density), (int)(18*density), (int)(20*density), (int)(16*density));
+        panel.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
-        title.setPadding(0, 0, 0, (int)(12*density));
+        title.setPadding(0, 0, 0, (int)(8*density));
         panel.addView(title);
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
@@ -5104,7 +5104,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(42*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
         randomSwitch.setTextOff("");
@@ -5130,7 +5130,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(50*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5175,7 +5175,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                imageLp.height = (int)(80*density);
+                imageLp.height = (int)(72*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5197,15 +5197,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // 選取框立即顯示；實際套用仍要按「儲存」。
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(80*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(72*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(80*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -5230,8 +5230,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-        scrollLp.topMargin = (int)(2*density);
-        scrollLp.bottomMargin = (int)(6*density);
+        scrollLp.topMargin = (int)(4*density);
+        scrollLp.bottomMargin = (int)(8*density);
         panel.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
@@ -5305,7 +5305,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
+        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, (int)(46*density), 1f);
         cancelLp.rightMargin = (int)(6*density);
         bottomActions.addView(cancel, cancelLp);
         LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
@@ -5324,7 +5324,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setFocusableInTouchMode(true);
         save.setFocusable(true);
         save.setFocusableInTouchMode(true);
-        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(46*density)));
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -5481,8 +5481,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             v.setElevation(focused ? 4*density : 0f);
             // No scaling: keep the complete rounded focus outline inside the dialog.
         });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        lp.bottomMargin = (int)(8*density);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, (int)(46*density));
+        lp.bottomMargin = (int)(6*density);
         panel.addView(row, lp);
         row.setOnClickListener(v -> action.run());
         return row;
