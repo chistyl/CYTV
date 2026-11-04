@@ -5089,8 +5089,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setFocusable(true);
         randomRow.setFocusableInTouchMode(true);
         randomRow.setClickable(true);
-        randomRow.setBackgroundColor(Color.TRANSPARENT);
+        randomRow.setDefaultFocusHighlightEnabled(false);
+        randomRow.setBackground(remoteWeatherFocusBackground(false));
         randomRow.setOnFocusChangeListener((v, hasFocus) -> {
+            v.setBackground(remoteWeatherFocusBackground(hasFocus));
             randomLabel.setTextColor(0xFFF5F6FA);
             v.setElevation(0f);
         });
