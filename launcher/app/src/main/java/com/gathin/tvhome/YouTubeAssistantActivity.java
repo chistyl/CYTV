@@ -241,8 +241,8 @@ public class YouTubeAssistantActivity extends Activity {
                     // Move the complete action row slightly lower while keeping the fixed dialog frame.
                     buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
                             dp(20), 0);
-                    buttons.setClipChildren(false);
-                    buttons.setClipToPadding(false);
+                    ((LinearLayout) buttons).setClipChildren(false);
+                    ((LinearLayout) buttons).setClipToPadding(false);
                     buttons.setTranslationY(dp(10));
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
