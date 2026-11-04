@@ -5434,7 +5434,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable rowFocused = new GradientDrawable();
         rowFocused.setColor(0xFF46566B);
         rowFocused.setCornerRadius(14*density);
-        rowFocused.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
+        rowFocused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
         row.setBackground(rowNormal);
         row.setClipToOutline(true);
         row.setFocusable(true);
@@ -5444,7 +5444,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.setId(View.generateViewId());
         row.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(focused ? rowFocused : rowNormal);
-            row.setTextColor(focused ? Color.WHITE : 0xFFE8EBF0);
+            row.setTextColor(0xFFF5F6FA);
             v.setElevation(focused ? 4*density : 0f);
             // No scaling: keep the complete rounded focus outline inside the dialog.
         });
@@ -5792,15 +5792,16 @@ private GradientDrawable roundSurface(int color, float radius) {
             buttonNormal.setColor(0xFF343B47);
             buttonNormal.setCornerRadius(14*density);
             GradientDrawable buttonFocused = new GradientDrawable();
-            buttonFocused.setColor(0xFFF4F4F4);
+            buttonFocused.setColor(0xFF465366);
             buttonFocused.setCornerRadius(14*density);
+            buttonFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
             cancelButton.setBackground(buttonNormal);
             saveButton.setBackground(buttonNormal);
             cancelButton.setTextColor(0xFFF1F2F4);
             saveButton.setTextColor(0xFFF1F2F4);
             View.OnFocusChangeListener buttonFocus = (v, focused) -> {
                 v.setBackground(focused ? buttonFocused : buttonNormal);
-                ((Button)v).setTextColor(focused ? 0xFF202124 : 0xFFF1F2F4);
+                ((Button)v).setTextColor(0xFFF5F6FA);
                 v.setScaleX(1f);
                 v.setScaleY(1f);
             };
@@ -5848,10 +5849,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             item.setFocusable(true); item.setFocusableInTouchMode(true); item.setClickable(true);
             item.setId(View.generateViewId());
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47); normal.setCornerRadius(12*d);
+            normal.setColor(0xFF343A46); normal.setCornerRadius(12*d);
             GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF00AFA5); focused.setCornerRadius(12*d);
-            focused.setStroke(Math.max(3,(int)(3*d)), Color.WHITE);
+            focused.setColor(0xFF465366); focused.setCornerRadius(12*d);
+            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
             item.setBackground(normal); item.setDefaultFocusHighlightEnabled(false);
             item.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
@@ -5890,14 +5891,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
             cancel.setDefaultFocusHighlightEnabled(false);
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47); normal.setCornerRadius(14*d);
+            normal.setColor(0xFF343A46); normal.setCornerRadius(14*d);
             GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF00AFA5); focused.setCornerRadius(14*d);
-            focused.setStroke(Math.max(3,(int)(3*d)), Color.WHITE);
+            focused.setColor(0xFF465366); focused.setCornerRadius(14*d);
+            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
             cancel.setBackground(normal);
             cancel.setOnFocusChangeListener((v, hasFocus) -> {
                 v.setBackground(hasFocus ? focused : normal);
-                ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFFACB8C1);
+                ((Button)v).setTextColor(0xFFF5F6FA);
             });
             if (!folderRows.isEmpty()) {
                 View last = folderRows.get(folderRows.size()-1);
@@ -7142,8 +7143,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             barNormal.setColor(Color.TRANSPARENT);
             barNormal.setCornerRadius(14 * density);
             GradientDrawable barFocused = new GradientDrawable();
-            barFocused.setColor(0xFFF4F4F4);
+            barFocused.setColor(0xFF465366);
             barFocused.setCornerRadius(14 * density);
+            barFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
             bar.setBackground(barNormal);
             bar.setPadding((int)(10 * density), (int)(5 * density), (int)(10 * density), (int)(5 * density));
             bar.setOnFocusChangeListener((v, focused) -> {
@@ -7198,8 +7200,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionNormal.setColor(0xFF343B47);
         actionNormal.setCornerRadius(14 * density);
         GradientDrawable actionFocused = new GradientDrawable();
-        actionFocused.setColor(0xFFF4F4F4);
+        actionFocused.setColor(0xFF465366);
         actionFocused.setCornerRadius(14 * density);
+        actionFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         for (int i = 0; i < actions.length; i++) {
             Button button = actions[i];
             if (button == null) continue;
@@ -7279,7 +7282,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable seekNormal = new GradientDrawable();
         seekNormal.setColor(0x18333333); seekNormal.setCornerRadius(12*density);
         GradientDrawable seekFocused = new GradientDrawable();
-        seekFocused.setColor(0xFFF4F4F4); seekFocused.setCornerRadius(14*density);
+        seekFocused.setColor(0xFF465366); seekFocused.setCornerRadius(14*density);
+        seekFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         seekWrap.setBackground(seekNormal);
         seekWrap.setDefaultFocusHighlightEnabled(false);
         seekWrap.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? seekFocused : seekNormal));
@@ -7347,7 +7351,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable actionNormal = new GradientDrawable();
         actionNormal.setColor(0xFF343B47); actionNormal.setCornerRadius(14*density);
         GradientDrawable actionFocused = new GradientDrawable();
-        actionFocused.setColor(0xFFF4F4F4); actionFocused.setCornerRadius(14*density);
+        actionFocused.setColor(0xFF465366); actionFocused.setCornerRadius(14*density);
+        actionFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         for (int i = 0; i < actions.length; i++) {
             Button button = actions[i];
             if (button == null) continue;
@@ -7580,13 +7585,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(Color.TRANSPARENT);
         normal.setCornerRadius(18 * density);
-        GradientDrawable selected = new GradientDrawable();        selected.setColor(0xFFF4F4F4);
+        GradientDrawable selected = new GradientDrawable();        selected.setColor(0xFF465366);
         selected.setCornerRadius(18 * density);
+        selected.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         row.setBackground(normal);
         row.setPadding((int)(12*density), 0, (int)(12*density), 0);
         row.setOnFocusChangeListener((v, focused) -> {
             v.setBackground(focused ? selected : normal);
-            rowTitle.setTextColor(focused ? 0xFF202124 : Color.WHITE);
+            rowTitle.setTextColor(0xFFF5F6FA);
             v.setElevation(focused ? 2*density : 0f);
         });
         row.setOnClickListener(v -> {
