@@ -5267,6 +5267,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout bottomActions = new LinearLayout(this);
         bottomActions.setOrientation(LinearLayout.HORIZONTAL);
         bottomActions.setGravity(Gravity.CENTER_VERTICAL);
+        // 焦點外框與 elevation 陰影需要額外空間，避免被操作列裁切。
+        bottomActions.setClipChildren(false);
+        bottomActions.setClipToPadding(false);
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
         TextView save = new TextView(this);
         save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
@@ -5316,7 +5321,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, (int)(46*density), 1f);
+        LinearLayout.LayoutParams cancelLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
         cancelLp.rightMargin = (int)(6*density);
         bottomActions.addView(cancel, cancelLp);
         LinearLayout.LayoutParams saveLp = new LinearLayout.LayoutParams(0, (int)(48*density), 1f);
@@ -5335,7 +5340,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setFocusableInTouchMode(true);
         save.setFocusable(true);
         save.setFocusableInTouchMode(true);
-        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(46*density)));
+        panel.addView(bottomActions, new LinearLayout.LayoutParams(-1, (int)(56*density)));
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
