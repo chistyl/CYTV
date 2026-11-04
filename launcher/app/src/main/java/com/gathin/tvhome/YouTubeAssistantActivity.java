@@ -205,28 +205,69 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
+            // Use a predictable TV-sized dialog instead of the platform's near-full-width
+            // default. Keep the dialog centred and leave a visible margin around the surface.
+            android.view.Window window = dialog.getWindow();
+            if (window != null) {
+                android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+                int maxWidth = metrics.widthPixels - dp(64);
+                int targetWidth = Math.min(maxWidth, (int) (metrics.widthPixels * 0.92f));
+                window.setLayout(Math.max(dp(520), targetWidth), -2);
+                window.setGravity(android.view.Gravity.CENTER);
+                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            }
+
             android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
             android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            // D-pad traversal: code field -> action row; left/right switches Cancel/Connect.
+            // Separate the action pills; AlertDialog otherwise places them edge-to-edge.
             if (cancelButton != null && connectButton != null) {
+                View buttons = (View) cancelButton.getParent();
+                if (buttons instanceof LinearLayout) {
+                    LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+                    cancelLp.rightMargin = dp(8);
+                    cancelButton.setLayoutParams(cancelLp);
+                    LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
+                    connectLp.leftMargin = dp(8);
+                    connectButton.setLayoutParams(connectLp);
+                }
+                // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(input.getId());
                 connectButton.setNextFocusUpId(input.getId());
                 cancelButton.setNextFocusRightId(connectButton.getId());
                 connectButton.setNextFocusLeftId(cancelButton.getId());
+                input.setOnKeyListener((view, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        cancelButton.requestFocus();
+                        return true;
+                    }
+                    return false;
+                });
+                cancelButton.setOnKeyListener((view, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        input.requestFocus();
+                        return true;
+                    }
+                    return false;
+                });
             }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            connectButton.setOnClickListener(v -> {
                 String code = input.getText().toString().trim();
                 if (code.isEmpty()) {
                     input.setError("請輸入配對代碼");
+                    input.requestFocus();
                     return;
                 }
                 dialog.dismiss();
                 pair(code);
             });
-            // styleDialog posts its default button focus; override it after layout so the
-            // first D-pad focus lands in the pairing-code field, not on Cancel.
-            input.post(input::requestFocus);
+            // Focus the editable field after the window and action row have completed layout.
+            input.post(() -> {
+                input.requestFocus();
+                input.setSelection(input.getText().length());
+            });
         });
         dialog.show();
     }
