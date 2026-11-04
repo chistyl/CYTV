@@ -3896,13 +3896,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         // 系統重啟固定放在設定選單最下方；優先使用系統電源選單，必要時走安全確認流程。
         addSettingsMenuRow(rows, popup, "系統重啟", this::openSystemPowerMenuFromSettings);
-        // 只縮小右上角「設定」下拉選單的選項高度，不影響其他彈出選單。
-        for (int i = 0; i < rows.getChildCount(); i++) {
-            View menuItem = rows.getChildAt(i);
-            LinearLayout.LayoutParams itemParams = (LinearLayout.LayoutParams) menuItem.getLayoutParams();
-            itemParams.height = (int) (46 * density);
-            menuItem.setLayoutParams(itemParams);
-        }
+        // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 52dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
