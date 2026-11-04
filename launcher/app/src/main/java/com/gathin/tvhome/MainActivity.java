@@ -6805,6 +6805,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         final LinearLayout view;
         FrameLayout targetCard;
         ImageView targetIcon;
+        // Legacy preview helper still uses this baseline for its existing dialog.
+        final int iconBaseDp = 36;
         AppIconPreviewStrip(LinearLayout view) { this.view = view; }
     }
 
