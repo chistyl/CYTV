@@ -16,6 +16,7 @@ on:
   pull_request:
     branches:
       - feature/weather-icons-emotn-inspired-67c7d53
+      - feature/unified-settings-ui-7c7345f
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
