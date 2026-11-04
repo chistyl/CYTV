@@ -5271,15 +5271,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
-        GradientDrawable actionBg = new GradientDrawable();
-        actionBg.setColor(0xFF343A46); actionBg.setCornerRadius(14*density);
-        GradientDrawable actionFocusedBg = new GradientDrawable();
-        actionFocusedBg.setColor(0xFF465366);
-        actionFocusedBg.setCornerRadius(14*density);
-        actionFocusedBg.setStroke(Math.max(3, (int)(3*density)), 0xFF80C9C2);
-        save.setBackground(actionBg);
+        // 取消與儲存必須各自持有獨立 Drawable，避免 Android TV 焦點切換時
+        // 共用 Drawable callback/state，造成「儲存」焦點框繪製錯位或殘影。
+        GradientDrawable saveNormalBg = new GradientDrawable();
+        saveNormalBg.setColor(0xFF343A46);
+        saveNormalBg.setCornerRadius(14*density);
+        GradientDrawable saveFocusedBg = new GradientDrawable();
+        saveFocusedBg.setColor(0xFF465366);
+        saveFocusedBg.setCornerRadius(14*density);
+        saveFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        save.setBackground(saveNormalBg);
         save.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? saveFocusedBg : saveNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         save.setOnClickListener(v -> {
@@ -5300,9 +5303,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setText("取消"); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
-        cancel.setBackground(actionBg);
+        GradientDrawable cancelNormalBg = new GradientDrawable();
+        cancelNormalBg.setColor(0xFF343A46);
+        cancelNormalBg.setCornerRadius(14*density);
+        GradientDrawable cancelFocusedBg = new GradientDrawable();
+        cancelFocusedBg.setColor(0xFF465366);
+        cancelFocusedBg.setCornerRadius(14*density);
+        cancelFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        cancel.setBackground(cancelNormalBg);
         cancel.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? actionFocusedBg : actionBg);
+            v.setBackground(hasFocus ? cancelFocusedBg : cancelNormalBg);
             v.setElevation(hasFocus ? 5*density : 0f);
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
@@ -5359,13 +5369,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GradientDrawable border = new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
         border.setCornerRadius(2 * density);
-        // 已選桌布與遙控器目前焦點分開呈現：選取狀態使用低對比細框，
-        // 只有目前焦點使用明亮青綠粗框，避免縮圖選取框與按鈕焦點同時搶眼。
-        int strokeColor = focused ? 0xFF80C9C2
-                : (selected ? 0xFF667786 : Color.TRANSPARENT);
-        int strokeWidth = focused ? Math.max(3, (int)(3 * density))
-                : (selected ? Math.max(1, (int)(1 * density)) : 0);
-        border.setStroke(strokeWidth, strokeColor);
+        int strokeColor = (selected || focused) ? 0xFF80C9C2 : Color.TRANSPARENT;
+        border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
         preview.setForeground(border);
     }
 
