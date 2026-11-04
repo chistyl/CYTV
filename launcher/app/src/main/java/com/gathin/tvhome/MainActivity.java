@@ -4722,7 +4722,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (appTab.hasFocus()) ((GradientDrawable) appTab.getBackground()).setStroke(
                     Math.max(2, (int)(2*density)), 0xFF80C9C2);
             if (folderTab.hasFocus()) ((GradientDrawable) folderTab.getBackground()).setStroke(
-                    Math.max(2, (int)(2*density)), Color.WHITE);
+                    Math.max(2, (int)(2*density)), 0xFF80C9C2);
             appTab.setClipToOutline(true); folderTab.setClipToOutline(true);
             if (showingApps[0]) {
                 List<View> appFocusItems = new ArrayList<>();
@@ -5533,6 +5533,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 GradientDrawable focused = new GradientDrawable();
                 focused.setColor(0xFF465366);
                 focused.setCornerRadius(14*density);
+                focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
                 button.setBackground(normal);
                 button.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setBackground(hasFocus ? focused : normal);
