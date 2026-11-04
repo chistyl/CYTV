@@ -5737,6 +5737,15 @@ private GradientDrawable roundSurface(int color, float radius) {
             // 按鈕本體維持原尺寸；由按鈕列統一控制上下留白與底部定位。
             cancelButton.setMinHeight((int)(48*density));
             saveButton.setMinHeight((int)(48*density));
+            // 取消與儲存按鈕之間保留明確間隔，避免兩顆按鈕貼在一起。
+            LinearLayout.LayoutParams cancelButtonParams =
+                    (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
+            cancelButtonParams.rightMargin = (int)(8*density);
+            cancelButton.setLayoutParams(cancelButtonParams);
+            LinearLayout.LayoutParams saveButtonParams =
+                    (LinearLayout.LayoutParams) saveButton.getLayoutParams();
+            saveButtonParams.leftMargin = (int)(8*density);
+            saveButton.setLayoutParams(saveButtonParams);
             View buttonBar = (View) cancelButton.getParent();
             if (buttonBar != null) {
                 buttonBar.setPadding((int)(12*density), (int)(10*density),
@@ -5778,10 +5787,19 @@ private GradientDrawable roundSurface(int color, float radius) {
             cancelButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusLeftId(cancelButton.getId());
             if (!selectionTiles.isEmpty()) {
-                View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
-                lastRowTile.setNextFocusDownId(cancelButton.getId());
-                cancelButton.setNextFocusUpId(lastRowTile.getId());
-                saveButton.setNextFocusUpId(lastRowTile.getId());
+                // 最後一列左右兩格分別直達取消／儲存，避免遙控器焦點只能落在其中一顆。
+                int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+                View leftLastTile = selectionTiles.get(lastRowStart);
+                leftLastTile.setNextFocusDownId(cancelButton.getId());
+                cancelButton.setNextFocusUpId(leftLastTile.getId());
+                if (lastRowStart + 1 < selectionTiles.size()) {
+                    View rightLastTile = selectionTiles.get(lastRowStart + 1);
+                    rightLastTile.setNextFocusDownId(saveButton.getId());
+                    saveButton.setNextFocusUpId(rightLastTile.getId());
+                } else {
+                    leftLastTile.setNextFocusRightId(saveButton.getId());
+                    saveButton.setNextFocusUpId(leftLastTile.getId());
+                }
             }
             if (!selectionTiles.isEmpty()) {
                 View first = selectionTiles.get(0);
