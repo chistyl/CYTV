@@ -236,7 +236,7 @@ public class YouTubeAssistantActivity extends Activity {
                     connectButton.setLayoutParams(connectLp);
                     // Keep a visible inset below the action row without changing outer dimensions.
                     buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
-                            buttons.getPaddingRight(), dp(14));
+                            buttons.getPaddingRight(), dp(2));
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
