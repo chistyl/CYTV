@@ -4502,7 +4502,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         city.setVisibility(fixed ? View.VISIBLE : View.GONE);
         modes.setOnCheckedChangeListener((g, checked) ->
                 city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
-        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
+        ScrollView weatherContentScroll = new ScrollView(this);
+        weatherContentScroll.setFillViewport(false);
+        weatherContentScroll.setVerticalScrollBarEnabled(false);
+        weatherContentScroll.setHorizontalScrollBarEnabled(false);
+        weatherContentScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        weatherContentScroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(weatherContentScroll).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
                     String value = city.getText().toString().trim();
@@ -4515,7 +4521,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             rounded.setColor(Color.rgb(29, 33, 43));
             rounded.setCornerRadius(22 * density);
             rounded.setStroke(Math.max(1, (int) density), 0x30FFFFFF);
-            if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
+            if (weatherDialog.getWindow() != null) {
+                // Keep the complete dialog, including its action buttons, away from screen edges.
+                int horizontalInset = (int) (18 * density);
+                int bottomInset = (int) (18 * density);
+                weatherDialog.getWindow().setBackgroundDrawable(
+                        new android.graphics.drawable.InsetDrawable(
+                                rounded, horizontalInset, 0, horizontalInset, bottomInset));
+            }
         });
         weatherDialog.show();
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -4966,8 +4979,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int safeDialogHeight = Math.max((int)(280*density), screenHeight-(int)(96*density));
+            // 外層填滿視窗可用高度，ScrollView 取得剩餘空間，操作列維持固定可見。
+            outer.setLayoutParams(new LinearLayout.LayoutParams(-1, -1));
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
+                    Math.min((int)(640*density), safeDialogHeight));
         }
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
         View firstRow = null, lastRow = null;
@@ -5101,6 +5118,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
+        // 將「主題隨機播放」文字往右微調，與視窗左側保留一致的視覺間距。
+        randomLabel.setPadding((int)(8*density), 0, 0, 0);
         randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(48*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
@@ -5174,6 +5193,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
                 imageLp.height = (int)(80*density);
                 preview.setLayoutParams(imageLp);
+                // Keep the preview image at 80dp; the row container adds only 4dp below it.
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     // 焦點框與已選取框都沿用縮圖外型，不加卡片底色。
@@ -5199,10 +5219,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(92*density)));
+            // 縮小每列縮圖下方的空白，讓兩排主題預覽更緊湊。
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(84*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(6*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(2*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -5536,7 +5557,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (createDialog.getWindow() != null) {
             GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(29,33,43));
             rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            createDialog.getWindow().setBackgroundDrawable(rounded);
+            // Add visible safe space below and beside the action row on TV screens.
+            int horizontalInset = (int) (16 * density);
+            int bottomInset = (int) (18 * density);
+            createDialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.InsetDrawable(
+                            rounded, horizontalInset, 0, horizontalInset, bottomInset));
         }
         // TV remote focus order: name field -> Cancel -> Create. Avoid relying on
         // theme-dependent AlertDialog focus defaults, which vary across TV devices.
@@ -5786,10 +5812,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             rounded.setCornerRadius(22*density);
             rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            // AlertDialog 標題與系統按鈕列各自保留空間，清單只使用中間可用高度。
+            int safeDialogHeight = Math.max((int)(260*density), screenHeight-(int)(200*density));
+            dialog.getWindow().setGravity(Gravity.CENTER);
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+                    Math.min((int)(580*density), safeDialogHeight));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
@@ -5844,9 +5873,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
                 for (int i = lastRowStart; i < selectionTiles.size(); i++)
                     selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
-                // 第一列向上回到操作列；中間列仍依同欄上下移動。
-                for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
-                    selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
+                // 最後一列向下進入操作列；第一列向上不跳到按鈕，避免焦點繞行。
                 cancelButton.setNextFocusUpId(lastRowTile.getId());
                 saveButton.setNextFocusUpId(lastRowTile.getId());
             } else {
@@ -6649,7 +6676,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
         actionRow.setGravity(Gravity.CENTER_VERTICAL);
-        actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
+        actionRow.setPadding((int)(4*density), (int)(5*density), (int)(4*density), (int)(5*density));
         Button resetButton = new Button(this);
         resetButton.setText("恢復預設");
         Button cancelButton = new Button(this);
@@ -6694,11 +6721,22 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
-        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        LinearLayout dialogRoot = new LinearLayout(this);
+        dialogRoot.setOrientation(LinearLayout.VERTICAL);
+        // 對話框內縮，避免操作列貼齊螢幕左右與下緣；保留內容區獨立捲動。
+        dialogRoot.setPadding((int)(18*density), 0, (int)(18*density), (int)(14*density));
+        ScrollView appearanceScroll = new ScrollView(this);
+        appearanceScroll.setFillViewport(false);
+        appearanceScroll.setVerticalScrollBarEnabled(false);
+        appearanceScroll.setHorizontalScrollBarEnabled(false);
+        appearanceScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        appearanceScroll.addView(panel, new ScrollView.LayoutParams(-1, -2));
+        dialogRoot.addView(appearanceScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        dialogRoot.addView(actionRow, new LinearLayout.LayoutParams(-1, (int)(53*density)));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
-                .setView(panel)
+                .setView(dialogRoot)
                 .create();
         resetButton.setOnClickListener(v -> {
             prefs.edit().remove("icon_scale_adjust_"+packageName)
@@ -6730,9 +6768,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogHeight = Math.min((int)(590*density), screenHeight-(int)(36*density));
-            dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    dialogHeight);
+            // 四周保留明確安全邊距；高度保留足夠空間，超出時只捲動內容，不裁切操作列。
+            int safeHeight = Math.max((int)(300*density), screenHeight-(int)(64*density));
+            int dialogHeight = Math.min((int)(590*density), safeHeight);
+            int safeWidth = Math.max((int)(320*density),
+                    getResources().getDisplayMetrics().widthPixels-(int)(96*density));
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(Math.min((int)(620*density), safeWidth), dialogHeight);
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
