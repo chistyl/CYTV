@@ -6582,6 +6582,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             button.setFocusable(true);
             button.setFocusableInTouchMode(true);
             button.setDefaultFocusHighlightEnabled(false);
+            // 移除 Android 原生 Button 預設立體陰影／按壓 Z 軸效果，
+            // 避免按鈕底部看起來像多壓了一層色塊。
+            button.setElevation(0f);
+            button.setTranslationZ(0f);
+            button.setStateListAnimator(null);
             GradientDrawable normal = new GradientDrawable();
             normal.setColor(0xFF343B47);
             normal.setCornerRadius(12*density);
