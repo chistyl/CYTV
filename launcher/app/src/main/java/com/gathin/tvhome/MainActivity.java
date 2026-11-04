@@ -997,8 +997,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
-        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;        if (iconOnlyVpn) {            vpnPlainBackground = btnVpn.getBackground().getConstantState();
-            vpnPlainInk = btnVpn.getCompoundDrawableTintList();
+        iconOnlyVpn = vpnPill && cfg.iconOnlyVpn;        if (iconOnlyVpn) {            vpnPlainBackground = btnVpn.getBackground().getConstantState();            vpnPlainInk = btnVpn.getCompoundDrawableTintList();
             makeIconOnly(btnVpn);
         }
         btnSettings.setOnLongClickListener(v -> {
@@ -1997,8 +1996,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int pos = Math.max(0, Math.min(lastFocused, adapter.appCount() - 1));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);        View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
         if (card == null || card.getWidth() <= 0 || !card.isFocused()) return;        float pad = 6f * density;
-        float scale = adapter.focusScale();
-        int w = (int) (card.getWidth() * scale + 2 * pad);
+        float scale = adapter.focusScale();        int w = (int) (card.getWidth() * scale + 2 * pad);
         int h = (int) (card.getHeight() * scale + 2 * pad);
         if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
             onTileFocused(pos, card);
@@ -2997,8 +2995,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         racePanel.setVisibility(View.VISIBLE);
     }
     private void refreshPillsAfterNextDraw() {
-        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
+        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {            @Override
             public boolean onPreDraw() {
                 root.getViewTreeObserver().removeOnPreDrawListener(this);
                 // Posted from inside the frame's traversal, so it runs after that frame is drawn. A post straight
@@ -3997,8 +3994,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
         TextView heading = new TextView(this);
         heading.setText(TraditionalText.toTraditional("一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
-        heading.setTextColor(Color.WHITE);
-        heading.setTextSize(16);
+        heading.setTextColor(Color.WHITE);        heading.setTextSize(16);
         heading.setTypeface(null, android.graphics.Typeface.BOLD);
         heading.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(7*density));
         // Heading spans the visible card width; the forecast row scrolls horizontally below it.
@@ -4997,7 +4993,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
         return drawable;
     }
-
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳圖片並直接設為桌布。 */
     private void showQrWallpaperTransferDialog() {
         final Dialog dialog = new Dialog(this);
@@ -5997,8 +5992,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 View next = folderFocusTiles.get(target);
                 next.requestFocus();
                 next.post(() -> {
-                    android.graphics.Rect rect = new android.graphics.Rect();
-                    next.getDrawingRect(rect);
+                    android.graphics.Rect rect = new android.graphics.Rect();                    next.getDrawingRect(rect);
                     scroll.requestChildRectangleOnScreen(next, rect, true);
                 });
             }
@@ -6997,8 +6991,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 ? getString(R.string.card_prompt_resigned, card.appLabel)
                 : card.state == Cards.State.RELABELLED
                 ? getString(R.string.card_prompt_relabelled, card.appLabel)
-                : getString(R.string.card_prompt_body, card.appLabel));
-        TextView names = panel.findViewById(R.id.names);
+                : getString(R.string.card_prompt_body, card.appLabel));        TextView names = panel.findViewById(R.id.names);
         if (Cards.fold(card.label).equals(Cards.fold(card.appLabel))) names.setVisibility(View.GONE);
         else names.setText(getString(R.string.card_prompt_names, card.label, card.appLabel));
         ((TextView) panel.findViewById(R.id.identity)).setText(
@@ -7064,3 +7057,98 @@ private GradientDrawable roundSurface(int color, float radius) {
             Toast.makeText(this, R.string.card_not_saved, Toast.LENGTH_SHORT).show();
             promptsPaused = true;
         }
+        reloadTiles();
+    }
+
+    /** Dropdown under the Settings pill (hold OK): every discovered card, its package and key; OK toggles Shown and Hidden. */
+    private void showModuleCards() {
+        if (cards.isEmpty() || !CardFeature.working()) {
+            Toast.makeText(this, R.string.no_module_cards, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        CardFeature.run(() -> {
+            showModuleCardsNow();
+            return null;
+        }, null);
+    }
+
+    private void showModuleCardsNow() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_cards, root, false);
+        if (getResources().getBoolean(R.bool.rtl_menu_bar))
+            panel.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (400 * density));
+        List<Cards.Card> listed = new ArrayList<>(cards);
+        Collections.sort(listed, Cards::byLabel);
+        for (Cards.Card card : listed) {
+            View row = getLayoutInflater().inflate(R.layout.item_card_row, rows, false);
+            row.setTag(card.pkg);
+            ((TextView) row.findViewById(R.id.title)).setText(card.label);
+            if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
+                LinearLayout heading = (LinearLayout) row.findViewById(R.id.title).getParent();
+                View status = row.findViewById(R.id.state);
+                heading.removeView(status);
+                heading.addView(status, 0);
+            }
+            TextView app = row.findViewById(R.id.app);
+            if (Cards.fold(card.label).equals(Cards.fold(card.appLabel))) app.setVisibility(View.GONE);
+            else app.setText(getString(R.string.card_app_name, card.appLabel));
+            ((TextView) row.findViewById(R.id.pkg)).setText(card.pkg);
+            ((TextView) row.findViewById(R.id.digest)).setText(Cards.longDigest(card.digest));
+            final String pkg = card.pkg;
+            row.setOnClickListener(v -> CardFeature.run(() -> {
+                // The list stays open; the decision is for the card as it is now, not as it was listed.
+                Cards.Card now = cardFor(pkg);
+                if (now == null) return null;
+                decideCard(now, now.state != Cards.State.SHOWN);
+                // Every row, not only this one: a toggle can move another card across the limit of 8.
+                updateCardStates(rows);
+                return null;
+            }, null));
+            rows.addView(row);
+        }
+        updateCardStates(rows);
+        // Scroll inside the panel instead of running off the bottom of a 720p screen.
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int[] at = new int[2];
+        anchor.getLocationInWindow(at);
+        int room = root.getHeight() - (at[1] + anchor.getHeight()) - (int) (34 * density);
+        popup.setHeight(Math.min(panel.getMeasuredHeight(), Math.max(room, (int) (120 * density))));
+        // Hebrew places Settings on the left: align the outer panel inward, like its parent menu.
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private Cards.Card cardFor(String pkg) {
+        for (Cards.Card c : cards) if (c.pkg.equals(pkg)) return c;
+        return null;
+    }
+
+    /** Writes the state of every row in the Module cards list from the current card list. */
+    private void updateCardStates(LinearLayout rows) {
+        List<Cards.Card> drawn = Cards.shown(cards);
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            View row = rows.getChildAt(i);
+            Cards.Card card = row.getTag() instanceof String ? cardFor((String) row.getTag()) : null;
+            ((TextView) row.findViewById(R.id.state)).setText(card != null ? stateText(card, drawn.contains(card)) : "");
+        }
+    }
+
+    /** The row's state: a card the owner set to Shown but which is beyond the eight drawn says so. */
+    private String stateText(Cards.Card card, boolean drawn) {
+        switch (card.state) {
+            case SHOWN:
+                return getString(drawn ? R.string.card_state_shown : R.string.card_state_over_limit);
+            case HIDDEN:
+                return getString(R.string.card_state_hidden);
+            case RESIGNED:
+                return getString(R.string.card_state_new_key);
+            case RELABELLED:
+                return getString(R.string.card_state_new_label);
+            default:
+                return getString(R.string.card_state_new);
+        }
+    }
+}
