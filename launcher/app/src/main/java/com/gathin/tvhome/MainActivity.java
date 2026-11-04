@@ -4581,6 +4581,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
         });
         weatherDialog.show();
+        // Keep the measured dialog width exactly as-is; add 20dp of vertical room only.
+        if (weatherDialog.getWindow() != null) {
+            final android.view.Window weatherWindow = weatherDialog.getWindow();
+            weatherWindow.getDecorView().post(() -> {
+                View decor = weatherWindow.getDecorView();
+                int measuredWidth = decor.getWidth();
+                int measuredHeight = decor.getHeight();
+                if (measuredWidth > 0 && measuredHeight > 0) {
+                    int extraHeight = (int) (20 * density);
+                    int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                    int maxHeight = screenHeight - (int) (32 * density);
+                    weatherWindow.setLayout(measuredWidth, Math.min(measuredHeight + extraHeight, maxHeight));
+                }
+            });
+        }
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelWeather != null && saveWeather != null) {
