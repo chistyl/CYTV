@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/merge-app-icon-settings
+      - fix/app-appearance-layout-proportions-29716a8
     paths:
       - 'launcher/**'
       - '.github/workflows/build-merged-icon-settings.yml'
