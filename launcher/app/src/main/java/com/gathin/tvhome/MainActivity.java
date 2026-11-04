@@ -5721,7 +5721,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             lp.bottomMargin = (int)(8*d); options.addView(item, lp);
         }
         AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle("選擇資料夾")
-                .setView(scroll).setNegativeButton("取消", null).create();
+                .setView(panel).setNegativeButton("取消", null).create();
         folderDialogRef[0] = folderDialog;
         folderDialog.show();
         if (folderDialog.getWindow() != null) {
@@ -6317,16 +6317,27 @@ private GradientDrawable roundSurface(int color, float radius) {
         int[] rgb = {Color.red(currentColor), Color.green(currentColor), Color.blue(currentColor)};
         int currentScale = prefs.getInt("icon_scale_adjust_" + packageName, 0);
 
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(false);
+        // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
+        panel.setPadding((int)(14*density), (int)(2*density), (int)(14*density), (int)(2*density));
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
-        scroll.addView(panel);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
+        preview.view.setPadding(0, (int)(3*density), 0, (int)(3*density));
+        if (preview.view.getChildAt(0) != null) {
+            LinearLayout.LayoutParams previewCardLp = (LinearLayout.LayoutParams) preview.view.getChildAt(0).getLayoutParams();
+            previewCardLp.width = (int)(220*density);
+            previewCardLp.height = Math.round(previewCardLp.width * 9f / 16f);
+            preview.view.getChildAt(0).setLayoutParams(previewCardLp);
+        }
+        if (preview.view.getChildAt(1) != null) {
+            LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
+            previewNameLp.height = (int)(20*density);
+            previewNameLp.topMargin = (int)(2*density);
+            preview.view.getChildAt(1).setLayoutParams(previewNameLp);
+        }
         panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
 
         TextView sizeTitle = new TextView(this);
@@ -6340,13 +6351,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setProgress(Math.max(0, Math.min(250, currentScale + 50)));
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
-        panel.addView(sizeBar, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        panel.addView(sizeBar, new LinearLayout.LayoutParams(-1, (int)(34*density)));
 
         TextView colorTitle = new TextView(this);
         colorTitle.setText("背景色自訂");
         colorTitle.setTextColor(Color.WHITE);
         colorTitle.setTextSize(15);
-        colorTitle.setPadding(0, (int)(8*density), 0, 0);
+        colorTitle.setPadding(0, (int)(3*density), 0, 0);
         panel.addView(colorTitle);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -6366,7 +6377,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setProgress(rgb[i]);
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
-            panel.addView(bar, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+            panel.addView(bar, new LinearLayout.LayoutParams(-1, (int)(30*density)));
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
@@ -6426,7 +6437,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
             dialog.getWindow().setLayout(Math.min((int)(620*density),getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
-                    Math.min((int)(650*density),getResources().getDisplayMetrics().heightPixels-(int)(40*density)));
+                    Math.min((int)(600*density),getResources().getDisplayMetrics().heightPixels-(int)(28*density)));
         }
 
         // 遙控器焦點固定沿著圖標大小、RGB 三條滑桿，再到取消／恢復預設／套用。
@@ -6458,10 +6469,28 @@ private GradientDrawable roundSurface(int color, float radius) {
             button.setFocusableInTouchMode(true);
             button.setDefaultFocusHighlightEnabled(false);
             button.setAllCaps(false);
-            button.setBackground(actionNormal);
+            button.setBackground(new GradientDrawable() {{
+                setColor(0xFF343B47);
+                setCornerRadius(12*density);
+            }});
             button.setTextColor(0xFFE8EBF0);
+            button.setMinWidth((int)(82*density));
+            button.setPadding((int)(12*density), 0, (int)(12*density), 0);
+            // 明確拉開按鈕間距，避免取消與套用兩顆按鈕黏在一起。
+            if (button.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams buttonLp = (LinearLayout.LayoutParams) button.getLayoutParams();
+                buttonLp.leftMargin = (int)(5*density);
+                buttonLp.rightMargin = (int)(5*density);
+                buttonLp.topMargin = (int)(2*density);
+                buttonLp.bottomMargin = (int)(2*density);
+                button.setLayoutParams(buttonLp);
+            }
             button.setOnFocusChangeListener((v,focused)->{
-                v.setBackground(focused?actionFocused:actionNormal);
+                GradientDrawable stateBackground = new GradientDrawable();
+                stateBackground.setColor(focused ? 0xFF46566B : 0xFF343B47);
+                stateBackground.setCornerRadius(12*density);
+                if (focused) stateBackground.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
+                v.setBackground(stateBackground);
                 ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
             });
             button.setNextFocusUpId(channelBars[2].getId());
