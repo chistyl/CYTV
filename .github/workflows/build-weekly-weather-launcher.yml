@@ -19,6 +19,7 @@ on:
       - fix/weather-icons-smaller-be2fbe5
       - fix/folder-app-picker-inner-layout-be2fbe5
       - fix/create-folder-dialog-content-layout
+      - fix/create-folder-dialog-fixed-size-content-position
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
