@@ -194,8 +194,8 @@ public class YouTubeAssistantActivity extends Activity {
         TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
         box.addView(help);
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
-        inputLp.topMargin = dp(12);
-        inputLp.height = dp(76);
+        inputLp.topMargin = dp(8);
+        inputLp.height = dp(68);
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -210,6 +210,14 @@ public class YouTubeAssistantActivity extends Activity {
             // Internal content and action spacing are adjusted without resizing the outer surface.
             android.view.Window window = dialog.getWindow();
             if (window != null) {
+                // Lock the already-measured outer dimensions. Subsequent inner spacing changes
+                // must not resize the dialog surface.
+                View decor = window.getDecorView();
+                int fixedWidth = decor.getWidth();
+                int fixedHeight = decor.getHeight();
+                if (fixedWidth > 0 && fixedHeight > 0) {
+                    window.setLayout(fixedWidth, fixedHeight);
+                }
                 window.setGravity(android.view.Gravity.CENTER);
                 window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             }
@@ -226,13 +234,14 @@ public class YouTubeAssistantActivity extends Activity {
                     LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
                     connectLp.leftMargin = dp(14);
                     connectButton.setLayoutParams(connectLp);
+                    // Keep a visible inset below the action row without changing outer dimensions.
+                    buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
+                            buttons.getPaddingRight(), dp(14));
                 }
                 // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
                 input.setNextFocusDownId(cancelButton.getId());
                 cancelButton.setNextFocusUpId(input.getId());
                 connectButton.setNextFocusUpId(input.getId());
-                cancelButton.setNextFocusRightId(connectButton.getId());
-                connectButton.setNextFocusLeftId(cancelButton.getId());
                 cancelButton.setNextFocusRightId(connectButton.getId());
                 connectButton.setNextFocusLeftId(cancelButton.getId());
                 input.setOnKeyListener((view, keyCode, event) -> {
