@@ -5740,8 +5740,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setFocusableInTouchMode(true);
             cancelButton.setDefaultFocusHighlightEnabled(false);
             saveButton.setDefaultFocusHighlightEnabled(false);
-            cancelButton.setMinHeight((int)(48*density));
-            saveButton.setMinHeight((int)(48*density));
+            cancelButton.setMinHeight((int)(60*density));
+            saveButton.setMinHeight((int)(60*density));
+            // 增加按鈕上下留白，讓「取消／儲存」更容易辨識與操作。
+            cancelButton.setPadding(cancelButton.getPaddingLeft(), (int)(16*density),
+                    cancelButton.getPaddingRight(), (int)(16*density));
+            saveButton.setPadding(saveButton.getPaddingLeft(), (int)(16*density),
+                    saveButton.getPaddingRight(), (int)(16*density));
             cancelButton.setId(View.generateViewId());
             saveButton.setId(View.generateViewId());
             GradientDrawable buttonNormal = new GradientDrawable();
