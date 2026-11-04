@@ -5104,6 +5104,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
+        randomLabel.setPadding((int)(12*density), 0, 0, 0);
         randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(42*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
