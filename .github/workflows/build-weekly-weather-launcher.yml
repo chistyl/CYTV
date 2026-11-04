@@ -13,6 +13,7 @@ on:
       - fix/weather-city-heading-visible-506e839
       - fix/icon-appearance-preview-match-desktop-12c6bf4
       - fix/dialog-content-footer-fit-be2fbe5
+      - fix/weather-icons-smaller-r114-75pct
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
