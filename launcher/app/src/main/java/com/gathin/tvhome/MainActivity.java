@@ -6091,7 +6091,7 @@ private GradientDrawable roundSurface(int color, float radius) {
     /** Keep AlertDialog action buttons inside a consistent, safely inset footer on TV screens. */
     private void insetDialogActionPanel(AlertDialog dialog) {
         if (dialog == null) return;
-        View buttons = dialog.findViewById(androidx.appcompat.R.id.buttonPanel);
+        View buttons = dialog.findViewById(android.R.id.buttonPanel);
         if (buttons == null) {
             int id = getResources().getIdentifier("buttonPanel", "id", "android");
             if (id != 0) buttons = dialog.findViewById(id);
