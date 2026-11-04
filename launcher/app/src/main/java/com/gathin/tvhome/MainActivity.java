@@ -4974,7 +4974,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout randomRow = new LinearLayout(this);
         randomRow.setOrientation(LinearLayout.HORIZONTAL);
         randomRow.setGravity(Gravity.CENTER_VERTICAL);
-        randomRow.setPadding((int)(12*density), 0, (int)(8*density), 0);
+        // 隨機播放列採透明背景，僅保留文字與開關，不顯示整列色塊。
+        randomRow.setPadding(0, 0, 0, 0);
         TextView randomLabel = new TextView(this);
         randomLabel.setText("主題隨機播放");
         randomLabel.setTextColor(Color.WHITE);
@@ -5020,17 +5021,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setFocusable(true);
         randomRow.setFocusableInTouchMode(true);
         randomRow.setClickable(true);
-        GradientDrawable randomNormalBg = new GradientDrawable();
-        randomNormalBg.setColor(0xFF343B47);
-        randomNormalBg.setCornerRadius(14*density);
-        GradientDrawable randomFocusedBg = new GradientDrawable();
-        randomFocusedBg.setColor(0xFF46566B);
-        randomFocusedBg.setCornerRadius(14*density);
-        randomFocusedBg.setStroke(Math.max(2, (int)(2*density)), 0xFFF4F6F8);
-        randomRow.setBackground(randomNormalBg);
+        randomRow.setBackgroundColor(Color.TRANSPARENT);
         randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(hasFocus ? randomFocusedBg : randomNormalBg);
-            v.setElevation(hasFocus ? 5*density : 0f);
+            // 焦點不再以整列色塊或外框呈現。
+            randomLabel.setTextColor(hasFocus ? 0xFFB9D8D5 : Color.WHITE);
+            v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
         panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(50*density)));
@@ -5059,19 +5054,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setFocusableInTouchMode(true);
                 item.setClickable(true);
                 item.setId(View.generateViewId());
-                item.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(5*density));
-                GradientDrawable normal = new GradientDrawable();
-                normal.setColor(0xFF343B47); normal.setCornerRadius(12*density);
-                GradientDrawable focused = new GradientDrawable();
-                focused.setColor(0xFF46566B); focused.setCornerRadius(12*density);
-                focused.setStroke(Math.max(2,(int)(2*density)), 0xFFF4F6F8);
-                item.setBackground(normal);
+                // 六款主題直接顯示縮圖，不加卡片底色、內距或外框。
+                item.setPadding(0, 0, 0, 0);
+                item.setBackgroundColor(Color.TRANSPARENT);
 
                 ImageView preview = new ImageView(this);
                 preview.setImageResource(previews[index]);
-                preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                preview.setAdjustViewBounds(true);
-                preview.setBackgroundColor(0xFF252B35);
+                preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                preview.setAdjustViewBounds(false);
+                preview.setBackgroundColor(Color.TRANSPARENT);
                 LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
                 item.addView(preview, imageLp);
 
@@ -5080,8 +5071,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
-                    v.setBackground(hasFocus ? focused : normal);
-                    v.setElevation(hasFocus ? 5*density : 0f);
+                    // 保持遙控器焦點與點選操作，但縮圖不顯示外框或色塊。
+                    v.setBackgroundColor(Color.TRANSPARENT);
+                    v.setElevation(0f);
                 });
                 item.setOnClickListener(v -> {
                     SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
