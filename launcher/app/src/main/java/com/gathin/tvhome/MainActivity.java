@@ -5581,8 +5581,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (buttonParent instanceof LinearLayout) {
                 LinearLayout buttonRow = (LinearLayout) buttonParent;
                 buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-                buttonRow.setPadding(buttonRow.getPaddingLeft(), buttonRow.getPaddingTop(),
-                        (int)(24*density), buttonRow.getPaddingBottom());
+                // 增加按鈕列上方留白，讓操作按鈕往下移；外層視窗寬度不變。
+                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(22*density),
+                        (int)(24*density), (int)(8*density));
                 buttonRow.setClipChildren(false);
                 buttonRow.setClipToPadding(false);
             }
@@ -5655,6 +5656,19 @@ private GradientDrawable roundSurface(int color, float radius) {
             };
             cancelButton.setOnKeyListener(actionNavigation);
             createButton.setOnKeyListener(actionNavigation);
+        }
+        // 視窗只增加高度，保留 AlertDialog 原本實際寬度；底部按鈕列隨高度向下。
+        if (createDialog.getWindow() != null) {
+            createDialog.getWindow().getDecorView().post(() -> {
+                android.view.Window window = createDialog.getWindow();
+                if (window == null) return;
+                android.view.WindowManager.LayoutParams attrs = window.getAttributes();
+                int currentWidth = attrs.width > 0 ? attrs.width : window.getDecorView().getWidth();
+                int currentHeight = Math.max(window.getDecorView().getHeight(), createDialog.getWindow().getDecorView().getMeasuredHeight());
+                int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                int targetHeight = Math.min(currentHeight + (int)(44*density), screenHeight - (int)(48*density));
+                window.setLayout(currentWidth, targetHeight);
+            });
         }
         name.setId(View.generateViewId());
         name.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
