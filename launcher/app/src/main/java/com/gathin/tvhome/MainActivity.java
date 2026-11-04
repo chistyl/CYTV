@@ -5704,7 +5704,15 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(title).setView(scroll)
+        TextView dialogTitle = new TextView(this);
+        dialogTitle.setText(title);
+        dialogTitle.setTextColor(Color.WHITE);
+        dialogTitle.setTextSize(20);
+        dialogTitle.setGravity(Gravity.CENTER_VERTICAL);
+        dialogTitle.setPadding((int)(24*density), (int)(14*density),
+                (int)(24*density), (int)(14*density));
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setCustomTitle(dialogTitle).setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
@@ -5726,25 +5734,27 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setAllCaps(false);
             cancelButton.setMinWidth((int)(104*density));
             saveButton.setMinWidth((int)(112*density));
-            LinearLayout.LayoutParams cancelParams = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelParams.rightMargin = (int)(18*density);
-            cancelParams.topMargin = (int)(10*density);
-            cancelParams.bottomMargin = (int)(10*density);
-            cancelButton.setLayoutParams(cancelParams);
-            LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
-            saveParams.leftMargin = (int)(4*density);
-            saveParams.topMargin = (int)(10*density);
-            saveParams.bottomMargin = (int)(10*density);
-            saveButton.setLayoutParams(saveParams);
+            // 按鈕本體維持原尺寸；由按鈕列統一控制上下留白與底部定位。
+            cancelButton.setMinHeight((int)(48*density));
+            saveButton.setMinHeight((int)(48*density));
+            View buttonBar = (View) cancelButton.getParent();
+            if (buttonBar != null) {
+                buttonBar.setPadding((int)(12*density), (int)(10*density),
+                        (int)(12*density), (int)(10*density));
+                if (buttonBar instanceof android.view.ViewGroup) {
+                    android.view.ViewGroup.LayoutParams barParams = buttonBar.getLayoutParams();
+                    if (barParams != null) {
+                        barParams.height = -2;
+                        buttonBar.setLayoutParams(barParams);
+                    }
+                }
+            }
             cancelButton.setFocusable(true);
             saveButton.setFocusable(true);
             cancelButton.setFocusableInTouchMode(true);
             saveButton.setFocusableInTouchMode(true);
             cancelButton.setDefaultFocusHighlightEnabled(false);
             saveButton.setDefaultFocusHighlightEnabled(false);
-            // 保持按鈕原本高度與內距，只增加上下外距；外層視窗高度不變。
-            cancelButton.setMinHeight((int)(48*density));
-            saveButton.setMinHeight((int)(48*density));
             cancelButton.setId(View.generateViewId());
             saveButton.setId(View.generateViewId());
             GradientDrawable buttonNormal = new GradientDrawable();
