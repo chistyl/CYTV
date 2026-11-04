@@ -4099,13 +4099,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dateView.setGravity(Gravity.CENTER);
                 dayColumn.addView(dateView, new LinearLayout.LayoutParams(-1, -2));
 
-                TextView iconView = new TextView(this);
-                iconView.setText(weatherIcon(code));
-                iconView.setTextSize(38);
-                // Weather glyphs must remain fully opaque over translucent/custom wallpapers.
-                iconView.setAlpha(1f);
-                iconView.setGravity(Gravity.CENTER);
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, -2);
+                // Use our own opaque vector-style drawing instead of system emoji fonts.
+                // Emoji glyph palettes vary by Android TV vendor and may render as translucent tiles.
+                View iconView = new WeeklyWeatherIconView(this, code);
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(50*density));
                 iconLp.topMargin = (int)(2*density);
                 dayColumn.addView(iconView, iconLp);
 
@@ -4194,7 +4191,109 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
-    /** Weather symbols follow the reference card: distinct, instantly scannable icons per condition. */
+    /**
+     * Opaque weather artwork for Android TV. Avoids vendor emoji fonts, which can render
+     * semi-transparent colour tiles and vary between TV firmware versions.
+     */
+    private final class WeeklyWeatherIconView extends View {
+        private final int weatherCode;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        WeeklyWeatherIconView(Context context, int code) {
+            super(context);
+            weatherCode = code;
+            setAlpha(1f);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+
+        private void fill(Canvas canvas, int color) {
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xFF000000 | (color & 0x00FFFFFF));
+            paint.setShader(null);
+        }
+
+        private void cloud(Canvas c, float cx, float cy, float scale, int color) {
+            fill(c, color);
+            c.drawCircle(cx - 10*scale, cy + 1*scale, 10*scale, paint);
+            c.drawCircle(cx + 1*scale, cy - 6*scale, 14*scale, paint);
+            c.drawCircle(cx + 13*scale, cy + 2*scale, 9*scale, paint);
+            c.drawRoundRect(cx - 19*scale, cy, cx + 21*scale, cy + 12*scale,
+                    6*scale, 6*scale, paint);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float unit = Math.min(getWidth() / 64f, getHeight() / 48f);
+            if (unit <= 0f) return;
+            canvas.save();
+            canvas.translate((getWidth() - 64*unit)/2f, (getHeight() - 48*unit)/2f);
+            canvas.scale(unit, unit);
+
+            boolean fog = weatherCode == 45 || weatherCode == 48;
+            boolean sunny = weatherCode == 0 || weatherCode == 1 || weatherCode == 2;
+            boolean cloudy = weatherCode == 3 || fog || weatherCode < 0;
+            boolean snow = (weatherCode >= 71 && weatherCode <= 77)
+                    || (weatherCode >= 85 && weatherCode <= 86);
+            boolean thunder = weatherCode >= 95;
+            boolean rain = (weatherCode >= 51 && weatherCode <= 67)
+                    || (weatherCode >= 80 && weatherCode <= 82) || thunder;
+
+            if (sunny) {
+                fill(canvas, 0xFFFFC233);
+                canvas.drawCircle(21, 17, 11, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(4);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                canvas.drawLine(21, 1, 21, 4, paint);
+                canvas.drawLine(21, 30, 21, 34, paint);
+                canvas.drawLine(5, 17, 8, 17, paint);
+                canvas.drawLine(34, 17, 38, 17, paint);
+                canvas.drawLine(10, 6, 13, 9, paint);
+                canvas.drawLine(30, 26, 33, 29, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
+
+            int cloudColor = fog ? 0xFFB8C1CB : 0xFFBFD4E5;
+            cloud(canvas, sunny ? 39 : 32, sunny ? 27 : 24, sunny ? 0.83f : 1f, cloudColor);
+
+            if (fog) {
+                fill(canvas, 0xFFE1E5E9);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(3.5f);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                canvas.drawLine(8, 39, 56, 39, paint);
+                canvas.drawLine(14, 45, 50, 45, paint);
+                paint.setStyle(Paint.Style.FILL);
+            } else if (rain || snow) {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(3.5f);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                if (snow) {
+                    fill(canvas, 0xFFF4F7FA);
+                    canvas.drawCircle(22, 41, 2.8f, paint);
+                    canvas.drawCircle(34, 44, 2.8f, paint);
+                    canvas.drawCircle(46, 40, 2.8f, paint);
+                } else {
+                    paint.setColor(0xFF63B8F2);
+                    canvas.drawLine(22, 38, 18, 45, paint);
+                    canvas.drawLine(35, 38, 31, 45, paint);
+                    canvas.drawLine(48, 38, 44, 45, paint);
+                }
+                paint.setStyle(Paint.Style.FILL);
+            }
+            if (thunder) {
+                fill(canvas, 0xFFFFD34D);
+                android.graphics.Path bolt = new android.graphics.Path();
+                bolt.moveTo(34, 28); bolt.lineTo(26, 40); bolt.lineTo(33, 40);
+                bolt.lineTo(29, 49); bolt.lineTo(42, 35); bolt.lineTo(35, 35);
+                bolt.close();
+                canvas.drawPath(bolt, paint);
+            }
+            canvas.restore();
+        }
+    }
+
+    /** Legacy text mapping retained for labels/tests; the visible forecast uses WeeklyWeatherIconView. */
     private String weatherIcon(int code) {
         if (code == 0) return "☀️";
         if (code == 1 || code == 2) return "🌤️";
