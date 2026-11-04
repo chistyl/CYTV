@@ -3889,13 +3889,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
-        // 廣告阻擋功能僅在 Wi-Fi 網路顯示；有線網路優先判定為 Ethernet。
-        if (isWifiWithoutEthernetAvailable()) {
-            addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
-                popup.dismiss();
-                startActivity(new Intent(this, AdsBlockerActivity.class));
-            });
-        }
+        // 不論 Wi-Fi 或有線 Ethernet，都顯示廣告阻擋入口。
+        addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
+            popup.dismiss();
+            startActivity(new Intent(this, AdsBlockerActivity.class));
+        });
         // 系統重啟固定放在設定選單最下方；優先使用系統電源選單，必要時走安全確認流程。
         addSettingsMenuRow(rows, popup, "系統重啟", this::openSystemPowerMenuFromSettings);
         // 只縮小右上角「設定」下拉選單的選項高度，不影響其他彈出選單。
