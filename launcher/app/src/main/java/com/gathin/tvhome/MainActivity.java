@@ -3733,13 +3733,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
         if (anchor == null || root == null) return;
 
+        // Use the anchor's own window token and decor bounds. Folder app tiles live inside
+        // a Dialog window; showing their popup from the Activity root puts it behind that Dialog
+        // and calculates its coordinates against the wrong window.
+        View windowRoot = anchor.getRootView();
+        if (windowRoot == null) windowRoot = root;
         int rootLocation[] = new int[2];
         int anchorLocation[] = new int[2];
-        root.getLocationInWindow(rootLocation);
+        windowRoot.getLocationInWindow(rootLocation);
         anchor.getLocationInWindow(anchorLocation);
 
-        int availableWidth = Math.max(1, root.getWidth());
-        int availableHeight = Math.max(1, root.getHeight());
+        int availableWidth = Math.max(1, windowRoot.getWidth());
+        int availableHeight = Math.max(1, windowRoot.getHeight());
         int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
         int menuWidth = Math.min(desiredWidth, availableWidth - (int) (24 * density));
         menuWidth = Math.max(1, menuWidth);
@@ -3772,7 +3777,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(showBelow ? 0f : menuHeight);
         panel.setScaleY(0.92f);
         panel.setTranslationY((showBelow ? -8f : 8f) * density);
-        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT, x, y);
+        // showAtLocation(anchor) inherits the anchor's window token (including folder Dialogs).
+        popup.showAtLocation(anchor, Gravity.TOP | Gravity.LEFT, x, y);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f)
                 .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
