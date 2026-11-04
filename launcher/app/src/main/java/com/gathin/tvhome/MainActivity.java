@@ -6614,7 +6614,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
-        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        // 整列按鈕整體下移 10dp；按鈕本身尺寸不變，外層視窗高度不變。
+        LinearLayout.LayoutParams actionRowParams =
+                new LinearLayout.LayoutParams(-1, (int)(53*density));
+        actionRowParams.topMargin = (int)(10*density);
+        panel.addView(actionRow, actionRowParams);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("圖標外觀設定")
