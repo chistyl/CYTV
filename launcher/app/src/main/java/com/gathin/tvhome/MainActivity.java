@@ -5908,8 +5908,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         edit.setFocusable(true);
         edit.setFocusableInTouchMode(true);
         edit.setSelectAllOnFocus(false);
-        edit.setTextColor(Color.WHITE);
-        edit.setHintTextColor(0xFF9AA4B2);
+        edit.setTextColor(0xFFF5F6FA);
+        edit.setHintTextColor(0xFFACB8C1);
         edit.setPadding((int)(12*density), (int)(10*density), (int)(12*density), (int)(10*density));
         edit.setBackgroundTintList(new ColorStateList(
                 new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
@@ -5935,8 +5935,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         focused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
         View.OnFocusChangeListener focus = (v, hasFocus) -> {
             v.setBackground(hasFocus ? focused : normal);
-            ((Button)v).setTextColor(hasFocus ? Color.WHITE : 0xFFACB8C1);
-            v.setScaleX(hasFocus ? 1.03f : 1f); v.setScaleY(hasFocus ? 1.03f : 1f);
+            ((Button)v).setTextColor(0xFFF5F6FA);
+            v.setScaleX(hasFocus ? 1.02f : 1f); v.setScaleY(hasFocus ? 1.02f : 1f);
         };
         cancel.setBackground(normal); save.setBackground(normal);
         cancel.setOnFocusChangeListener(focus); save.setOnFocusChangeListener(focus);
