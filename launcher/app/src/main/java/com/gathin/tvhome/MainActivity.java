@@ -4521,7 +4521,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             rounded.setColor(Color.rgb(29, 33, 43));
             rounded.setCornerRadius(22 * density);
             rounded.setStroke(Math.max(1, (int) density), 0x30FFFFFF);
-            if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
+            if (weatherDialog.getWindow() != null) {
+                // Keep the complete dialog, including its action buttons, away from screen edges.
+                int horizontalInset = (int) (18 * density);
+                int bottomInset = (int) (18 * density);
+                weatherDialog.getWindow().setBackgroundDrawable(
+                        new android.graphics.drawable.InsetDrawable(
+                                rounded, horizontalInset, 0, horizontalInset, bottomInset));
+            }
         });
         weatherDialog.show();
         Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
