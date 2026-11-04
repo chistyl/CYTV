@@ -4976,6 +4976,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         appTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
         folderTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
+        // 最後一列可能有左右兩個項目，兩者向下都必須進入操作列。
+        if (list.getChildCount() > 0) {
+            android.view.ViewGroup finalGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
+            for (int i = 0; i < finalGrid.getChildCount(); i++) {
+                View candidate = finalGrid.getChildAt(i);
+                if (candidate.isFocusable()) candidate.setNextFocusDownId(cancel.getId());
+            }
+        }
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
         cancel.setNextFocusUpId(lastRow != null ? lastRow.getId() : appTab.getId());
         save.setNextFocusUpId(cancel.getId());
