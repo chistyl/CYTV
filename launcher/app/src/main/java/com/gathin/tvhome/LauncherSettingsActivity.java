@@ -126,6 +126,10 @@ public final class LauncherSettingsActivity extends Activity {
             reverseRow(dockChoices);
             reverseRow(clockChoices);
         }
+        // Explicit row-to-row D-pad routing keeps focus predictable on TV firmware.
+        connectChoiceRows(columnChoices, rowChoices);
+        connectChoiceRows(rowChoices, dockChoices);
+        connectChoiceRows(dockChoices, clockChoices);
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
@@ -180,8 +184,42 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
+        connectSettingsVertical(reorderChoice, config.launcherSettingsButton,
+                wallpaperChoice, animationsChoice, advancedChoice, openOnStartChoice,
+                followThemeChoice, findViewById(R.id.defaultHomeChoice),
+                findViewById(R.id.tvSettingsChoice));
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    private void connectChoiceRows(TextView[] upper, TextView[] lower) {
+        for (int i = 0; i < upper.length; i++) {
+            TextView current = upper[i];
+            TextView next = lower[Math.min(i, lower.length - 1)];
+            current.setNextFocusDownId(next.getId());
+            next.setNextFocusUpId(current.getId());
+        }
+        for (int i = 0; i < upper.length; i++) {
+            TextView current = upper[i];
+            if (i > 0) current.setNextFocusLeftId(upper[i - 1].getId());
+            if (i + 1 < upper.length) current.setNextFocusRightId(upper[i + 1].getId());
+        }
+        for (int i = 0; i < lower.length; i++) {
+            if (i > 0) lower[i].setNextFocusLeftId(lower[i - 1].getId());
+            if (i + 1 < lower.length) lower[i].setNextFocusRightId(lower[i + 1].getId());
+        }
+    }
+
+    private void connectSettingsVertical(View reorder, boolean showReorder, View... items) {
+        View previous = showReorder ? reorder : null;
+        for (View item : items) {
+            if (item == null || item.getVisibility() != View.VISIBLE) continue;
+            if (previous != null) {
+                previous.setNextFocusDownId(item.getId());
+                item.setNextFocusUpId(previous.getId());
+            }
+            previous = item;
+        }
     }
 
     private void reverseRow(TextView[] views) {
