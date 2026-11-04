@@ -6589,14 +6589,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             button.setFocusableInTouchMode(true);
             button.setDefaultFocusHighlightEnabled(false);
             GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343B47);
+            normal.setColor(0xFF343A46);
             normal.setCornerRadius(12*density);
             button.setBackground(normal);
             button.setTextColor(0xFFE8EBF0);
             button.setId(View.generateViewId());
             button.setOnFocusChangeListener((v,focused)->{
                 GradientDrawable bg = new GradientDrawable();
-                bg.setColor(focused ? 0xFF46566B : 0xFF343B47);
+                bg.setColor(focused ? 0xFF465366 : 0xFF343A46);
                 bg.setCornerRadius(12*density);
                 if(focused) bg.setStroke(Math.max(2,(int)(2*density)),0xFF80CBC4);
                 v.setBackground(bg);
@@ -6646,7 +6646,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.show();
         if(dialog.getWindow()!=null) {
             GradientDrawable surface=new GradientDrawable();
-            surface.setColor(0xFF303030);
+            surface.setColor(0xFF1D212B);
             surface.setCornerRadius(22*density);
             surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
             dialog.getWindow().setBackgroundDrawable(surface);
