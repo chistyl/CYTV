@@ -6224,28 +6224,173 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
-    /** 圖標大小與背景色整合在同一入口，保留原本各自的設定視窗及儲存方式。 */
+    /** 圖標大小與背景色使用同一個設定視窗；保留既有偏好鍵及桌面排列。 */
     private void showAppAppearanceSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
                                                String folderName, boolean systemFolder, Dialog folderDialog) {
-        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
-        LinearLayout rows = panel.findViewById(R.id.rows);
-        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+        pendingFolderNameAfterAppEdit = folderName;
+        pendingSystemFolderAfterAppEdit = systemFolder;
+        if (folderDialog != null) folderDialog.dismiss();
 
-        addSettingsMenuRow(rows, popup, "調整圖標大小", () -> {
-            pendingFolderNameAfterAppEdit = folderName;
-            pendingSystemFolderAfterAppEdit = systemFolder;
-            if (folderDialog != null) folderDialog.dismiss();
-            showAppIconSizeDialog(packageName, prefs);
-        });
-        addSettingsMenuRow(rows, popup, "更換背景色／自訂色彩", () -> {
-            pendingFolderNameAfterAppEdit = folderName;
-            pendingSystemFolderAfterAppEdit = systemFolder;
-            if (folderDialog != null) folderDialog.dismiss();
-            showAppBackgroundColorDialog(packageName, prefs);
-        });
+        final int originalScale = prefs.getInt("icon_scale_adjust_" + packageName, 0);
+        final int originalColor = prefs.getInt("background_" + packageName, Color.WHITE);
+        final int[] rgb = {Color.red(originalColor), Color.green(originalColor), Color.blue(originalColor)};
 
-        dropIn(popup, panel, anchor, Gravity.START);
-        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(8*density));
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
+
+        AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
+        panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView sizeTitle = new TextView(this);
+        sizeTitle.setText("圖標大小（-50% ～ +200%）");
+        sizeTitle.setTextColor(Color.WHITE);
+        sizeTitle.setTextSize(15f);
+        panel.addView(sizeTitle);
+
+        TextView sizeValue = new TextView(this);
+        sizeValue.setTextColor(0xFFE8EBF0);
+        sizeValue.setTextSize(13f);
+        sizeValue.setGravity(Gravity.CENTER);
+        panel.addView(sizeValue);
+
+        SeekBar sizeBar = new SeekBar(this);
+        sizeBar.setMax(250);
+        sizeBar.setProgress(Math.max(0, Math.min(250, originalScale + 50)));
+        sizeBar.setFocusable(true);
+        sizeBar.setFocusableInTouchMode(true);
+        panel.addView(sizeBar, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+
+        TextView colorTitle = new TextView(this);
+        colorTitle.setText("背景色自訂");
+        colorTitle.setTextColor(Color.WHITE);
+        colorTitle.setTextSize(15f);
+        colorTitle.setPadding(0, (int)(8*density), 0, 0);
+        panel.addView(colorTitle);
+
+        String[] channels = {"紅色", "綠色", "藍色"};
+        TextView[] labels = new TextView[3];
+        SeekBar[] colorBars = new SeekBar[3];
+        final Runnable[] updatePreview = new Runnable[1];
+        for (int i = 0; i < 3; i++) {
+            final int channel = i;
+            TextView label = new TextView(this);
+            label.setTextColor(0xFFE8EBF0);
+            label.setTextSize(13f);
+            panel.addView(label);
+            labels[i] = label;
+
+            SeekBar bar = new SeekBar(this);
+            bar.setMax(255);
+            bar.setProgress(rgb[i]);
+            bar.setFocusable(true);
+            bar.setFocusableInTouchMode(true);
+            bar.setDefaultFocusHighlightEnabled(false);
+            panel.addView(bar, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+            colorBars[i] = bar;
+            bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
+                    rgb[channel] = value;
+                    if (updatePreview[0] != null) updatePreview[0].run();
+                }
+                @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+                @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+            });
+        }
+
+        updatePreview[0] = () -> {
+            int adjustment = sizeBar.getProgress() - 50;
+            float scale = 1f + adjustment / 100f;
+            int side = Math.max((int)(18*density),
+                    Math.min((int)(72*density), Math.round(preview.iconBaseDp*density*scale)));
+            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
+            iconLp.width = side;
+            iconLp.height = side;
+            iconLp.gravity = Gravity.CENTER;
+            preview.targetIcon.setLayoutParams(iconLp);
+            GradientDrawable swatch = new GradientDrawable();
+            swatch.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
+            swatch.setCornerRadius(14*density);
+            preview.targetCard.setBackground(swatch);
+            sizeValue.setText("調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
+                    + "%　｜　實際圖標比例：" + Math.round(125f*scale) + "%");
+            for (int i = 0; i < 3; i++) labels[i].setText(channels[i] + "：" + rgb[i]);
+        };
+        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
+                if (updatePreview[0] != null) updatePreview[0].run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        updatePreview[0].run();
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("圖標外觀設定")
+                .setView(panel)
+                .setNegativeButton("取消", (d, which) -> reopenPendingFolderAfterAppEdit())
+                .setNeutralButton("恢復預設", (d, which) -> {
+                    prefs.edit().remove("icon_scale_adjust_" + packageName)
+                            .remove("icon_scale_" + packageName)
+                            .remove("icon_scale_override_" + packageName)
+                            .putInt("background_" + packageName, Color.WHITE).apply();
+                    refreshAppearanceWithoutReordering();
+                    reopenPendingFolderAfterAppEdit();
+                })
+                .setPositiveButton("套用", (d, which) -> {
+                    prefs.edit().putInt("icon_scale_adjust_" + packageName, sizeBar.getProgress() - 50)
+                            .putBoolean("icon_scale_override_" + packageName, true)
+                            .putInt("background_" + packageName, Color.rgb(rgb[0], rgb[1], rgb[2])).apply();
+                    refreshAppearanceWithoutReordering();
+                    reopenPendingFolderAfterAppEdit();
+                }).create();
+        dialog.setOnCancelListener(d -> reopenPendingFolderAfterAppEdit());
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            GradientDrawable surface = new GradientDrawable();
+            surface.setColor(0xFF3B3B3B);
+            surface.setCornerRadius(22*density);
+            surface.setStroke(Math.max(1, (int)density), 0x24FFFFFF);
+            dialog.getWindow().setBackgroundDrawable(surface);
+            dialog.getWindow().getDecorView().setClipToOutline(true);
+        }
+        Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        Button reset = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+        Button apply = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        Button[] actions = {cancel, reset, apply};
+        for (int i = 0; i < actions.length; i++) {
+            Button button = actions[i];
+            if (button == null) continue;
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setAllCaps(false);
+            button.setMinWidth((int)(96*density));
+            button.setMinHeight((int)(52*density));
+            button.setId(View.generateViewId());
+            if (i > 0 && actions[i-1] != null) {
+                button.setNextFocusLeftId(actions[i-1].getId());
+                actions[i-1].setNextFocusRightId(button.getId());
+            }
+        }
+        for (int i = 0; i < colorBars.length; i++) {
+            colorBars[i].setId(View.generateViewId());
+            if (i > 0) colorBars[i].setNextFocusUpId(colorBars[i-1].getId());
+            if (i < colorBars.length-1) colorBars[i].setNextFocusDownId(colorBars[i+1].getId());
+            else if (cancel != null) colorBars[i].setNextFocusDownId(cancel.getId());
+        }
+        sizeBar.setId(View.generateViewId());
+        sizeBar.setNextFocusDownId(colorBars[0].getId());
+        colorBars[0].setNextFocusUpId(sizeBar.getId());
+        colorBars[0].post(colorBars[0]::requestFocus);
+    }
+
+    /** Refresh visible app artwork without rebuilding/reordering the desktop grid or changing its scroll position. */
+    private void refreshAppearanceWithoutReordering() {
+        if (adapter != null) adapter.notifyDataSetChanged();
+        if (grid != null) grid.invalidate();
     }
 
     /**
