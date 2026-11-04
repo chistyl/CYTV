@@ -43,7 +43,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(0xFF0D1117);
+        page.setBackgroundColor(0xFF1D212B);
         page.setPadding(px(48), px(32), px(48), px(24));
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
         title.setTextColor(0xFFFFFFFF);
         status = new TextView(this);
         status.setTextSize(15);
-        status.setTextColor(0xFF8B949E);
+        status.setTextColor(0xFFACB8C1);
         status.setPadding(0, 0, 0, px(16));
         page.addView(title);
         page.addView(status);
@@ -193,7 +193,7 @@ public class MainActivity extends Activity {
         TextView h = new TextView(this);
         h.setText(text);
         h.setTextSize(13);
-        h.setTextColor(0xFFE84855);
+        h.setTextColor(0xFF80C9C2);
         h.setPadding(px(16), px(18), 0, px(4));
         rows.addView(h);
     }
