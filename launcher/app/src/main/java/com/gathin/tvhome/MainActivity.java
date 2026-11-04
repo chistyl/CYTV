@@ -4605,6 +4605,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelWeather.setDefaultFocusHighlightEnabled(false); saveWeather.setDefaultFocusHighlightEnabled(false);
             cancelWeather.setMinWidth((int)(104*density)); saveWeather.setMinWidth((int)(112*density));
             cancelWeather.setMinHeight((int)(52*density)); saveWeather.setMinHeight((int)(52*density));
+            // Move both actions slightly lower while keeping the full button bounds visible.
+            cancelWeather.setTranslationY(8 * density);
+            saveWeather.setTranslationY(8 * density);
             LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelWeather.getLayoutParams();
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
