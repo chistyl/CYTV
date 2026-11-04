@@ -3,7 +3,7 @@ name: Build CYTV Hidden App Folder Grid
 on:
   push:
     branches:
-      - feature/system-folder-app-list-two-column-47fd921
+      - feature/system-folder-preinstalled-apps-33ef798
     paths:
       - 'launcher/**'
       - '.github/workflows/build-hidden-list-grid.yml'
