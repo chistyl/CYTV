@@ -6319,7 +6319,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             for(int i=0;i<3;i++) channelLabels[i].setText(channelNames[i]+"："+rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){updateCombinedPreview.run();}
+            @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){if(updateCombinedPreview[0]!=null) updateCombinedPreview[0].run();}
             @Override public void onStartTrackingTouch(SeekBar seekBar){}
             @Override public void onStopTrackingTouch(SeekBar seekBar){}
         });
