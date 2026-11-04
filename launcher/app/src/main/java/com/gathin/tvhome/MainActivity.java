@@ -4764,12 +4764,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 for (int i = 0; i < appFocusItems.size(); i++) {
                     View item = appFocusItems.get(i);
-                    item.setNextFocusLeftId(i % 2 == 1 ? appFocusItems.get(i - 1).getId() : appTab.getId());
+                    item.setNextFocusLeftId(i % 2 == 1 ? appFocusItems.get(i - 1).getId() : item.getId());
                     item.setNextFocusRightId(i % 2 == 0 && i + 1 < appFocusItems.size()
-                            ? appFocusItems.get(i + 1).getId() : folderTab.getId());
+                            ? appFocusItems.get(i + 1).getId() : item.getId());
                     item.setNextFocusUpId(i >= 2 ? appFocusItems.get(i - 2).getId() : appTab.getId());
                     item.setNextFocusDownId(i + 2 < appFocusItems.size()
-                            ? appFocusItems.get(i + 2).getId() : cancel.getId());
+                            ? appFocusItems.get(i + 2).getId() : View.NO_ID);
                 }
             } else {
                 List<View> folderFocusItems = new ArrayList<>();
@@ -4834,12 +4834,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 for (int i = 0; i < folderFocusItems.size(); i++) {
                     View item = folderFocusItems.get(i);
-                    item.setNextFocusLeftId(i % 2 == 1 ? folderFocusItems.get(i - 1).getId() : folderTab.getId());
+                    item.setNextFocusLeftId(i % 2 == 1 ? folderFocusItems.get(i - 1).getId() : item.getId());
                     item.setNextFocusRightId(i % 2 == 0 && i + 1 < folderFocusItems.size()
-                            ? folderFocusItems.get(i + 1).getId() : appTab.getId());
+                            ? folderFocusItems.get(i + 1).getId() : item.getId());
                     item.setNextFocusUpId(i >= 2 ? folderFocusItems.get(i - 2).getId() : folderTab.getId());
                     item.setNextFocusDownId(i + 2 < folderFocusItems.size()
-                            ? folderFocusItems.get(i + 2).getId() : cancel.getId());
+                            ? folderFocusItems.get(i + 2).getId() : View.NO_ID);
                 }
             }
         };
@@ -4915,9 +4915,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
         }
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
-        appTab.setNextFocusDownId(list.getChildCount() > 0 ? list.getChildAt(0).getId() : cancel.getId());
-        folderTab.setNextFocusDownId(list.getChildCount() > 0 ? list.getChildAt(0).getId() : cancel.getId());
-        View lastRow = list.getChildCount() > 1 ? list.getChildAt(list.getChildCount() - 2) : null;
+        View firstRow = null, lastRow = null;
+        if (list.getChildCount() > 0) {
+            android.view.ViewGroup firstGrid = (android.view.ViewGroup) list.getChildAt(0);
+            android.view.ViewGroup lastGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
+            for (int i = 0; i < firstGrid.getChildCount(); i++) {
+                View candidate = firstGrid.getChildAt(i);
+                if (candidate.isFocusable()) { firstRow = candidate; break; }
+            }
+            for (int i = lastGrid.getChildCount() - 1; i >= 0; i--) {
+                View candidate = lastGrid.getChildAt(i);
+                if (candidate.isFocusable()) { lastRow = candidate; break; }
+            }
+        }
+        appTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
+        folderTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
         cancel.setNextFocusUpId(lastRow != null ? lastRow.getId() : appTab.getId());
         save.setNextFocusUpId(cancel.getId());
