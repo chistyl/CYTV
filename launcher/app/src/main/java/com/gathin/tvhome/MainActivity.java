@@ -5788,10 +5788,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             rounded.setCornerRadius(22*density);
             rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
             dialog.getWindow().setBackgroundDrawable(rounded);
-            dialog.getWindow().setLayout(Math.min((int)(760*density),
-                    getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            // Match the approved TV reference: approximately 69% screen width and 89% height.
+            // Relative sizing keeps the dialog proportions consistent across TV resolutions/densities.
+            int dialogWidth = Math.max((int)(520 * density), Math.round(metrics.widthPixels * 0.69f));
+            int dialogHeight = Math.max((int)(480 * density), Math.round(metrics.heightPixels * 0.89f));
+            dialog.getWindow().setGravity(Gravity.CENTER);
+            dialog.getWindow().setLayout(Math.min(dialogWidth, metrics.widthPixels - (int)(32 * density)),
+                    Math.min(dialogHeight, metrics.heightPixels - (int)(32 * density)));
         }
         styleRemoteDialogActions(dialog);
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
