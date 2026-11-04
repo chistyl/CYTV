@@ -4292,8 +4292,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             float unit = Math.min(getWidth() / 64f, getHeight() / 48f);
             if (unit <= 0f) return;
             canvas.save();
-            canvas.translate((getWidth() - 64*unit)/2f, (getHeight() - 48*unit)/2f);
-            canvas.scale(unit, unit);
+            // Keep the forecast slot and card layout unchanged; scale only the artwork to 75%.
+            float iconScale = unit * 0.75f;
+            canvas.translate((getWidth() - 64*iconScale)/2f, (getHeight() - 48*iconScale)/2f);
+            canvas.scale(iconScale, iconScale);
 
             boolean fog = weatherCode == 45 || weatherCode == 48;
             boolean sunny = weatherCode == 0 || weatherCode == 1 || weatherCode == 2;
