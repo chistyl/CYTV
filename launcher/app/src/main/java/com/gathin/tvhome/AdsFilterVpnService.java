@@ -37,8 +37,11 @@ public class AdsFilterVpnService extends VpnService {
     private static final String TAG = "AdsFilterVpn";
     private static final String CHANNEL = "ad_filter";
     private static final String PREFS = "ad_filter";
-    private static final String DNS_CLIENT = "10.13.0.1";
-    private static final String DNS_LOCAL = "10.13.0.2";
+    // Use the RFC 2544 benchmarking range for the private TUN DNS hop.
+    // The previous 10.13.0.0/24 choice could overlap a real Ethernet LAN/VLAN,
+    // causing Android TV routing to treat the VPN DNS endpoint as a LAN host.
+    private static final String DNS_CLIENT = "198.18.0.1";
+    private static final String DNS_LOCAL = "198.18.0.2";
     private static final String UPSTREAM = "1.1.1.1";
     private static final String SECONDARY_UPSTREAM = "8.8.8.8";
     private static final String DNS_MODE_AUTO = "auto";
@@ -323,12 +326,23 @@ public class AdsFilterVpnService extends VpnService {
             upstreamServers = Collections.unmodifiableList(new ArrayList<>(candidates));
             Log.i(TAG, "Auto DNS negotiated: " + discovered.size()
                     + " network DNS server(s); " + upstreamServers.size() + " total candidates");
+            appendDnsLog("-", "診斷", "自動 DNS 候選：" + describeDnsServers(upstreamServers));
         } catch (Exception e) {
             // If DHCP DNS discovery fails, retain public resolver fallbacks instead
             // of leaving the DNS worker with an empty upstream list.
             upstreamServers = fallbackDnsServers();
             Log.w(TAG, "Unable to read network DNS; using public resolver fallbacks", e);
+            appendDnsLog("-", "診斷", "讀取實體網路 DNS 失敗，改用備援：" + describeDnsServers(upstreamServers));
         }
+    }
+
+    private String describeDnsServers(List<InetAddress> servers) {
+        StringBuilder out = new StringBuilder();
+        for (InetAddress server : servers) {
+            if (out.length() > 0) out.append("、");
+            out.append(server.getHostAddress());
+        }
+        return out.length() == 0 ? "無可用 DNS" : out.toString();
     }
 
     private static List<InetAddress> fallbackDnsServers() {
