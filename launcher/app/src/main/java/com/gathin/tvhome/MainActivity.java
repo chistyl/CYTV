@@ -5123,8 +5123,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
         }
-        // Intercept before ScrollView / focused-row dispatch, not after child handling.
-        installDialogDpadPreDispatchBridge(dialog, list, cancel);
+        // DialogDpadBridge intercepts DPAD before child dispatch.
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
         View firstRow = null, lastRow = null;
         if (list.getChildCount() > 0) {
