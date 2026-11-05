@@ -14,6 +14,12 @@ on:
       - 'launcher/**'
       - '.github/workflows/build-toshiba-ethernet-diagnostics.yml'
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Branch to build'
+        required: true
+        default: 'diagnostic/toshiba-65u7000vs-vpn-ethernet-link-drop'
+        type: string
 
 permissions:
   contents: read
@@ -25,7 +31,7 @@ jobs:
       - name: Checkout isolated Toshiba Ethernet diagnostics branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.inputs.target_branch || github.head_ref || github.ref_name }}
           fetch-depth: 1
 
       - name: Set up JDK 17
@@ -75,6 +81,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-Complete-Source
-          path: CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip
+          path: CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-source.zip
           if-no-files-found: error
           retention-days: 30
