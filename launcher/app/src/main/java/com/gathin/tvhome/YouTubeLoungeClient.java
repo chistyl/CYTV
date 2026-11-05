@@ -90,8 +90,9 @@ final class YouTubeLoungeClient {
                                         Boolean skipEnabled, Boolean bumper, String state,
                                         String contentVideoId, String adVideoIdValue) {
             boolean started = "adPlaying".equals(name);
-            boolean sameAd = started && adActive && adVideoIdValue != null
-                    && !adVideoIdValue.isEmpty() && adVideoIdValue.equals(adVideoId);
+            boolean sameAd = started && adActive
+                    && (adVideoIdValue == null || adVideoIdValue.isEmpty()
+                    || adVideoIdValue.equals(adVideoId));
             if (started && !sameAd) {
                 adActive = true;
                 adStartVersion++;
