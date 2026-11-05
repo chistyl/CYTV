@@ -570,3 +570,31 @@ commit `51059415a2629f27a09b78c8d2448b2a49ef70e4`。
 ### 修正決策
 
 本階段縮小了 AOSP 標準 Tethering 的可能性，但沒有證明 Toshiba vendor 路徑。不能因此修改 TISM 或 VPN teardown。R1 guard 繼續保留；不在 Toshiba 重新啟用 VPN 廣告阻擋，不產生實驗 APK，不合併 PR #47。
+
+
+## 21. 第二十五階段：Tethering regex 資源與 Toshiba overlay 證據缺口盤點
+
+### 21.1 已確認的分類器與尚未確認的設定值
+
+第 24 階段已取得 r45 `Tethering.ifaceNameToType()` 完整方法，確認只有 Wi-Fi、USB、Bluetooth 三個分類分支。第 23 階段取得 `TetheringConfiguration.java`，確認三組 regex 由 Android resource arrays 載入：
+- `config_tether_usb_regexs`
+- `config_tether_wifi_regexs`
+- `config_tether_bluetooth_regexs`
+
+但本次 GitHub code search 沒有可靠回傳 r45 的 resource 定義或 Toshiba overlay。故目前只能確認「分類器種類」，不能確認 Toshiba 實際 regex 值。不得用 AOSP 預設值代替 Toshiba overlay 值。
+
+### 21.2 對根因判斷的影響
+
+若 Toshiba Ethernet iface 名稱符合 `config_tether_usb_regexs`、`config_tether_wifi_regexs` 或 `config_tether_bluetooth_regexs`，Tethering 可能將其分類成 downstream，進而建立 TISM。若不符合三者，分類器回傳 `TETHERING_INVALID`，標準 TISM 不會接管該介面。
+
+因此這是目前可被明確驗證/排除的 OEM 分支，但缺少 Toshiba overlay 與實際 iface name，不能下結論。
+
+### 21.3 可執行的靜態修正邊界
+
+若未來取得 Toshiba overlay，且證明 Ethernet iface 被錯誤納入 downstream regex，修正應限定在該 OEM overlay 的 regex 分類，不應修改通用 TetherInterfaceStateMachine 或 NetworkManagementService。這可避免影響真正 USB tethering downstream。
+
+若 regex 正確，下一個目標應轉向 Toshiba vendor Ethernet service/HAL/init/driver，並比較 administrative flag DOWN 與 carrier/link DOWN 的時間序列。
+
+### 21.4 CYTV runtime 決策
+
+CYTV 的 Toshiba Android 9 Ethernet R1 guard 維持不變。此階段沒有找到可安全套用的 runtime patch；不產生實驗 APK、不在 Toshiba 重新啟動 VPN 廣告阻擋、不合併 PR #47。
