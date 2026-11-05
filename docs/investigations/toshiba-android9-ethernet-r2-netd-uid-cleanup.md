@@ -173,3 +173,42 @@ setInterfaceDown(iface) 的程式順序為：
 4. 若 r45 精確原始碼無法取得，保留版本差異，不以 r33 推斷 Toshiba 的 r45/vendor 行為。
 
 本階段仍為靜態研究；沒有修改 runtime、沒有 APK/CI/實機測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
+
+
+## 10. 第十六階段：EthernetNetworkFactory.setInterfaceDown() 的觸發條件
+
+### 10.1 找到的呼叫情境
+
+在 AOSP frameworks/opt/net/ethernet 的 EthernetNetworkFactory.java（可取得的 oreo-dev / 相關 Android 版本提交，非已確認 android-9.0.0_r45）中，setInterfaceDown() 出現在 setInterfaceUp(iface) 的異常競態分支：
+
+1. maybeTrackInterface(iface) 發現符合 config_ethernet_iface_regex 的介面，且目前尚未追蹤介面。
+2. 呼叫 setInterfaceUp(iface)，先要求 NetworkManagementService 將該新介面設為 UP。
+3. 讀取介面設定與 hardware address。
+4. 再次檢查 isTrackingInterface()。
+5. 若此時已經有另一個介面被追蹤，記錄「Interface unexpectedly changed from ... to ...」，並對剛才傳入的 iface 呼叫 setInterfaceDown(iface)。
+
+因此該 setInterfaceDown() 是處理「兩個介面競爭成為被追蹤介面」的防護：將多出來、未被採用的介面設回 DOWN。它不是 interfaceLinkStateChanged(up=false) 的處理函式，也不是 VPN disconnect 的正常清理步驟。
+
+### 10.2 對 Toshiba Ethernet 故障的意義
+
+- 正常 link-state callback 只更新 mLinkUp / NetworkInfo / IP provisioning / NetworkAgent。
+- setInterfaceDown() 的已知 EthernetNetworkFactory 呼叫情境，發生在介面加入及追蹤競態，而非 VPN UID range 清除或 VPN netId teardown。
+- 若 Toshiba log 出現「Interface unexpectedly changed ...」或相鄰的 setcfg down 訊息，才值得沿著這條支線調查。
+- 若沒有介面新增事件或追蹤競態，這個 AOSP 呼叫點本身不足以解釋 VPN 啟停後 Ethernet 斷線。
+
+### 10.3 精確版本限制
+
+本次在可用的 android-9.0.0_r45 GitHub 鏡像中，未能找到 frameworks/opt/net/ethernet 的 EthernetNetworkFactory.java；官方 Gitiles 對 android-9.0.0_r45 指定檔案路徑也無法由目前檢索工具讀取。因此本節觸發條件是 Android EthernetNetworkFactory 的 AOSP 實作線索，不能標成 Toshiba r45 精確證據。
+
+### 10.4 階段性結論
+
+目前已知 EthernetNetworkFactory 內部 setInterfaceDown() 的 AOSP 用途，是處理介面追蹤競態時關閉未被採用的額外介面。沒有找到 VPN teardown 會製造此競態、或直接呼叫該分支的證據。這進一步降低了「AOSP 標準 VPN UID/netId 清理直接關閉 Ethernet」的可能性，但仍無法排除 Toshiba vendor framework、netd、Ethernet HAL 或 driver 的客製行為。
+
+### 10.5 下一步
+
+1. 尋找 Toshiba Android 9 vendor framework / Ethernet service log 中的 interface add/remove、tracking race、setcfg down 訊息。
+2. 追查 Ethernet interface 被移除與重新加入時，EthernetNetworkFactory / EthernetTracker 如何選擇追蹤介面。
+3. 追查 Android 9 r45 tethering state machine setInterfaceDown() 的實際 iface 來源，避免與實體 Ethernet WAN 介面混淆。
+4. 繼續搜尋 r45 netd 與 framework 精確來源；不可用其他 Android tag 代替版本證據。
+
+本階段仍為靜態研究，未修改 runtime、未產生 APK、未執行 Toshiba 實機 VPN 測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
