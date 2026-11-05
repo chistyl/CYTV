@@ -1,0 +1,28 @@
+name: Validate Toshiba Android 9 Ethernet framework patch
+
+on:
+  push:
+    branches:
+      - investigation/toshiba-vpn-ethernet-r2
+    paths:
+      - 'patches/android9/**'
+      - 'scripts/validate-toshiba-ethernet-patch.sh'
+      - '.github/workflows/validate-toshiba-ethernet-patch.yml'
+  pull_request:
+    branches:
+      - investigation/toshiba-vpn-ethernet-r2
+    paths:
+      - 'patches/android9/**'
+      - 'scripts/validate-toshiba-ethernet-patch.sh'
+      - '.github/workflows/validate-toshiba-ethernet-patch.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate upstream patch structure and expected refCount transition
+        run: bash scripts/validate-toshiba-ethernet-patch.sh
