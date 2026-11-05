@@ -105,13 +105,12 @@ final class SponsorBlockClient {
             throw new IllegalArgumentException("至少需要選擇一個 SponsorBlock 分類。");
         }
         JSONArray categoryArray = new JSONArray();
+        java.util.HashSet<String> uniqueCategories = new java.util.HashSet<>();
         for (String category : categories) {
             if (!SUPPORTED_CATEGORIES.contains(category)) {
                 throw new IllegalArgumentException("不支援的 SponsorBlock 分類：" + category);
             }
-            if (!categoryArray.toString().contains("\"" + category + "\"")) {
-                categoryArray.put(category);
-            }
+            if (uniqueCategories.add(category)) categoryArray.put(category);
         }
         if (monitor != null && monitor.isStopped()) {
             throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
