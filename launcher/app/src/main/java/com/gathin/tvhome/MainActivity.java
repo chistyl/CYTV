@@ -2114,7 +2114,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
     private void fillHero(int position, String label) {
-        heroName.setText(label);
+        heroName.setText(TraditionalText.display(this, label));
         if (!cinematic) return;
         updateHeroMeta(position);
         updateHeroDots(position);
@@ -4602,7 +4602,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     folderGlyph.setPadding((int)(28*density), (int)(16*density), (int)(28*density), (int)(16*density));
                     art.addView(folderGlyph, new FrameLayout.LayoutParams(-1, -1));
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
-                    TextView label = new TextView(this); label.setText(folder); label.setTextColor(Color.WHITE); label.setTextSize(14);
+                    TextView label = new TextView(this); label.setText(TraditionalText.display(this, folder)); label.setTextColor(Color.WHITE); label.setTextSize(14);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
@@ -5446,7 +5446,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         java.util.ArrayList<View> folderRows = new java.util.ArrayList<>();
         for (String folder : folders) {
             TextView item = new TextView(this);
-            item.setText(folder); item.setTextColor(Color.WHITE); item.setTextSize(17);
+            item.setText(TraditionalText.display(this, folder)); item.setTextColor(Color.WHITE); item.setTextSize(17);
             item.setGravity(Gravity.CENTER_VERTICAL);
             item.setPadding((int)(18*d), 0, (int)(18*d), 0);
             item.setMinHeight((int)(62*d));
@@ -5690,7 +5690,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
         TextView heading = new TextView(this);
-        heading.setText(folderName);
+        heading.setText(TraditionalText.display(this, folderName));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(20);
         heading.setGravity(Gravity.CENTER_VERTICAL);
