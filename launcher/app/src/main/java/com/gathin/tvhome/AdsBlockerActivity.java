@@ -306,8 +306,8 @@ public class AdsBlockerActivity extends Activity {
         input.setBackground(focusBg(Color.rgb(39,42,50), Color.rgb(54,59,70)));
         input.setHint("例如 ads.example.com"); input.setTextColor(Color.WHITE); input.setHintTextColor(Color.GRAY);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        new AlertDialog.Builder(this).setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
-                .setView(input).setNegativeButton("取消", null).setPositiveButton("新增", (d, w) -> {
+        new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域"))
+                .setView(input).setNegativeButton(TraditionalText.display(this, "取消"), null).setPositiveButton(TraditionalText.display(this, "新增"), (d, w) -> {
                     String domain = normalize(input.getText().toString());
                     if (domain.isEmpty()) { Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show(); return; }
                     LinkedHashSet<String> set = new LinkedHashSet<>(rules(key)); set.add(domain); saveRules(key, set); refresh();
@@ -350,8 +350,8 @@ public class AdsBlockerActivity extends Activity {
         Button clear = button("清除紀錄", () -> new AlertDialog.Builder(this)
                 .setTitle(TraditionalText.display(this, "清除 DNS 紀錄"))
                 .setMessage(TraditionalText.display(this, "確定要清除所有 DNS 紀錄嗎？"))
-                .setNegativeButton("取消", null)
-                .setPositiveButton("清除", (d, w) -> {
+                .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                .setPositiveButton(TraditionalText.display(this, "清除"), (d, w) -> {
                     prefs.edit().remove("dns_logs").apply();
                     updateDnsLogRows(summary, rows, selected[0]);
                 }).show());
