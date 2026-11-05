@@ -6,7 +6,7 @@ on:
       - fix/ethernet-dns-vpn-stability-r3
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-android9-ethernet-r2.yml'
+      - '.github/workflows/build-ethernet-dns-stability-r3.yml'
   workflow_dispatch:
 
 permissions:
