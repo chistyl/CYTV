@@ -80,6 +80,7 @@ public final class YouTubeSponsorSkipService extends Service {
                 PlaybackEventAccumulator playback = new PlaybackEventAccumulator();
                 playback.recordPosition(session.initialCurrentTime, session.initialDuration);
                 playback.recordPlayerState(session.initialPlayerState);
+                if (session.adActive) playback.reset();
                 List<SponsorBlockClient.Segment> segments = java.util.Collections.emptyList();
                 Set<String> skipped = new HashSet<>();
                 long handledAdEventVersion = session.adEventVersion;
@@ -87,8 +88,8 @@ public final class YouTubeSponsorSkipService extends Service {
                 boolean adActive = session.adActive;
                 boolean skipAttemptedForCurrentAd = false;
 
-                if (isValidVideoId(videoId) && session.initialCurrentTime >= 0
-                        && "1".equals(session.initialPlayerState)) {
+                if (!session.adActive && isValidVideoId(videoId)
+                        && session.initialCurrentTime >= 0 && "1".equals(session.initialPlayerState)) {
                     segments = loadSegments(videoId, monitor);
                     segmentsVideoId = videoId;
                     skipIfNeeded(session, videoId, segments, skipped,
