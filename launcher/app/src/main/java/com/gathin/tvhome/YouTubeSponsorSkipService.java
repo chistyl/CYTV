@@ -82,6 +82,10 @@ public final class YouTubeSponsorSkipService extends Service {
                 playback.recordPlayerState(session.initialPlayerState);
                 List<SponsorBlockClient.Segment> segments = java.util.Collections.emptyList();
                 Set<String> skipped = new HashSet<>();
+                long handledAdEventVersion = session.adEventVersion;
+                long handledAdStartVersion = session.adStartVersion;
+                boolean adActive = session.adActive;
+                boolean skipAttemptedForCurrentAd = false;
 
                 if (isValidVideoId(videoId) && session.initialCurrentTime >= 0
                         && "1".equals(session.initialPlayerState)) {
@@ -106,6 +110,62 @@ public final class YouTubeSponsorSkipService extends Service {
                             stopping = true;
                             break;
                         }
+                    }
+
+                    // Process ad events before content playback updates. Ad positions belong
+                    // to a separate timeline and must never reach SponsorBlock's clock.
+                    if (session.adEventVersion != handledAdEventVersion) {
+                        if (session.adStartVersion != handledAdStartVersion) {
+                            playback.reset();
+                            skipAttemptedForCurrentAd = false;
+                        }
+                        handledAdEventVersion = session.adEventVersion;
+                        handledAdStartVersion = session.adStartVersion;
+                        adActive = session.adActive;
+                    }
+
+                    // A player-state event newer than the last ad event is required before
+                    // considering the ad finished. HTTP 200 from skipAd is not proof of success.
+                    if (adActive && session.lastPlaybackEventId > session.adLastEventId
+                            && event.hasFreshPlayerState) {
+                        boolean adSkipped = "1082".equals(event.playerState);
+                        boolean contentResumed = "1".equals(event.playerState)
+                                && event.hasFreshVideoId
+                                && isValidVideoId(event.videoId)
+                                && event.videoId.equals(session.adContentVideoId);
+                        if (adSkipped || contentResumed) {
+                            session.clearAdState();
+                            adActive = false;
+                            skipAttemptedForCurrentAd = false;
+                            handledAdEventVersion = session.adEventVersion;
+                            handledAdStartVersion = session.adStartVersion;
+                            android.util.Log.i("CYTV-YouTubeAdSkip",
+                                    adSkipped ? "Lounge confirmed AdSkipped" :
+                                            "Lounge confirmed content playback resumed");
+                        }
+                    }
+
+                    if (adActive) {
+                        if (!skipAttemptedForCurrentAd
+                                && Boolean.TRUE.equals(session.adSkippable)
+                                && Boolean.TRUE.equals(session.adSkipEnabled)
+                                && !Boolean.TRUE.equals(session.adBumper)) {
+                            // Lock before sending: duplicate/replayed events cannot issue a
+                            // second skipAd for the same ad, even if the request fails.
+                            skipAttemptedForCurrentAd = true;
+                            try {
+                                String response = YouTubeLoungeClient.skipAd(this, session);
+                                android.util.Log.i("CYTV-YouTubeAdSkip",
+                                        "skipAd command accepted by Lounge; awaiting TV confirmation: "
+                                                + response);
+                            } catch (Exception commandError) {
+                                android.util.Log.w("CYTV-YouTubeAdSkip",
+                                        "skipAd command failed; will not retry this ad",
+                                        commandError);
+                            }
+                        }
+                        // SponsorBlock seekTo must stay idle while the ad timeline is active.
+                        continue;
                     }
 
                     if (event.hasFreshVideoId && isValidVideoId(event.videoId)
