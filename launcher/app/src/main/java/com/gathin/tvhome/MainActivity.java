@@ -3894,7 +3894,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     popup.dismiss();
                     recreate();
                 });
-        addSettingsMenuRow(rows, popup, "YouTube廣告助手", () -> {
+        addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
