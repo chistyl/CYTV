@@ -104,6 +104,7 @@ public class YouTubeAssistantActivity extends Activity {
         pairingDetectionAction.setGravity(android.view.Gravity.CENTER);
         pairingDetectionAction.setPadding(dp(14), dp(11), dp(14), dp(11));
         pairingDetectionAction.setBackground(round(0xFF252B35, dp(10)));
+        pairingDetectionAction.setId(View.generateViewId());
         pairingDetectionAction.setFocusable(true);
         pairingDetectionAction.setFocusableInTouchMode(true);
         pairingDetectionAction.setClickable(true);
@@ -279,6 +280,9 @@ public class YouTubeAssistantActivity extends Activity {
                 .setPositiveButton("連接", null)
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
                 .create();
+        dialog.setOnDismissListener(ignored -> {
+            if (pairingCodeInput == input) pairingCodeInput = null;
+        });
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
             android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
