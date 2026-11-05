@@ -62,7 +62,7 @@ public class YouTubeAssistantActivity extends Activity {
         root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
-        title.setText("YouTube 贊助片段略過");
+        title.setText("YouTube 影片片段自動略過");
         title.setTextColor(TEXT);
         title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -89,7 +89,7 @@ public class YouTubeAssistantActivity extends Activity {
         content.addView(pairingCard, fullWidth());
 
         LinearLayout featureCard = card();
-        TextView featureTitle = text("自動略過贊助片段", 20, true, TEXT);
+        TextView featureTitle = text("自動略過影片片段", 20, true, TEXT);
         featureCard.addView(featureTitle);
         featureStatus = text("", 15, false, MUTED);
         featureStatus.setGravity(android.view.Gravity.CENTER_VERTICAL);
