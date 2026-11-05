@@ -399,6 +399,15 @@ public class YouTubeAssistantActivity extends Activity {
             // Keep the dialog and button position unchanged; reduce the button footprint
             // so its full rounded shape remains visible inside the fixed dialog surface.
             confirm.setTranslationY(-dp(12));
+            // Prevent the button bar or its intermediate containers from clipping
+            // the rounded button; this changes clipping only, not layout positions.
+            android.view.ViewParent parent = confirm.getParent();
+            while (parent instanceof android.view.ViewGroup) {
+                android.view.ViewGroup group = (android.view.ViewGroup) parent;
+                group.setClipChildren(false);
+                group.setClipToPadding(false);
+                parent = group.getParent();
+            }
             confirm.setMinWidth(dp(96));
             confirm.setMinHeight(dp(42));
             confirm.setPadding(dp(14), dp(6), dp(14), dp(6));
