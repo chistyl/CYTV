@@ -240,13 +240,37 @@ public class YouTubeAssistantActivity extends Activity {
         featureAction.setText(!paired ? "請先連接 YouTube TV"
                 : enabled ? "關閉自動略過" : "開啟自動略過");
         boolean detectionEnabled = isPairingDetectionEnabled();
-        detectionStatus.setText(detectionEnabled
+        detectionStatus.setText((detectionEnabled
                 ? "目前狀態：已開啟。返回 YouTube TV 顯示配對碼後，CYTV 會自動讀取並填入。"
-                : "目前狀態：尚未開啟。請進入 Android 無障礙設定，啟用「YouTube 配對碼自動偵測」。");
+                : "目前狀態：尚未開啟。請進入 Android 無障礙設定，啟用「YouTube 配對碼自動偵測」。")
+                + "\\n" + getPairingDetectionDiagnostics());
         detectionAction.setText(detectionEnabled ? "管理自動偵測設定" : "開啟自動偵測設定");
         // Keep the action reachable by D-pad even before pairing so it can explain the prerequisite.
         featureAction.setEnabled(true);
         featureAction.setAlpha(1f);
+    }
+
+    private String getPairingDetectionDiagnostics() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences(YouTubePairingCodeAccessibilityService.PREFS, MODE_PRIVATE);
+        int events = prefs.getInt("event_count", 0);
+        int scans = prefs.getInt("scan_count", 0);
+        int rootNull = prefs.getInt("root_null_count", 0);
+        int nodes = prefs.getInt("last_node_count", 0);
+        int chars = prefs.getInt("last_text_length", 0);
+        long lastScan = prefs.getLong("last_scan_at", 0L);
+        long lastDetected = prefs.getLong("last_detected_at", 0L);
+        String scanAge = lastScan == 0L ? "無" :
+                Math.max(0L, (System.currentTimeMillis() - lastScan) / 1000L) + "秒前";
+        String result = "診斷：事件 " + events + " 次／掃描 " + scans
+                + " 次（空畫面 " + rootNull + " 次）"
+                + "\\n最近掃描：" + scanAge + "，節點 " + nodes + " 個，文字 " + chars + " 字";
+        if (lastDetected > 0L) result += "\\n最近曾讀到配對碼：" +
+                Math.max(0L, (System.currentTimeMillis() - lastDetected) / 1000L) + " 秒前";
+        else if (events == 0) result += "\\n尚未收到 YouTube TV 畫面事件";
+        else if (scans == 0 || nodes == 0) result += "\\n目前未取得 YouTube TV 無障礙文字節點";
+        else result += "\\n已掃描畫面，但尚未辨識到 8 碼代碼";
+        return result;
     }
 
     private boolean isPairingDetectionEnabled() {
