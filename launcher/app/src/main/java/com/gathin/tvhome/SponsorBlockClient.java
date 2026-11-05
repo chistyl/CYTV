@@ -11,15 +11,33 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * SponsorBlock lookup using the public K-anonymity endpoint.
- * Only returns segments for the exact requested YouTube video ID.
+ * Only returns skip-action segments for the exact requested YouTube video ID.
  * This class does not perform playback seeking or skipping.
  */
 final class SponsorBlockClient {
     private static final String API = "https://sponsor.ajay.app/api/skipSegments/";
+
+    // Safe, useful time-range categories enabled by default.
+    // "filler" is intentionally excluded because SponsorBlock warns it is aggressive.
+    // POI, full-video and chapter categories use non-skip action types and are excluded.
+    static final List<String> AUTO_SKIP_CATEGORIES = Collections.unmodifiableList(Arrays.asList(
+            "sponsor", "selfpromo", "interaction", "intro", "outro",
+            "preview", "hook", "music_offtopic"));
+
+    private static final List<String> SUPPORTED_CATEGORIES = Collections.unmodifiableList(Arrays.asList(
+            "sponsor", "selfpromo", "interaction", "intro", "outro", "preview",
+            "hook", "music_offtopic", "poi_highlight", "filler",
+            "exclusive_access", "chapter"));
+
+    private static final String SKIP_ACTION = "skip";
 
     static final class Segment {
         final double startSeconds;
@@ -72,6 +90,23 @@ final class SponsorBlockClient {
 
     static LookupResult lookupSponsorSegmentsDetailed(String videoId,
                                                         YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupSegmentsDetailed(videoId, monitor, Collections.singletonList("sponsor"));
+    }
+
+    static List<Segment> lookupAutoSkipSegments(String videoId,
+                                                 YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupAutoSkipSegmentsDetailed(videoId, monitor).segments;
+    }
+
+    static LookupResult lookupAutoSkipSegmentsDetailed(String videoId,
+                                                        YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupSegmentsDetailed(videoId, monitor, AUTO_SKIP_CATEGORIES);
+    }
+
+    static LookupResult lookupSegmentsDetailed(String videoId,
+                                                YouTubeLoungeClient.MonitorHandle monitor,
+                                                List<String> categories) throws Exception {
+        List<String> selectedCategories = normalizeCategories(categories);
         if (monitor != null && monitor.isStopped()) {
             throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
         }
@@ -82,8 +117,13 @@ final class SponsorBlockClient {
 
         String hash = sha256Hex(id);
         String prefix = hash.substring(0, 4);
-        String categories = URLEncoder.encode("[\"sponsor\"]", "UTF-8");
-        URL url = new URL(API + prefix + "?categories=" + categories);
+        String encodedCategories = URLEncoder.encode(new JSONArray(selectedCategories).toString(), "UTF-8");
+        // Explicitly request actionType=skip. Categories such as poi_highlight,
+        // exclusive_access and chapter are not ordinary time-range skips.
+        String encodedActions = URLEncoder.encode(new JSONArray(
+                Collections.singletonList(SKIP_ACTION)).toString(), "UTF-8");
+        URL url = new URL(API + prefix + "?categories=" + encodedCategories
+                + "&actionTypes=" + encodedActions);
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) url.openConnection();
@@ -117,9 +157,9 @@ final class SponsorBlockClient {
                 throw new Exception("SponsorBlock 回應不是有效 JSON（HTTP 200，"
                         + response.length + " bytes）。", parseError);
             }
-            List<Segment> matches = new ArrayList<>();
-            int matchingVideos = 0;
+
             List<String> candidateIdSamples = new ArrayList<>();
+            int matchingVideos = 0;
             for (int i = 0; i < candidates.length(); i++) {
                 JSONObject video = candidates.optJSONObject(i);
                 if (video == null) continue;
@@ -127,24 +167,10 @@ final class SponsorBlockClient {
                 if (!candidateId.isEmpty() && candidateIdSamples.size() < 8) {
                     candidateIdSamples.add(candidateId);
                 }
-                if (!id.equals(candidateId)) continue;
-                matchingVideos++;
-                JSONArray segments = video.optJSONArray("segments");
-                if (segments == null) continue;
-                for (int j = 0; j < segments.length(); j++) {
-                    JSONObject item = segments.optJSONObject(j);
-                    if (item == null || !"sponsor".equals(item.optString("category", ""))) continue;
-                    JSONArray range = item.optJSONArray("segment");
-                    if (range == null || range.length() < 2) continue;
-                    double start = range.optDouble(0, -1);
-                    double end = range.optDouble(1, -1);
-                    if (!Double.isFinite(start) || !Double.isFinite(end)
-                            || start < 0 || end <= start) continue;
-                    matches.add(new Segment(start, end, "sponsor", item.optString("UUID", "")));
-                }
+                if (id.equals(candidateId)) matchingVideos++;
             }
-            java.util.Collections.sort(matches,
-                    (left, right) -> Double.compare(left.startSeconds, right.startSeconds));
+
+            List<Segment> matches = parseMatchingSegments(candidates, id, selectedCategories);
             return new LookupResult(status, response.length, candidates.length(),
                     matchingVideos, prefix, candidateIdSamples, matches);
         } finally {
@@ -153,13 +179,109 @@ final class SponsorBlockClient {
         }
     }
 
+    static List<String> normalizeCategories(List<String> categories) {
+        if (categories == null || categories.isEmpty()) {
+            throw new IllegalArgumentException("至少需要選擇一個 SponsorBlock 分類。");
+        }
+        List<String> normalized = new ArrayList<>();
+        Set<String> unique = new HashSet<>();
+        for (String category : categories) {
+            if (!SUPPORTED_CATEGORIES.contains(category)) {
+                throw new IllegalArgumentException("不支援的 SponsorBlock 分類：" + category);
+            }
+            if (unique.add(category)) normalized.add(category);
+        }
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("至少需要選擇一個 SponsorBlock 分類。");
+        }
+        return Collections.unmodifiableList(normalized);
+    }
+
+    /**
+     * K-anonymity returns an array of candidate videos, not a single video object.
+     * Ignore every candidate except the exact video ID and only accept skip actions.
+     */
+    static List<Segment> parseMatchingSegments(JSONArray candidates, String videoId,
+                                               List<String> categories) {
+        List<String> selected = normalizeCategories(categories);
+        List<Segment> matches = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        if (candidates == null || videoId == null) return matches;
+
+        for (int i = 0; i < candidates.length(); i++) {
+            JSONObject video = candidates.optJSONObject(i);
+            if (video == null || !videoId.equals(video.optString("videoID", ""))) continue;
+            JSONArray segments = video.optJSONArray("segments");
+            if (segments == null) continue;
+
+            for (int j = 0; j < segments.length(); j++) {
+                JSONObject item = segments.optJSONObject(j);
+                if (item == null) continue;
+                String category = item.optString("category", "");
+                if (!isCategorySelected(category, selected)) continue;
+                String actionType = item.optString("actionType", SKIP_ACTION);
+                if (!SKIP_ACTION.equals(actionType)) continue;
+
+                JSONArray range = item.optJSONArray("segment");
+                if (range == null || range.length() < 2) continue;
+                double start = range.optDouble(0, -1);
+                double end = range.optDouble(1, -1);
+                if (!Double.isFinite(start) || !Double.isFinite(end)
+                        || start < 0 || end <= start) continue;
+
+                String uuid = item.optString("UUID", "");
+                String dedupeKey = uuid.isEmpty()
+                        ? category + ":" + start + "-" + end : uuid;
+                if (seen.add(dedupeKey)) {
+                    matches.add(new Segment(start, end, category, uuid));
+                }
+            }
+        }
+        Collections.sort(matches, (left, right) -> {
+            int byStart = Double.compare(left.startSeconds, right.startSeconds);
+            if (byStart != 0) return byStart;
+            int byEnd = Double.compare(left.endSeconds, right.endSeconds);
+            if (byEnd != 0) return byEnd;
+            return left.category.compareTo(right.category);
+        });
+        return matches;
+    }
+
+    static boolean isCategorySelected(String category, List<String> categories) {
+        return category != null && categories != null && categories.contains(category);
+    }
+
+    static String segmentKey(String videoId, Segment segment) {
+        if (segment == null) return "";
+        String identity = segment.uuid == null || segment.uuid.isEmpty()
+                ? segment.category + ":" + segment.startSeconds + "-" + segment.endSeconds
+                : segment.uuid;
+        return videoId + ":" + identity;
+    }
+
     static Segment findSegmentAtPosition(List<Segment> segments, double positionSeconds) {
+        return findNextUnskippedSegmentAtPosition(segments, positionSeconds,
+                Collections.emptySet(), "");
+    }
+
+    /**
+     * Continue scanning when the first overlapping segment has already been skipped.
+     * This lets a second selected category with an overlapping range be processed.
+     */
+    static Segment findNextUnskippedSegmentAtPosition(List<Segment> segments,
+                                                        double positionSeconds,
+                                                        Set<String> skipped,
+                                                        String videoId) {
         if (!Double.isFinite(positionSeconds) || positionSeconds < 0 || segments == null) {
             return null;
         }
         for (Segment segment : segments) {
             if (positionSeconds >= segment.startSeconds
-                    && positionSeconds < segment.endSeconds) return segment;
+                    && positionSeconds < segment.endSeconds) {
+                if (skipped == null || !skipped.contains(segmentKey(videoId, segment))) {
+                    return segment;
+                }
+            }
             if (segment.startSeconds > positionSeconds) break;
         }
         return null;
