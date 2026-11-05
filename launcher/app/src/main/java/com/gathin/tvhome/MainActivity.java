@@ -4605,20 +4605,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cancelWeather.setDefaultFocusHighlightEnabled(false); saveWeather.setDefaultFocusHighlightEnabled(false);
             cancelWeather.setMinWidth((int)(104*density)); saveWeather.setMinWidth((int)(112*density));
             cancelWeather.setMinHeight((int)(52*density)); saveWeather.setMinHeight((int)(52*density));
+            // Move both actions slightly lower while keeping the full button bounds visible.
+            cancelWeather.setTranslationY(8 * density);
+            saveWeather.setTranslationY(8 * density);
             LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelWeather.getLayoutParams();
             cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
             LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
             saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            // Keep the action-button panel inside the fixed dialog bounds so both buttons remain fully visible.
+            // Keep the original button position. Disable clipping on every ViewGroup ancestor,
+            // because the dialog's outer content containers can otherwise crop the button edges.
             ViewParent weatherButtonParent = cancelWeather.getParent();
-            if (weatherButtonParent instanceof ViewGroup) {
+            while (weatherButtonParent instanceof ViewGroup) {
                 ViewGroup weatherButtonContainer = (ViewGroup) weatherButtonParent;
-                // Move the action buttons down by 10dp; keep clipping disabled so both remain fully visible.
-                weatherButtonContainer.setTranslationY(10f * density);
                 weatherButtonContainer.setClipChildren(false);
                 weatherButtonContainer.setClipToPadding(false);
-                weatherButtonContainer.setClipChildren(false);
-                weatherButtonContainer.setClipToPadding(false);
+                weatherButtonParent = weatherButtonContainer.getParent();
             }
             GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
             GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
@@ -4765,7 +4766,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         surface.setStroke(Math.max(1, (int)density), 0x2880C9C2);
         outer.setBackground(surface);
         TextView title = new TextView(this);
-        title.setText("勾選要隱藏APP或資料夾"); title.setTextColor(0xFFF5F6FA); title.setTextSize(20);
+        title.setText(TraditionalText.display(this, "勾選要隱藏APP或資料夾")); title.setTextColor(0xFFF5F6FA); title.setTextSize(20);
         title.setPadding((int)(4*density), 0, 0, (int)(12*density));
         outer.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4854,7 +4855,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
                     TextView label = new TextView(this);
                     String custom = prefs.getString("label_" + pkg, null);
-                    label.setText(custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager())));
+                    label.setText(TraditionalText.display(this, custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager()))));
                     label.setTextColor(Color.WHITE); label.setTextSize(13); label.setMaxLines(2);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
@@ -4925,7 +4926,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     folderGlyph.setPadding((int)(28*density), (int)(16*density), (int)(28*density), (int)(16*density));
                     art.addView(folderGlyph, new FrameLayout.LayoutParams(-1, -1));
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
-                    TextView label = new TextView(this); label.setText(folder); label.setTextColor(Color.WHITE); label.setTextSize(14);
+                    TextView label = new TextView(this); label.setText(TraditionalText.display(this, folder)); label.setTextColor(Color.WHITE); label.setTextSize(14);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
                     android.widget.CheckBox check = new android.widget.CheckBox(this);
@@ -5835,7 +5836,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
-            check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
+            check.setText(TraditionalText.display(this, ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager()))));
             check.setTextColor(0xFFF5F6FA);
             check.setTextSize(15);
             check.setChecked(checked[i]);
@@ -5914,7 +5915,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(title).setView(scroll)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
@@ -6290,7 +6291,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
         TextView heading = new TextView(this);
-        heading.setText(folderName);
+        heading.setText(TraditionalText.display(this, folderName));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(20);
         heading.setGravity(Gravity.CENTER_VERTICAL);
@@ -6407,7 +6408,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
                 TextView name = new TextView(this);
                 String customName = prefs.getString("label_" + packageName, null);
-                name.setText(customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager())));
+                name.setText(TraditionalText.display(this, customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager()))));
                 name.setTextColor(Color.WHITE); name.setTextSize(11); name.setGravity(Gravity.CENTER);
                 name.setMaxLines(2); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
