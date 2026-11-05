@@ -3882,19 +3882,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
-        addSettingsMenuRow(rows, popup, "桌面設定", this::showHomeAppVisibilityDialog);
-        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
-        addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
-        addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
+        addSettingsMenuRow(rows, popup, "介面設定", this::showInterfaceSettingsMenu);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
-        addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體一律繁體顯示　✓" : "簡體一律繁體顯示",
-                () -> {
-                    TraditionalText.setEnabled(this, !traditionalDisplay);
-                    popup.dismiss();
-                    recreate();
-                });
-        addSettingsMenuRow(rows, popup, "YouTube廣告助手", () -> {
+        addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
+            TraditionalText.setEnabled(this, !traditionalDisplay);
+            popup.dismiss();
+            recreate();
+        });
+        addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
@@ -3903,9 +3898,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, AdsBlockerActivity.class));
         });
-        // 系統重啟固定放在設定選單最下方；優先使用系統電源選單，必要時走安全確認流程。
-        addSettingsMenuRow(rows, popup, "系統重啟", this::openSystemPowerMenuFromSettings);
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    /** 右上角「介面設定」子選單：集中桌面顯示、桌布、資料夾與一週天氣設定。 */
+    private void showInterfaceSettingsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (170 * density));
+        addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
+        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
+        addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
+        addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
@@ -4562,9 +4572,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         if (fixed && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
-            // Also perform the lookup when the dialog opens with fixed-city mode already selected.
-            cityMode.setChecked(false);
-            cityMode.setChecked(true);
+            // Detect the suggested city without toggling the RadioButton or disturbing the saved selection.
+            lookupStarted[0] = true;
+            weatherExecutor.execute(() -> {
+                String detected = detectWeatherCityFromNetwork();
+                if (detected == null) return;
+                weatherHandler.post(() -> {
+                    if (!cityEditedByUser[0]
+                            && initialCity.equals(city.getText().toString().trim())) {
+                        city.setText(detected);
+                        city.setSelection(city.length());
+                    }
+                });
+            });
         }
         AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
@@ -7789,7 +7809,17 @@ private GradientDrawable roundSurface(int color, float radius) {
      * Use the platform's normal focused-click handling for TV remotes. Intercepting DPAD_CENTER
      * in an OnKeyListener can consume DOWN/UP before Android performs the click on some TV firmware.
      */
+    private void addSettingsMenuCheckRow(LinearLayout rows, PopupWindow popup, String title,
+                                         boolean checked, Runnable action) {
+        addSettingsMenuRowView(rows, popup, title, action, true, checked);
+    }
+
     private void addSettingsMenuRowView(LinearLayout rows, PopupWindow popup, String title, Runnable action) {
+        addSettingsMenuRowView(rows, popup, title, action, false, false);
+    }
+
+    private void addSettingsMenuRowView(LinearLayout rows, PopupWindow popup, String title, Runnable action,
+                                        boolean showCheckbox, boolean checked) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
         row.findViewById(R.id.icon).setVisibility(View.GONE);
         row.findViewById(R.id.dot).setVisibility(View.GONE);
@@ -7797,6 +7827,30 @@ private GradientDrawable roundSurface(int color, float radius) {
         TextView rowTitle = (TextView) row.findViewById(R.id.title);
         rowTitle.setText(title);
         rowTitle.setTextColor(Color.WHITE);
+        if (showCheckbox) {
+            LinearLayout.LayoutParams titleLp = (LinearLayout.LayoutParams) rowTitle.getLayoutParams();
+            titleLp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            titleLp.weight = 0f;
+            titleLp.setMargins(titleLp.leftMargin, titleLp.topMargin, 0, titleLp.bottomMargin);
+            rowTitle.setLayoutParams(titleLp);
+            android.widget.CheckBox checkbox = new android.widget.CheckBox(this);
+            checkbox.setButtonTintList(new android.content.res.ColorStateList(
+                    new int[][]{
+                            new int[]{android.R.attr.state_focused},
+                            new int[]{android.R.attr.state_selected},
+                            new int[]{}
+                    },
+                    new int[]{0xFF303033, 0xFF303033, Color.WHITE}));
+            checkbox.setChecked(checked);
+            checkbox.setClickable(false);
+            checkbox.setFocusable(false);
+            checkbox.setDuplicateParentStateEnabled(true);
+            LinearLayout.LayoutParams checkboxLp = new LinearLayout.LayoutParams(
+                    (int) (26 * density), (int) (26 * density));
+            checkboxLp.gravity = Gravity.CENTER_VERTICAL;
+            checkboxLp.leftMargin = 0;
+            ((LinearLayout) row).addView(checkbox, checkboxLp);
+        }
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
         row.setClickable(true);
