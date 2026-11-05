@@ -3905,7 +3905,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
+        popup.setWidth(traditionalDisplay
+                ? (int) (270 * density)
+                : Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
                 ? Gravity.START : Gravity.END);
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
