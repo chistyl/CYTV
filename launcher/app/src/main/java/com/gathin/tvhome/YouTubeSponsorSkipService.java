@@ -122,7 +122,7 @@ public final class YouTubeSponsorSkipService extends Service {
                         skipped.clear();
                         lastSkippedVideoId = videoId;
                         playback.reset();
-                        setStatus("偵測到新影片，正在載入贊助片段");
+                        setStatus("偵測到新影片，正在載入影片片段");
                     }
 
                     if (event.hasFreshPosition) {
@@ -219,8 +219,8 @@ public final class YouTubeSponsorSkipService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "YouTube 贊助片段略過", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("監控已配對的 YouTube TV 播放狀態並略過贊助片段");
+                    "YouTube 影片片段自動略過", NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("監控已配對的 YouTube TV 播放狀態並略過選定分類的影片片段");
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) manager.createNotificationChannel(channel);
         }
@@ -230,7 +230,7 @@ public final class YouTubeSponsorSkipService extends Service {
         if (Build.VERSION.SDK_INT >= 26) {
             return new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_media_play)
-                    .setContentTitle("YouTube 贊助片段略過")
+                    .setContentTitle("YouTube 影片片段自動略過")
                     .setContentText(status)
                     .setOngoing(true)
                     .setOnlyAlertOnce(true)
@@ -238,7 +238,7 @@ public final class YouTubeSponsorSkipService extends Service {
         }
         return new Notification.Builder(this)
                 .setSmallIcon(android.R.drawable.ic_media_play)
-                .setContentTitle("YouTube 贊助片段略過")
+                .setContentTitle("YouTube 影片片段自動略過")
                 .setContentText(status)
                 .setOngoing(true)
                 .build();
