@@ -18,6 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
+    @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private static final int BG = Color.rgb(29, 33, 43);
     private static final int PANEL = Color.rgb(52, 58, 70);
     private static final int FOCUS = Color.rgb(70, 83, 102);
@@ -62,7 +67,7 @@ public class YouTubeAssistantActivity extends Activity {
         root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
-        title.setText("YouTube 贊助片段略過");
+        title.setText(TraditionalText.display(this, "YouTube 贊助片段略過"));
         title.setTextColor(TEXT);
         title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -150,21 +155,21 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void refreshUi() {
         boolean paired = YouTubePairingClient.hasSavedCredentials(this);
-        pairingStatus.setText(paired
+        pairingStatus.setText(TraditionalText.display(this, paired
                 ? "狀態：已完成配對，可重新配對其他電視"
-                : "狀態：尚未連接電視，請先完成配對");
-        pairingAction.setText(paired ? "重新配對 YouTube TV" : "連接 YouTube TV");
+                : "狀態：尚未連接電視，請先完成配對"));
+        pairingAction.setText(TraditionalText.display(this, paired ? "重新配對 YouTube TV" : "連接 YouTube TV"));
         boolean enabled = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false);
         String status = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getString(YouTubeSponsorSkipService.PREF_STATUS, "");
-        featureStatus.setText(!paired ? "目前尚未配對電視，完成配對後即可使用此功能。"
+        featureStatus.setText(TraditionalText.display(this, !paired ? "目前尚未配對電視，完成配對後即可使用此功能。"
                 : enabled ? "目前狀態：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
-                : "目前狀態：已關閉");
-        featureAction.setText(!paired ? "請先連接 YouTube TV"
-                : enabled ? "關閉自動略過" : "開啟自動略過");
+                : "目前狀態：已關閉"));
+        featureAction.setText(TraditionalText.display(this, !paired ? "請先連接 YouTube TV"
+                : enabled ? "關閉自動略過" : "開啟自動略過"));
         // Keep the action reachable by D-pad even before pairing so it can explain the prerequisite.
         featureAction.setEnabled(true);
         featureAction.setAlpha(1f);
@@ -223,10 +228,10 @@ public class YouTubeAssistantActivity extends Activity {
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("連接 YouTube TV")
+                .setTitle(TraditionalText.display(this, "連接 YouTube TV"))
                 .setView(box)
-                .setPositiveButton("連接", null)
-                .setNegativeButton("取消", (d, w) -> d.dismiss())
+                .setPositiveButton(TraditionalText.display(this, "連接"), null)
+                .setNegativeButton(TraditionalText.display(this, "取消"), (d, w) -> d.dismiss())
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
@@ -386,9 +391,9 @@ public class YouTubeAssistantActivity extends Activity {
     // Keep this dialog's confirmation action independently styled for TV focus.
     private void showMessageDialog(String title, String message) {
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("確定", (d, w) -> d.dismiss())
+                .setTitle(TraditionalText.display(this, title))
+                .setMessage(TraditionalText.display(this, message))
+                .setPositiveButton(TraditionalText.display(this, "確定"), (d, w) -> d.dismiss())
                 .create();
         dialog.show();
         styleDialog(dialog, true);
@@ -493,7 +498,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private TextView text(String value, int size, boolean bold, int color) {
         TextView view = new TextView(this);
-        view.setText(value);
+        view.setText(TraditionalText.display(this, value));
         view.setTextColor(color);
         view.setTextSize(size);
         if (bold) view.setTypeface(Typeface.DEFAULT, Typeface.BOLD);

@@ -34,6 +34,11 @@ import java.util.Date;
 import java.util.Locale;
 
 public class AdsBlockerActivity extends Activity {
+    @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private static final int VPN_REQUEST = 7412;
     private static final String PREFS = "ad_filter";
     private static final String BLOCK = "block_domains";
@@ -122,11 +127,11 @@ public class AdsBlockerActivity extends Activity {
         });
     }
     private TextView label(String text, int size) {
-        TextView v = new TextView(this); v.setText(text); v.setTextColor(Color.WHITE);
+        TextView v = new TextView(this); v.setText(TraditionalText.display(this, text)); v.setTextColor(Color.WHITE);
         v.setTextSize(size); v.setGravity(Gravity.CENTER_VERTICAL); return v;
     }
     private Button button(String text, Runnable action) {
-        Button b = new Button(this); b.setText(text); b.setTextColor(Color.WHITE); b.setTextSize(18);
+        Button b = new Button(this); b.setText(TraditionalText.display(this, text)); b.setTextColor(Color.WHITE); b.setTextSize(18);
         b.setAllCaps(false); b.setFocusable(true); b.setMinHeight(dp(54));
         b.setBackground(focusBg(Color.rgb(48, 51, 60), Color.rgb(74, 79, 92)));
         b.setPadding(dp(18), dp(8), dp(18), dp(8));
@@ -205,11 +210,11 @@ public class AdsBlockerActivity extends Activity {
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
     private void refresh() {
         if (status == null) return;
-        status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
-        toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
+        status.setText(TraditionalText.display(this, enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉"));
+        toggle.setText(TraditionalText.display(this, enabled() ? "停用廣告阻擋" : "啟用廣告阻擋"));
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
-        autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
-        manualDnsChoice.setText(auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）");
+        autoDnsChoice.setText(TraditionalText.display(this, auto ? "✓ 自動（Auto）" : "自動（Auto）"));
+        manualDnsChoice.setText(TraditionalText.display(this, auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）"));
         autoDnsChoice.setSelected(auto);
         manualDnsChoice.setSelected(!auto);
         renderRules(BLOCK); renderRules(ALLOW);
@@ -239,7 +244,7 @@ public class AdsBlockerActivity extends Activity {
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(39,42,50), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
-            Button del = new Button(this); del.setText("刪除"); del.setTextSize(14); del.setAllCaps(false);
+            Button del = new Button(this); del.setText(TraditionalText.display(this, "刪除")); del.setTextSize(14); del.setAllCaps(false);
             del.setTextColor(Color.WHITE); del.setFocusable(true); del.setMinHeight(dp(48));
             del.setBackground(focusBg(Color.rgb(85,47,49), Color.rgb(126,58,62)));
             keepFocusedVisible(del);
@@ -301,8 +306,8 @@ public class AdsBlockerActivity extends Activity {
         input.setBackground(focusBg(Color.rgb(39,42,50), Color.rgb(54,59,70)));
         input.setHint("例如 ads.example.com"); input.setTextColor(Color.WHITE); input.setHintTextColor(Color.GRAY);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        new AlertDialog.Builder(this).setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
-                .setView(input).setNegativeButton("取消", null).setPositiveButton("新增", (d, w) -> {
+        new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域"))
+                .setView(input).setNegativeButton(TraditionalText.display(this, "取消"), null).setPositiveButton(TraditionalText.display(this, "新增"), (d, w) -> {
                     String domain = normalize(input.getText().toString());
                     if (domain.isEmpty()) { Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show(); return; }
                     LinkedHashSet<String> set = new LinkedHashSet<>(rules(key)); set.add(domain); saveRules(key, set); refresh();
@@ -343,10 +348,10 @@ public class AdsBlockerActivity extends Activity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         Button clear = button("清除紀錄", () -> new AlertDialog.Builder(this)
-                .setTitle("清除 DNS 紀錄")
-                .setMessage("確定要清除所有 DNS 紀錄嗎？")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("清除", (d, w) -> {
+                .setTitle(TraditionalText.display(this, "清除 DNS 紀錄"))
+                .setMessage(TraditionalText.display(this, "確定要清除所有 DNS 紀錄嗎？"))
+                .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                .setPositiveButton(TraditionalText.display(this, "清除"), (d, w) -> {
                     prefs.edit().remove("dns_logs").apply();
                     updateDnsLogRows(summary, rows, selected[0]);
                 }).show());
@@ -358,7 +363,7 @@ public class AdsBlockerActivity extends Activity {
         cp.leftMargin = dp(6); actions.addView(close, cp);
         panel.addView(actions, new LinearLayout.LayoutParams(-1, dp(54)));
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("DNS 紀錄").setView(panel).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "DNS 紀錄")).setView(panel).create();
         close.setOnClickListener(v -> dialog.dismiss());
         updateDnsLogRows(summary, rows, selected[0]);
         dialog.show();
@@ -386,7 +391,7 @@ public class AdsBlockerActivity extends Activity {
             else if ("允許".equals(result)) allowed++;
             else if ("查詢失敗".equals(result)) failed++;
         }
-        summary.setText("顯示最新 " + visibleCount + " / " + logs.length() + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed);
+        summary.setText(TraditionalText.display(this, "顯示最新 " + visibleCount + " / " + logs.length() + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed));
         if (logs.length() == 0) {
             TextView empty = label("目前沒有 DNS 紀錄。啟用廣告阻擋並讓 APP 產生網路請求後，紀錄會顯示在這裡。", 17);
             empty.setTextColor(Color.LTGRAY);
