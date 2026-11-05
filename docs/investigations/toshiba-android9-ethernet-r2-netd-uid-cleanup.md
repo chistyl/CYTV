@@ -251,3 +251,45 @@ TetherInterfaceStateMachine 的 BaseServingState 在退出分享狀態時會停�
 4. 保留 Toshiba vendor customization 未排除的限制。
 
 本階段為 r45 鏡像靜態分析；沒有修改 runtime、沒有 APK/CI/實機測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
+
+
+## 12. 第十八階段：Tethering 介面辨識與 upstream NAT 清理
+
+### 12.1 Android 9 r45 的 tetherable interface 範圍
+
+在 frameworks/base/services/core/java/com/android/server/connectivity/Tethering.java：
+- ifaceNameToType() 依序檢查 TetheringConfiguration.isWifi(iface)、isUsb(iface)、isBluetooth(iface)。
+- 其餘介面回傳 TETHERING_INVALID。
+- maybeTrackNewInterfaceLocked(iface) 對 TETHERING_INVALID 直接記錄 not a tetherable iface 並 return，不會建立 TetherInterfaceStateMachine。
+- interfaceStatusChanged() 對一般未知介面不會建立 TISM；只有 Wi-Fi、USB、Bluetooth 名稱符合設定才會辨識。
+- 本分支的 untetherAll() 也只停止 Wi-Fi、USB、Bluetooth 三類。
+
+因此在此 AOSP r45 實作中，標準 Tethering 不會把一般 Ethernet WAN 介面自動納入 downstream TetherInterfaceStateMachine。若 Toshiba 有 Ethernet tethering，必須是另外的 OEM 擴充或其他服務路徑，不能由這份標準程式碼推定。
+
+### 12.2 Upstream NAT / forwarding 清理操作
+
+在同一 r45 鏡像的 NetworkManagementService.java：
+- startInterfaceForwarding(fromIface, toIface) 透過 NativeDaemonConnector 執行 ipfwd add。
+- stopInterfaceForwarding(fromIface, toIface) 執行 ipfwd remove。
+- enableNat(internalInterface, externalInterface) 透過 netd nat enable，並附帶 internal interface 的非 link-local prefix 資訊。
+- disableNat(internalInterface, externalInterface) 執行 netd nat disable。
+
+TetherInterfaceStateMachine.cleanupUpstreamInterface(upstreamIface) 使用 stopInterfaceForwarding(mIfaceName, upstreamIface) 與 disableNat(mIfaceName, upstreamIface)。這兩者針對 forwarding / NAT 規則，不是 setInterfaceDown(upstreamIface)，也沒有在 NetworkManagementService 這些方法中呼叫 setInterfaceDown。
+
+所以標準 Tethering 清除 upstream NAT / forwarding，不等於關閉上游 Ethernet 介面。若要證明 Ethernet 被 administrative down，仍需找到對該 Ethernet iface 的 setInterfaceDown / interface setcfg down 或 vendor netlink 操作。
+
+### 12.3 本階段結論
+
+- AOSP Android 9 r45 標準 Tethering 只識別 Wi-Fi、USB、Bluetooth downstream interfaces。
+- 一般 Ethernet WAN 不符合 ifaceNameToType()，不會進入此標準 TISM 建立流程。
+- 停止 Tethering 時，upstream cleanup 只移除 forwarding 與 NAT 設定；沒有在此路徑關閉 upstream interface 的操作。
+- 因此目前標準 AOSP Tethering 路徑也沒有解釋 VPN 停啟造成 Ethernet 介面 DOWN 的直接證據。
+- Toshiba vendor Ethernet tethering / framework customization 仍未排除。
+
+### 12.4 下一步
+
+1. 追查 TetheringConfiguration 的 USB/Wi-Fi/Bluetooth iface pattern 來源，確認 OEM overlay 是否可能將 Ethernet 名稱納入既有類型。
+2. 搜尋 Toshiba/vendor Ethernet service、Ethernet HAL 或 init rc 是否有 link down / setcfg down / interface down 的獨立管理路徑。
+3. 將 VPN lifecycle、netd network teardown、Ethernet link event、Tethering downstream cleanup 的目前證據整合成因果矩陣，標示已證實、未證實與需 Toshiba log 的項目。
+
+本階段為 android_9.0.0_r45 鏡像靜態分析；未修改 runtime、未產生 APK、未執行 Toshiba 實機 VPN 測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
