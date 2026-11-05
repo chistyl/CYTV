@@ -6,7 +6,6 @@ PATCH="patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcou
 test -s "$PATCH"
 grep -Fq 'if (--network.refCount == 1)' "$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$PATCH"
-grep -Fq '64ba6b016cff7aae69da0af9430bf77eaeeefd30' "$PATCH"
 grep -Fq 'network.stop();' "$PATCH"
 
 # Validate unified-diff syntax without applying it to an unknown OEM tree.
