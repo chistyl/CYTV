@@ -5954,6 +5954,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
+            // ScrollView 的 DPAD_DOWN 導覽必須取得實際 footer 目標。
+            footerDownTarget[0] = cancelButton;
             cancelButton.setAllCaps(false);
             saveButton.setAllCaps(false);
             cancelButton.setMinWidth((int)(104*density));
