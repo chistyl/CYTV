@@ -487,3 +487,59 @@ r45 鏡像 `TetherInterfaceStateMachine.java` 的 `configureIPv4()`：
 要把候選路徑定為本案根因，仍需 Toshiba 故障時的 iface 名稱及 caller 時序，或 Toshiba framework/vendor source。不能只因 TISM 是目前可見 caller 就直接修改它；那會有破壞 USB tethering 的風險。
 
 安全決策不變：保留 Toshiba Android 9 Ethernet R1 guard；不在 Toshiba 重啟 VPN 廣告阻擋；不修改 runtime、不產生實驗 APK；PR #47 維持 Draft/open/未合併。
+
+
+## 19. 第二十三階段：r45 可索引全域 setInterfaceConfig 呼叫點與 Tethering 分類交叉核對
+
+### 19.1 搜尋結果
+
+針對 `lulululbj/android_9.0.0_r45` 鏡像進行下列程式碼搜尋：
+- `setInterfaceConfig(`
+- `setInterfaceConfig(mIfaceName`
+- `setInterfaceConfig(iface`
+- `setInterfaceDown(`
+- `mNMService.setInterfaceConfig`
+
+目前 code search 可索引結果中：
+- `NetworkManagementService.java` 是 setInterfaceConfig 的實作，以及 setInterfaceDown 的內部呼叫者。
+- `TetherInterfaceStateMachine.java` 是唯一可索引到的 framework 呼叫端，透過 `mNMService.setInterfaceConfig(mIfaceName, ifcg)` 寫入介面 flags。
+- `INetworkManagementService.aidl` 是 IPC 宣告，不是另一個執行呼叫端。
+
+此結論嚴格限定為該鏡像的可索引結果；GitHub code search 不保證完整索引，且 Ethernet framework 子目錄在此鏡像取檔 404。因此不能把「唯一可索引 caller」升級為「整個 Android/Toshiba 系統唯一 caller」。
+
+### 19.2 TetheringConfiguration 分類規則
+
+可取得的 r45 鏡像 `TetheringConfiguration.java`：
+- 只建立 `tetherableUsbRegexs`、`tetherableWifiRegexs`、`tetherableBluetoothRegexs` 三組 downstream regex。
+- `isUsb()`、`isWifi()`、`isBluetooth()` 分別比對各自 regex。
+- dump/toString 也只列出上述三組 downstream regex。
+- 沒有 Ethernet downstream regex 欄位或 `isEthernet()` 分類方法。
+
+因此標準 AOSP Tethering 沒有原生 Ethernet downstream 類型。唯一仍需查證的例外，是 Toshiba overlay 是否把實體 Ethernet 名稱錯誤納入 USB regex，或 Toshiba vendor service 是否直接呼叫 NetworkManagementService/netd。
+
+### 19.3 TetherInterfaceStateMachine 的實際影響範圍
+
+結合第 22 階段：
+- TISM 的 `configureIPv4(false)` 對 USB downstream 會設 DOWN。
+- Wi-Fi downstream 明確保留由 Wi-Fi stack 管理 up/down 狀態。
+- Bluetooth 分支在此函式不設定介面 up/down。
+- 該狀態寫入目標是 TISM 建構時傳入的 `mIfaceName`；不是其 upstream Network 的介面名稱。
+
+因此，若故障 Ethernet 介面同時是 TISM downstream iface，才有可能經此標準路徑被關閉。一般 Ethernet WAN 僅作 upstream 時，標準 TISM 不應把 upstream iface 當作 downstream `mIfaceName` 關閉。這仍依賴實際 iface/type 對照，不可假設 Toshiba overlay 一定正常。
+
+### 19.4 對 CYTV VPN service 的交叉核對
+
+研究分支目前 `AdsFilterVpnService.java` 在 `Builder.establish()` 前具有 Toshiba + Android 9 + Ethernet guard：
+- 以 Build.MANUFACTURER / BRAND / MODEL 識別 Toshiba。
+- 以已選 NetworkCapabilities 判定 Ethernet。
+- 命中時記錄網路快照、自動將廣告阻擋 enabled 設為 false、停止服務並 return。
+- `Builder.establish()` 位於 guard 之後。
+- 此路徑沒有呼叫 `setUnderlyingNetworks()`；停止服務也不修改 VPN underlay。
+
+此程式碼路徑保留作已驗收安全措施。靜態檢查不能證明每一款 Toshiba OEM firmware 的 Build 欄位一定符合識別條件，也不能代替裝置實測；不得因此移除 guard 或宣稱根因已修復。
+
+### 19.5 修正決策
+
+本階段沒有發現可以安全歸因為 VPN teardown 的 AOSP framework caller。標準 Tethering 的唯一可索引介面旗標寫入點屬 downstream TISM；其 upstream cleanup 與 downstream interface down 必須分開看待。
+
+目前不能合理提交一個針對 TISM、NetworkManagementService 或 VPN teardown 的 runtime 修改，因為沒有 Toshiba 故障時的 iface/type/caller 證據。繼續保留 R1 guard，不產生繞過 guard 的 APK，不在 Toshiba 重新觸發問題。PR #47 保持 Draft/open/未合併。
