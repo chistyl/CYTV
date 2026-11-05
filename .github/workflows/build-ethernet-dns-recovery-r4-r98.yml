@@ -7,6 +7,12 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-ethernet-dns-recovery-r4-r98.yml'
+  pull_request:
+    branches:
+      - fix/ethernet-dns-recovery-r4-r98
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-ethernet-dns-recovery-r4-r98.yml'
   workflow_dispatch:
 
 permissions:
