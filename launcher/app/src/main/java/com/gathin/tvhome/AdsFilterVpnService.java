@@ -113,7 +113,7 @@ public class AdsFilterVpnService extends VpnService {
                     NetworkCapabilities currentCaps = underlyingNetwork == null
                             ? null : cm.getNetworkCapabilities(underlyingNetwork);
                     if ((underlyingNetwork == null || !isPhysicalTransport(currentCaps))
-                            && isPhysicalTransport(caps)) {
+                            && isPreferredPhysicalTransport(caps)) {
                         cancelPendingNetworkLossCheck();
                         updateUnderlyingNetwork(network);
                         appendDnsLog("-", "診斷", "實體網路重新可用：" + network);
@@ -149,7 +149,7 @@ public class AdsFilterVpnService extends VpnService {
                             schedulePhysicalNetworkRecovery(cm, network,
                                     "啟動期間網路已不再提供一般網際網路，且沒有可用的替代網路");
                         }
-                    } else if (isPhysicalTransport(caps)) {
+                    } else if (isPreferredPhysicalTransport(caps)) {
                         NetworkCapabilities currentCaps = underlyingNetwork == null
                                 ? null : cm.getNetworkCapabilities(underlyingNetwork);
                         if (underlyingNetwork == null || !isPhysicalTransport(currentCaps)) {
@@ -188,6 +188,13 @@ public class AdsFilterVpnService extends VpnService {
     private boolean isPhysicalTransport(NetworkCapabilities caps) {
         return caps != null && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                 || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+    }
+
+    private boolean isPreferredPhysicalTransport(NetworkCapabilities caps) {
+        if (caps == null) return false;
+        return ethernetWasUnderlying
+                ? caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                : isPhysicalTransport(caps);
     }
 
     private void cancelPendingNetworkLossCheck() {
