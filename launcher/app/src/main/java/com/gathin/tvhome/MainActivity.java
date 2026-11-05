@@ -3811,11 +3811,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
-        boolean traditionalDisplay = TraditionalText.isEnabled(this);
+        boolean traditionalDisplay = TraditionalText.isTraditional(this);
         addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體一律繁體顯示　✓" : "簡體一律繁體顯示",
+                traditionalDisplay ? "介面語言：繁體中文　✓" : "介面語言：簡體中文　✓",
                 () -> {
-                    TraditionalText.setEnabled(this, !traditionalDisplay);
+                    TraditionalText.setLanguage(this, !traditionalDisplay);
                     popup.dismiss();
                     recreate();
                 });
@@ -4546,7 +4546,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
                     TextView label = new TextView(this);
                     String custom = prefs.getString("label_" + pkg, null);
-                    label.setText(custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager())));
+                    label.setText(TraditionalText.display(this, custom != null ? custom : String.valueOf(ri.loadLabel(getPackageManager()))));
                     label.setTextColor(Color.WHITE); label.setTextSize(13); label.setMaxLines(2);
                     LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
                     labelLp.leftMargin = (int)(12*density); row.addView(label, labelLp);
@@ -5329,7 +5329,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
             row.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
             android.widget.CheckBox check = new android.widget.CheckBox(this);
-            check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
+            check.setText(TraditionalText.display(this, ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager()))));
             check.setTextColor(Color.WHITE); check.setTextSize(14); check.setChecked(checked[i]);
             check.setFocusable(false);
             check.setButtonTintList(new ColorStateList(
@@ -5791,7 +5791,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
                 TextView name = new TextView(this);
                 String customName = prefs.getString("label_" + packageName, null);
-                name.setText(customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager())));
+                name.setText(TraditionalText.display(this, customName != null ? customName : String.valueOf(ri.loadLabel(getPackageManager()))));
                 name.setTextColor(Color.WHITE); name.setTextSize(11); name.setGravity(Gravity.CENTER);
                 name.setMaxLines(2); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
@@ -6812,7 +6812,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.findViewById(R.id.dot).setVisibility(View.GONE);
         row.findViewById(R.id.status).setVisibility(View.GONE);
         TextView rowTitle = (TextView) row.findViewById(R.id.title);
-        rowTitle.setText(title);
+        rowTitle.setText(TraditionalText.display(this, title));
         rowTitle.setTextColor(Color.WHITE);
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
