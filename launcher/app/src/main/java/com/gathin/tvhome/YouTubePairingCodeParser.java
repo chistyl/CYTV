@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 /** Conservative parser for the eight-character YouTube TV link code. */
 final class YouTubePairingCodeParser {
     private static final Pattern CODE = Pattern.compile(
-            "(?i)(?<![A-Z0-9])([A-Z0-9]{4})[-\\s]?([A-Z0-9]{4})(?![A-Z0-9])");
+            "(?i)(?<![A-Z0-9])([A-Z0-9]{4})[-\\s]?([A-Z0-9]{4})(?![A-Z0-9])(?!-[A-Z0-9]{4})");
 
     static String findCode(CharSequence text) {
         if (text == null) return "";
