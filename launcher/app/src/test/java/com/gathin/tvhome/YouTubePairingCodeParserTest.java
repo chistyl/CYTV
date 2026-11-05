@@ -23,7 +23,7 @@ public class YouTubePairingCodeParserTest {
 
     @Test public void rejectsShortAndLongTokens() {
         assertEquals("", YouTubePairingCodeParser.findCode("AB12-CD3"));
-        assertEquals("", YouTubePairingCodeParser.findCode("AB12-CD34-EF56"));
+        assertEquals("", YouTubePairingCodeParser.findCode("AB12CD34EF56"));
     }
 
     @Test public void rejectsNullAndEmptyText() {
