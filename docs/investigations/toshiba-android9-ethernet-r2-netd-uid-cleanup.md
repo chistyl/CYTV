@@ -447,3 +447,43 @@ r33 `NetdNativeService` 將 `networkAddUidRanges` / `networkRemoveUidRanges` 分
 ### 17.6 下一步與安全決策
 
 下一步應在可核對的 Android 9 r45 tag 上鎖定同一組檔案，並將 `interface setcfg down`、`setInterfaceDown` 的所有 caller 與 EthernetTracker link-state 路徑交叉比對。若尚未找到 caller，不能提交 runtime patch。Toshiba + Android 9 + Ethernet 的 R1 guard 保持不變；不重新啟動該設備的 VPN 廣告阻擋、不產生實驗 APK、不合併 PR #47。
+
+
+## 18. 第二十二階段：r45 NetworkManagementService 與 TetherInterfaceStateMachine 關閉介面呼叫點
+
+### 18.1 r45 鏡像中直接確認的 administrative DOWN 實作
+
+在 `lulululbj/android_9.0.0_r45` 鏡像 commit `64cc84d6683a4eb373c22ac50aaad0d349d45fcd` 的 `NetworkManagementService.java`：
+- `setInterfaceDown(String iface)` 先讀取指定 iface 的 InterfaceConfiguration。
+- 呼叫 `ifcg.setInterfaceDown()`，再呼叫 `setInterfaceConfig(iface, ifcg)`。
+- `setInterfaceConfig()` 送出 netd command `interface setcfg <iface> ... flags`。
+- 同鏡像 `InterfaceConfiguration.setInterfaceDown()` 明確移除 FLAG_UP 並加入 FLAG_DOWN。
+
+因此，只要此 API 收到 Ethernet 實際介面名稱，便是可直接造成 administrative DOWN 的 framework 路徑。這是比 VPN UID routing teardown 更直接的候選機制。
+
+### 18.2 r45 鏡像中可索引到的 setInterfaceDown 使用位置
+
+針對 r45 鏡像做 GitHub code search，`setInterfaceDown` 可索引結果包含：
+- `NetworkManagementService.setInterfaceDown(String iface)`：API 實作。
+- `InterfaceConfiguration.setInterfaceDown()`：旗標變更。
+- `TetherInterfaceStateMachine.java`：Tethering downstream 設定介面狀態。
+
+在目前可索引結果中，未發現 EthernetTracker 或 EthernetNetworkFactory 呼叫 `setInterfaceDown()`；而且該鏡像無法取得 `frameworks/opt/net/ethernet/.../EthernetTracker.java` 與 `EthernetNetworkFactory.java`，故這不是完整全樹搜尋，不能寫成「確定不存在 Ethernet caller」。
+
+### 18.3 TetherInterfaceStateMachine 的實際關閉範圍
+
+r45 鏡像 `TetherInterfaceStateMachine.java` 的 `configureIPv4()`：
+- USB downstream 會配置 USB tethering 位址。
+- Wi-Fi downstream 明確呼叫 `ignoreInterfaceUpDownStatus()`，註解說明 Wi-Fi stack 擁有介面 up/down 狀態。
+- 其他類型（Bluetooth）在此 IPv4 配置函式直接 return，不進入該介面 up/down 設定。
+- 對需要配置的非 Wi-Fi downstream，依 enabled 狀態呼叫 `setInterfaceUp()` 或 `setInterfaceDown()`，最後透過 `setInterfaceConfig(mIfaceName, ifcg)` 寫回。
+
+結合既有第 18、19 階段的 tethering type 分類證據，標準 AOSP Android 9 TISM 這段關閉的是被分類成 USB downstream 的 tethering iface，不是一般 Ethernet WAN upstream。若 Toshiba OEM overlay 把 Ethernet iface regex 錯誤納入 USB regex，或 vendor 自行建立 TISM/自訂類型，仍須 OEM 資料才能排除。
+
+### 18.4 本階段結論與修正決策
+
+目前找到的標準 AOSP 直接 interface-down 呼叫點屬於 TetherInterfaceStateMachine downstream 設定；未找到它因 VPN teardown 而把 upstream Ethernet 關閉的證據。NetworkManagementService 是執行 DOWN 的最終 framework 入口，但它本身不揭示呼叫者身分。
+
+要把候選路徑定為本案根因，仍需 Toshiba 故障時的 iface 名稱及 caller 時序，或 Toshiba framework/vendor source。不能只因 TISM 是目前可見 caller 就直接修改它；那會有破壞 USB tethering 的風險。
+
+安全決策不變：保留 Toshiba Android 9 Ethernet R1 guard；不在 Toshiba 重啟 VPN 廣告阻擋；不修改 runtime、不產生實驗 APK；PR #47 維持 Draft/open/未合併。
