@@ -21,6 +21,7 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout diagnostics source
         uses: actions/checkout@v4
