@@ -165,9 +165,9 @@ public class YouTubeAssistantActivity extends Activity {
         String status = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getString(YouTubeSponsorSkipService.PREF_STATUS, "");
-        featureStatus.setText(!paired ? "目前尚未配對電視，完成配對後即可使用此功能。"
+        featureStatus.setText(TraditionalText.display(this, !paired ? "目前尚未配對電視，完成配對後即可使用此功能。"
                 : enabled ? "目前狀態：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
-                : "目前狀態：已關閉");
+                : "目前狀態：已關閉"));
         featureAction.setText(TraditionalText.display(this, !paired ? "請先連接 YouTube TV"
                 : enabled ? "關閉自動略過" : "開啟自動略過"));
         // Keep the action reachable by D-pad even before pairing so it can explain the prerequisite.
