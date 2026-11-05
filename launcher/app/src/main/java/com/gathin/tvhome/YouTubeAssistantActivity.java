@@ -165,8 +165,9 @@ public class YouTubeAssistantActivity extends Activity {
                 : "目前狀態：已關閉");
         featureAction.setText(!paired ? "請先連接 YouTube TV"
                 : enabled ? "關閉自動略過" : "開啟自動略過");
-        featureAction.setEnabled(paired);
-        featureAction.setAlpha(paired ? 1f : 0.55f);
+        // Keep the action reachable by D-pad even before pairing so it can explain the prerequisite.
+        featureAction.setEnabled(true);
+        featureAction.setAlpha(1f);
     }
 
     private void toggleAutoSkip() {
