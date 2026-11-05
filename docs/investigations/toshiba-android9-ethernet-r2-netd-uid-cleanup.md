@@ -346,3 +346,58 @@ TetherInterfaceStateMachine.cleanupUpstreamInterface(upstreamIface) 使用 stopI
 - PR #47 維持 Draft、open、未合併。
 
 要完成根因修正，下一個必要證據是 Toshiba 裝置在「VPN 未啟動」狀態下的 Ethernet 基線，以及既有故障紀錄中的 kernel link/carrier、netd interface config、Ethernet service、ConnectivityService 時序。不得為收集紀錄而重新觸發已知會斷線的 VPN 情境。
+
+
+## 16. 第二十階段：依補充截圖追查 Android Ethernet framework
+
+### 16.1 正確原始碼位置
+
+依補充截圖指定的方向，Ethernet framework 應從以下目錄追查，而不是只停留在 ConnectivityService / netd：
+
+`frameworks/opt/net/ethernet/java/com/android/server/ethernet/`
+
+重點檔案：
+- `EthernetTracker.java`：介面發現、interface observer、link state 通知與介面追蹤。
+- `EthernetNetworkFactory.java`：Ethernet NetworkAgent、IP provisioning、link down 後的網路撤銷。
+- `EthernetServiceImpl.java`：Ethernet service API 與管理入口。
+
+### 16.2 可取得的 AOSP Android 9 參考實作（版本限制）
+
+目前可直接核對的 Google Gitiles 官方來源為 `android-9.0.0_r1`，不是本研究目標的 r45；因此以下只作 Android 9 架構參考，不宣稱與 r45/Toshiba firmware 完全一致。
+
+在該版 `EthernetTracker.java`：
+- `addInterface()` 呼叫 `mNMService.setInterfaceUp(iface)`，目的是啟用介面並取得 link status。
+- `InterfaceObserver.interfaceLinkStateChanged()` 將收到的 link state 事件交由 handler 更新。
+- `updateInterfaceState()` 只把狀態交給 Factory，並通知 Ethernet listener。
+- `interfaceRemoved()` 會走 `removeInterface()`，停止追蹤該介面。
+
+在可取得的 Android EthernetNetworkFactory 參考實作：
+- link state 變成 down 時，NetworkInfo 設成 DISCONNECTED、停止 IP provisioning、更新 NetworkAgent 與 score。
+- 該 link-down 分支本身沒有呼叫 `setInterfaceDown()`；它是在反映收到的介面狀態。
+- 另一條「已經追蹤一個介面，卻遇到不同介面」的保護分支會對新遇到的介面呼叫 `mNMService.setInterfaceDown(iface)`。這表示必須確認 Toshiba 裝置是否有多個匹配 Ethernet regex 的介面，以及實際被設 DOWN 的 iface 名稱；目前沒有證據顯示這就是本案故障原因。
+
+官方參考來源：
+- `EthernetTracker.java`，android-9.0.0_r1： https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/refs/tags/android-9.0.0_r1/java/com/android/server/ethernet/EthernetTracker.java
+- `EthernetNetworkFactory.java`，AOSP Gitiles 參考檔： https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/c84dd94/java/com/android/server/ethernet/EthernetNetworkFactory.java
+
+### 16.3 本階段能排除與不能排除的事項
+
+- Ethernet NetworkAgent 變成 DISCONNECTED 可能只是收到 link-down event 後的狀態反映，不能單獨證明 framework 主動把實體介面關閉。
+- 真正要證明 administrative DOWN，必須取得該次事件中的 interface name、介面 flags/carrier，以及呼叫 `setInterfaceDown()` 或 netd `interface setcfg` 的 caller。
+- r1 / c84dd94 參考碼不能代替 Android 9 r45 的精確原始碼，更不能代替 Toshiba OEM overlay、vendor service、HAL、init script。
+- 本次未找到可將 CYTV VPN teardown 直接連到 EthernetTracker 主動 setInterfaceDown 的呼叫鏈。
+
+### 16.4 下一個安全除錯步驟
+
+不重新啟動 Toshiba 上的 VPN 廣告阻擋。只使用既有故障紀錄或一般網路狀態紀錄，按時間對齊：
+1. kernel link event（介面名稱、IFF_UP、LOWER_UP/carrier）。
+2. NetworkManagementService observer 收到的 interfaceLinkStateChanged / interfaceRemoved。
+3. EthernetTracker / EthernetNetworkFactory 對同一 iface 的處理。
+4. 是否有 setInterfaceDown / interface setcfg down，以及 caller。
+5. ConnectivityService / netd VPN netId teardown 的時間點。
+
+若 kernel carrier/LOWER_UP 先消失，方向應轉向 driver、HAL、vendor service 或實體 link；若 IFF_UP 被清除，才追查發出 administrative down 的 framework/vendor caller；若只有 NetworkAgent DISCONNECTED 而 link flags 仍 up，則應查 provisioning/NetworkAgent 路徑，而非先修改網卡控制。
+
+### 16.5 修改決策
+
+本階段新增的是可追查的 Ethernet framework 呼叫路徑與證據需求，尚未證明 runtime 根因。保留 Toshiba Android 9 Ethernet R1 guard，不修改 VPN runtime、不產生實驗 APK、不在 Toshiba TV 重測危險情境。PR #47 維持 Draft/open/未合併。
