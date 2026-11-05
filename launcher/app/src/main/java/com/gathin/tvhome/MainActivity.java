@@ -5116,19 +5116,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.post(() -> appTab.requestFocus());
     }
 
-    /** 取得 TV 橫幅；若使用者自訂圖示／尺寸，則依桌面設定改用圖示卡片。 */
+    /**
+     * TV 版縮圖固定由 APP 方形 launcher icon 延伸成 16:9 卡片。
+     * 不讀取舊的灰黑色／原生 TV Banner；桌面 APP 的 Banner fallback 由 AppAdapter 獨立處理。
+     */
     private Drawable loadFolderTvBanner(ResolveInfo ri, String pkg, SharedPreferences prefs) {
-        if (prefs.getString("icon_" + pkg, null) != null || prefs.getBoolean("icon_scale_override_" + pkg,
-                prefs.contains("icon_scale_adjust_" + pkg))) return null;
-        Drawable banner = null;
-        try { banner = ri.activityInfo.loadBanner(getPackageManager()); } catch (RuntimeException ignored) { }
-        if (banner == null) {
-            try { banner = getPackageManager().getApplicationBanner(ri.activityInfo.applicationInfo); }
-            catch (RuntimeException ignored) { }
-        }
-        if (banner != null && banner.getIntrinsicWidth() > 0 && banner.getIntrinsicHeight() > 0
-                && banner.getIntrinsicWidth() < banner.getIntrinsicHeight() * 1.4f) banner = null;
-        return banner;
+        Drawable icon = loadFolderAppIcon(pkg, prefs);
+        if (icon == null) return null;
+
+        int background = prefs.getInt("background_" + pkg, Color.WHITE);
+        int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+        float iconScale = Math.max(0.10f, Math.min(3.75f,
+                1.25f * (1f + adjustment / 100f)));
+
+        final int width = 640;
+        final int height = 360;
+        int side = Math.max(36, Math.min(width, Math.round(240f * iconScale)));
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(background);
+
+        Drawable mark = icon.getConstantState() != null
+                ? icon.getConstantState().newDrawable().mutate() : icon.mutate();
+        mark.setBounds((width - side) / 2, (height - side) / 2,
+                (width + side) / 2, (height + side) / 2);
+        mark.draw(canvas);
+        return new BitmapDrawable(getResources(), bitmap);
     }
 
     private Drawable loadFolderAppIcon(String pkg, SharedPreferences prefs) {
