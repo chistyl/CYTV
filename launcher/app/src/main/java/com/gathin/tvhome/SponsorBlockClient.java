@@ -175,12 +175,24 @@ final class SponsorBlockClient {
 
     static String buildLookupQueryParameters(List<String> categories) throws Exception {
         List<String> selected = normalizeCategories(categories);
-        String encodedCategories = URLEncoder.encode(new JSONArray(selected).toString(), "UTF-8");
+        String encodedCategories = URLEncoder.encode(toJsonStringArray(selected), "UTF-8");
         // Explicitly request actionType=skip. POI, full-video and chapter actions
         // must never be interpreted as ordinary time-range auto-skips.
-        String encodedActions = URLEncoder.encode(new JSONArray(
-                Collections.singletonList(SKIP_ACTION)).toString(), "UTF-8");
+        String encodedActions = URLEncoder.encode(toJsonStringArray(
+                Collections.singletonList(SKIP_ACTION)), "UTF-8");
         return "categories=" + encodedCategories + "&actionTypes=" + encodedActions;
+    }
+
+    // The category values are controlled by the fixed allowlist above. Keeping this
+    // small encoder independent of Android's org.json also makes query tests runnable
+    // in the plain local JVM test environment.
+    private static String toJsonStringArray(List<String> values) {
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            if (i > 0) json.append(',');
+            json.append('"').append(values.get(i)).append('"');
+        }
+        return json.append(']').toString();
     }
 
     static List<String> normalizeCategories(List<String> categories) {
