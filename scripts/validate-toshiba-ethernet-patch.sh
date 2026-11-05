@@ -17,8 +17,8 @@ git apply --numstat "$PATCH" >/dev/null
 
 # Verify against a real Android Pie maintenance source tree that contains the
 # pre-fix logic. This mutable public branch is a compatibility fixture only;
-# it is not Toshiba OEM source proof or an immutable framework revision.
-AOSP_URL="https://raw.githubusercontent.com/digi-embedded/android_platform_frameworks_opt_net_ethernet/pie/maint/java/com/android/server/ethernet/EthernetNetworkFactory.java"
+# it is not Toshiba OEM source proof. The fixture is pinned to the immutable\n# Android Pie maintenance commit 9586f802aa802b11649af5021ddc7da1bd667c2d.
+AOSP_URL="https://raw.githubusercontent.com/digi-embedded/android_platform_frameworks_opt_net_ethernet/9586f802aa802b11649af5021ddc7da1bd667c2d/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 AOSP_TARGET="$AOSP_TMP/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 mkdir -p "$(dirname "$AOSP_TARGET")"
 curl -fsSL "$AOSP_URL" > "$AOSP_TARGET"
