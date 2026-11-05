@@ -129,10 +129,12 @@ public final class YouTubeSponsorSkipService extends Service {
                     if (adActive && session.lastPlaybackEventId > session.adLastEventId
                             && event.hasFreshPlayerState) {
                         boolean adSkipped = "1082".equals(event.playerState);
+                        String expectedContentVideoId = session.adContentVideoId.isEmpty()
+                                ? videoId : session.adContentVideoId;
                         boolean contentResumed = "1".equals(event.playerState)
                                 && event.hasFreshVideoId
                                 && isValidVideoId(event.videoId)
-                                && event.videoId.equals(session.adContentVideoId);
+                                && event.videoId.equals(expectedContentVideoId);
                         if (adSkipped || contentResumed) {
                             session.clearAdState();
                             adActive = false;
