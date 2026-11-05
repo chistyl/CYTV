@@ -362,7 +362,7 @@ public class YouTubeAssistantActivity extends Activity {
      * Shared TV dialog styling: charcoal rounded surface, rounded action pills,
      * and a high-contrast white focus state that is easy to see with a D-pad remote.
      */
-    private void showMessageDialog(String title, String message) {
+    // Keep this dialog's confirmation action independently styled for TV focus.\n    private void showMessageDialog(String title, String message) {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
