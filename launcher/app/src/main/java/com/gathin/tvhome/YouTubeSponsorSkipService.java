@@ -160,7 +160,7 @@ public final class YouTubeSponsorSkipService extends Service {
                         if (!skipAttemptedForCurrentAd
                                 && Boolean.TRUE.equals(session.adSkippable)
                                 && Boolean.TRUE.equals(session.adSkipEnabled)
-                                && !Boolean.TRUE.equals(session.adBumper)) {
+                                && Boolean.FALSE.equals(session.adBumper)) {
                             // Lock before sending: duplicate/replayed events cannot issue a
                             // second skipAd for the same ad, even if the request fails.
                             skipAttemptedForCurrentAd = true;
