@@ -87,7 +87,7 @@ public class AdsFilterVpnService extends VpnService {
         }
         if (running.get()) return START_STICKY;
         stopping.set(false);
-        appendDnsLog("-", "診斷", "收到啟動請求；Android API " + Build.VERSION.SDK_INT);
+        appendDnsLog("-", "診斷", "收到啟動請求；" + describeBuildIdentity());
         try {
             startNotice();
             // Track real Wi-Fi/Ethernet networks, excluding the VPN itself. The default
@@ -256,6 +256,21 @@ public class AdsFilterVpnService extends VpnService {
         }, STARTUP_RETRY_MS);
     }
 
+    private String describeBuildIdentity() {
+        String securityPatch = Build.VERSION.SDK_INT >= 23
+                ? Build.VERSION.SECURITY_PATCH : "unknown";
+        return "Android API=" + Build.VERSION.SDK_INT
+                + "；Release=" + Build.VERSION.RELEASE
+                + "；Model=" + Build.MODEL
+                + "；Device=" + Build.DEVICE
+                + "；Product=" + Build.PRODUCT
+                + "；Hardware=" + Build.HARDWARE
+                + "；Board=" + Build.BOARD
+                + "；Display=" + Build.DISPLAY
+                + "；Fingerprint=" + Build.FINGERPRINT
+                + "；SecurityPatch=" + securityPatch
+                + "；BuildTime=" + Build.TIME;
+    }
     private void logNetworkEvent(String event, Network network, ConnectivityManager cm) {
         try {
             NetworkCapabilities caps = cm.getNetworkCapabilities(network);
