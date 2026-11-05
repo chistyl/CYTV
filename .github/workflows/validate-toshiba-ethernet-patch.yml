@@ -1,6 +1,7 @@
 name: Validate Toshiba Android 9 Ethernet framework patch
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - investigation/toshiba-vpn-ethernet-r2
