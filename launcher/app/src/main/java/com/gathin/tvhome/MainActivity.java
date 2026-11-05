@@ -5107,7 +5107,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 candidate.setOnKeyListener((v, keyCode, event) -> {
                     if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
                             && event.getAction() == KeyEvent.ACTION_DOWN) {
-                        cancel.requestFocus();
+                        boolean moved = cancel.requestFocus();
+                        android.widget.Toast.makeText(this,
+                                moved ? "DPAD_DOWN 已送達：取消取得焦點" : "DPAD_DOWN 已送達，但取消無法取得焦點",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                        android.util.Log.d("CYTV-DPAD-DIAG", "last-row key received; cancel.requestFocus=" + moved
+                                + ", focused=" + getWindow().getDecorView().findFocus());
                         return true;
                     }
                     return false;
@@ -5119,7 +5124,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lastRow.setOnKeyListener((v, keyCode, event) -> {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
                         && event.getAction() == KeyEvent.ACTION_DOWN) {
-                    cancel.requestFocus();
+                    boolean moved = cancel.requestFocus();
+                    android.widget.Toast.makeText(this,
+                            moved ? "DPAD_DOWN 已送達：取消取得焦點" : "DPAD_DOWN 已送達，但取消無法取得焦點",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                    android.util.Log.d("CYTV-DPAD-DIAG", "lastRow key received; cancel.requestFocus=" + moved
+                            + ", focused=" + getWindow().getDecorView().findFocus());
                     return true;
                 }
                 return false;
