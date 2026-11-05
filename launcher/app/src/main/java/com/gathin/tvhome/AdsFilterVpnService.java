@@ -290,6 +290,21 @@ public class AdsFilterVpnService extends VpnService {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
             boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+            // Fail closed for the affected Toshiba firmware if Ethernet exists at all,
+            // even when Android currently reports Wi-Fi as the selected physical network.
+            // This avoids bypassing R1 when transport selection changes during startup.
+            if (!ethernet && cm != null) {
+                for (Network candidate : cm.getAllNetworks()) {
+                    NetworkCapabilities candidateCaps = cm.getNetworkCapabilities(candidate);
+                    if (candidateCaps != null
+                            && candidateCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                        ethernet = true;
+                        appendDnsLog("-", "安全保護", "偵測到其他已連線 Ethernet：" + candidate
+                                + "；即使目前選取其他實體網路，仍套用 Toshiba 安全保護");
+                        break;
+                    }
+                }
+            }
             String deviceModel = Build.MODEL == null ? "" : Build.MODEL.toLowerCase(Locale.ROOT);
             boolean toshiba = "toshiba".equalsIgnoreCase(Build.MANUFACTURER)
                     || "toshiba".equalsIgnoreCase(Build.BRAND)
