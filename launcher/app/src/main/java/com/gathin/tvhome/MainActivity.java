@@ -5095,15 +5095,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         appTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
         folderTab.setNextFocusDownId(firstRow != null ? firstRow.getId() : cancel.getId());
-        // 最後一列可能有左右兩個項目，兩者向下都必須進入操作列。
+        // 最後一列的 DPAD_DOWN 由該列項目直接接管，主動 requestFocus 到固定 footer。
+        // 部分 Android TV 廠牌的 ScrollView 會把焦點搜尋限制在自身子樹，
+        // 即使 setNextFocusDownId 指向外部 footer 也可能被忽略。
         if (list.getChildCount() > 0) {
             android.view.ViewGroup finalGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
             for (int i = 0; i < finalGrid.getChildCount(); i++) {
                 View candidate = finalGrid.getChildAt(i);
-                if (candidate.isFocusable()) candidate.setNextFocusDownId(cancel.getId());
+                if (!candidate.isFocusable()) continue;
+                candidate.setNextFocusDownId(cancel.getId());
+                candidate.setOnKeyListener((v, keyCode, event) -> {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                            && event.getAction() == KeyEvent.ACTION_DOWN) {
+                        cancel.requestFocus();
+                        return true;
+                    }
+                    return false;
+                });
             }
         }
-        if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
+        if (lastRow != null) {
+            lastRow.setNextFocusDownId(cancel.getId());
+            lastRow.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                        && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    cancel.requestFocus();
+                    return true;
+                }
+                return false;
+            });
+        }
         cancel.setNextFocusUpId(lastRow != null ? lastRow.getId() : appTab.getId());
         save.setNextFocusUpId(cancel.getId());
         // 操作列的四個方向都有明確邊界；焦點只在取消／儲存按鈕間移動，不可離開視窗。
