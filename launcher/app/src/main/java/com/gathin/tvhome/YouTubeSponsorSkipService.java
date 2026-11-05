@@ -67,6 +67,9 @@ public final class YouTubeSponsorSkipService extends Service {
     }
 
     private void monitorLoop() {
+        // Keep skip history across Lounge reconnects; clear it only when the video changes.
+        Set<String> skipped = new HashSet<>();
+        String lastSkippedVideoId = "";
         while (!stopping) {
             YouTubeLoungeClient.MonitorHandle monitor = new YouTubeLoungeClient.MonitorHandle();
             activeMonitor = monitor;
@@ -74,6 +77,10 @@ public final class YouTubeSponsorSkipService extends Service {
                 YouTubeLoungeClient.Session session = YouTubeLoungeClient.connect(this, monitor);
                 setStatus("已連接電視，正在監控播放");
                 String videoId = session.initialVideoId;
+                if (isValidVideoId(videoId) && !videoId.equals(lastSkippedVideoId)) {
+                    skipped.clear();
+                    lastSkippedVideoId = videoId;
+                }
                 String segmentsVideoId = "";
                 // Playback progress and state may arrive in separate Lounge polls.
                 // Keep the latest values for this video only; reset on video change.
@@ -81,7 +88,6 @@ public final class YouTubeSponsorSkipService extends Service {
                 playback.recordPosition(session.initialCurrentTime, session.initialDuration);
                 playback.recordPlayerState(session.initialPlayerState);
                 List<SponsorBlockClient.Segment> segments = java.util.Collections.emptyList();
-                Set<String> skipped = new HashSet<>();
 
                 if (isValidVideoId(videoId) && session.initialCurrentTime >= 0
                         && "1".equals(session.initialPlayerState)) {
@@ -114,6 +120,7 @@ public final class YouTubeSponsorSkipService extends Service {
                         segmentsVideoId = "";
                         segments = java.util.Collections.emptyList();
                         skipped.clear();
+                        lastSkippedVideoId = videoId;
                         playback.reset();
                         setStatus("偵測到新影片，正在載入贊助片段");
                     }
@@ -164,7 +171,7 @@ public final class YouTubeSponsorSkipService extends Service {
     private List<SponsorBlockClient.Segment> loadSegments(
             String videoId, YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
         SponsorBlockClient.LookupResult result =
-                SponsorBlockClient.lookupSponsorSegmentsDetailed(videoId, monitor);
+                SponsorBlockClient.lookupAutoSkipSegmentsDetailed(videoId, monitor);
         return result.segments;
     }
 
@@ -176,12 +183,11 @@ public final class YouTubeSponsorSkipService extends Service {
                 || !Double.isFinite(currentTime) || currentTime < 0) return;
 
         SponsorBlockClient.Segment segment =
-                SponsorBlockClient.findSegmentAtPosition(segments, currentTime);
+                SponsorBlockClient.findNextUnskippedSegmentAtPosition(
+                        segments, currentTime, skipped, videoId);
         if (segment == null) return;
 
-        String segmentKey = videoId + ":" + (segment.uuid.isEmpty()
-                ? segment.startSeconds + "-" + segment.endSeconds : segment.uuid);
-        if (skipped.contains(segmentKey)) return;
+        String segmentKey = SponsorBlockClient.segmentKey(videoId, segment);
 
         double target = segment.endSeconds + 0.35d;
         if (Double.isFinite(duration) && duration > 0) {
@@ -195,7 +201,7 @@ public final class YouTubeSponsorSkipService extends Service {
         // Mark only after YouTube accepts the command; a failed seek can be retried.
         String response = YouTubeLoungeClient.seekTo(this, session, target);
         skipped.add(segmentKey);
-        setStatus("已自動略過贊助片段");
+        setStatus("已自動略過影片片段（" + segment.category + "）");
         android.util.Log.i("CYTV-SponsorBlock",
                 "Skipped video=" + videoId + " segment=" + segmentKey + " " + response);
     }
