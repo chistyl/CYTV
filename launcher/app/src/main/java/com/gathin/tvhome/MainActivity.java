@@ -4383,8 +4383,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void requestDeviceReboot() {
         new AlertDialog.Builder(this)
-                .setTitle("重新開機")
-                .setMessage("確定要重新啟動電視嗎？")
+                .setTitle(TraditionalText.display(this, "重新開機"))
+                .setMessage(TraditionalText.display(this, "確定要重新啟動電視嗎？"))
                 .setNegativeButton("取消", null)
                 .setPositiveButton("重新開機", (dialog, which) -> {
                     try {
@@ -4394,8 +4394,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         power.reboot(null);
                     } catch (RuntimeException error) {
                         new AlertDialog.Builder(this)
-                                .setTitle("電視系統未允許直接重新開機")
-                                .setMessage("這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。")
+                                .setTitle(TraditionalText.display(this, "電視系統未允許直接重新開機"))
+                                .setMessage(TraditionalText.display(this, "這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。"))
                                 .setPositiveButton("確定", null)
                                 .show();
                     }
@@ -4438,7 +4438,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Keep the dialog's outer dimensions fixed; shift the content slightly upward internally.
         content.setPadding(pad, (int) (8 * density), pad, pad);
         android.widget.Switch toggle = new android.widget.Switch(this);
-        toggle.setText("顯示一週天氣"); toggle.setTextColor(Color.WHITE);
+        toggle.setText(TraditionalText.display(this, "顯示一週天氣")); toggle.setTextColor(Color.WHITE);
         toggle.setFocusable(true); toggle.setFocusableInTouchMode(true);
         toggle.setDefaultFocusHighlightEnabled(false);
         toggle.setPadding((int)(10*density), (int)(8*density), (int)(10*density), (int)(8*density));
@@ -4479,9 +4479,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         android.widget.RadioGroup modes = new android.widget.RadioGroup(this);
         modes.setOrientation(LinearLayout.VERTICAL);
         android.widget.RadioButton device = new android.widget.RadioButton(this);
-        device.setText("使用電視裝置目前位置（預設）"); device.setTextColor(Color.WHITE); device.setId(View.generateViewId());
+        device.setText(TraditionalText.display(this, "使用電視裝置目前位置（預設）")); device.setTextColor(Color.WHITE); device.setId(View.generateViewId());
         android.widget.RadioButton cityMode = new android.widget.RadioButton(this);
-        cityMode.setText("固定指定城市"); cityMode.setTextColor(Color.WHITE); cityMode.setId(View.generateViewId());
+        cityMode.setText(TraditionalText.display(this, "固定指定城市")); cityMode.setTextColor(Color.WHITE); cityMode.setId(View.generateViewId());
         for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode}) {
             option.setFocusable(true); option.setFocusableInTouchMode(true);
             option.setDefaultFocusHighlightEnabled(false);
@@ -4509,7 +4509,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         EditText city = new EditText(this);
         city.setSingleLine(true); city.setFocusable(true); city.setFocusableInTouchMode(true);
         city.setDefaultFocusHighlightEnabled(false);
-        city.setHint("輸入城市，例如：桃園市"); city.setText(prefs.getString("city", "桃園市"));
+        city.setHint(TraditionalText.display(this, "輸入城市，例如：桃園市")); city.setText(prefs.getString("city", "桃園市"));
         // 輸入欄平時就維持淺色底與深色文字，不必等到取得焦點才看得清楚。
         city.setTextColor(0xFF202124); city.setHintTextColor(0xFF68717D); city.setTextSize(20);
         city.setPadding((int)(14*density), (int)(8*density), (int)(14*density), (int)(8*density));
@@ -4566,7 +4566,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cityMode.setChecked(false);
             cityMode.setChecked(true);
         }
-        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
+        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "一週天氣")).setView(content).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
                     String value = city.getText().toString().trim();
@@ -4777,7 +4777,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         tabs.setBackgroundColor(Color.TRANSPARENT);
         tabs.setForeground(null); tabs.setClipChildren(true); tabs.setClipToPadding(true);
         TextView appTab = new TextView(this), folderTab = new TextView(this);
-        appTab.setText("APP"); folderTab.setText("資料夾");
+        appTab.setText(TraditionalText.display(this, "APP")); folderTab.setText(TraditionalText.display(this, "資料夾"));
         appTab.setFocusable(true); folderTab.setFocusable(true);
         appTab.setClickable(true); folderTab.setClickable(true);
         appTab.setDefaultFocusHighlightEnabled(false); folderTab.setDefaultFocusHighlightEnabled(false);
@@ -5017,7 +5017,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout actions = new LinearLayout(this); actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         TextView cancel = new TextView(this), save = new TextView(this);
-        cancel.setText("取消"); save.setText("儲存");
+        cancel.setText(TraditionalText.display(this, "取消")); save.setText(TraditionalText.display(this, "儲存"));
         cancel.setFocusable(true); save.setFocusable(true);
         cancel.setFocusableInTouchMode(true); save.setFocusableInTouchMode(true);
         cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
@@ -5164,7 +5164,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
-        title.setText("桌布設定");
+        title.setText(TraditionalText.display(this, "桌布設定"));
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
         title.setPadding(0, 0, 0, (int)(8*density));
@@ -5186,7 +5186,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 隨機播放列採透明背景，僅保留文字與開關，不顯示整列色塊。
         randomRow.setPadding(0, 0, 0, 0);
         TextView randomLabel = new TextView(this);
-        randomLabel.setText("主題隨機播放");
+        randomLabel.setText(TraditionalText.display(this, "主題隨機播放"));
         randomLabel.setTextColor(Color.WHITE);
         randomLabel.setTextSize(16);
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
@@ -5360,7 +5360,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
         TextView save = new TextView(this);
-        save.setText("儲存"); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
+        save.setText(TraditionalText.display(this, "儲存")); save.setTextColor(0xFFF5F6FA); save.setTextSize(16);
         save.setGravity(Gravity.CENTER); save.setFocusable(true); save.setFocusableInTouchMode(true);
         save.setClickable(true); save.setDefaultFocusHighlightEnabled(false); save.setId(View.generateViewId());
         // 取消與儲存必須各自持有獨立 Drawable，避免 Android TV 焦點切換時
@@ -5392,7 +5392,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
         });
         TextView cancel = new TextView(this);
-        cancel.setText("取消"); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
+        cancel.setText(TraditionalText.display(this, "取消")); cancel.setTextColor(0xFFF5F6FA); cancel.setTextSize(16);
         cancel.setGravity(Gravity.CENTER); cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
         cancel.setClickable(true); cancel.setDefaultFocusHighlightEnabled(false); cancel.setId(View.generateViewId());
         GradientDrawable cancelNormalBg = new GradientDrawable();
@@ -5482,12 +5482,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         surface.setColor(Color.rgb(28, 32, 40)); surface.setCornerRadius(22*density);
         surface.setStroke(Math.max(1, (int)density), 0x28FFFFFF); panel.setBackground(surface);
 
-        TextView title = new TextView(this); title.setText("QR Code 掃碼傳圖");
+        TextView title = new TextView(this); title.setText(TraditionalText.display(this, "QR Code 掃碼傳圖"));
         title.setTextColor(Color.WHITE); title.setTextSize(20); title.setGravity(Gravity.CENTER);
         title.setPadding(0, 0, 0, (int)(10*density)); panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView tip = new TextView(this);
-        tip.setText("手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，選擇圖片後即可傳送並設定為桌布。圖片上限 20 MB。");
+        tip.setText(TraditionalText.display(this, "手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，選擇圖片後即可傳送並設定為桌布。圖片上限 20 MB。"));
         tip.setTextColor(0xFFD5DAE2); tip.setTextSize(14); tip.setGravity(Gravity.CENTER);
         tip.setPadding((int)(4*density), 0, (int)(4*density), (int)(10*density));
         panel.addView(tip, new LinearLayout.LayoutParams(-1, -2));
@@ -5504,7 +5504,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         address.setTextSize(12); address.setGravity(Gravity.CENTER);
         panel.addView(address, new LinearLayout.LayoutParams(-1, -2));
 
-        TextView close = new TextView(this); close.setText("關閉"); close.setTextColor(Color.WHITE);
+        TextView close = new TextView(this); close.setText(TraditionalText.display(this, "關閉")); close.setTextColor(Color.WHITE);
         close.setTextSize(15); close.setGravity(Gravity.CENTER);
         GradientDrawable closeBg = new GradientDrawable(); closeBg.setColor(0xFF343B47); closeBg.setCornerRadius(12*density);
         close.setBackground(closeBg); close.setFocusable(true); close.setClickable(true);
@@ -5546,7 +5546,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 qr.setPixel(x, y, matrix.get(x, y) ? Color.BLACK : Color.WHITE);
             qrView.setImageBitmap(qr);
         } catch (WriterException e) {
-            address.setText("QR Code 產生失敗，請重新開啟此功能。");
+            address.setText(TraditionalText.display(this, "QR Code 產生失敗，請重新開啟此功能。"));
         }
         dialog.setOnDismissListener(d -> server.stopServer());
         dialog.setContentView(panel); dialog.show();
@@ -5601,7 +5601,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
         name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
-        name.setHint("輸入資料夾名稱");
+        name.setHint(TraditionalText.display(this, "輸入資料夾名稱"));
         LinearLayout nameWrap = new LinearLayout(this);
         nameWrap.setOrientation(LinearLayout.VERTICAL);
         // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
@@ -5620,7 +5620,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             v.setElevation(focused ? 4*density : 0f);
         });
         nameWrap.addView(name, new LinearLayout.LayoutParams(-1, (int)(58*density)));
-        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle("新增資料夾").setView(nameWrap)
+        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "新增資料夾")).setView(nameWrap)
                 .setNegativeButton("取消", null).setPositiveButton("建立", (x, y) -> {
                     String value = name.getText().toString().trim();
                     if (value.isEmpty() || value.equals("系統")) {
@@ -6073,7 +6073,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.bottomMargin = (int)(8*d); options.addView(item, lp);
         }
-        AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle("選擇資料夾")
+        AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "選擇資料夾"))
                 .setView(scroll).setNegativeButton("取消", null).create();
         folderDialogRef[0] = folderDialog;
         folderDialog.show();
@@ -6468,7 +6468,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addCard.setForeground(addBorder);
                 // Match APP cards: keep the border in a separate foreground layer.
                 addCard.setClipToOutline(false);
-                TextView plus = new TextView(this); plus.setText("+"); plus.setTextColor(Color.WHITE);
+                TextView plus = new TextView(this); plus.setText(TraditionalText.display(this, "+")); plus.setTextColor(Color.WHITE);
                 GradientDrawable plusClip = new GradientDrawable();
                 plusClip.setColor(Color.TRANSPARENT);
                 plusClip.setCornerRadius(20 * density);
@@ -6536,7 +6536,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         }
         Button close = new Button(this);
-        close.setText("關閉"); close.setAllCaps(false);
+        close.setText(TraditionalText.display(this, "關閉")); close.setAllCaps(false);
         close.setFocusable(true); close.setFocusableInTouchMode(true);
         close.setDefaultFocusHighlightEnabled(false);
         close.setMinHeight((int)(52*density));
@@ -6715,7 +6715,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
 
         TextView sizeTitle = new TextView(this);
-        sizeTitle.setText("圖標大小");
+        sizeTitle.setText(TraditionalText.display(this, "圖標大小"));
         sizeTitle.setTextColor(Color.WHITE);
         sizeTitle.setTextSize(15);
         panel.addView(sizeTitle);
@@ -6731,7 +6731,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
-        colorTitle.setText("背景色自訂");
+        colorTitle.setText(TraditionalText.display(this, "背景色自訂"));
         colorTitle.setTextColor(Color.WHITE);
         colorTitle.setTextSize(15);
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
@@ -6811,11 +6811,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionRow.setGravity(Gravity.CENTER_VERTICAL);
         actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
         Button resetButton = new Button(this);
-        resetButton.setText("恢復預設");
+        resetButton.setText(TraditionalText.display(this, "恢復預設"));
         Button cancelButton = new Button(this);
-        cancelButton.setText("取消");
+        cancelButton.setText(TraditionalText.display(this, "取消"));
         Button applyButton = new Button(this);
-        applyButton.setText("套用");
+        applyButton.setText(TraditionalText.display(this, "套用"));
         Button[] actionButtons = {resetButton, cancelButton, applyButton};
         for (int i=0;i<actionButtons.length;i++) {
             Button button=actionButtons[i];
@@ -6857,7 +6857,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("圖標外觀設定")
+                .setTitle(TraditionalText.display(this, "圖標外觀設定"))
                 .setView(panel)
                 .create();
         resetButton.setOnClickListener(v -> {
@@ -6938,7 +6938,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             edit.setText(prefs.getString("label_" + packageName, currentLabel));
             edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改 APP 名稱").setView(edit)
+            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "修改 APP 名稱")).setView(edit)
                     .setNegativeButton("取消", null)
                     .setPositiveButton("儲存", (d, which) -> {
                         String value = edit.getText().toString().trim();
@@ -7383,7 +7383,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             panel.addView(bar, barLp);
         }
         update.run();
-        AlertDialog colorDialog = new AlertDialog.Builder(this).setTitle("自訂 APP 背景色")
+        AlertDialog colorDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "自訂 APP 背景色"))
                 .setView(panel)
                 .setNegativeButton("取消", (dialog, which) -> reopenPendingFolderAfterAppEdit())
                 .setNeutralButton("恢復白色", (dialog, which) -> {
@@ -7538,7 +7538,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             @Override public void onStopTrackingTouch(SeekBar seekBar) { }
         });
         updatePreview.run();
-        AlertDialog sizeDialog = new AlertDialog.Builder(this).setTitle("調整圖標大小（-50% ～ +200%）")
+        AlertDialog sizeDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "調整圖標大小（-50% ～ +200%）"))
                 .setView(panel).setNegativeButton("取消", (dialog, which) -> reopenPendingFolderAfterAppEdit())
                 .setNeutralButton("恢復預設 125%", (dialog, which) -> {
                     prefs.edit().remove("icon_scale_adjust_" + pkg).remove("icon_scale_" + pkg)
@@ -7627,7 +7627,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     edit.setSingleLine(true);
                     edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                     edit.setText(oldName);
-                    AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
+                    AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "重新命名")).setView(edit)
                             .setNegativeButton("取消", null).setPositiveButton("儲存", (dialog, which) -> {
                                 String newName = edit.getText().toString().trim();
                                 if (newName.isEmpty() || "系統".equals(newName)) {
@@ -7657,8 +7657,8 @@ private GradientDrawable roundSurface(int color, float radius) {
 
             if (key.contains("/folder:")) {
                 addSettingsMenuRow(folderRows, folderPopup, "刪除資料夾", () -> {
-                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除資料夾")
-                            .setMessage("刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。")
+                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "刪除資料夾"))
+                            .setMessage(TraditionalText.display(this, "刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。"))
                             .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
                                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
                                 java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
@@ -7713,7 +7713,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             edit.setText(savedLabel);
             edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改 APP 名稱").setView(edit)
+            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "修改 APP 名稱")).setView(edit)
                     .setNegativeButton("取消", null)
                     .setPositiveButton("儲存", (dialog, which) -> {
                         String value = edit.getText().toString().trim();
