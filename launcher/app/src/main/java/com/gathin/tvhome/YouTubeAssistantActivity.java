@@ -43,10 +43,16 @@ public class YouTubeAssistantActivity extends Activity {
                     .equals(intent.getAction())) return;
             String code = YouTubePairingCodeParser.findCode(
                     intent.getStringExtra(YouTubePairingCodeAccessibilityService.EXTRA_CODE));
-            fillPairingCodeIfSafe(code);
+            if (pairingCodeInput != null) {
+                fillPairingCodeIfSafe(code);
+            } else if (!code.isEmpty() && !YouTubePairingClient.hasSavedCredentials(YouTubeAssistantActivity.this)) {
+                openPairingDialogForDetectedCode(code);
+            }
         }
     };
     private boolean pairingCodeReceiverRegistered;
+    private boolean pairingDialogShowing;
+    private String lastAutoOpenedCode = "";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -244,6 +250,8 @@ public class YouTubeAssistantActivity extends Activity {
     }
 
     private void showPairingDialog() {
+        if (pairingDialogShowing || isFinishing() || isDestroyed()) return;
+        pairingDialogShowing = true;
         EditText input = new EditText(this);
         pairingCodeInput = input;
         input.setId(View.generateViewId());
@@ -281,6 +289,7 @@ public class YouTubeAssistantActivity extends Activity {
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
                 .create();
         dialog.setOnDismissListener(ignored -> {
+            pairingDialogShowing = false;
             if (pairingCodeInput == input) pairingCodeInput = null;
         });
         dialog.setOnShowListener(ignored -> {
@@ -326,6 +335,21 @@ public class YouTubeAssistantActivity extends Activity {
     private void refreshPairingCodeFromSavedDetection() {
         String code = getRecentlyDetectedPairingCode();
         if (code.isEmpty()) return;
+        // Returning from YouTube TV leaves the activity without a pairing dialog.
+        // Open it automatically so the detected code is visible instead of silently
+        // discarding the fill attempt because pairingCodeInput is still null.
+        if (pairingCodeInput == null && !YouTubePairingClient.hasSavedCredentials(this)) {
+            openPairingDialogForDetectedCode(code);
+        } else {
+            fillPairingCodeIfSafe(code);
+        }
+    }
+
+    private void openPairingDialogForDetectedCode(String code) {
+        if (code == null || code.isEmpty() || pairingDialogShowing
+                || isFinishing() || isDestroyed() || code.equals(lastAutoOpenedCode)) return;
+        lastAutoOpenedCode = code;
+        showPairingDialog();
         fillPairingCodeIfSafe(code);
     }
 
