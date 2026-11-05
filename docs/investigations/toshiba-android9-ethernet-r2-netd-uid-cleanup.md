@@ -212,3 +212,42 @@ setInterfaceDown(iface) 的程式順序為：
 4. 繼續搜尋 r45 netd 與 framework 精確來源；不可用其他 Android tag 代替版本證據。
 
 本階段仍為靜態研究，未修改 runtime、未產生 APK、未執行 Toshiba 實機 VPN 測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
+
+
+## 11. 第十七階段：TetherInterfaceStateMachine 的 setInterfaceDown 目標介面
+
+### 11.1 精確來源與介面身份
+
+在 android_9.0.0_r45 鏡像的 frameworks/base/services/core/java/com/android/server/connectivity/tethering/TetherInterfaceStateMachine.java 確認：
+- mIfaceName 是建構子傳入的 tethering interface 名稱。
+- mInterfaceType 是該介面的 TETHERING_USB / TETHERING_WIFI / 其他類型。
+- configureIPv4(enabled) 只有 USB 與 Wi-Fi 類型會配置 IPv4 位址與 prefix。
+- 其他類型（程式註解指出 Bluetooth 由其他地方處理）直接 return true，不執行這裡的 interface config down/up。
+- USB 類型在 enabled=true 時 setInterfaceUp()，enabled=false 時 setInterfaceDown()。
+- Wi-Fi 類型註解明確指出由 Wi-Fi stack 管理介面 up/down，因此使用 ignoreInterfaceUpDownStatus()。
+- BaseServingState.exit() 呼叫 stopIPv4()，而 stopIPv4() 會 configureIPv4(false)，再清除 IPv4 address。
+
+### 11.2 呼叫時機
+
+TetherInterfaceStateMachine 的 BaseServingState 在退出分享狀態時會停止 IPv6 / Router Advertisement、呼叫 untetherInterface(mIfaceName)，再呼叫 stopIPv4()。USB tethering 的 configureIPv4(false) 會將其 mIfaceName 設為 DOWN；Wi-Fi 忽略 up/down 狀態；其他類型不在此函式執行 setInterfaceDown。
+
+### 11.3 對 Ethernet WAN 的意義
+
+此處 setInterfaceDown() 的目標不是 VPN netId，也不是上游 upstreamIface；而是 TetherInterfaceStateMachine 自己管理的下游分享介面 mIfaceName。上游介面僅在 NAT / forwarding cleanup 中被使用。
+
+在這份 r45 鏡像的 configureIPv4() 中，沒有針對 TETHERING_ETHERNET 類型執行 setInterfaceDown() 的分支。這降低了「標準 TetherInterfaceStateMachine 在停止分享時直接關閉 Ethernet WAN 上游介面」的可能性。
+
+但這不代表所有 OEM tethering / Ethernet service 實作都相同，也不能排除 Toshiba 客製化狀態機或其他服務把 Ethernet interface 當作 downstream tethering interface 的情況。
+
+### 11.4 階段結論
+
+在目前檢視的 Android 9.0.0_r45 TetherInterfaceStateMachine 中，setInterfaceDown 只會在 USB tethering 的 IPv4 stop/configure false 路徑中由此函式觸發。Wi-Fi 的 up/down 由 Wi-Fi stack 管理；Bluetooth / 其他類型不在這個 configureIPv4() 分支中執行 setInterfaceDown。這裡的 iface 是 tethering downstream interface，不是 upstream Ethernet iface。沒有找到 VPN teardown 到此 stopIPv4() 的呼叫鏈。
+
+### 11.5 下一步
+
+1. 追查 Tethering master state machine 如何建立 TetherInterfaceStateMachine，並將 interfaceType 與 ifaceName 指派給 USB / Wi-Fi / Ethernet。
+2. 確認 TETHERING_ETHERNET 是否存在於此 Android 9 branch，以及它是否使用獨立 Ethernet tethering 流程。
+3. 比對 stopInterfaceForwarding / disableNat 對 upstream interface 的操作，確認它們只清除 forwarding / NAT，而非 set upstream interface down。
+4. 保留 Toshiba vendor customization 未排除的限制。
+
+本階段為 r45 鏡像靜態分析；沒有修改 runtime、沒有 APK/CI/實機測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
