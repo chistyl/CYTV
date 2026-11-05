@@ -164,7 +164,7 @@ public final class YouTubeSponsorSkipService extends Service {
     private List<SponsorBlockClient.Segment> loadSegments(
             String videoId, YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
         SponsorBlockClient.LookupResult result =
-                SponsorBlockClient.lookupSponsorSegmentsDetailed(videoId, monitor);
+                SponsorBlockClient.lookupAutoSkipSegmentsDetailed(videoId, monitor);
         return result.segments;
     }
 
@@ -195,7 +195,7 @@ public final class YouTubeSponsorSkipService extends Service {
         // Mark only after YouTube accepts the command; a failed seek can be retried.
         String response = YouTubeLoungeClient.seekTo(this, session, target);
         skipped.add(segmentKey);
-        setStatus("已自動略過贊助片段");
+        setStatus("已自動略過影片片段");
         android.util.Log.i("CYTV-SponsorBlock",
                 "Skipped video=" + videoId + " segment=" + segmentKey + " " + response);
     }
