@@ -26,6 +26,7 @@ required_checks = {
     "65U7000VS model detection": r'65u7000vs',
     "Android 9 API-level check": r'Build\.VERSION\.SDK_INT\s*==\s*Build\.VERSION_CODES\.P',
     "Ethernet transport check": r'hasTransport\(NetworkCapabilities\.TRANSPORT_ETHERNET\)',
+    "all-connected-network Ethernet scan": r'cm\.getAllNetworks\(\)',
 }
 for label, pattern in required_checks.items():
     if not re.search(pattern, method, re.IGNORECASE):
