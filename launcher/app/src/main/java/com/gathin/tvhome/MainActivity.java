@@ -5106,10 +5106,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 candidate.setOnKeyListener((v, keyCode, event) -> {
                     if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
                             && event.getAction() == KeyEvent.ACTION_DOWN) {
-                        scroll.post(() -> {
-                            scroll.fullScroll(View.FOCUS_DOWN);
-                            cancel.requestFocus();
-                        });
+                        // Move focus synchronously: posting this after the key dispatch can
+                        // leave focus trapped in ScrollView on some TV firmware.
+                        scroll.fullScroll(View.FOCUS_DOWN);
+                        cancel.setFocusable(true);
+                        cancel.setFocusableInTouchMode(true);
+                        boolean moved = cancel.requestFocus();
+                        if (!moved) cancel.post(() -> cancel.requestFocus());
                         return true;
                     }
                     return false;
@@ -6041,10 +6044,13 @@ private GradientDrawable roundSurface(int color, float radius) {
                     lastTile.setOnKeyListener((v, keyCode, event) -> {
                         if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
                                 && event.getAction() == KeyEvent.ACTION_DOWN) {
-                            scroll.post(() -> {
-                                scroll.fullScroll(View.FOCUS_DOWN);
-                                cancelButton.requestFocus();
-                            });
+                            // Do not defer focus transfer beyond this key event. Several TV
+                            // firmwares keep the list focused when requestFocus is posted.
+                            scroll.fullScroll(View.FOCUS_DOWN);
+                            cancelButton.setFocusable(true);
+                            cancelButton.setFocusableInTouchMode(true);
+                            boolean moved = cancelButton.requestFocus();
+                            if (!moved) cancelButton.post(() -> cancelButton.requestFocus());
                             return true;
                         }
                         return false;
