@@ -3887,13 +3887,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
-        addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體轉繁體(打勾)" : "簡體轉繁體",
-                () -> {
-                    TraditionalText.setEnabled(this, !traditionalDisplay);
-                    popup.dismiss();
-                    recreate();
-                });
+        addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
+            TraditionalText.setEnabled(this, !traditionalDisplay);
+            popup.dismiss();
+            recreate();
+        });
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
@@ -7797,7 +7795,17 @@ private GradientDrawable roundSurface(int color, float radius) {
      * Use the platform's normal focused-click handling for TV remotes. Intercepting DPAD_CENTER
      * in an OnKeyListener can consume DOWN/UP before Android performs the click on some TV firmware.
      */
+    private void addSettingsMenuCheckRow(LinearLayout rows, PopupWindow popup, String title,
+                                         boolean checked, Runnable action) {
+        addSettingsMenuRowView(rows, popup, title, action, true, checked);
+    }
+
     private void addSettingsMenuRowView(LinearLayout rows, PopupWindow popup, String title, Runnable action) {
+        addSettingsMenuRowView(rows, popup, title, action, false, false);
+    }
+
+    private void addSettingsMenuRowView(LinearLayout rows, PopupWindow popup, String title, Runnable action,
+                                        boolean showCheckbox, boolean checked) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
         row.findViewById(R.id.icon).setVisibility(View.GONE);
         row.findViewById(R.id.dot).setVisibility(View.GONE);
@@ -7805,6 +7813,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         TextView rowTitle = (TextView) row.findViewById(R.id.title);
         rowTitle.setText(title);
         rowTitle.setTextColor(Color.WHITE);
+        if (showCheckbox) {
+            android.widget.CheckBox checkbox = new android.widget.CheckBox(this);
+            checkbox.setButtonTintList(new android.content.res.ColorStateList(
+                    new int[][]{
+                            new int[]{android.R.attr.state_focused},
+                            new int[]{android.R.attr.state_selected},
+                            new int[]{}
+                    },
+                    new int[]{0xFF303033, 0xFF303033, Color.WHITE}));
+            checkbox.setChecked(checked);
+            checkbox.setClickable(false);
+            checkbox.setFocusable(false);
+            checkbox.setDuplicateParentStateEnabled(true);
+            LinearLayout.LayoutParams checkboxLp = new LinearLayout.LayoutParams(
+                    (int) (26 * density), (int) (26 * density));
+            checkboxLp.gravity = Gravity.CENTER_VERTICAL;
+            checkboxLp.leftMargin = (int) (6 * density);
+            ((LinearLayout) row).addView(checkbox, checkboxLp);
+        }
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
         row.setClickable(true);
