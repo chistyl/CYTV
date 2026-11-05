@@ -3888,7 +3888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
         addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體一律繁體顯示(打勾)" : "簡體一律繁體顯示",
+                traditionalDisplay ? "簡體轉繁體(打勾)" : "簡體轉繁體",
                 () -> {
                     TraditionalText.setEnabled(this, !traditionalDisplay);
                     popup.dismiss();
@@ -3905,9 +3905,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(traditionalDisplay
-                ? (int) (270 * density)
-                : Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
+        popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
                 ? Gravity.START : Gravity.END);
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
