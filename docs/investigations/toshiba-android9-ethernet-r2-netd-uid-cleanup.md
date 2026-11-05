@@ -293,3 +293,56 @@ TetherInterfaceStateMachine.cleanupUpstreamInterface(upstreamIface) 使用 stopI
 3. 將 VPN lifecycle、netd network teardown、Ethernet link event、Tethering downstream cleanup 的目前證據整合成因果矩陣，標示已證實、未證實與需 Toshiba log 的項目。
 
 本階段為 android_9.0.0_r45 鏡像靜態分析；未修改 runtime、未產生 APK、未執行 Toshiba 實機 VPN 測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
+
+
+## 13. 第十九階段：TetheringConfiguration regex 與 OEM overlay 邊界
+
+### 13.1 r45 鏡像中已核實的分類來源
+
+在 Android 9.0.0_r45 鏡像的 `TetheringConfiguration.java`：
+
+- 建構時分別讀取 `config_tether_usb_regexs`、`config_tether_wifi_regexs`、`config_tether_bluetooth_regexs` 三組資源陣列。
+- `isUsb(iface)`、`isWifi(iface)`、`isBluetooth(iface)` 分別以對應 regex 陣列比對介面名稱。
+- 沒有獨立的 `config_tether_ethernet_regexs` 欄位或 `isEthernet()` 分類函式。
+
+因此 OEM overlay 理論上可以改變既有 USB/Wi-Fi/Bluetooth regex 的匹配範圍；若把 Ethernet 命名介面塞進其中一組 regex，它會被錯誤/特殊地分類成該既有類型，而不是新增 Ethernet tethering type。後續實際行為仍由該 type 的狀態機分支決定。這是資源配置可能性，不代表 Toshiba 一定如此設定。
+
+### 13.2 ConnectivityManager 類型 API
+
+在同一鏡像的 `ConnectivityManager.java`，公開 tetherable regex getter 僅見 USB、Wi-Fi、Bluetooth 三組：
+- `getTetherableUsbRegexs()`
+- `getTetherableWifiRegexs()`
+- `getTetherableBluetoothRegexs()`
+
+本次搜尋未找到 `TETHERING_ETHERNET` 的命中。由於 GitHub code search 對此鏡像的索引與完整性有限，這只能記為「目前取得檔案與搜尋範圍未見」，不能當成整個 Toshiba firmware 不存在此常數的完整證明。
+
+### 13.3 本階段限制
+
+取得的 TetheringConfiguration 與 ConnectivityManager 是名為 android_9.0.0_r45 的 GitHub 鏡像內容；未能核實該鏡像與 Google Gitiles 官方 tag 的每個檔案完全一致。OEM overlay 資源檔及 Toshiba vendor framework/HAL/init scripts 未取得，因此無法確認 Toshiba 是否自訂 regex 或另有 Ethernet 管理服務。
+
+## 14. 故障因果矩陣（截至第十九階段）
+
+| 路徑 | 靜態證據狀態 | 能否解釋 Ethernet 實體介面 DOWN |
+|---|---|---|
+| VPN UID range remove | Android 9 ConnectivityService teardown 順序已確認 | 未找到直接操作實體介面的證據 |
+| VPN netId remove | 會清理該 VPN netId 的 routing / DNS 等網路設定 | 未找到直接關閉 Ethernet 的證據 |
+| netd route / policy cleanup | 與 VPN UID routing / netId 清理屬不同層次 | 未找到到 interface setcfg down 的直接呼叫鏈 |
+| LinkState notification | 是 kernel/netlink link event 的通知及狀態傳遞 | 本身不是關閉介面的命令；可能反映已發生的 link down |
+| Ethernet NetworkAgent DISCONNECTED | EthernetTracker/NetworkFactory 會反映 link/provisioning 狀態 | 單憑 NetworkAgent 狀態不能證明 carrier 或 IFF_UP 被關閉 |
+| setInterfaceDown / interface setcfg down | Framework API 會將介面 flags 設 DOWN；r33 netd 參考路徑可到 ifc_down | 若目標真是 Ethernet iface，可能造成 administrative DOWN；尚無 Toshiba caller 證據 |
+| Tethering downstream cleanup | r45 標準 Tethering 分類 USB/Wi-Fi/Bluetooth；USB downstream stop 可設 DOWN | 標準 upstream NAT/forwarding cleanup 不會 set upstream DOWN |
+| OEM overlay regex | 三組 regex 可由資源讀取；OEM 可能改變匹配範圍 | 未取得 Toshiba overlay，不能排除特殊分類 |
+| Toshiba vendor service / HAL / init | 未取得 Toshiba vendor source | 未知，需 Toshiba 專屬 log/source |
+
+## 15. 對實際修正的決策
+
+目前靜態證據沒有指向一個可安全修改的 runtime 根因。直接改 VPN route、DNS、netd teardown 或 Ethernet 狀態監控，可能掩蓋症狀、破壞已驗收 R1 guard，甚至造成使用者再次失去有線網路。因此本分支不提交猜測性的 runtime patch。
+
+已知安全措施維持不變：
+- Toshiba + Android 9 + Ethernet 在 VPN Builder.establish() 前阻止 VPN 啟動。
+- 不在 Toshiba TV 重新啟用廣告阻擋測試。
+- 不產生 VPN 實驗 APK。
+- 本分支只提交研究文件；不修改 runtime。
+- PR #47 維持 Draft、open、未合併。
+
+要完成根因修正，下一個必要證據是 Toshiba 裝置在「VPN 未啟動」狀態下的 Ethernet 基線，以及既有故障紀錄中的 kernel link/carrier、netd interface config、Ethernet service、ConnectivityService 時序。不得為收集紀錄而重新觸發已知會斷線的 VPN 情境。
