@@ -117,13 +117,7 @@ final class SponsorBlockClient {
 
         String hash = sha256Hex(id);
         String prefix = hash.substring(0, 4);
-        String encodedCategories = URLEncoder.encode(new JSONArray(selectedCategories).toString(), "UTF-8");
-        // Explicitly request actionType=skip. Categories such as poi_highlight,
-        // exclusive_access and chapter are not ordinary time-range skips.
-        String encodedActions = URLEncoder.encode(new JSONArray(
-                Collections.singletonList(SKIP_ACTION)).toString(), "UTF-8");
-        URL url = new URL(API + prefix + "?categories=" + encodedCategories
-                + "&actionTypes=" + encodedActions);
+        URL url = new URL(API + prefix + "?" + buildLookupQueryParameters(selectedCategories));
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) url.openConnection();
@@ -177,6 +171,16 @@ final class SponsorBlockClient {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
+    }
+
+    static String buildLookupQueryParameters(List<String> categories) throws Exception {
+        List<String> selected = normalizeCategories(categories);
+        String encodedCategories = URLEncoder.encode(new JSONArray(selected).toString(), "UTF-8");
+        // Explicitly request actionType=skip. POI, full-video and chapter actions
+        // must never be interpreted as ordinary time-range auto-skips.
+        String encodedActions = URLEncoder.encode(new JSONArray(
+                Collections.singletonList(SKIP_ACTION)).toString(), "UTF-8");
+        return "categories=" + encodedCategories + "&actionTypes=" + encodedActions;
     }
 
     static List<String> normalizeCategories(List<String> categories) {
