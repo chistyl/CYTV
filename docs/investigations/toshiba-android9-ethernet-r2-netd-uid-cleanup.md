@@ -598,3 +598,52 @@ commit `51059415a2629f27a09b78c8d2448b2a49ef70e4`。
 ### 21.4 CYTV runtime 決策
 
 CYTV 的 Toshiba Android 9 Ethernet R1 guard 維持不變。此階段沒有找到可安全套用的 runtime patch；不產生實驗 APK、不在 Toshiba 重新啟動 VPN 廣告阻擋、不合併 PR #47。
+
+
+## 22. 第二十六階段：找到 Android 9 EthernetNetworkFactory 已知 VPN 斷線修正（高相關根因）
+
+### 22.1 找到可對應本案症狀的 AOSP 已修正缺陷
+
+找到 AOSP Gerrit/Gitiles commit：
+`frameworks/opt/net/ethernet`
+commit `64ba6b016cff7aae69da0af9430bf77eaeeefd30`
+標題：`Fix refCount check at releaseNetworkFor`
+Bug：`146089778`
+提交日期：2019-12-17。
+
+官方 patch 明確指出：
+- `EthernetNetworkFactory.releaseNetworkFor()` 原本在 `--network.refCount == 1` 時呼叫 `network.stop()`。
+- 正確條件應為 `--network.refCount == 0`。
+- 舊條件在 refCount 原本為 2 時，釋放一個 NetworkRequest 後就會呼叫 `network.stop()`，錯誤停止 Ethernet。
+- 修正後只在引用計數歸零時停止 Ethernet。
+官方 patch：`https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/64ba6b016cff7aae69da0af9430bf77eaeeefd30%5E!/`
+
+### 22.2 與已知 Android 9 VPN/Ethernet 故障紀錄交叉吻合
+
+ics-openvpn issue #1327（Android 9、客製 AOSP、Ethernet）記錄 VPN 建立後：
+- Ethernet 原先 eth0 為 CONNECTED。
+- VPN TUN 建立後，ConnectivityService 重新評估 NetworkRequest。
+- EthernetNetworkFactory 接著停止 eth0 的 IP provisioning，清除 eth0 IP，Ethernet Network 變成 DISCONNECTED。
+- issue 作者於 2021-06-03 確認其 Android image 的問題由上述 AOSP commit 修正。
+Issue：`https://github.com/schwabe/ics-openvpn/issues/1327`
+
+這比先前推測 Tethering regex、vendor HAL 或 driver link-down 更直接：存在一個 Android Ethernet framework refCount bug，會在 VPN NetworkRequest 重新評估時錯誤 stop Ethernet。log 中可見 `EthernetNetworkFactory`、`DhcpClient doQuit`、`CommandListener Clearing all IP addresses on eth0`，符合行政層網路設定被清除，而不是單純 carrier link event。
+
+### 22.3 對 CYTV / Toshiba 本案的判斷
+
+此 AOSP 缺陷是目前最強、可驗證的候選根因，且有官方修正 commit。它不等於已證明 Toshiba firmware 一定包含錯誤版本；仍需核對 Toshiba 的 `EthernetNetworkFactory.java` 是否含舊條件：
+`if (--network.refCount == 1) network.stop();`
+若 Toshiba 原始碼存在該條件，應將條件修正為 `== 0`，並 cherry-pick/回移植官方 commit 的完整變更與相應測試，而不是在 CYTV app 中嘗試重啟 Ethernet。
+
+### 22.4 修正範圍與安全決策
+
+- **真正修復位置是 Android 系統映像的 `frameworks/opt/net/ethernet/.../EthernetNetworkFactory.java`，不是 CYTV app。**
+- 一般第三方 Android app 沒有權限或 API 可安全修改系統 EthernetNetworkFactory 的 refCount，也不能可靠修補已編譯進 system_server 的 framework class。
+- CYTV R1 Toshiba Android 9 Ethernet guard 仍是正確的 app-side 防護：在尚未修正 firmware 前，不建立 VPN TUN。
+- 不可移除 R1 guard；不可在 Toshiba 實機重啟 VPN 廣告阻擋；不可產生宣稱已修復 Ethernet framework 的 APK。
+- 若 Toshiba firmware 可更新，要求 OEM 將 AOSP commit `64ba6b016cff7aae69da0af9430bf77eaeeefd30` 回移植到該 Android 9 Ethernet framework，並以多 NetworkRequest/refCount 測試驗證：refCount 2→1 不可 stop；1→0 才 stop。
+- 若 Toshiba 是封閉原廠韌體、無 system image build/OTA 權限，CYTV 單獨無法完成該系統層修復；可以保留安全模式，但不能讓該機型在此 firmware 上同時啟用 VPN DNS 廣告阻擋與保證 Ethernet 穩定。
+
+### 22.5 結論更新
+
+根因候選由「未定位的 vendor / Tethering / driver 路徑」更新為「AOSP Android EthernetNetworkFactory.releaseNetworkFor() refCount 判斷錯誤」；證據強度高且有官方修正。尚待確認 Toshiba firmware 是否含舊程式碼。下一步不再盲查 Tethering regex，而是取得 Toshiba 對應 build 的 EthernetNetworkFactory source/build fingerprint，直接比對官方修正是否已包含。
