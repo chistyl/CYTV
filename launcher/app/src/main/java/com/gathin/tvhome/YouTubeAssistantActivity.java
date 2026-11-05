@@ -377,7 +377,7 @@ public class YouTubeAssistantActivity extends Activity {
             confirm.setTextColor(Color.WHITE);
             // Keep the dialog and button position unchanged; reduce the button footprint
             // so its full rounded shape remains visible inside the fixed dialog surface.
-            confirm.setTranslationY(0f);
+            confirm.setTranslationY(-dp(5));
             confirm.setMinWidth(dp(96));
             confirm.setMinHeight(dp(42));
             confirm.setPadding(dp(14), dp(6), dp(14), dp(6));
