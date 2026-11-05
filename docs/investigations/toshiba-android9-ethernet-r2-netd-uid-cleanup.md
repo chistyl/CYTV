@@ -686,3 +686,29 @@ git -C frameworks/opt/net/ethernet apply patches/android9/0001-EthernetNetworkFa
 ### 狀態與界線
 
 Patch 已封裝進 repo，但尚未套用到 Toshiba firmware，因為 CYTV repo 不包含 Toshiba 的 frameworks/opt/net/ethernet 原始碼或可建置的系統映像。此 patch 不是可安裝的 APK。R1 guard 仍須保留，直到 OEM/system image 修補、完整編譯及實機驗收完成。
+
+
+## 24. 第二十八階段：以 Android Pie 上游原始碼確認舊條件確實存在
+
+新增交叉核對來源：公開的 Android Pie 維護分支
+`digi-embedded/android_platform_frameworks_opt_net_ethernet`，branch `pie/maint`。
+
+該分支的 `java/com/android/server/ethernet/EthernetNetworkFactory.java` 中，`releaseNetworkFor()` 明確仍是：
+```java
+if (--network.refCount == 1) {
+    network.stop();
+}
+```
+這證實該錯誤條件確實存在於公開 Android Pie（Android 9）維護程式碼，不再只是根據 AOSP 修正提交推測。該來源不是 Toshiba 韌體，因此仍不能證明 Toshiba 客製映像採用相同程式碼。
+
+同檔案的 `needNetworkFor()` 在 refCount 從 0 增至 1 時啟動 network；相對地，釋放邏輯只有在 refCount 歸零時才應停止 network。AOSP 官方修正正是把錯誤的 `== 1` 改為 `== 0`。
+
+新增自動化靜態檢查：
+- `scripts/validate-toshiba-ethernet-patch.sh`
+- `.github/workflows/validate-toshiba-ethernet-patch.yml`
+
+CI 檢查 patch 是否包含正確的舊/新條件、官方 commit ID，並由 `git apply --numstat` 驗證 unified diff 結構。這項檢查不等於 Toshiba framework 編譯或實機驗收。
+
+### PR 與分支關係釐清
+
+`investigation/toshiba-vpn-ethernet-r2` 是研究分支；PR #47 實際上是獨立的 R1 safety 分支 `safety/toshiba-android9-ethernet-disable-vpn-r1`，仍維持 Draft/open/unmerged。不要將 R2 文件與 patch 的提交誤報為已進入 PR #47。PR #33 仍是「介面設定」正式驗收線。
