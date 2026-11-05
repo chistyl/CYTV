@@ -10,7 +10,7 @@ on:
       - '.github/workflows/validate-toshiba-ethernet-patch.yml'
   pull_request:
     branches:
-      - investigation/toshiba-vpn-ethernet-r2
+      - fix/ethernet-dns-recovery-r4-r98
     paths:
       - 'patches/android9/**'
       - 'scripts/validate-toshiba-ethernet-patch.sh'
