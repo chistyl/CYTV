@@ -5,6 +5,7 @@ on:
     branches:
       - r1-sponsorblock-integration
       - fix/youtube-unpaired-confirm-button-position-color
+      - feature/full-ui-language-toggle-zh-hant-hans-r98
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-assistant.yml'
