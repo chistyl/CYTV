@@ -543,3 +543,30 @@ r45 鏡像 `TetherInterfaceStateMachine.java` 的 `configureIPv4()`：
 本階段沒有發現可以安全歸因為 VPN teardown 的 AOSP framework caller。標準 Tethering 的唯一可索引介面旗標寫入點屬 downstream TISM；其 upstream cleanup 與 downstream interface down 必須分開看待。
 
 目前不能合理提交一個針對 TISM、NetworkManagementService 或 VPN teardown 的 runtime 修改，因為沒有 Toshiba 故障時的 iface/type/caller 證據。繼續保留 R1 guard，不產生繞過 guard 的 APK，不在 Toshiba 重新觸發問題。PR #47 保持 Draft/open/未合併。
+
+
+## 20. 第二十四階段：r45 Tethering ifaceNameToType 完整分類分支
+
+本階段取得 r45 鏡像中先前缺失的核心檔案：
+`frameworks/base/services/core/java/com/android/server/connectivity/Tethering.java`
+commit `51059415a2629f27a09b78c8d2448b2a49ef70e4`。
+
+`ifaceNameToType(String iface)` 的完整分類順序為：
+1. `cfg.isWifi(iface)` → `TETHERING_WIFI`
+2. `cfg.isUsb(iface)` → `TETHERING_USB`
+3. `cfg.isBluetooth(iface)` → `TETHERING_BLUETOOTH`
+4. 其他 → `TETHERING_INVALID`
+
+這確認標準 Tethering 的介面分類器沒有 Ethernet 類型分支。只有當 Ethernet 介面名稱意外符合 OEM 的 Wi-Fi/USB/Bluetooth downstream regex，才可能被錯分類；正常 Ethernet 名稱不符合時回傳 INVALID，不會建立 TISM，因此不會走 TISM 的 `configureIPv4(false)` 介面 DOWN 路徑。
+
+### 本案候選路徑排序更新
+
+- 標準 VPN UID/netId teardown 直接關閉 Ethernet：目前沒有證據。
+- 標準 Tethering 把一般 Ethernet upstream 關閉：分類器證據不支持。
+- Toshiba overlay 將 Ethernet iface regex 納入 downstream regex：仍可能，但需取得實際 overlay 與 iface 名稱。
+- Toshiba vendor service/HAL/init script 直接操作 Ethernet link：仍未排除。
+- Kernel driver/link event 自行報告 link down：仍未排除，需區分 administrative down 與 carrier/link down。
+
+### 修正決策
+
+本階段縮小了 AOSP 標準 Tethering 的可能性，但沒有證明 Toshiba vendor 路徑。不能因此修改 TISM 或 VPN teardown。R1 guard 繼續保留；不在 Toshiba 重新啟用 VPN 廣告阻擋，不產生實驗 APK，不合併 PR #47。
