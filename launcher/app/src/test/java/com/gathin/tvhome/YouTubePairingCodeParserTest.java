@@ -14,6 +14,9 @@ public class YouTubePairingCodeParserTest {
         assertEquals("A1B2C3D4", YouTubePairingCodeParser.findCode(
                 "Visit youtube.com/tv and enter code A1B2-C3D4 to continue."));
     }
+    @Test public void parsesNumericOnlyCode() {
+        assertEquals("12345678", YouTubePairingCodeParser.findCode("1234-5678"));
+    }
     @Test public void rejectsOrdinaryWordsWithoutDigits() {
         assertEquals("", YouTubePairingCodeParser.findCode("CONTINUE WATCHING"));
     }
