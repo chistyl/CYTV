@@ -4728,6 +4728,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** 桌面顯示：APP／資料夾分頁，勾選代表隱藏。APP 使用 TV 16:9 橫幅預覽。 */
+    /**
+     * Intercept DPAD before the focused child or ScrollView can consume it.
+     * Dialog.setOnKeyListener runs after the window has offered the event to its view
+     * hierarchy; some TV firmware consumes DPAD_DOWN at the ScrollView edge first.
+     * ViewTreeObserver.OnKeyListener is dispatched before normal view-tree key handling.
+     */
+    private void installDialogDpadPreDispatchBridge(Dialog dialog, ViewGroup list, View actionButton) {
+        Window window = dialog.getWindow();
+        if (window == null || list == null || actionButton == null) return;
+        View decor = window.getDecorView();
+        ViewTreeObserver observer = decor.getViewTreeObserver();
+        ViewTreeObserver.OnKeyListener listener = (view, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            View focused = decor.findFocus();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (focused == actionButton) return true;
+                int count = list.getChildCount();
+                if (focused != null && count > 0) {
+                    View finalRow = list.getChildAt(count - 1);
+                    if (isViewInside(focused, finalRow) && actionButton.isShown()
+                            && actionButton.isFocusable()) {
+                        actionButton.requestFocus();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+        observer.addOnKeyListener(listener);
+        dialog.setOnDismissListener(dismissed -> {
+            if (observer.isAlive()) observer.removeOnKeyListener(listener);
+        });
+    }
+
+    /** True when child is the ancestor itself or is nested anywhere inside ancestor. */
+    private boolean isViewInside(View child, View ancestor) {
+        View current = child;
+        while (current != null) {
+            if (current == ancestor) return true;
+            ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return false;
+    }
+
     private void showHomeAppVisibilityDialog() {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         PackageManager visibilityPm = getPackageManager();
@@ -5079,6 +5124,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
         }
+        // Intercept before ScrollView / focused-row dispatch, not after child handling.
+        installDialogDpadPreDispatchBridge(dialog, list, cancel);
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
         View firstRow = null, lastRow = null;
         if (list.getChildCount() > 0) {
@@ -6039,6 +6086,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusDownId(saveButton.getId());
         }
+        // Intercept DPAD_DOWN before the ScrollView or focused tile can consume it.
+        installDialogDpadPreDispatchBridge(dialog, list, cancelButton);
         if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
 
