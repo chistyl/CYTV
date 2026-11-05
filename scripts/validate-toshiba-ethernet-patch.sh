@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PATCH="patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcount.patch"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PATCH="$ROOT/patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcount.patch"
 test -s "$PATCH"
 grep -Fq 'if (--network.refCount == 1)' "$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$PATCH"
@@ -30,7 +31,7 @@ class EthernetNetworkFactory {
 }
 EOF
 git -C "$TMP" init -q
-git -C "$TMP" apply --check "$OLDPWD/$PATCH"
+git -C "$TMP" apply --check "$PATCH"
 git -C "$TMP" apply "$OLDPWD/$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$TARGET"
 ! grep -Fq 'if (--network.refCount == 1)' "$TARGET"
