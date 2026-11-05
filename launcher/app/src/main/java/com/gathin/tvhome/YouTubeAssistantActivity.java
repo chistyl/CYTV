@@ -11,6 +11,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.KeyEvent;
@@ -39,6 +41,8 @@ public class YouTubeAssistantActivity extends Activity {
     private EditText pairingCodeInput;
     private boolean pairingCodeReceiverRegistered;
     private boolean pairingDialogShowing;
+    private final Handler pairingDetectionHandler = new Handler(Looper.getMainLooper());
+    private final Runnable pairingDetectionRefresh = this::refreshPairingCodeFromSavedDetection;
     private String lastAutoFilledCode = "";
     private String lastAutoOpenedCode = "";
     private final BroadcastReceiver pairingCodeReceiver = new BroadcastReceiver() {
@@ -199,10 +203,18 @@ public class YouTubeAssistantActivity extends Activity {
             pairingCodeReceiverRegistered = true;
         }
         refreshPairingCodeFromSavedDetection();
+        // The accessibility service may publish just after this Activity resumes.
+        // Recheck the persisted result for a short window to avoid a return-transition race.
+        pairingDetectionHandler.removeCallbacks(pairingDetectionRefresh);
+        pairingDetectionHandler.postDelayed(pairingDetectionRefresh, 300L);
+        pairingDetectionHandler.postDelayed(pairingDetectionRefresh, 800L);
+        pairingDetectionHandler.postDelayed(pairingDetectionRefresh, 1600L);
+        pairingDetectionHandler.postDelayed(pairingDetectionRefresh, 2800L);
         if (pairingStatus != null) refreshUi();
     }
 
     @Override protected void onPause() {
+        pairingDetectionHandler.removeCallbacks(pairingDetectionRefresh);
         if (pairingCodeReceiverRegistered) {
             unregisterReceiver(pairingCodeReceiver);
             pairingCodeReceiverRegistered = false;
