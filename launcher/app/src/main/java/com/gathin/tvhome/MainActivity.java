@@ -3882,10 +3882,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
-        addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
-        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
-        addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
-        addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
+        addSettingsMenuRow(rows, popup, "介面設定", this::showInterfaceSettingsMenu);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
         addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
             TraditionalText.setEnabled(this, !traditionalDisplay);
