@@ -34,6 +34,11 @@ import java.util.Date;
 import java.util.Locale;
 
 public class AdsBlockerActivity extends Activity {
+    @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private static final int VPN_REQUEST = 7412;
     private static final String PREFS = "ad_filter";
     private static final String BLOCK = "block_domains";
@@ -239,7 +244,7 @@ public class AdsBlockerActivity extends Activity {
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(39,42,50), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
-            Button del = new Button(this); del.setText("刪除"); del.setTextSize(14); del.setAllCaps(false);
+            Button del = new Button(this); del.setText(TraditionalText.display(this, "刪除")); del.setTextSize(14); del.setAllCaps(false);
             del.setTextColor(Color.WHITE); del.setFocusable(true); del.setMinHeight(dp(48));
             del.setBackground(focusBg(Color.rgb(85,47,49), Color.rgb(126,58,62)));
             keepFocusedVisible(del);
@@ -343,8 +348,8 @@ public class AdsBlockerActivity extends Activity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         Button clear = button("清除紀錄", () -> new AlertDialog.Builder(this)
-                .setTitle("清除 DNS 紀錄")
-                .setMessage("確定要清除所有 DNS 紀錄嗎？")
+                .setTitle(TraditionalText.display(this, "清除 DNS 紀錄"))
+                .setMessage(TraditionalText.display(this, "確定要清除所有 DNS 紀錄嗎？"))
                 .setNegativeButton("取消", null)
                 .setPositiveButton("清除", (d, w) -> {
                     prefs.edit().remove("dns_logs").apply();
@@ -358,7 +363,7 @@ public class AdsBlockerActivity extends Activity {
         cp.leftMargin = dp(6); actions.addView(close, cp);
         panel.addView(actions, new LinearLayout.LayoutParams(-1, dp(54)));
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("DNS 紀錄").setView(panel).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "DNS 紀錄")).setView(panel).create();
         close.setOnClickListener(v -> dialog.dismiss());
         updateDnsLogRows(summary, rows, selected[0]);
         dialog.show();
