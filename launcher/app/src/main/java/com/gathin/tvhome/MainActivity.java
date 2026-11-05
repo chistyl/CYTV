@@ -4385,8 +4385,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         new AlertDialog.Builder(this)
                 .setTitle(TraditionalText.display(this, "重新開機"))
                 .setMessage(TraditionalText.display(this, "確定要重新啟動電視嗎？"))
-                .setNegativeButton("取消", null)
-                .setPositiveButton("重新開機", (dialog, which) -> {
+                .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                .setPositiveButton(TraditionalText.display(this, "重新開機"), (dialog, which) -> {
                     try {
                         android.os.PowerManager power =
                                 (android.os.PowerManager) getSystemService(POWER_SERVICE);
@@ -4396,7 +4396,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         new AlertDialog.Builder(this)
                                 .setTitle(TraditionalText.display(this, "電視系統未允許直接重新開機"))
                                 .setMessage(TraditionalText.display(this, "這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。"))
-                                .setPositiveButton("確定", null)
+                                .setPositiveButton(TraditionalText.display(this, "確定"), null)
                                 .show();
                     }
                 })
@@ -4509,7 +4509,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         EditText city = new EditText(this);
         city.setSingleLine(true); city.setFocusable(true); city.setFocusableInTouchMode(true);
         city.setDefaultFocusHighlightEnabled(false);
-        city.setHint(TraditionalText.display(this, "輸入城市，例如：桃園市")); city.setText(prefs.getString("city", "桃園市"));
+        city.setHint(TraditionalText.display(this, "輸入城市，例如：桃園市")); city.setText(TraditionalText.display(this, prefs.getString("city", "桃園市")));
         // 輸入欄平時就維持淺色底與深色文字，不必等到取得焦點才看得清楚。
         city.setTextColor(0xFF202124); city.setHintTextColor(0xFF68717D); city.setTextSize(20);
         city.setPadding((int)(14*density), (int)(8*density), (int)(14*density), (int)(8*density));
@@ -4554,7 +4554,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     weatherHandler.post(() -> {
                         if (!cityEditedByUser[0]
                                 && initialCity.equals(city.getText().toString().trim())) {
-                            city.setText(detected);
+                            city.setText(TraditionalText.display(this, detected));
                             city.setSelection(city.length());
                         }
                     });
@@ -4566,8 +4566,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             cityMode.setChecked(false);
             cityMode.setChecked(true);
         }
-        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "一週天氣")).setView(content).setNegativeButton("取消", null)
-                .setPositiveButton("儲存", (dialog, which) -> {
+        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "一週天氣")).setView(content).setNegativeButton(TraditionalText.display(this, "取消"), null)
+                .setPositiveButton(TraditionalText.display(this, "儲存"), (dialog, which) -> {
                     boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
                     String value = city.getText().toString().trim();
                     prefs.edit().putBoolean("enabled", toggle.isChecked()).putString("location_mode", useCity ? "city" : "device")
@@ -5559,7 +5559,7 @@ private GradientDrawable roundSurface(int color, float radius) {
 
     private TextView addRoundedAction(LinearLayout panel, String text, Runnable action) {
         TextView row = new TextView(this);
-        row.setText(text);
+        row.setText(TraditionalText.display(this, text));
         row.setTextColor(Color.WHITE);
         row.setTextSize(15);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -5621,7 +5621,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
         nameWrap.addView(name, new LinearLayout.LayoutParams(-1, (int)(58*density)));
         AlertDialog createDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "新增資料夾")).setView(nameWrap)
-                .setNegativeButton("取消", null).setPositiveButton("建立", (x, y) -> {
+                .setNegativeButton(TraditionalText.display(this, "取消"), null).setPositiveButton(TraditionalText.display(this, "建立"), (x, y) -> {
                     String value = name.getText().toString().trim();
                     if (value.isEmpty() || value.equals("系統")) {
                         Toast.makeText(this, "請輸入其他資料夾名稱", Toast.LENGTH_SHORT).show();
@@ -5916,8 +5916,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
 
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
+                .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                .setPositiveButton(TraditionalText.display(this, "儲存"), (d, which) -> listener.onSave(checked)).create();
         dialog.show();
         if (dialog.getWindow() != null) {
             GradientDrawable rounded = new GradientDrawable();
@@ -6074,7 +6074,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             lp.bottomMargin = (int)(8*d); options.addView(item, lp);
         }
         AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "選擇資料夾"))
-                .setView(scroll).setNegativeButton("取消", null).create();
+                .setView(scroll).setNegativeButton(TraditionalText.display(this, "取消"), null).create();
         folderDialogRef[0] = folderDialog;
         folderDialog.show();
         if (folderDialog.getWindow() != null) {
@@ -6769,7 +6769,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
                     rgb[channel]=value;
-                    label.setText(channelNames[channel] + "：" + value);
+                    label.setText(TraditionalText.display(this, channelNames[channel] + "：" + value));
                     if (updateCombinedPreview[0] != null) updateCombinedPreview[0].run();
                 }
                 @Override public void onStartTrackingTouch(SeekBar seekBar) { }
@@ -6796,7 +6796,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
             bg.setCornerRadius(14 * density);
             preview.targetCard.setBackground(bg);
-            for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
+            for (int i = 0; i < 3; i++) channelLabels[i].setText(TraditionalText.display(this, channelNames[i] + "：" + rgb[i]));
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar,int value,boolean fromUser){if(updateCombinedPreview[0]!=null) updateCombinedPreview[0].run();}
@@ -6939,8 +6939,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             edit.setText(prefs.getString("label_" + packageName, currentLabel));
             edit.setSelection(edit.getText().length());
             AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "修改 APP 名稱")).setView(edit)
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("儲存", (d, which) -> {
+                    .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                    .setPositiveButton(TraditionalText.display(this, "儲存"), (d, which) -> {
                         String value = edit.getText().toString().trim();
                         if (!value.isEmpty()) prefs.edit().putString("label_" + packageName, value).apply();
                         reloadApps(false);
@@ -7307,7 +7307,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         for (int i = 0; adapter != null && i < adapter.appCount(); i++) {
             if (targetPackage.equals(adapter.packageAt(i))) { label = adapter.labelAt(i); break; }
         }
-        name.setText(label);
+        name.setText(TraditionalText.display(this, label));
         name.setTextColor(0xFFE8EBF0);
         name.setTextSize(12);
         name.setGravity(Gravity.CENTER);
@@ -7344,7 +7344,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         };
         for (int i = 0; i < 3; i++) {
             TextView label = new TextView(this);
-            label.setText(channels[i] + "：" + rgb[i]);
+            label.setText(TraditionalText.display(this, channels[i] + "：" + rgb[i]));
             label.setTextColor(Color.WHITE);
             label.setTextSize(15f);
             panel.addView(label);
@@ -7371,7 +7371,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
                     rgb[channel] = value;
-                    label.setText(channels[channel] + "：" + value);
+                    label.setText(TraditionalText.display(this, channels[channel] + "：" + value));
                     update.run();
                 }
                 @Override public void onStartTrackingTouch(SeekBar seekBar) { }
@@ -7385,13 +7385,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         update.run();
         AlertDialog colorDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "自訂 APP 背景色"))
                 .setView(panel)
-                .setNegativeButton("取消", (dialog, which) -> reopenPendingFolderAfterAppEdit())
-                .setNeutralButton("恢復白色", (dialog, which) -> {
+                .setNegativeButton(TraditionalText.display(this, "取消"), (dialog, which) -> reopenPendingFolderAfterAppEdit())
+                .setNeutralButton(TraditionalText.display(this, "恢復白色"), (dialog, which) -> {
                     prefs.edit().putInt("background_" + pkg, Color.WHITE).apply();
                     reloadApps(false);
                     reopenPendingFolderAfterAppEdit();
                 })
-                .setPositiveButton("套用", (dialog, which) -> {
+                .setPositiveButton(TraditionalText.display(this, "套用"), (dialog, which) -> {
                     prefs.edit().putInt("background_" + pkg, Color.rgb(rgb[0], rgb[1], rgb[2])).apply();
                     reloadApps(false);
                     reopenPendingFolderAfterAppEdit();
@@ -7527,7 +7527,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 lp.gravity = Gravity.CENTER;
                 livePreview.targetIcon.setLayoutParams(lp);
             }
-            value.setText("調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
+            value.setText(TraditionalText.display(this, "調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
                     + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%");
         };
         size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -7539,14 +7539,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
         updatePreview.run();
         AlertDialog sizeDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "調整圖標大小（-50% ～ +200%）"))
-                .setView(panel).setNegativeButton("取消", (dialog, which) -> reopenPendingFolderAfterAppEdit())
-                .setNeutralButton("恢復預設 125%", (dialog, which) -> {
+                .setView(panel).setNegativeButton(TraditionalText.display(this, "取消"), (dialog, which) -> reopenPendingFolderAfterAppEdit())
+                .setNeutralButton(TraditionalText.display(this, "恢復預設 125%"), (dialog, which) -> {
                     prefs.edit().remove("icon_scale_adjust_" + pkg).remove("icon_scale_" + pkg)
                             .remove("icon_scale_override_" + pkg).apply();
                     reloadApps(false);
                     reopenPendingFolderAfterAppEdit();
                 })
-                .setPositiveButton("套用", (dialog, which) -> {
+                .setPositiveButton(TraditionalText.display(this, "套用"), (dialog, which) -> {
                     prefs.edit().putInt("icon_scale_adjust_" + pkg, size.getProgress() - 50)
                             .putBoolean("icon_scale_override_" + pkg, true).apply();
                     reloadApps(false);
@@ -7628,7 +7628,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
                     edit.setText(oldName);
                     AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "重新命名")).setView(edit)
-                            .setNegativeButton("取消", null).setPositiveButton("儲存", (dialog, which) -> {
+                            .setNegativeButton(TraditionalText.display(this, "取消"), null).setPositiveButton(TraditionalText.display(this, "儲存"), (dialog, which) -> {
                                 String newName = edit.getText().toString().trim();
                                 if (newName.isEmpty() || "系統".equals(newName)) {
                                     Toast.makeText(this, "資料夾名稱不可使用", Toast.LENGTH_SHORT).show();
@@ -7659,7 +7659,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 addSettingsMenuRow(folderRows, folderPopup, "刪除資料夾", () -> {
                     AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "刪除資料夾"))
                             .setMessage(TraditionalText.display(this, "刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。"))
-                            .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
+                            .setNegativeButton(TraditionalText.display(this, "取消"), null).setPositiveButton(TraditionalText.display(this, "刪除"), (dialog, which) -> {
                                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
                                 java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
                                 java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
@@ -7714,8 +7714,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             edit.setText(savedLabel);
             edit.setSelection(edit.getText().length());
             AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, "修改 APP 名稱")).setView(edit)
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("儲存", (dialog, which) -> {
+                    .setNegativeButton(TraditionalText.display(this, "取消"), null)
+                    .setPositiveButton(TraditionalText.display(this, "儲存"), (dialog, which) -> {
                         String value = edit.getText().toString().trim();
                         if (!value.isEmpty()) appPrefs.edit().putString("label_" + pkg, value).apply();
                         reloadApps(false);
