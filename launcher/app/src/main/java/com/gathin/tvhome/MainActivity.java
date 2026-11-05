@@ -5079,6 +5079,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
         }
+        // Handle DPAD at the Dialog level: some TV firmware does not deliver the
+        // key to the focused child at the bottom edge of a ScrollView.
+        dialog.setOnKeyListener((shown, keyCode, event) -> {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN || event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            View focused = dialog.getCurrentFocus();
+            if (focused == null) return false;
+            ViewGroup finalGrid = list.getChildCount() > 0
+                    ? (ViewGroup) list.getChildAt(list.getChildCount() - 1) : null;
+            boolean inFinalRow = false;
+            if (finalGrid != null) {
+                for (int i = 0; i < finalGrid.getChildCount(); i++) {
+                    View candidate = finalGrid.getChildAt(i);
+                    if (candidate == focused || isViewInside(focused, candidate)) {
+                        inFinalRow = true;
+                        break;
+                    }
+                }
+            }
+            if (!inFinalRow) return false;
+            cancel.setFocusable(true);
+            cancel.setFocusableInTouchMode(true);
+            cancel.requestFocus();
+            return true;
+        });
         // Explicit remote-control path: tabs -> list rows -> Cancel -> Save.
         View firstRow = null, lastRow = null;
         if (list.getChildCount() > 0) {
@@ -5100,7 +5124,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             android.view.ViewGroup finalGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
             for (int i = 0; i < finalGrid.getChildCount(); i++) {
                 View candidate = finalGrid.getChildAt(i);
-                if (candidate.isFocusable()) candidate.setNextFocusDownId(cancel.getId());
+                if (!candidate.isFocusable()) continue;
+                candidate.setNextFocusDownId(cancel.getId());
+                // Some TV firmware ignores nextFocusDownId at the ScrollView boundary.
+                candidate.setOnKeyListener((v, keyCode, event) -> {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                            && event.getAction() == KeyEvent.ACTION_DOWN) {
+                        // Move focus synchronously: posting this after the key dispatch can
+                        // leave focus trapped in ScrollView on some TV firmware.
+                        scroll.fullScroll(View.FOCUS_DOWN);
+                        cancel.setFocusable(true);
+                        cancel.setFocusableInTouchMode(true);
+                        boolean moved = cancel.requestFocus();
+                        if (!moved) cancel.post(() -> cancel.requestFocus());
+                        return true;
+                    }
+                    return false;
+                });
             }
         }
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
@@ -5795,6 +5835,17 @@ private GradientDrawable roundSurface(int color, float radius) {
     private interface AppSelectionListener { void onSave(boolean[] checked); }
 
     /** TV 遙控器友善的 APP 選擇清單：16:9 TV 橫幅／圖示卡片、名稱及勾選框。 */
+    /** True when child is the ancestor itself or is nested anywhere inside ancestor. */
+    private boolean isViewInside(View child, View ancestor) {
+        View current = child;
+        while (current != null) {
+            if (current == ancestor) return true;
+            ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return false;
+    }
+
     private void showAppSelectionDialog(String title, List<String> packages,
                                         Map<String, ResolveInfo> appInfos, boolean[] checked,
                                         AppSelectionListener listener) {
@@ -6021,8 +6072,25 @@ private GradientDrawable roundSurface(int color, float radius) {
                 View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
                 int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
                 // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
-                for (int i = lastRowStart; i < selectionTiles.size(); i++)
-                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
+                for (int i = lastRowStart; i < selectionTiles.size(); i++) {
+                    View lastTile = selectionTiles.get(i);
+                    lastTile.setNextFocusDownId(cancelButton.getId());
+                    // Force the final row -> action bar transition on TV devices.
+                    lastTile.setOnKeyListener((v, keyCode, event) -> {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                                && event.getAction() == KeyEvent.ACTION_DOWN) {
+                            // Do not defer focus transfer beyond this key event. Several TV
+                            // firmwares keep the list focused when requestFocus is posted.
+                            scroll.fullScroll(View.FOCUS_DOWN);
+                            cancelButton.setFocusable(true);
+                            cancelButton.setFocusableInTouchMode(true);
+                            boolean moved = cancelButton.requestFocus();
+                            if (!moved) cancelButton.post(() -> cancelButton.requestFocus());
+                            return true;
+                        }
+                        return false;
+                    });
+                }
                 // 第一列向上回到操作列；中間列仍依同欄上下移動。
                 for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
                     selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
@@ -6039,6 +6107,28 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusDownId(saveButton.getId());
         }
+        // Intercept at Dialog level as a fallback for TV firmware that swallows DPAD
+        // at the ScrollView boundary before a row's OnKeyListener can receive it.
+        dialog.setOnKeyListener((shown, keyCode, event) -> {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN || event.getAction() != KeyEvent.ACTION_DOWN
+                    || selectionTiles.isEmpty()) return false;
+            View focused = dialog.getCurrentFocus();
+            if (focused == null) return false;
+            int finalRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+            boolean inFinalRow = false;
+            for (int i = finalRowStart; i < selectionTiles.size(); i++) {
+                View tile = selectionTiles.get(i);
+                if (focused == tile || isViewInside(focused, tile)) {
+                    inFinalRow = true;
+                    break;
+                }
+            }
+            if (!inFinalRow || cancelButton == null) return false;
+            cancelButton.setFocusable(true);
+            cancelButton.setFocusableInTouchMode(true);
+            cancelButton.requestFocus();
+            return true;
+        });
         if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
 
