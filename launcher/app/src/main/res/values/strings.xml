@@ -158,4 +158,6 @@
     <string name="clock_format_system">System</string>
     <string name="clock_format_12">12-hour</string>
     <string name="clock_format_24">24-hour</string>
+    <string name="youtube_pairing_code_service_name">YouTube 配對碼自動偵測</string>
+    <string name="youtube_pairing_code_service_description">只讀取 YouTube TV 畫面中可存取的配對文字，協助填入 CYTV；不會自動送出配對。</string>
 </resources>

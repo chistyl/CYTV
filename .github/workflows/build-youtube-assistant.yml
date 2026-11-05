@@ -5,6 +5,13 @@ on:
     branches:
       - r1-sponsorblock-integration
       - fix/youtube-unpaired-confirm-button-position-color
+      - fix/youtube-pairing-auto-fill-r98
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-youtube-assistant.yml'
+  pull_request:
+    branches:
+      - baseline/cytv-youtube-assistant-r98
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-assistant.yml'

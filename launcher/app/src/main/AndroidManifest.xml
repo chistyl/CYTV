@@ -123,6 +123,19 @@
             android:screenOrientation="landscape" />
 
         <service
+            android:name=".YouTubePairingCodeAccessibilityService"
+            android:label="@string/youtube_pairing_code_service_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/youtube_pairing_code_accessibility" />
+        </service>
+
+        <service
             android:name=".YouTubeSponsorSkipService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
