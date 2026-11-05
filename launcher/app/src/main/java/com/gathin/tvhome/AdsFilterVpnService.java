@@ -87,7 +87,7 @@ public class AdsFilterVpnService extends VpnService {
         }
         if (running.get()) return START_STICKY;
         stopping.set(false);
-        appendDnsLog("-", "診斷", "收到啟動請求；Android API " + Build.VERSION.SDK_INT);
+        appendDnsLog("-", "診斷", "收到啟動請求；" + describeBuildIdentity());
         try {
             startNotice();
             // Track real Wi-Fi/Ethernet networks, excluding the VPN itself. The default
@@ -103,6 +103,7 @@ public class AdsFilterVpnService extends VpnService {
                     .build();
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override public void onAvailable(Network network) {
+                    logNetworkEvent("onAvailable", network, cm);
                     NetworkCapabilities caps = cm.getNetworkCapabilities(network);
                     // Keep the physical default selected before the VPN was established.
                     // A second available transport (for example Wi-Fi while Ethernet is active)
@@ -118,6 +119,7 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onLost(Network network) {
+                    logNetworkEvent("onLost", network, cm);
                     if (network.equals(underlyingNetwork)) {
                         if (running.get()) {
                             // Android 9 TV firmware may hide the physical Network after the
@@ -136,6 +138,7 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
+                    logNetworkEvent("onCapabilitiesChanged", network, cm);
                     if (network.equals(underlyingNetwork) && !isPhysicalTransport(caps)) {
                         if (running.get()) {
                             underlyingNetwork = null;
@@ -160,6 +163,7 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
+                    logNetworkEvent("onLinkPropertiesChanged", network, cm);
                     if (network.equals(underlyingNetwork)) updateUpstreamServers(network, cm);
                 }
             };
@@ -252,6 +256,55 @@ public class AdsFilterVpnService extends VpnService {
         }, STARTUP_RETRY_MS);
     }
 
+    private String describeBuildIdentity() {
+        String securityPatch = Build.VERSION.SDK_INT >= 23
+                ? Build.VERSION.SECURITY_PATCH : "unknown";
+        return "Android API=" + Build.VERSION.SDK_INT
+                + "；Release=" + Build.VERSION.RELEASE
+                + "；Model=" + Build.MODEL
+                + "；Device=" + Build.DEVICE
+                + "；Product=" + Build.PRODUCT
+                + "；Hardware=" + Build.HARDWARE
+                + "；Board=" + Build.BOARD
+                + "；Display=" + Build.DISPLAY
+                + "；Fingerprint=" + Build.FINGERPRINT
+                + "；SecurityPatch=" + securityPatch
+                + "；BuildTime=" + Build.TIME;
+    }
+    private void logNetworkEvent(String event, Network network, ConnectivityManager cm) {
+        try {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            LinkProperties links = cm.getLinkProperties(network);
+            appendDnsLog("-", "網路事件", event + "；Network=" + network
+                    + "；" + describeCapabilities(caps)
+                    + "；" + describeLinkProperties(links));
+        } catch (Exception e) {
+            appendDnsLog("-", "網路事件", event + "；Network=" + network
+                    + "；讀取狀態失敗：" + e.getClass().getSimpleName());
+        }
+    }
+
+    private String describeCapabilities(NetworkCapabilities caps) {
+        if (caps == null) return "Capabilities=無";
+        return "Ethernet=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                + "；Wi-Fi=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                + "；VPN=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                + "；Internet=" + caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                + "；Validated=" + caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                + "；NotVPN=" + caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN);
+    }
+
+    private String describeLinkProperties(LinkProperties links) {
+        if (links == null) return "LinkProperties=無";
+        StringBuilder out = new StringBuilder();
+        out.append("介面=").append(links.getInterfaceName())
+                .append("；IP=").append(links.getLinkAddresses())
+                .append("；Routes=");
+        out.append(links.getRoutes());
+        out.append("；DNS=").append(describeDnsServersFromLinks(links));
+        return out.toString();
+    }
+
     private void appendNetworkSnapshot(ConnectivityManager cm) {
         try {
             Network active = cm.getActiveNetwork();
@@ -260,12 +313,9 @@ public class AdsFilterVpnService extends VpnService {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(candidate);
                 LinkProperties links = cm.getLinkProperties(candidate);
                 appendDnsLog("-", "診斷", "Network=" + candidate
-                        + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-                        + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                        + "；VPN=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
-                        + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
-                        + "；介面=" + (links == null ? "未知" : links.getInterfaceName())
-                        + "；DNS=" + (links == null ? "未知" : describeDnsServersFromLinks(links)));
+                        + "；" + describeCapabilities(caps)
+                        + "；" + describeLinkProperties(links)
+                        + "；Active=" + candidate.equals(active));
             }
         } catch (Exception e) {
             appendDnsLog("-", "診斷", "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage());
@@ -293,11 +343,15 @@ public class AdsFilterVpnService extends VpnService {
                     + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
                     + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
                     + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
+            appendDnsLog("-", "診斷", "VPN establish 前網路快照");
+            appendNetworkSnapshot(cm);
             Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
                     .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
+            appendDnsLog("-", "診斷", "即將呼叫 Builder.establish()");
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
-            appendDnsLog("-", "診斷", "VPN TUN 建立成功");
+            appendDnsLog("-", "診斷", "VPN TUN 建立成功；建立後網路快照");
+            appendNetworkSnapshot(cm);
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
@@ -676,13 +730,14 @@ public class AdsFilterVpnService extends VpnService {
         startupHandler.removeCallbacksAndMessages(null);
         cancelPendingNetworkLossCheck();
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-        appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務；停止前網路快照");
+        if (cm != null) appendNetworkSnapshot(cm);
         running.set(false);
 
         // Do not mutate VPN underlay state here; Android 9 TV firmware has shown
         // that setUnderlyingNetworks() can disrupt Ethernet restoration.
 
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null && networkCallback != null) {
             try { cm.unregisterNetworkCallback(networkCallback); }
             catch (Exception e) { Log.w(TAG, "Unable to unregister network callback", e); }
@@ -693,8 +748,18 @@ public class AdsFilterVpnService extends VpnService {
         ParcelFileDescriptor activeTunnel = tunnel;
         tunnel = null;
         if (activeTunnel != null) {
-            try { activeTunnel.close(); }
-            catch (Exception e) { Log.w(TAG, "Unable to close VPN tunnel", e); }
+            try {
+                activeTunnel.close();
+                appendDnsLog("-", "診斷", "VPN TUN 已關閉");
+            } catch (Exception e) {
+                Log.w(TAG, "Unable to close VPN tunnel", e);
+                appendDnsLog("-", "診斷", "VPN TUN 關閉失敗：" + e.getClass().getSimpleName()
+                        + "：" + String.valueOf(e.getMessage()));
+            }
+        }
+        if (cm != null) {
+            appendDnsLog("-", "診斷", "VPN 停止後網路快照");
+            appendNetworkSnapshot(cm);
         }
 
         Thread activeWorker = worker;

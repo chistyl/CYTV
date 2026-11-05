@@ -16,7 +16,7 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout isolated Ethernet DNS recovery branch
+      - name: Checkout isolated Toshiba Ethernet diagnostics branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
