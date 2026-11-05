@@ -5641,6 +5641,17 @@ private GradientDrawable roundSurface(int color, float radius) {
     private void showAppSelectionDialog(String title, List<String> packages,
                                         Map<String, ResolveInfo> appInfos, boolean[] checked,
                                         AppSelectionListener listener) {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        // 系統資料夾與一般資料夾共用此選擇視窗：依螢幕比例配置，避免固定 dp
+        // 在不同尺寸電視上造成橫幅、項目列與視窗比例失衡。
+        int dialogWidth = Math.max((int)(520 * density), Math.round(metrics.widthPixels * 0.69f));
+        int dialogHeight = Math.max((int)(480 * density), Math.round(metrics.heightPixels * 0.89f));
+        dialogWidth = Math.min(dialogWidth, metrics.widthPixels - (int)(32 * density));
+        dialogHeight = Math.min(dialogHeight, metrics.heightPixels - (int)(32 * density));
+        int artWidth = Math.max((int)(88 * density), Math.round(dialogWidth * 0.147f));
+        int artHeight = Math.round(artWidth * 9f / 16f);
+        int tileHeight = artHeight + (int)(10 * density);
+
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipChildren(false);
@@ -5673,7 +5684,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setClickable(true);
             tile.setId(View.generateViewId());
             tile.setPadding((int)(7*density), (int)(5*density), (int)(7*density), (int)(5*density));
-            tile.setMinimumHeight((int)(82*density));
+            tile.setMinimumHeight(tileHeight);
 
             FrameLayout art = new FrameLayout(this);
             GradientDrawable artBg = new GradientDrawable();
@@ -5696,7 +5707,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 image.setPadding(pad, pad, pad, pad);
             }
             art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            tile.addView(art, new LinearLayout.LayoutParams((int)(112*density), (int)(63*density)));
+            tile.addView(art, new LinearLayout.LayoutParams(artWidth, artHeight));
 
             android.widget.CheckBox check = new android.widget.CheckBox(this);
             check.setText(ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager())));
@@ -5707,7 +5718,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             check.setButtonTintList(new ColorStateList(
                     new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
                     new int[]{0xFF80C9C2, 0xFFACB8C1}));
-            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(64*density), 1f);
+            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, artHeight, 1f);
             checkLp.leftMargin = (int)(7*density);
             check.setLayoutParams(checkLp);
             check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
