@@ -27,6 +27,7 @@ public class YouTubeAssistantActivity extends Activity {
     private TextView pairingStatus;
     private TextView featureStatus;
     private TextView pairingAction;
+    private TextView featureAction;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,117 +37,136 @@ public class YouTubeAssistantActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
 
+        int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels
+                / getResources().getDisplayMetrics().density);
+        int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels
+                / getResources().getDisplayMetrics().density);
+        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
+        int verticalInset = Math.max(18, Math.min(42, Math.round(screenHeightDp * 0.035f)));
+        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
+        int headingSize = Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f)));
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
+        scroll.setBackgroundColor(BG);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        root.setBackgroundColor(BG);
-        root.setPadding(dp(56), dp(34), dp(56), dp(30));
+        root.setPadding(horizontalInset, verticalInset, horizontalInset, verticalInset);
+        scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -2));
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
         title.setText("YouTube 贊助片段略過");
         title.setTextColor(TEXT);
-        title.setTextSize(28);
+        title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
-        TextView subtitle = new TextView(this);
-        subtitle.setText("連接 YouTube TV，即可管理自動略過功能");
-        subtitle.setTextColor(MUTED);
-        subtitle.setTextSize(15);
+        TextView subtitle = text("連接 YouTube TV，即可管理自動略過功能", 16, false, MUTED);
         LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
         subtitleLp.topMargin = dp(8);
-        subtitleLp.bottomMargin = dp(28);
-        root.addView(subtitle, subtitleLp);
+        subtitleLp.bottomMargin = dp(22);
+        content.addView(subtitle, subtitleLp);
 
         LinearLayout pairingCard = card();
-        TextView pairingTitle = text("YouTube TV", 19, true, TEXT);
+        TextView pairingTitle = text("YouTube TV 配對", 20, true, TEXT);
         pairingCard.addView(pairingTitle);
-        pairingStatus = text("", 14, false, MUTED);
+        pairingStatus = text("", 15, false, MUTED);
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
-        statusLp.topMargin = dp(6);
+        statusLp.topMargin = dp(8);
         pairingCard.addView(pairingStatus, statusLp);
-        pairingAction = text("", 15, true, TEXT);
-        pairingAction.setGravity(android.view.Gravity.CENTER);
-        pairingAction.setPadding(dp(16), dp(12), dp(16), dp(12));
-        pairingAction.setBackground(round(0xFF343A46, dp(12)));
-        pairingAction.setId(View.generateViewId());
-        pairingAction.setFocusable(true);
-        pairingAction.setFocusableInTouchMode(true);
-        pairingAction.setClickable(true);
-        pairingAction.setDefaultFocusHighlightEnabled(false);
-        pairingAction.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
+        pairingAction = actionButton("");
         pairingAction.setOnClickListener(v -> showPairingDialog());
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(-1, -2);
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(-1, dp(54));
         actionLp.topMargin = dp(16);
         pairingCard.addView(pairingAction, actionLp);
-        root.addView(pairingCard, fullWidth());
+        content.addView(pairingCard, fullWidth());
 
         LinearLayout featureCard = card();
-        TextView featureTitle = text("自動略過贊助片段", 19, true, TEXT);
+        TextView featureTitle = text("自動略過贊助片段", 20, true, TEXT);
         featureCard.addView(featureTitle);
-        featureStatus = text("", 15, true, TEXT);
+        featureStatus = text("", 15, false, MUTED);
         featureStatus.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        featureStatus.setPadding(dp(14), dp(13), dp(14), dp(13));
-        featureStatus.setBackground(round(Color.rgb(52, 58, 70), dp(10)));
-        featureStatus.setId(View.generateViewId());
-        // 即使尚未配對也保留焦點，讓 Android TV 遙控器方向鍵可以移到此功能區；
-        // 未配對時按確認鍵會提示先連接電視，不會執行開關。
-        featureStatus.setFocusable(true);
-        featureStatus.setFocusableInTouchMode(true);
-        featureStatus.setClickable(true);
-        featureStatus.setDefaultFocusHighlightEnabled(false);
-        featureStatus.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
-        featureStatus.setOnClickListener(v -> {
+        featureStatus.setMinHeight(dp(48));
+        featureStatus.setPadding(dp(2), dp(8), dp(2), dp(8));
+        featureCard.addView(featureStatus);
+        featureAction = actionButton("");
+        featureAction.setOnClickListener(v -> {
             if (!YouTubePairingClient.hasSavedCredentials(this)) {
                 showMessageDialog("尚未連接電視", "請先連接 YouTube TV，再開啟自動略過。");
                 return;
             }
             toggleAutoSkip();
         });
-        // 明確指定上下焦點順序，避免 Android TV 不同遙控器／系統版本自動搜尋失敗。
-        pairingAction.setNextFocusDownId(featureStatus.getId());
-        featureStatus.setNextFocusUpId(pairingAction.getId());
-        LinearLayout.LayoutParams featureStatusLp = new LinearLayout.LayoutParams(-1, -2);
-        featureStatusLp.topMargin = dp(12);
-        featureCard.addView(featureStatus, featureStatusLp);
-        root.addView(featureCard, fullWidth());
+        LinearLayout.LayoutParams featureActionLp = new LinearLayout.LayoutParams(-1, dp(54));
+        featureActionLp.topMargin = dp(8);
+        featureCard.addView(featureAction, featureActionLp);
+        content.addView(featureCard, fullWidth());
 
-        TextView footer = text("配對資料會安全保存在本機。", 13, false, MUTED);
+        TextView footer = text("配對資料會使用 Android Keystore 加密保存在本機。", 13, false, MUTED);
         LinearLayout.LayoutParams footerLp = new LinearLayout.LayoutParams(-1, -2);
-        footerLp.topMargin = dp(18);
-        root.addView(footer, footerLp);
+        footerLp.topMargin = dp(8);
+        content.addView(footer, footerLp);
 
-        setContentView(root);
+        pairingAction.setNextFocusDownId(featureAction.getId());
+        featureAction.setNextFocusUpId(pairingAction.getId());
+        setContentView(scroll);
         refreshUi();
         pairingAction.requestFocus();
     }
 
+    private TextView actionButton(String label) {
+        TextView button = text(label, 16, true, TEXT);
+        button.setGravity(android.view.Gravity.CENTER);
+        button.setPadding(dp(18), dp(10), dp(18), dp(10));
+        button.setBackground(round(PANEL, dp(12)));
+        button.setId(View.generateViewId());
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        button.setClickable(true);
+        button.setDefaultFocusHighlightEnabled(false);
+        button.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
+        return button;
+    }
+
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
-                hasFocus ? 0xFF465366 : 0xFF343A46, dp(12));
+                hasFocus ? FOCUS : PANEL, dp(12));
         if (hasFocus) background.setStroke(dp(2), 0xFF80C9C2);
         view.setBackground(background);
         view.setElevation(hasFocus ? dp(5) : 0f);
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        if (pairingStatus != null) refreshUi();
+    }
+
     private void refreshUi() {
         boolean paired = YouTubePairingClient.hasSavedCredentials(this);
-        pairingStatus.setText(paired ? "已完成電視配對" : "尚未連接電視");
-        pairingAction.setText(paired ? "重新配對電視" : "連接 YouTube TV");
+        pairingStatus.setText(paired
+                ? "狀態：已完成配對，可重新配對其他電視"
+                : "狀態：尚未連接電視，請先完成配對");
+        pairingAction.setText(paired ? "重新配對 YouTube TV" : "連接 YouTube TV");
         boolean enabled = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false);
         String status = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getString(YouTubeSponsorSkipService.PREF_STATUS, "");
-        featureStatus.setText(!paired ? "請先連接 YouTube TV。"
-                : enabled ? "自動略過：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
-                        + "\n點選此處關閉"
-                : "自動略過：已關閉\n點選此處開啟");
-        featureStatus.setFocusable(true);
-        featureStatus.setFocusableInTouchMode(true);
-        featureStatus.setClickable(true);
-        featureStatus.setAlpha(paired ? 1f : 0.55f);
+        featureStatus.setText(!paired ? "目前尚未配對電視，完成配對後即可使用此功能。"
+                : enabled ? "目前狀態：已開啟\n" + (status.isEmpty() ? "正在啟動監控" : status)
+                : "目前狀態：已關閉");
+        featureAction.setText(!paired ? "請先連接 YouTube TV"
+                : enabled ? "關閉自動略過" : "開啟自動略過");
+        featureAction.setEnabled(paired);
+        featureAction.setAlpha(paired ? 1f : 0.55f);
     }
 
     private void toggleAutoSkip() {
