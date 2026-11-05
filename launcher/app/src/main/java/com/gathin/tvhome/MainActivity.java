@@ -2146,7 +2146,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
     private void fillHero(int position, String label) {
-        heroName.setText(label);
+        heroName.setText(TraditionalText.display(this, label));
         if (!cinematic) return;
         updateHeroMeta(position);
         updateHeroDots(position);
@@ -3886,11 +3886,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
-        boolean traditionalDisplay = TraditionalText.isEnabled(this);
+        boolean traditionalDisplay = TraditionalText.isTraditional(this);
         addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體一律繁體顯示　✓" : "簡體一律繁體顯示",
+                traditionalDisplay ? "介面語言：繁體中文　✓" : "介面語言：簡體中文　✓",
                 () -> {
-                    TraditionalText.setEnabled(this, !traditionalDisplay);
+                    TraditionalText.setLanguage(this, !traditionalDisplay);
                     popup.dismiss();
                     recreate();
                 });
@@ -6039,7 +6039,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         java.util.ArrayList<View> folderRows = new java.util.ArrayList<>();
         for (String folder : folders) {
             TextView item = new TextView(this);
-            item.setText(folder); item.setTextColor(Color.WHITE); item.setTextSize(17);
+            item.setText(TraditionalText.display(this, folder)); item.setTextColor(Color.WHITE); item.setTextSize(17);
             item.setGravity(Gravity.CENTER_VERTICAL);
             item.setPadding((int)(18*d), 0, (int)(18*d), 0);
             item.setMinHeight((int)(62*d));
@@ -7795,7 +7795,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.findViewById(R.id.dot).setVisibility(View.GONE);
         row.findViewById(R.id.status).setVisibility(View.GONE);
         TextView rowTitle = (TextView) row.findViewById(R.id.title);
-        rowTitle.setText(title);
+        rowTitle.setText(TraditionalText.display(this, title));
         rowTitle.setTextColor(Color.WHITE);
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
