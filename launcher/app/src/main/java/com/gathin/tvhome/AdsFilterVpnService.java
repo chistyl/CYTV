@@ -56,6 +56,9 @@ public class AdsFilterVpnService extends VpnService {
     private ParcelFileDescriptor tunnel;
     private Thread worker;
     private volatile Network underlyingNetwork;
+    // Preserve Ethernet as the required transport when it was selected at VPN startup.
+    // Wi-Fi availability must not mask a dropped Ethernet link on Android TV firmware.
+    private volatile boolean ethernetWasUnderlying = false;
     private volatile List<InetAddress> upstreamServers = fallbackDnsServers();
     private ConnectivityManager.NetworkCallback networkCallback;
     private final Handler startupHandler = new Handler(Looper.getMainLooper());
@@ -203,17 +206,35 @@ public class AdsFilterVpnService extends VpnService {
         pendingNetworkLossCheck = () -> {
             pendingNetworkLossCheck = null;
             if (stopping.get()) return;
-            Network replacement = findPhysicalNetwork(cm);
+            Network replacement = ethernetWasUnderlying
+                    ? findEthernetNetwork(cm) : findPhysicalNetwork(cm);
             if (replacement != null) {
                 updateUnderlyingNetwork(replacement);
-                appendDnsLog("-", "診斷", "網路中斷後重新取得實體網路：" + replacement);
+                appendDnsLog("-", "診斷", "網路中斷後重新取得"
+                        + (ethernetWasUnderlying ? "Ethernet" : "實體網路") + "：" + replacement);
                 Log.i(TAG, "Physical network recovery completed: " + replacement);
             } else {
                 appendNetworkSnapshot(cm);
-                failOpen(reason + "；等待恢復後仍找不到可用的 Wi-Fi／Ethernet");
+                if (ethernetWasUnderlying) {
+                    failOpen(reason + "；Ethernet 在等待期間仍未恢復，已優先停止 VPN 廣告過濾，交還 Android 有線網路管理");
+                } else {
+                    failOpen(reason + "；等待恢復後仍找不到可用的 Wi-Fi／Ethernet");
+                }
             }
         };
         networkHandler.postDelayed(pendingNetworkLossCheck, NETWORK_LOSS_GRACE_MS);
+    }
+
+    private Network findEthernetNetwork(ConnectivityManager cm) {
+        Network active = cm.getActiveNetwork();
+        NetworkCapabilities activeCaps = active == null ? null : cm.getNetworkCapabilities(active);
+        if (active != null && activeCaps != null
+                && activeCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return active;
+        for (Network candidate : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(candidate);
+            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return candidate;
+        }
+        return null;
     }
 
     private Network findPhysicalNetwork(ConnectivityManager cm) {
@@ -313,6 +334,9 @@ public class AdsFilterVpnService extends VpnService {
     private void updateUnderlyingNetwork(Network network) {
         underlyingNetwork = network;
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        NetworkCapabilities selectedCaps = cm == null ? null : cm.getNetworkCapabilities(network);
+        ethernetWasUnderlying = selectedCaps != null
+                && selectedCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
         if (cm != null) updateUpstreamServers(network, cm);
         // Do not call VpnService.setUnderlyingNetworks() on Android 9 TV firmware.
         // DNS sockets are independently protected from the VPN and bound to this Network.
