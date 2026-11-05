@@ -1,11 +1,12 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 /**
  * Optional, user-enabled helper that reads accessible text from the YouTube TV app only.
@@ -19,6 +20,9 @@ public class YouTubePairingCodeAccessibilityService extends AccessibilityService
     private static final String PREFS = "youtube_pairing_detection";
     private static final String PREF_CODE = "detected_code";
     private static final String PREF_TIME = "detected_at";
+    private static final int MAX_NODES = 240;
+    private static final int MAX_DEPTH = 12;
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private String lastBroadcastCode = "";
     private long lastBroadcastAt;
 
@@ -30,37 +34,56 @@ public class YouTubePairingCodeAccessibilityService extends AccessibilityService
         if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return;
 
+        // YouTube TV may emit the window event before its pairing-code nodes are attached.
+        // Retry briefly after the UI has had time to populate its accessibility tree.
+        handler.removeCallbacks(scanRunnable);
+        handler.postDelayed(scanRunnable, 180L);
+        handler.postDelayed(scanRunnable, 550L);
+        handler.postDelayed(scanRunnable, 1100L);
+    }
+
+    private final Runnable scanRunnable = this::scanActiveWindow;
+
+    private void scanActiveWindow() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return;
         try {
-            String code = findCode(root);
+            StringBuilder separated = new StringBuilder();
+            StringBuilder compact = new StringBuilder();
+            int[] visited = {0};
+            collectAccessibleText(root, 0, visited, separated, compact);
+            String code = YouTubePairingCodeParser.findCode(separated);
+            if (code.isEmpty()) code = YouTubePairingCodeParser.findCode(compact);
             if (!code.isEmpty()) publishCode(code);
         } finally {
             root.recycle();
         }
     }
 
-    private String findCode(AccessibilityNodeInfo root) {
-        return findCodeInNode(root, 0, new int[]{0});
-    }
-
-    private String findCodeInNode(AccessibilityNodeInfo node, int depth, int[] visited) {
-        if (node == null || depth > 8 || visited[0] >= 160) return "";
+    private void collectAccessibleText(AccessibilityNodeInfo node, int depth, int[] visited,
+                                       StringBuilder separated, StringBuilder compact) {
+        if (node == null || depth > MAX_DEPTH || visited[0] >= MAX_NODES) return;
         visited[0]++;
-        String code = YouTubePairingCodeParser.findCode(node.getText());
-        if (code.isEmpty()) code = YouTubePairingCodeParser.findCode(node.getContentDescription());
-        if (!code.isEmpty()) return code;
-        for (int i = 0; i < node.getChildCount() && visited[0] < 160; i++) {
+
+        appendText(node.getText(), separated, compact);
+        appendText(node.getContentDescription(), separated, compact);
+
+        for (int i = 0; i < node.getChildCount() && visited[0] < MAX_NODES; i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child == null) continue;
             try {
-                code = findCodeInNode(child, depth + 1, visited);
-                if (!code.isEmpty()) return code;
+                collectAccessibleText(child, depth + 1, visited, separated, compact);
             } finally {
                 child.recycle();
             }
         }
-        return "";
+    }
+
+    private void appendText(CharSequence value, StringBuilder separated, StringBuilder compact) {
+        if (value == null || value.length() == 0) return;
+        if (separated.length() > 0) separated.append(' ');
+        separated.append(value);
+        compact.append(value);
     }
 
     private void publishCode(String code) {
@@ -72,19 +95,19 @@ public class YouTubePairingCodeAccessibilityService extends AccessibilityService
                 .putString(PREF_CODE, code)
                 .putLong(PREF_TIME, System.currentTimeMillis())
                 .apply();
-        sendBroadcast(new android.content.Intent(ACTION_CODE_DETECTED)
+        sendBroadcast(new Intent(ACTION_CODE_DETECTED)
                 .setPackage(getPackageName())
                 .putExtra(EXTRA_CODE, code));
     }
 
-    @Override public void onInterrupt() { }
+    @Override
+    public void onInterrupt() {
+        handler.removeCallbacksAndMessages(null);
+    }
 
-    private static final class NodeDepth {
-        final AccessibilityNodeInfo node;
-        final int depth;
-        NodeDepth(AccessibilityNodeInfo node, int depth) {
-            this.node = node;
-            this.depth = depth;
-        }
+    @Override
+    public void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 }
