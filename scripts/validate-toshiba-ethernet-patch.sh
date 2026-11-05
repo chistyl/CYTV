@@ -14,7 +14,6 @@ git apply --numstat "$PATCH" >/dev/null
 # check only; it does not identify the Toshiba OEM revision.
 AOSP_URL="https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/refs/tags/android-q-preview-1/java/com/android/server/ethernet/EthernetNetworkFactory.java?format=TEXT"
 AOSP_TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP" "$AOSP_TMP"' EXIT
 AOSP_TARGET="$AOSP_TMP/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 mkdir -p "$(dirname "$AOSP_TARGET")"
 curl -fsSL "$AOSP_URL" | base64 -d > "$AOSP_TARGET"
@@ -31,7 +30,7 @@ echo "PASS: patch applies to real AOSP android-q-preview-1 source."
 # Apply against a minimal Android 9 source fixture to catch malformed hunks
 # and verify the intended source transformation without touching an OEM tree.
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+trap 'rm -rf "$TMP" "$AOSP_TMP"' EXIT
 TARGET="$TMP/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 mkdir -p "$(dirname "$TARGET")"
 cat > "$TARGET" <<'JAVA'
