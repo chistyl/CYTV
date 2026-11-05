@@ -247,7 +247,7 @@ public class YouTubeAssistantActivity extends Activity {
                             dp(20), 0);
                     // Keep every existing coordinate; remove clipping from the action row
                     // and its ancestor containers so the full button height can render.
-                    buttons.setTranslationY(0f);
+                    buttons.setTranslationY(dp(8));
                     android.view.ViewParent parent = buttons.getParent();
                     while (parent instanceof android.view.ViewGroup) {
                         android.view.ViewGroup group = (android.view.ViewGroup) parent;
