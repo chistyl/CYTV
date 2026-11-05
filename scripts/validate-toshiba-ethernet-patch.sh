@@ -9,14 +9,13 @@ grep -Fq 'if (--network.refCount == 0)' "$PATCH"
 grep -Fq 'network.stop();' "$PATCH"
 git apply --numstat "$PATCH" >/dev/null
 
-# Also verify the patch against a real AOSP framework source revision known
-# to contain the pre-fix logic (Android Q preview 1). This is a source-compatibility
-# check only; it does not identify the Toshiba OEM revision.
-AOSP_URL="https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/refs/tags/android-q-preview-1/java/com/android/server/ethernet/EthernetNetworkFactory.java?format=TEXT"
+# Verify against a real Android Pie maintenance source tree that contains the
+# pre-fix logic. This is a compatibility fixture, not Toshiba OEM source proof.
+AOSP_URL="https://raw.githubusercontent.com/digi-embedded/android_platform_frameworks_opt_net_ethernet/pie/maint/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 AOSP_TMP="$(mktemp -d)"
 AOSP_TARGET="$AOSP_TMP/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 mkdir -p "$(dirname "$AOSP_TARGET")"
-curl -fsSL "$AOSP_URL" | base64 -d > "$AOSP_TARGET"
+curl -fsSL "$AOSP_URL" > "$AOSP_TARGET"
 grep -Fq 'if (--network.refCount == 1)' "$AOSP_TARGET"
 git -C "$AOSP_TMP" init -q
 git -C "$AOSP_TMP" add .
@@ -25,7 +24,7 @@ git -C "$AOSP_TMP" apply --check "$PATCH"
 git -C "$AOSP_TMP" apply "$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$AOSP_TARGET"
 ! grep -Fq 'if (--network.refCount == 1)' "$AOSP_TARGET"
-echo "PASS: patch applies to real AOSP android-q-preview-1 source."
+echo "PASS: patch applies to real Android Pie maintenance EthernetNetworkFactory source."
 
 # Apply against a minimal Android 9 source fixture to catch malformed hunks
 # and verify the intended source transformation without touching an OEM tree.
