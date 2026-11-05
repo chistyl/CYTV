@@ -32,6 +32,22 @@ for label, pattern in required_checks.items():
     if not re.search(pattern, method, re.IGNORECASE):
         sys.exit(f"FAIL: missing {label}")
 
+ethernet_scan = re.search(
+    r"if\s*\(\s*!ethernet\s*&&\s*cm\s*!=\s*null\s*\)\s*\{(?P<body>.*?)\n\s*\}",
+    method,
+    re.DOTALL,
+)
+if not ethernet_scan:
+    sys.exit("FAIL: all-network Ethernet fallback scan not found")
+scan_body = ethernet_scan.group("body")
+for label, pattern in {
+    "enumerate all Android networks": r"cm\.getAllNetworks\(\)",
+    "inspect each network capabilities": r"cm\.getNetworkCapabilities\(candidate\)",
+    "promote Ethernet detection to true": r"ethernet\s*=\s*true",
+}.items():
+    if not re.search(pattern, scan_body):
+        sys.exit(f"FAIL: Ethernet fallback scan missing {label}")
+
 guard = re.search(
     r"if\s*\(\s*toshiba\s*&&\s*Build\.VERSION\.SDK_INT\s*==\s*Build\.VERSION_CODES\.P\s*&&\s*ethernet\s*\)\s*\{(?P<body>.*?)\n\s*\}",
     method,
