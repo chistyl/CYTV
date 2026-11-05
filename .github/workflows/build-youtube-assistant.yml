@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - r1-sponsorblock-integration
+      - fix/youtube-unpaired-confirm-button-position-color
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-assistant.yml'
