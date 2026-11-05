@@ -2,6 +2,10 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -28,6 +32,25 @@ public class YouTubeAssistantActivity extends Activity {
     private TextView featureStatus;
     private TextView pairingAction;
     private TextView featureAction;
+    private EditText pairingCodeInput;
+    private boolean pairingCodeReceiverRegistered;
+    private boolean pairingDialogShowing;
+    private String lastAutoFilledCode = "";
+    private String lastAutoOpenedCode = "";
+    private final BroadcastReceiver pairingCodeReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null || !YouTubePairingCodeAccessibilityService.ACTION_CODE_DETECTED
+                    .equals(intent.getAction())) return;
+            String code = YouTubePairingCodeParser.findCode(
+                    intent.getStringExtra(YouTubePairingCodeAccessibilityService.EXTRA_CODE));
+            if (pairingCodeInput != null) {
+                fillPairingCodeIfSafe(code);
+            } else if (!code.isEmpty()
+                    && !YouTubePairingClient.hasSavedCredentials(YouTubeAssistantActivity.this)) {
+                openPairingDialogForDetectedCode(code);
+            }
+        }
+    };
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -145,7 +168,26 @@ public class YouTubeAssistantActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        if (!pairingCodeReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(
+                    YouTubePairingCodeAccessibilityService.ACTION_CODE_DETECTED);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(pairingCodeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(pairingCodeReceiver, filter);
+            }
+            pairingCodeReceiverRegistered = true;
+        }
+        refreshPairingCodeFromSavedDetection();
         if (pairingStatus != null) refreshUi();
+    }
+
+    @Override protected void onPause() {
+        if (pairingCodeReceiverRegistered) {
+            unregisterReceiver(pairingCodeReceiver);
+            pairingCodeReceiverRegistered = false;
+        }
+        super.onPause();
     }
 
     private void refreshUi() {
@@ -195,7 +237,10 @@ public class YouTubeAssistantActivity extends Activity {
     }
 
     private void showPairingDialog() {
+        if (pairingDialogShowing || isFinishing() || isDestroyed()) return;
+        pairingDialogShowing = true;
         EditText input = new EditText(this);
+        pairingCodeInput = input;
         input.setId(View.generateViewId());
         input.setSingleLine(true);
         input.setFocusable(true);
@@ -228,6 +273,10 @@ public class YouTubeAssistantActivity extends Activity {
                 .setPositiveButton("連接", null)
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
                 .create();
+        dialog.setOnDismissListener(ignored -> {
+            pairingDialogShowing = false;
+            if (pairingCodeInput == input) pairingCodeInput = null;
+        });
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
             // The shared dialog style clips the decor to its rounded outline. For this fixed-size
@@ -355,6 +404,41 @@ public class YouTubeAssistantActivity extends Activity {
             });
         });
         dialog.show();
+    }
+
+    private void refreshPairingCodeFromSavedDetection() {
+        String code = getRecentlyDetectedPairingCode();
+        if (code.isEmpty()) return;
+        if (pairingCodeInput == null && !YouTubePairingClient.hasSavedCredentials(this)) {
+            openPairingDialogForDetectedCode(code);
+        } else {
+            fillPairingCodeIfSafe(code);
+        }
+    }
+
+    private void openPairingDialogForDetectedCode(String code) {
+        if (code == null || code.isEmpty() || pairingDialogShowing
+                || isFinishing() || isDestroyed() || code.equals(lastAutoOpenedCode)) return;
+        lastAutoOpenedCode = code;
+        showPairingDialog();
+        fillPairingCodeIfSafe(code);
+    }
+
+    private String getRecentlyDetectedPairingCode() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("youtube_pairing_detection", MODE_PRIVATE);
+        long detectedAt = prefs.getLong("detected_at", 0L);
+        if (detectedAt <= 0L || System.currentTimeMillis() - detectedAt > 5 * 60 * 1000L) return "";
+        return YouTubePairingCodeParser.findCode(prefs.getString("detected_code", ""));
+    }
+
+    private void fillPairingCodeIfSafe(String code) {
+        if (code == null || code.isEmpty() || pairingCodeInput == null) return;
+        String current = pairingCodeInput.getText().toString().trim();
+        if (current.isEmpty() || current.equals(lastAutoFilledCode)) {
+            pairingCodeInput.setText(code);
+            lastAutoFilledCode = code;
+        }
     }
 
     private void pair(String code) {
