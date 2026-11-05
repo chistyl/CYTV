@@ -401,3 +401,49 @@ TetherInterfaceStateMachine.cleanupUpstreamInterface(upstreamIface) 使用 stopI
 ### 16.5 修改決策
 
 本階段新增的是可追查的 Ethernet framework 呼叫路徑與證據需求，尚未證明 runtime 根因。保留 Toshiba Android 9 Ethernet R1 guard，不修改 VPN runtime、不產生實驗 APK、不在 Toshiba TV 重測危險情境。PR #47 維持 Draft/open/未合併。
+
+
+## 17. 第二十一階段：VPN 虛擬網路建立、UID routing 與 teardown 分層
+
+### 17.1 ConnectivityService.updateUids() 的責任邊界
+
+本次可讀取的 AOSP ConnectivityService 版本中，`updateUids()`：
+- 從前後 NetworkCapabilities 取出 UID ranges，計算新增與移除集合。
+- 新增範圍呼叫 `mNMS.addVpnUidRanges(nai.network.netId, ...)`。
+- 移除範圍呼叫 `mNMS.removeVpnUidRanges(nai.network.netId, ...)`。
+- 若符合 app VPN isolation 條件，另經 PermissionMonitor 更新 VPN UID/interface filtering。
+
+這段程式管理的是「哪些 UID 使用 VPN netId」及 VPN ingress filtering，不是 Ethernet interface administrative state。該份官方 Gitiles 檔案的 commit 為 `e4de9d2c56b758588c7a365e0f33d88753413c9a`；目前不能僅憑搜尋結果將它標為 Android 9 r45 精確版本。需與 r45 tag source 對照後才可作版本鎖定證據。
+
+### 17.2 netd networkCreateVpn() → createVirtualNetwork()
+
+可直接核對的 AOSP Android 9 r33：
+- `NetdNativeService::networkCreateVpn(netId, hasDns, secure)` 將請求交給 `NetworkController::createVirtualNetwork()`。
+- `createVirtualNetwork()` 驗證 netId、確認無重複 ID、建立 VPN fallthrough 設定，並建立 `VirtualNetwork(netId, hasDns, secure)`。
+- 此函式沒有呼叫 Ethernet interface up/down API，也沒有把實體 Ethernet iface 設為 VPN virtual network 的必要步驟。
+
+### 17.3 netd networkDestroy() → destroyNetwork()
+
+同一 r33 參考版本：
+- `NetdNativeService::networkDestroy(netId)` 呼叫 `NetworkController::destroyNetwork(netId)`，再清除該 netId 的 DNS server 設定。
+- `destroyNetwork()` 對指定 Network 呼叫 `clearInterfaces()`；對 VirtualNetwork 移除 VPN fallthrough；從 netId map 刪除物件並清理該 netId resolver cache。
+- `clearInterfaces()` 是清除該 Network 物件管理的介面關聯；這不等於對 Ethernet 實體介面執行 `interface setcfg down`。
+- 這條 VPN virtual network destroy 路徑未見直接呼叫 `InterfaceController::setInterfaceDown` 或 `NetworkManagementService.setInterfaceDown`。
+
+### 17.4 UID ranges 的 netd 端
+
+r33 `NetdNativeService` 將 `networkAddUidRanges` / `networkRemoveUidRanges` 分別交給 `NetworkController::addUsersToNetwork` / `removeUsersFromNetwork`。其對象是 VirtualNetwork UID routing ranges，而非 Ethernet link state。
+
+### 17.5 目前因果結論
+
+截至本階段，可將下列推論提升為有原始碼支持的「責任邊界」：
+- `createVirtualNetwork()` 建立 VPN virtual netId 與 fallthrough routing state。
+- `updateUids()` 更新 VPN UID routing / isolation。
+- `destroyNetwork()` 清除指定 netId 的 network membership、fallthrough 與 DNS resolver cache。
+- 上述 API 本身不是 Ethernet 實體介面 link-down 命令；目前未找到從這三條路徑直接呼叫 Ethernet interface-down 的呼叫鏈。
+
+但這仍不是 Toshiba 斷線根因的完整排除證明：r33 只能作 Android 9 相鄰 tag 的 netd 參考；ConnectivityService 搜尋結果也需核對 r45 tag。Toshiba vendor framework、HAL、driver 與 init 路徑仍未被排除。
+
+### 17.6 下一步與安全決策
+
+下一步應在可核對的 Android 9 r45 tag 上鎖定同一組檔案，並將 `interface setcfg down`、`setInterfaceDown` 的所有 caller 與 EthernetTracker link-state 路徑交叉比對。若尚未找到 caller，不能提交 runtime patch。Toshiba + Android 9 + Ethernet 的 R1 guard 保持不變；不重新啟動該設備的 VPN 廣告阻擋、不產生實驗 APK、不合併 PR #47。
