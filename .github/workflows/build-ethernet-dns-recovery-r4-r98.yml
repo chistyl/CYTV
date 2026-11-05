@@ -1,7 +1,13 @@
-name: Build CYTV Ethernet DNS Recovery R4 on R98
+name: Build CYTV Ethernet Link Drop Recovery for Toshiba 65U7000VS
 
 on:
   push:
+    branches:
+      - fix/ethernet-link-drop-recovery-toshiba-65u7000vs
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-ethernet-dns-recovery-r4-r98.yml'
+  pull_request:
     branches:
       - fix/ethernet-dns-recovery-r4-r98
     paths:
@@ -54,21 +60,21 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R98-Ethernet-DNS-Recovery-R4-APK
+          name: CYTV-Toshiba-65U7000VS-Ethernet-Recovery-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip . \
+          zip -qr CYTV-Toshiba-65U7000VS-Ethernet-Recovery-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip'
+               './launcher/app/build/*' './CYTV-Toshiba-65U7000VS-Ethernet-Recovery-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R98-Ethernet-DNS-Recovery-R4-Complete-Source
-          path: CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip
+          name: CYTV-Toshiba-65U7000VS-Ethernet-Recovery-Complete-Source
+          path: CYTV-Toshiba-65U7000VS-Ethernet-Recovery-source.zip
           if-no-files-found: error
           retention-days: 30
