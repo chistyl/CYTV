@@ -3882,7 +3882,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
-        addSettingsMenuRow(rows, popup, "桌面設定", this::showHomeAppVisibilityDialog);
+        addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
@@ -3903,8 +3903,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, AdsBlockerActivity.class));
         });
-        // 系統重啟固定放在設定選單最下方；優先使用系統電源選單，必要時走安全確認流程。
-        addSettingsMenuRow(rows, popup, "系統重啟", this::openSystemPowerMenuFromSettings);
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
