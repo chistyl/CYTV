@@ -5798,7 +5798,23 @@ private GradientDrawable roundSurface(int color, float radius) {
     private void showAppSelectionDialog(String title, List<String> packages,
                                         Map<String, ResolveInfo> appInfos, boolean[] checked,
                                         AppSelectionListener listener) {
-        ScrollView scroll = new ScrollView(this);
+        final java.util.ArrayList<View> selectionTiles = new java.util.ArrayList<>();
+        final View[] footerDownTarget = new View[1];
+        ScrollView scroll = new ScrollView(this) {
+            @Override
+            public boolean arrowScroll(int direction) {
+                if (direction == View.FOCUS_DOWN && footerDownTarget[0] != null) {
+                    View focused = findFocus();
+                    int focusedIndex = selectionTiles.indexOf(focused);
+                    int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+                    if (focusedIndex >= lastRowStart && focusedIndex >= 0) {
+                        footerDownTarget[0].requestFocus();
+                        return true;
+                    }
+                }
+                return super.arrowScroll(direction);
+            }
+        };
         scroll.setFillViewport(true);
         scroll.setClipChildren(false);
         scroll.setClipToPadding(false);
@@ -5814,7 +5830,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
 
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        java.util.ArrayList<View> selectionTiles = new java.util.ArrayList<>();
         java.util.ArrayList<LinearLayout> gridRows = new java.util.ArrayList<>();
 
         for (int i = 0; i < packages.size(); i++) {
