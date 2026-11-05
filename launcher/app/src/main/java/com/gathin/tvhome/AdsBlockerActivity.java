@@ -140,7 +140,7 @@ public class AdsBlockerActivity extends Activity {
         scroll.setFocusable(false);
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(28), dp(22), dp(28), dp(30));
+        content.setPadding(dp(60), dp(22), dp(60), dp(30));
         scroll.addView(content);
         setContentView(scroll);
         TextView title = label("阻擋廣告", 30); title.setTypeface(null, Typeface.BOLD);
