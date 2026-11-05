@@ -33,6 +33,33 @@ public class SponsorBlockClientTest {
         assertSame(second, SponsorBlockClient.findSegmentAtPosition(segments, 33.0));
     }
 
+    @Test public void defaultAutoSkipCategoriesCoverCommonSegmentsButExcludeAggressiveTypes() {
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("sponsor"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("selfpromo"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("interaction"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("intro"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("outro"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("preview"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("hook"));
+        assertTrue(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("music_offtopic"));
+        assertFalse(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("filler"));
+        assertFalse(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("poi_highlight"));
+        assertFalse(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("exclusive_access"));
+        assertFalse(SponsorBlockClient.AUTO_SKIP_CATEGORIES.contains("chapter"));
+    }
+
+    @Test public void categoryFilterMatchesOnlySelectedCategories() {
+        assertTrue(SponsorBlockClient.isCategorySelected(
+                "sponsor", SponsorBlockClient.AUTO_SKIP_CATEGORIES));
+        assertTrue(SponsorBlockClient.isCategorySelected(
+                "intro", SponsorBlockClient.AUTO_SKIP_CATEGORIES));
+        assertFalse(SponsorBlockClient.isCategorySelected(
+                "filler", SponsorBlockClient.AUTO_SKIP_CATEGORIES));
+        assertFalse(SponsorBlockClient.isCategorySelected(
+                "unknown", SponsorBlockClient.AUTO_SKIP_CATEGORIES));
+        assertFalse(SponsorBlockClient.isCategorySelected(null, SponsorBlockClient.AUTO_SKIP_CATEGORIES));
+    }
+
     @Test public void invalidPositionsAndMissingSegmentsNeverMatch() {
         SponsorBlockClient.Segment segment =
                 new SponsorBlockClient.Segment(1.0, 5.0, "sponsor", "uuid-1");
