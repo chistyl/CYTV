@@ -127,11 +127,11 @@ public class AdsBlockerActivity extends Activity {
         });
     }
     private TextView label(String text, int size) {
-        TextView v = new TextView(this); v.setText(text); v.setTextColor(Color.WHITE);
+        TextView v = new TextView(this); v.setText(TraditionalText.display(this, text)); v.setTextColor(Color.WHITE);
         v.setTextSize(size); v.setGravity(Gravity.CENTER_VERTICAL); return v;
     }
     private Button button(String text, Runnable action) {
-        Button b = new Button(this); b.setText(text); b.setTextColor(Color.WHITE); b.setTextSize(18);
+        Button b = new Button(this); b.setText(TraditionalText.display(this, text)); b.setTextColor(Color.WHITE); b.setTextSize(18);
         b.setAllCaps(false); b.setFocusable(true); b.setMinHeight(dp(54));
         b.setBackground(focusBg(Color.rgb(48, 51, 60), Color.rgb(74, 79, 92)));
         b.setPadding(dp(18), dp(8), dp(18), dp(8));
@@ -210,11 +210,11 @@ public class AdsBlockerActivity extends Activity {
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
     private void refresh() {
         if (status == null) return;
-        status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
-        toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
+        status.setText(TraditionalText.display(this, enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉"));
+        toggle.setText(TraditionalText.display(this, enabled() ? "停用廣告阻擋" : "啟用廣告阻擋"));
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
-        autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
-        manualDnsChoice.setText(auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）");
+        autoDnsChoice.setText(TraditionalText.display(this, auto ? "✓ 自動（Auto）" : "自動（Auto）"));
+        manualDnsChoice.setText(TraditionalText.display(this, auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）"));
         autoDnsChoice.setSelected(auto);
         manualDnsChoice.setSelected(!auto);
         renderRules(BLOCK); renderRules(ALLOW);
@@ -391,7 +391,7 @@ public class AdsBlockerActivity extends Activity {
             else if ("允許".equals(result)) allowed++;
             else if ("查詢失敗".equals(result)) failed++;
         }
-        summary.setText("顯示最新 " + visibleCount + " / " + logs.length() + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed);
+        summary.setText(TraditionalText.display(this, "顯示最新 " + visibleCount + " / " + logs.length() + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed));
         if (logs.length() == 0) {
             TextView empty = label("目前沒有 DNS 紀錄。啟用廣告阻擋並讓 APP 產生網路請求後，紀錄會顯示在這裡。", 17);
             empty.setTextColor(Color.LTGRAY);
