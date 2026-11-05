@@ -6023,7 +6023,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setMinWidth((int)(112*density));
             cancelButton.setMinHeight((int)(52*density));
             saveButton.setMinHeight((int)(52*density));
-            LinearLayout.LayoutParams cancelParams = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
             cancelParams.rightMargin = (int)(18*density);
             cancelButton.setLayoutParams(cancelParams);
             LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
