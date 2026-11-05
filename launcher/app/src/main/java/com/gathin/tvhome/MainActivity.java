@@ -5954,6 +5954,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
+            // 最後一列卡片直接指定 DPAD_DOWN 目標，避免依賴 ScrollView 跨區域焦點搜尋。
+            if (!selectionTiles.isEmpty()) {
+                int firstTileInLastRow = Math.max(0, selectionTiles.size() - 2);
+                for (int i = firstTileInLastRow; i < selectionTiles.size(); i++) {
+                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
+                }
+                cancelButton.setNextFocusUpId(selectionTiles.get(selectionTiles.size() - 1).getId());
+            }
             cancelButton.setAllCaps(false);
             saveButton.setAllCaps(false);
             cancelButton.setMinWidth((int)(104*density));
