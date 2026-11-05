@@ -310,26 +310,108 @@ public class AdsBlockerActivity extends Activity {
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(8), dp(8), dp(8), dp(4));
+        // Keep the EditText well inside the rounded dialog; its focus stroke must not
+        // touch or be clipped by the dialog's left/right edges.
+        panel.setPadding(dp(18), dp(12), dp(18), dp(8));
         panel.setBackground(bg(Color.rgb(29, 33, 43), 0));
-        panel.addView(input, new LinearLayout.LayoutParams(-1, dp(58)));
+        LinearLayout.LayoutParams inputParams =
+                new LinearLayout.LayoutParams(-1, dp(58));
+        inputParams.leftMargin = dp(4);
+        inputParams.rightMargin = dp(4);
+        panel.addView(input, inputParams);
 
-        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams actionsParams =
+                new LinearLayout.LayoutParams(-1, dp(64));
+        actionsParams.topMargin = dp(8);
+        panel.addView(actions, actionsParams);
+
+        Button cancel = new Button(this);
+        cancel.setId(View.generateViewId());
+        cancel.setText("取消");
+        Button add = new Button(this);
+        add.setId(View.generateViewId());
+        add.setText("新增");
+        Button[] buttons = {cancel, add};
+        for (Button button : buttons) {
+            button.setAllCaps(false);
+            button.setTextSize(17);
+            button.setTextColor(Color.rgb(128, 201, 194));
+            button.setMinHeight(dp(50));
+            button.setMinWidth(dp(88));
+            button.setPadding(dp(14), dp(8), dp(14), dp(8));
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setBackground(focusBg(Color.rgb(29, 33, 43), Color.rgb(54, 64, 77)));
+        }
+        LinearLayout.LayoutParams cancelParams =
+                new LinearLayout.LayoutParams(-2, dp(54));
+        cancelParams.rightMargin = dp(8);
+        actions.addView(cancel, cancelParams);
+        actions.addView(add, new LinearLayout.LayoutParams(-2, dp(54)));
+
+        AlertDialog dialog = new AlertDialog.Builder(this,
+                android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
                 .setView(panel)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("新增", (d, w) -> {
-                    String domain = normalize(input.getText().toString());
-                    if (domain.isEmpty()) {
-                        Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    LinkedHashSet<String> set = new LinkedHashSet<>(rules(key));
-                    set.add(domain);
-                    saveRules(key, set);
-                    refresh();
-                })
                 .create();
+
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        add.setOnClickListener(v -> {
+            String domain = normalize(input.getText().toString());
+            if (domain.isEmpty()) {
+                Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show();
+                input.requestFocus();
+                return;
+            }
+            LinkedHashSet<String> set = new LinkedHashSet<>(rules(key));
+            set.add(domain);
+            saveRules(key, set);
+            refresh();
+            dialog.dismiss();
+        });
+
+        // Explicit D-pad routing: DOWN from the text field enters the button row;
+        // UP returns to the field; LEFT/RIGHT moves between the two action buttons.
+        input.setNextFocusDownId(cancel.getId());
+        cancel.setNextFocusUpId(input.getId());
+        add.setNextFocusUpId(input.getId());
+        cancel.setNextFocusRightId(add.getId());
+        add.setNextFocusLeftId(cancel.getId());
+        input.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                    && keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancel.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        cancel.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                input.requestFocus();
+                return true;
+            }
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                add.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        add.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                input.requestFocus();
+                return true;
+            }
+            if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancel.requestFocus();
+                return true;
+            }
+            return false;
+        });
 
         dialog.setOnShowListener(ignored -> {
             Window window = dialog.getWindow();
@@ -344,36 +426,12 @@ public class AdsBlockerActivity extends Activity {
                 window.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.88f),
                         WindowManager.LayoutParams.WRAP_CONTENT);
             }
-
-            TextView title = dialog.findViewById(getResources().getIdentifier("alertTitle", "id", "android"));
+            TextView title = dialog.findViewById(
+                    getResources().getIdentifier("alertTitle", "id", "android"));
             if (title != null) {
                 title.setTextColor(Color.WHITE);
                 title.setTextSize(21);
                 title.setTypeface(null, Typeface.BOLD);
-            }
-
-            Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            Button add = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button[] buttons = {cancel, add};
-            for (Button button : buttons) {
-                if (button == null) continue;
-                button.setAllCaps(false);
-                button.setTextSize(17);
-                button.setTextColor(Color.rgb(128, 201, 194));
-                button.setMinHeight(dp(50));
-                button.setMinWidth(dp(88));
-                button.setPadding(dp(14), dp(8), dp(14), dp(8));
-                button.setFocusable(true);
-                button.setFocusableInTouchMode(true);
-                button.setBackground(focusBg(Color.rgb(29, 33, 43), Color.rgb(54, 64, 77)));
-            }
-
-            if (cancel != null && add != null) {
-                cancel.setNextFocusRightId(add.getId());
-                cancel.setNextFocusUpId(input.getId());
-                add.setNextFocusLeftId(cancel.getId());
-                add.setNextFocusUpId(input.getId());
-                input.setNextFocusDownId(cancel.getId());
             }
             input.post(input::requestFocus);
         });
