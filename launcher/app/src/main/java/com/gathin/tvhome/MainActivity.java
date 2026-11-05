@@ -5935,24 +5935,87 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
+        // Use a custom Dialog with a permanently visible action bar. The footer is a
+        // sibling of the ScrollView, never part of the scrolling content or AlertDialog panel.
+        Dialog dialog = new Dialog(this);
+        LinearLayout dialogRoot = new LinearLayout(this);
+        dialogRoot.setOrientation(LinearLayout.VERTICAL);
+        dialogRoot.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        GradientDrawable dialogSurface = new GradientDrawable();
+        dialogSurface.setColor(0xFF1D212B);
+        dialogSurface.setCornerRadius(22*density);
+        dialogSurface.setStroke(Math.max(1,(int)density), 0x2880C9C2);
+        dialogRoot.setBackground(dialogSurface);
+        TextView dialogTitle = new TextView(this);
+        dialogTitle.setText(TraditionalText.display(this, title));
+        dialogTitle.setTextColor(0xFFF5F6FA);
+        dialogTitle.setTextSize(20);
+        dialogTitle.setPadding((int)(4*density), 0, 0, (int)(12*density));
+        dialogRoot.addView(dialogTitle, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(-1, 0, 1f);
+        scrollParams.bottomMargin = (int)(10*density);
+        dialogRoot.addView(scroll, scrollParams);
+
+        LinearLayout footer = new LinearLayout(this);
+        footer.setOrientation(LinearLayout.HORIZONTAL);
+        footer.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        footer.setFocusable(false);
+        Button cancelButton = new Button(this);
+        Button saveButton = new Button(this);
+        cancelButton.setText("取消");
+        saveButton.setText("儲存");
+        Button[] footerButtons = {cancelButton, saveButton};
+        GradientDrawable footerNormal = new GradientDrawable();
+        footerNormal.setColor(0xFF343B47);
+        footerNormal.setCornerRadius(14*density);
+        GradientDrawable footerFocused = new GradientDrawable();
+        footerFocused.setColor(0xFF465366);
+        footerFocused.setCornerRadius(14*density);
+        footerFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
+        for (Button button : footerButtons) {
+            button.setAllCaps(false);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setMinWidth((int)(108*density));
+            button.setMinHeight((int)(52*density));
+            button.setTextColor(0xFFF1F2F4);
+            button.setBackground(footerNormal.getConstantState().newDrawable().mutate());
+            button.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground((focused ? footerFocused : footerNormal).getConstantState().newDrawable().mutate()));
+            button.setId(View.generateViewId());
+        }
+        LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(-2, -2);
+        cancelParams.rightMargin = (int)(12*density);
+        footer.addView(cancelButton, cancelParams);
+        footer.addView(saveButton, new LinearLayout.LayoutParams(-2, -2));
+        dialogRoot.addView(footer, new LinearLayout.LayoutParams(-1, -2));
+
+        dialog.setContentView(dialogRoot);
+        dialog.setCanceledOnTouchOutside(false);
         dialog.show();
         if (dialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable();
-            rounded.setColor(0xFF1D212B);
-            rounded.setCornerRadius(22*density);
-            rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            dialog.getWindow().setBackgroundDrawable(rounded);
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(Math.min((int)(760*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
                     Math.min((int)(660*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
         }
-        styleRemoteDialogActions(dialog);
-        Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        saveButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            listener.onSave(checked);
+        });
+        cancelButton.setNextFocusLeftId(cancelButton.getId());
+        cancelButton.setNextFocusRightId(saveButton.getId());
+        saveButton.setNextFocusLeftId(cancelButton.getId());
+        saveButton.setNextFocusRightId(saveButton.getId());
+        cancelButton.setNextFocusDownId(cancelButton.getId());
+        saveButton.setNextFocusDownId(saveButton.getId());
+        cancelButton.setNextFocusUpId(selectionTiles.isEmpty()
+                ? cancelButton.getId() : selectionTiles.get(selectionTiles.size() - 1).getId());
+        saveButton.setNextFocusUpId(selectionTiles.isEmpty()
+                ? saveButton.getId() : selectionTiles.get(selectionTiles.size() - 1).getId());
         if (cancelButton != null && saveButton != null) {
             cancelButton.setAllCaps(false);
             saveButton.setAllCaps(false);
@@ -6039,7 +6102,18 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusDownId(saveButton.getId());
         }
-        if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
+        if (!selectionTiles.isEmpty()) {
+            int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
+            for (int i = lastRowStart; i < selectionTiles.size(); i++) {
+                View lastTile = selectionTiles.get(i);
+                lastTile.setNextFocusDownId(cancelButton.getId());
+            }
+            // Keep the footer reachable even when the list is shorter than the viewport.
+            selectionTiles.get(0).setNextFocusUpId(cancelButton.getId());
+            selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
+        } else {
+            cancelButton.post(cancelButton::requestFocus);
+        }
     }
 
     private void showFolderAppAssignment() {
