@@ -375,7 +375,13 @@ public class YouTubeAssistantActivity extends Activity {
         if (confirm != null) {
             // Keep the confirmation label white and raise only this button slightly.
             confirm.setTextColor(Color.WHITE);
-            confirm.setTranslationY(-dp(8));
+            // Keep the dialog and button position unchanged; reduce the button footprint
+            // so its full rounded shape remains visible inside the fixed dialog surface.
+            confirm.setTranslationY(0f);
+            confirm.setMinWidth(dp(96));
+            confirm.setMinHeight(dp(42));
+            confirm.setPadding(dp(14), dp(6), dp(14), dp(6));
+            confirm.setTextSize(14);
             confirm.setOnFocusChangeListener((view, hasFocus) -> {
                 view.setBackground(hasFocus
                         ? round(FOCUS, dp(16))
