@@ -3888,7 +3888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
         addSettingsMenuRow(rows, popup,
-                traditionalDisplay ? "簡體一律繁體顯示　✓" : "簡體一律繁體顯示",
+                traditionalDisplay ? "簡體一律繁體顯示(打勾)" : "簡體一律繁體顯示",
                 () -> {
                     TraditionalText.setEnabled(this, !traditionalDisplay);
                     popup.dismiss();
