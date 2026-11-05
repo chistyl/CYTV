@@ -7528,7 +7528,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 livePreview.targetIcon.setLayoutParams(lp);
             }
             value.setText(TraditionalText.display(this, "調整幅度：" + (adjustment > 0 ? "+" : "") + adjustment
-                    + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%");
+                    + "%　｜　實際圖標比例：" + Math.round(iconScale * 100f) + "%"));
         };
         size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
