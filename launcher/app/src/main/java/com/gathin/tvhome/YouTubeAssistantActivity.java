@@ -2,6 +2,13 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -27,6 +34,19 @@ public class YouTubeAssistantActivity extends Activity {
     private TextView pairingStatus;
     private TextView featureStatus;
     private TextView pairingAction;
+    private TextView pairingDetectionAction;
+    private EditText pairingCodeInput;
+    private String lastAutoFilledCode = "";
+    private final BroadcastReceiver pairingCodeReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null || !YouTubePairingCodeAccessibilityService.ACTION_CODE_DETECTED
+                    .equals(intent.getAction())) return;
+            String code = YouTubePairingCodeParser.findCode(
+                    intent.getStringExtra(YouTubePairingCodeAccessibilityService.EXTRA_CODE));
+            fillPairingCodeIfSafe(code);
+        }
+    };
+    private boolean pairingCodeReceiverRegistered;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +99,28 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(-1, -2);
         actionLp.topMargin = dp(16);
         pairingCard.addView(pairingAction, actionLp);
+
+        pairingDetectionAction = text("", 14, true, TEXT);
+        pairingDetectionAction.setGravity(android.view.Gravity.CENTER);
+        pairingDetectionAction.setPadding(dp(14), dp(11), dp(14), dp(11));
+        pairingDetectionAction.setBackground(round(0xFF252B35, dp(10)));
+        pairingDetectionAction.setFocusable(true);
+        pairingDetectionAction.setFocusableInTouchMode(true);
+        pairingDetectionAction.setClickable(true);
+        pairingDetectionAction.setDefaultFocusHighlightEnabled(false);
+        pairingDetectionAction.setOnFocusChangeListener((v, hasFocus) -> applyFocusState(v, hasFocus));
+        pairingDetectionAction.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+            } catch (Exception error) {
+                showMessageDialog("無法開啟設定", "請到 Android 系統設定中的無障礙功能，開啟「YouTube 配對碼自動偵測」。");
+            }
+        });
+        LinearLayout.LayoutParams detectionLp = new LinearLayout.LayoutParams(-1, -2);
+        detectionLp.topMargin = dp(10);
+        pairingCard.addView(pairingDetectionAction, detectionLp);
+        pairingAction.setNextFocusDownId(pairingDetectionAction.getId());
+        pairingDetectionAction.setNextFocusUpId(pairingAction.getId());
         root.addView(pairingCard, fullWidth());
 
         LinearLayout featureCard = card();
@@ -121,6 +163,30 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction.requestFocus();
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        refreshPairingCodeFromSavedDetection();
+        if (!pairingCodeReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(
+                    YouTubePairingCodeAccessibilityService.ACTION_CODE_DETECTED);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(pairingCodeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(pairingCodeReceiver, filter);
+            }
+            pairingCodeReceiverRegistered = true;
+        }
+        refreshUi();
+    }
+
+    @Override protected void onPause() {
+        if (pairingCodeReceiverRegistered) {
+            unregisterReceiver(pairingCodeReceiver);
+            pairingCodeReceiverRegistered = false;
+        }
+        super.onPause();
+    }
+
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
                 hasFocus ? 0xFF46566B : 0xFF343B47, dp(12));
@@ -133,6 +199,9 @@ public class YouTubeAssistantActivity extends Activity {
         boolean paired = YouTubePairingClient.hasSavedCredentials(this);
         pairingStatus.setText(paired ? "已完成電視配對" : "尚未連接電視");
         pairingAction.setText(paired ? "重新配對電視" : "連接 YouTube TV");
+        pairingDetectionAction.setText(isPairingCodeAccessibilityEnabled()
+                ? "配對碼自動偵測：已開啟"
+                : "開啟配對碼自動偵測");
         boolean enabled = getSharedPreferences(
                 YouTubeSponsorSkipService.PREFS, MODE_PRIVATE)
                 .getBoolean(YouTubeSponsorSkipService.PREF_ENABLED, false);
@@ -175,6 +244,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void showPairingDialog() {
         EditText input = new EditText(this);
+        pairingCodeInput = input;
         input.setId(View.generateViewId());
         input.setSingleLine(true);
         input.setFocusable(true);
@@ -191,8 +261,14 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(8), dp(8), dp(8), dp(4));
-        TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
+        TextView help = text("先在電視 YouTube 畫面顯示配對碼；若已啟用自動偵測，返回此頁即可帶入。也可從剪貼簿讀取。", 14, false, MUTED);
         box.addView(help);
+        String detected = getRecentlyDetectedPairingCode();
+        if (detected.isEmpty()) detected = getClipboardPairingCode();
+        if (!detected.isEmpty()) {
+            input.setText(detected);
+            lastAutoFilledCode = detected;
+        }
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
         inputLp.topMargin = dp(14);
         box.addView(input, inputLp);
@@ -229,6 +305,53 @@ public class YouTubeAssistantActivity extends Activity {
             input.post(input::requestFocus);
         });
         dialog.show();
+    }
+
+    private boolean isPairingCodeAccessibilityEnabled() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (TextUtils.isEmpty(enabled)) return false;
+        String target = new android.content.ComponentName(this,
+                YouTubePairingCodeAccessibilityService.class).flattenToString();
+        for (String component : enabled.split(":")) {
+            if (target.equalsIgnoreCase(component)) return true;
+        }
+        return false;
+    }
+
+    private void refreshPairingCodeFromSavedDetection() {
+        String code = getRecentlyDetectedPairingCode();
+        if (code.isEmpty()) return;
+        fillPairingCodeIfSafe(code);
+    }
+
+    private String getRecentlyDetectedPairingCode() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("youtube_pairing_detection", MODE_PRIVATE);
+        long detectedAt = prefs.getLong("detected_at", 0L);
+        if (detectedAt <= 0L || System.currentTimeMillis() - detectedAt > 5 * 60 * 1000L) return "";
+        return YouTubePairingCodeParser.findCode(prefs.getString("detected_code", ""));
+    }
+
+    private String getClipboardPairingCode() {
+        try {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (clipboard == null || !clipboard.hasPrimaryClip()
+                    || clipboard.getPrimaryClip().getItemCount() == 0) return "";
+            CharSequence text = clipboard.getPrimaryClip().getItemAt(0).coerceToText(this);
+            return YouTubePairingCodeParser.findCode(text);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private void fillPairingCodeIfSafe(String code) {
+        if (code == null || code.isEmpty() || pairingCodeInput == null) return;
+        String current = pairingCodeInput.getText().toString().trim();
+        if (current.isEmpty() || current.equals(lastAutoFilledCode)) {
+            pairingCodeInput.setText(code);
+            lastAutoFilledCode = code;
+        }
     }
 
     private void pair(String code) {
