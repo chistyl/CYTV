@@ -32,7 +32,7 @@ class EthernetNetworkFactory {
 EOF
 git -C "$TMP" init -q
 git -C "$TMP" apply --check "$PATCH"
-git -C "$TMP" apply "$OLDPWD/$PATCH"
+git -C "$TMP" apply "$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$TARGET"
 ! grep -Fq 'if (--network.refCount == 1)' "$TARGET"
 
