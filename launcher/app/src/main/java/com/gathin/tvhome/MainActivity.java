@@ -4728,6 +4728,48 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** 桌面顯示：APP／資料夾分頁，勾選代表隱藏。APP 使用 TV 16:9 橫幅預覽。 */
+    /**
+     * Route focus traversal itself instead of relying on key dispatch. Android TV firmware may
+     * consume DPAD_DOWN in a ScrollView before a key listener on the dialog root can redirect it.
+     */
+    private final class DialogDpadBridge extends FrameLayout {
+        private final ViewGroup rows;
+        private View action;
+        DialogDpadBridge(Context context, View content, ViewGroup rows, View action) {
+            super(context);
+            this.rows = rows;
+            this.action = action;
+            setFocusable(false);
+            setClipChildren(false);
+            setClipToPadding(false);
+            addView(content, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        void setAction(View button) { action = button; }
+        @Override public View focusSearch(View focused, int direction) {
+            if (direction == View.FOCUS_DOWN && action != null
+                    && action.isShown() && action.isFocusable()) {
+                int count = rows.getChildCount();
+                if (focused != null && count > 0
+                        && isViewInside(focused, rows.getChildAt(count - 1))) {
+                    return action;
+                }
+            }
+            return super.focusSearch(focused, direction);
+        }
+    }
+
+    private boolean isViewInside(View child, View ancestor) {
+        View current = child;
+        while (current != null) {
+            if (current == ancestor) return true;
+            ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return false;
+    }
+
+
     private void showHomeAppVisibilityDialog() {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         PackageManager visibilityPm = getPackageManager();
