@@ -7,6 +7,12 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-app-tv-thumbnails.yml'
+  pull_request:
+    branches:
+      - fix/ethernet-dns-recovery-r4-r98
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-app-tv-thumbnails.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +25,7 @@ jobs:
       - name: Checkout thumbnail feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
 
       - name: Set up JDK 17
