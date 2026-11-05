@@ -6,7 +6,7 @@ on:
       - fix/ethernet-dns-recovery-r4-r98
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-ethernet-dns-recovery-r4.yml'
+      - '.github/workflows/build-ethernet-dns-recovery-r4-r98.yml'
   workflow_dispatch:
 
 permissions:
@@ -63,12 +63,12 @@ jobs:
         run: |
           zip -qr CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-Ethernet-DNS-Recovery-R4-source.zip'
+               './launcher/app/build/*' './CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-R98-Ethernet-DNS-Recovery-R4-Complete-Source
-          path: CYTV-Ethernet-DNS-Recovery-R4-source.zip
+          path: CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip
           if-no-files-found: error
           retention-days: 30
