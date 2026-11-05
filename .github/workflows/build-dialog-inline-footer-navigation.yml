@@ -1,4 +1,4 @@
-name: Build CYTV Dialog D-pad Pre-dispatch Focus Fix
+name: Build CYTV Dialog Inline Footer Navigation
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
       - fix/dialog-inline-footer-navigation-dbfe6ad
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-dialog-dpad-predispatch-focus.yml'
+      - '.github/workflows/build-dialog-inline-footer-navigation.yml'
   pull_request:
     branches:
       - fix/ethernet-dns-recovery-r4-r98
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-dialog-dpad-predispatch-focus.yml'
+      - '.github/workflows/build-dialog-inline-footer-navigation.yml'
 
 permissions:
   contents: read
