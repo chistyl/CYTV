@@ -339,17 +339,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
                 int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
                 float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                // A custom icon or an explicit size adjustment switches this tile to icon artwork,
-                // otherwise keep the app's native TV banner when one exists.
-                boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
-                        custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
-                if (!forceIconTile) {
-                    banner = bundledBanner(appBanners.get(pkg));
-                    if (banner == null) banner = loadBanner(pm, ri);
-                }
-                // No-banner apps and explicitly customized icons use the original/custom icon, centred
-                // on white by default, at 125% unless the owner adjusts it.
-                if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
+                // Use the app's own square launcher icon as the source for both ordinary app
+                // thumbnails and the TV-format artwork. Do not substitute a separately supplied
+                // landscape banner: it can depict a different crop or visual identity.
+                banner = iconBanner(icon, tileBackground, iconScale);
                 icon = null;
             } else {
                 banner = bundledBanner(appBanners.get(pkg));
