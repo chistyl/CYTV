@@ -253,6 +253,7 @@ public class YouTubeAssistantActivity extends Activity {
     private String getPairingDetectionDiagnostics() {
         android.content.SharedPreferences prefs =
                 getSharedPreferences(YouTubePairingCodeAccessibilityService.PREFS, MODE_PRIVATE);
+        boolean serviceConnected = prefs.getBoolean("service_connected", false);
         int events = prefs.getInt("event_count", 0);
         int scans = prefs.getInt("scan_count", 0);
         int rootNull = prefs.getInt("root_null_count", 0);
@@ -262,7 +263,8 @@ public class YouTubeAssistantActivity extends Activity {
         long lastDetected = prefs.getLong("last_detected_at", 0L);
         String scanAge = lastScan == 0L ? "無" :
                 Math.max(0L, (System.currentTimeMillis() - lastScan) / 1000L) + "秒前";
-        String result = "診斷：事件 " + events + " 次／掃描 " + scans
+        String result = "服務：" + (serviceConnected ? "已連線" : "未連線")
+                + "／事件 " + events + " 次／掃描 " + scans
                 + " 次（空畫面 " + rootNull + " 次）"
                 + "\n最近掃描：" + scanAge + "，節點 " + nodes + " 個，文字 " + chars + " 字";
         if (lastDetected > 0L) result += "\n最近曾讀到配對碼：" +
