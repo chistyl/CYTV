@@ -295,19 +295,90 @@ public class AdsBlockerActivity extends Activity {
         return d;
     }
     private void promptDomain(String key) {
-        EditText input = new EditText(this); input.setSingleLine(true);
-        input.setFocusable(true); input.setFocusableInTouchMode(true);
-        input.setPadding(dp(12), dp(10), dp(12), dp(10));
-        input.setBackground(focusBg(Color.rgb(39,42,50), Color.rgb(54,59,70)));
-        input.setHint("例如 ads.example.com"); input.setTextColor(Color.WHITE); input.setHintTextColor(Color.GRAY);
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setFocusable(true);
+        input.setFocusableInTouchMode(true);
+        input.setTextColor(Color.WHITE);
+        input.setHintTextColor(Color.GRAY);
+        input.setHint("例如 ads.example.com");
+        input.setTextSize(18);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        new AlertDialog.Builder(this).setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
-                .setView(input).setNegativeButton("取消", null).setPositiveButton("新增", (d, w) -> {
+        input.setPadding(dp(16), dp(12), dp(16), dp(12));
+        input.setBackground(focusBg(Color.rgb(39, 42, 50), Color.rgb(54, 59, 70)));
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(8), dp(8), dp(8), dp(4));
+        panel.setBackground(bg(Color.rgb(29, 33, 43), 0));
+        panel.addView(input, new LinearLayout.LayoutParams(-1, dp(58)));
+
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
+                .setView(panel)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("新增", (d, w) -> {
                     String domain = normalize(input.getText().toString());
-                    if (domain.isEmpty()) { Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show(); return; }
-                    LinkedHashSet<String> set = new LinkedHashSet<>(rules(key)); set.add(domain); saveRules(key, set); refresh();
-                }).show();
+                    if (domain.isEmpty()) {
+                        Toast.makeText(this, "網域格式不正確", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    LinkedHashSet<String> set = new LinkedHashSet<>(rules(key));
+                    set.add(domain);
+                    saveRules(key, set);
+                    refresh();
+                })
+                .create();
+
+        dialog.setOnShowListener(ignored -> {
+            Window window = dialog.getWindow();
+            if (window != null) {
+                GradientDrawable panelBackground = new GradientDrawable();
+                panelBackground.setColor(Color.rgb(29, 33, 43));
+                panelBackground.setCornerRadius(dp(22));
+                panelBackground.setStroke(dp(1), Color.rgb(66, 73, 86));
+                window.setBackgroundDrawable(panelBackground);
+                window.setDimAmount(0.68f);
+                window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                window.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.88f),
+                        WindowManager.LayoutParams.WRAP_CONTENT);
+            }
+
+            TextView title = dialog.findViewById(getResources().getIdentifier("alertTitle", "id", "android"));
+            if (title != null) {
+                title.setTextColor(Color.WHITE);
+                title.setTextSize(21);
+                title.setTypeface(null, Typeface.BOLD);
+            }
+
+            Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            Button add = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button[] buttons = {cancel, add};
+            for (Button button : buttons) {
+                if (button == null) continue;
+                button.setAllCaps(false);
+                button.setTextSize(17);
+                button.setTextColor(Color.rgb(128, 201, 194));
+                button.setMinHeight(dp(50));
+                button.setMinWidth(dp(88));
+                button.setPadding(dp(14), dp(8), dp(14), dp(8));
+                button.setFocusable(true);
+                button.setFocusableInTouchMode(true);
+                button.setBackground(focusBg(Color.rgb(29, 33, 43), Color.rgb(54, 64, 77)));
+            }
+
+            if (cancel != null && add != null) {
+                cancel.setNextFocusRightId(add.getId());
+                cancel.setNextFocusUpId(input.getId());
+                add.setNextFocusLeftId(cancel.getId());
+                add.setNextFocusUpId(input.getId());
+                input.setNextFocusDownId(cancel.getId());
+            }
+            input.post(input::requestFocus);
+        });
+        dialog.show();
     }
+
     private void showDnsLogs() {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
