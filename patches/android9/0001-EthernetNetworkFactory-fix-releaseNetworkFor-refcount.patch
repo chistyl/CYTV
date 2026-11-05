@@ -10,7 +10,7 @@ Check the target file and run git apply --check before applying.
 diff --git a/java/com/android/server/ethernet/EthernetNetworkFactory.java b/java/com/android/server/ethernet/EthernetNetworkFactory.java
 --- a/java/com/android/server/ethernet/EthernetNetworkFactory.java
 +++ b/java/com/android/server/ethernet/EthernetNetworkFactory.java
-@@ -120,11 +120,11 @@ protected void releaseNetworkFor(NetworkRequest networkRequest) {
+@@ -120,10 +120,10 @@ protected void releaseNetworkFor(NetworkRequest networkRequest) {
          NetworkInterfaceState network = networkForRequest(networkRequest);
          if (network == null) {
 -            Log.e(TAG, "needNetworkFor, failed to get a network for " + networkRequest);
