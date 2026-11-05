@@ -41,21 +41,23 @@ public class YouTubePairingCodeAccessibilityService extends AccessibilityService
     }
 
     private String findCode(AccessibilityNodeInfo root) {
-        Deque<NodeDepth> pending = new ArrayDeque<>();
-        pending.add(new NodeDepth(root, 0));
-        int visited = 0;
-        while (!pending.isEmpty() && visited < 160) {
-            NodeDepth item = pending.removeFirst();
-            AccessibilityNodeInfo node = item.node;
-            visited++;
-            CharSequence text = node.getText();
-            String code = YouTubePairingCodeParser.findCode(text);
-            if (code.isEmpty()) code = YouTubePairingCodeParser.findCode(node.getContentDescription());
-            if (!code.isEmpty()) return code;
-            if (item.depth >= 8) continue;
-            for (int i = 0; i < node.getChildCount() && visited + pending.size() < 160; i++) {
-                AccessibilityNodeInfo child = node.getChild(i);
-                if (child != null) pending.addLast(new NodeDepth(child, item.depth + 1));
+        return findCodeInNode(root, 0, new int[]{0});
+    }
+
+    private String findCodeInNode(AccessibilityNodeInfo node, int depth, int[] visited) {
+        if (node == null || depth > 8 || visited[0] >= 160) return "";
+        visited[0]++;
+        String code = YouTubePairingCodeParser.findCode(node.getText());
+        if (code.isEmpty()) code = YouTubePairingCodeParser.findCode(node.getContentDescription());
+        if (!code.isEmpty()) return code;
+        for (int i = 0; i < node.getChildCount() && visited[0] < 160; i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            try {
+                code = findCodeInNode(child, depth + 1, visited);
+                if (!code.isEmpty()) return code;
+            } finally {
+                child.recycle();
             }
         }
         return "";
