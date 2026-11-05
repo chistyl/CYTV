@@ -63,12 +63,12 @@ jobs:
         run: |
           zip -qr CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip'
+               './launcher/app/build/*' './CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-Complete-Source
-          path: CYTV-R98-Ethernet-DNS-Recovery-R4-source.zip
+          path: CYTV-Toshiba-65U7000VS-Ethernet-Diagnostics-source.zip
           if-no-files-found: error
           retention-days: 30
