@@ -370,6 +370,19 @@ public class YouTubeAssistantActivity extends Activity {
                 .create();
         dialog.show();
         styleDialog(dialog, true);
+        android.widget.Button confirm = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (confirm != null) {
+            // Keep the confirmation label white and raise only this button slightly.
+            confirm.setTextColor(Color.WHITE);
+            confirm.setTranslationY(-dp(8));
+            confirm.setOnFocusChangeListener((view, hasFocus) -> {
+                view.setBackground(hasFocus
+                        ? round(FOCUS, dp(16))
+                        : round(0xFF343A46, dp(16)));
+                ((android.widget.Button) view).setTextColor(Color.WHITE);
+                view.setElevation(hasFocus ? dp(3) : 0f);
+            });
+        }
     }
 
     private void styleDialog(AlertDialog dialog, boolean focusPrimary) {
