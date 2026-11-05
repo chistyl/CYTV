@@ -9,6 +9,12 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-assistant.yml'
+  pull_request:
+    branches:
+      - baseline/cytv-youtube-assistant-r98
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-youtube-assistant.yml'
   workflow_dispatch:
 
 permissions:
