@@ -18,6 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
+    @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private static final int BG = Color.rgb(12, 14, 19);
     private static final int PANEL = Color.rgb(28, 31, 39);
     private static final int FOCUS = Color.rgb(245, 247, 250);
@@ -43,14 +48,14 @@ public class YouTubeAssistantActivity extends Activity {
         root.setPadding(dp(56), dp(34), dp(56), dp(30));
 
         TextView title = new TextView(this);
-        title.setText("YouTube 贊助片段略過");
+        title.setText(TraditionalText.display(this, "YouTube 贊助片段略過"));
         title.setTextColor(TEXT);
         title.setTextSize(28);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("連接 YouTube TV，即可管理自動略過功能");
+        subtitle.setText(TraditionalText.display(this, "連接 YouTube TV，即可管理自動略過功能"));
         subtitle.setTextColor(MUTED);
         subtitle.setTextSize(15);
         LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
@@ -198,7 +203,7 @@ public class YouTubeAssistantActivity extends Activity {
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("連接 YouTube TV")
+                .setTitle(TraditionalText.display(this, "連接 YouTube TV"))
                 .setView(box)
                 .setPositiveButton("連接", null)
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
