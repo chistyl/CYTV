@@ -463,9 +463,10 @@ public class AdsFilterVpnService extends VpnService {
             // explicitly bound to the still-valid Ethernet Network first, but never
             // let a stale Android 9 Network handle block the ordinary protected-socket
             // fallback. A failed bind/query affects only this DNS attempt, not the VPN.
-            if (physical != null && isEthernetNetwork(physical)) {
+            if (!candidates.isEmpty() && dns.equals(candidates.get(0))
+                    && physical != null && isEthernetNetwork(physical)) {
                 try {
-                    byte[] answer = queryUpstream(query, dns, physical, true, 900);
+                    byte[] answer = queryUpstream(query, dns, physical, true, 750);
                     consecutiveDnsFailures.set(0);
                     return answer;
                 } catch (Exception boundError) {
@@ -479,7 +480,7 @@ public class AdsFilterVpnService extends VpnService {
             }
 
             try {
-                byte[] answer = queryUpstream(query, dns, null, false, 1500);
+                byte[] answer = queryUpstream(query, dns, null, false, 1200);
                 consecutiveDnsFailures.set(0);
                 return answer;
             } catch (Exception e) {
