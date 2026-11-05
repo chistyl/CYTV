@@ -128,3 +128,48 @@ setInterfaceDown(iface) 的程式順序為：
 ### 8.6 安全邊界
 
 本階段僅靜態研究；未修改 runtime、未產生 APK、未執行 Toshiba 實機 VPN 測試。R1 guard 必須保留，PR #47 維持 Draft / open / 未合併。
+
+
+## 9. 第十五階段：netd interface setcfg 到 Linux IFF_UP
+
+### 9.1 已確認的 Android 9 netd 舊式命令路徑（r33）
+
+在 AOSP netd tag android-9.0.0_r33 的 server/CommandListener.cpp，interface setcfg 解析 flags：
+- 遇到 "up" 呼叫 ifc_up(iface)。
+- 遇到 "down" 呼叫 ifc_down(iface)。
+- 失敗時回報 OperationFailed；成功後回報 Interface configuration set。
+
+這是 netd legacy CommandListener 路徑。此來源為 r33，不是 r45，因此僅能作 Android 9 同期實作參考。
+
+### 9.2 Linux 介面旗標效果
+
+在這條 legacy 路徑中，ifc_down() 是 netutils 的介面控制 helper，負責將介面管理旗標設為 down；其作用不是刪除某條 VPN route，而是把指定 interface 的 administrative UP 狀態關閉。這與 kernel/driver 回報的物理 carrier/link state 是不同概念：
+- IFF_UP：介面 administrative state。
+- IFF_RUNNING / carrier：反映 driver/介面運作或連線狀態，語意不同。
+- Android Ethernet NetworkAgent 可能因 link-state callback 而 DISCONNECTED；不能只靠 UI 字樣推斷 IFF_UP 被清除。
+
+本輪找到的 AOSP netd r33 CommandListener 直接顯示 ifc_down() 呼叫，但未取得與該 tag 完全配套的 netutils ifc_down() 實作行號，因此不把 ioctl 細節寫成 r45 已核實事實。
+
+### 9.3 與 VPN UID routing / netId cleanup 的區隔
+
+目前已確認的 Android 9 ConnectivityService VPN teardown 路徑，涉及 removeVpnUidRanges()、rematch network requests 及 removeNetwork(vpnNetId)。已查到的 netd NetworkController / RouteController 實作線索，屬於 UID routing、policy rules、network routing/DNS cleanup。
+
+本輪尚未找到從這些 VPN cleanup 函式直接呼叫 interface setcfg、ifc_down() 或 InterfaceController 設定 Ethernet IFF_UP 的呼叫鏈。兩條路徑目前應視為不同子系統，除非後續找到 vendor hook 或明確 caller 才能建立因果關係。
+
+### 9.4 版本限制與結論
+
+- NetworkManagementService setInterfaceDown() 的 r45 鏡像證據：已確認它會組出 interface setcfg 命令，flags 含 down。
+- netd CommandListener 的 ifc_down() 證據：目前取得的是 AOSP android-9.0.0_r33，不是 r45。
+- r45 netd InterfaceController / CommandListener 精確來源：尚未成功取得。
+- 因此不能宣稱已完成 r45 netd 層的逐行核對，也不能據此判定 Toshiba 廠商版本的實際行為。
+
+階段性結論：若 Android Framework 對 Ethernet iface 呼叫 setInterfaceDown，netd 的對應 interface configuration 路徑確實可能將該介面的 administrative UP 狀態關閉；但目前沒有證據顯示 VPN UID range / VPN netId cleanup 會呼叫這條介面管理路徑。Toshiba 故障根因仍未確定。
+
+### 9.5 下一步
+
+1. 取得 android-9.0.0_r45 的 netd CommandListener / InterfaceController / netutils 精確原始碼，核實是否沿用 r33 legacy path 或已轉為 binder INetd path。
+2. 追查 EthernetNetworkFactory 的 setInterfaceDown 呼叫點及其 caller，確認該分支觸發條件。
+3. 追查 tethering state machine 的介面 down 操作是否限定於 tethering iface。
+4. 若 r45 精確原始碼無法取得，保留版本差異，不以 r33 推斷 Toshiba 的 r45/vendor 行為。
+
+本階段仍為靜態研究；沒有修改 runtime、沒有 APK/CI/實機測試。R1 guard 保留，PR #47 維持 Draft/open/未合併。
