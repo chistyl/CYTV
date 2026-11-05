@@ -15,8 +15,21 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 TARGET="$TMP/java/com/android/server/ethernet/EthernetNetworkFactory.java"
 mkdir -p "$(dirname "$TARGET")"
-cat > "$TARGET" <<'EOF'
+cat > "$TARGET" <<'JAVA'
 class EthernetNetworkFactory {
+    static final String TAG = "EthernetNetworkFactory";
+    static class NetworkRequest {}
+    static class NetworkInterfaceState {
+        int refCount = 2;
+        boolean stopped = false;
+        void stop() { stopped = true; }
+    }
+    static class Log {
+        static void e(String tag, String message) {}
+    }
+    final NetworkInterfaceState network = new NetworkInterfaceState();
+    NetworkInterfaceState networkForRequest(NetworkRequest request) { return network; }
+
     protected void releaseNetworkFor(NetworkRequest networkRequest) {
         NetworkInterfaceState network = networkForRequest(networkRequest);
         if (network == null) {
@@ -28,13 +41,28 @@ class EthernetNetworkFactory {
             network.stop();
         }
     }
+
+    public static void main(String[] args) {
+        EthernetNetworkFactory factory = new EthernetNetworkFactory();
+        NetworkRequest request = new NetworkRequest();
+        factory.releaseNetworkFor(request);
+        if (factory.network.refCount != 1 || factory.network.stopped) {
+            throw new AssertionError("Ethernet stopped while one request remained");
+        }
+        factory.releaseNetworkFor(request);
+        if (factory.network.refCount != 0 || !factory.network.stopped) {
+            throw new AssertionError("Ethernet did not stop after final request release");
+        }
+        System.out.println("PASS: refCount 2->1 keeps Ethernet; 1->0 stops Ethernet");
+    }
 }
-EOF
+JAVA
 git -C "$TMP" init -q
 git -C "$TMP" apply --check "$PATCH"
 git -C "$TMP" apply "$PATCH"
 grep -Fq 'if (--network.refCount == 0)' "$TARGET"
 ! grep -Fq 'if (--network.refCount == 1)' "$TARGET"
-
+javac "$TARGET"
+java -cp "$(dirname "$TARGET")" EthernetNetworkFactory
 echo "PASS: patch syntax, applicability fixture, and refCount correction verified."
 echo "NOTE: Toshiba OEM source applicability and system-image build remain separate checks."
