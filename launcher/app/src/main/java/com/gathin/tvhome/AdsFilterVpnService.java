@@ -290,8 +290,10 @@ public class AdsFilterVpnService extends VpnService {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
             boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+            String deviceModel = Build.MODEL == null ? "" : Build.MODEL.toLowerCase(Locale.ROOT);
             boolean toshiba = "toshiba".equalsIgnoreCase(Build.MANUFACTURER)
-                    || "toshiba".equalsIgnoreCase(Build.BRAND);
+                    || "toshiba".equalsIgnoreCase(Build.BRAND)
+                    || deviceModel.contains("65u7000vs");
             appendDnsLog("-", "診斷", "選取實體網路 " + selected
                     + "；Ethernet=" + ethernet
                     + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
