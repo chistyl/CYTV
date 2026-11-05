@@ -1,0 +1,45 @@
+From 64ba6b016cff7aae69da0af9430bf77eaeeefd30 Mon Sep 17 00:00:00 2001
+From: Android Open Source Project
+Date: Tue, 17 Dec 2019 13:56:26 +0900
+Subject: [PATCH] EthernetNetworkFactory: fix refCount check at releaseNetworkFor
+
+Upstream AOSP fix for Bug 146089778.
+
+When releaseNetworkFor() is called with refCount == 2, decrementing to 1
+must not stop Ethernet because another NetworkRequest still holds it.
+Stop the network only after the final reference is released (2 -> 1 keeps
+Ethernet running; 1 -> 0 stops it).
+
+This is a system-image/framework patch. It is not an application-level
+CYTV fix and must only be applied to a matching Android 9 Ethernet source
+tree after verifying the old condition is present.
+
+Upstream:
+https://android.googlesource.com/platform/frameworks/opt/net/ethernet/+/64ba6b016cff7aae69da0af9430bf77eaeeefd30%5E!/
+
+Bug: 146089778
+Change-Id: Ib7d1b488a2943364a8ba4a89eec5de4c33cf1d5a
+---
+ java/com/android/server/ethernet/EthernetNetworkFactory.java | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/java/com/android/server/ethernet/EthernetNetworkFactory.java b/java/com/android/server/ethernet/EthernetNetworkFactory.java
+index 3cda13f..11c991d 100644
+--- a/java/com/android/server/ethernet/EthernetNetworkFactory.java
++++ b/java/com/android/server/ethernet/EthernetNetworkFactory.java
+@@ -120,11 +120,11 @@
+         protected void releaseNetworkFor(NetworkRequest networkRequest) {
+             NetworkInterfaceState network = networkForRequest(networkRequest);
+             if (network == null) {
+-                Log.e(TAG, "needNetworkFor, failed to get a network for " + networkRequest);
++                Log.e(TAG, "releaseNetworkFor, failed to get a network for " + networkRequest);
+                 return;
+             }
+ 
+-            if (--network.refCount == 1) {
++            if (--network.refCount == 0) {
+                 network.stop();
+             }
+         }
+-- 
+2.39.0
