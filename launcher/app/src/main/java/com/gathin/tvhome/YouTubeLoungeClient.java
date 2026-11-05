@@ -53,6 +53,7 @@ final class YouTubeLoungeClient {
         volatile Boolean adBumper;
         volatile String adState = "";
         volatile String adContentVideoId = "";
+        volatile String adVideoId = "";
 
         Session(String sid, String gsessionId, String screenId, String deviceId, long lastEventId,
                 String initialVideoId, double initialCurrentTime, double initialDuration,
@@ -87,15 +88,18 @@ final class YouTubeLoungeClient {
 
         synchronized void recordAdEvent(long eventId, String name, Boolean skippable,
                                         Boolean skipEnabled, Boolean bumper, String state,
-                                        String contentVideoId) {
+                                        String contentVideoId, String adVideoIdValue) {
             boolean started = "adPlaying".equals(name);
-            if (started) {
+            boolean sameAd = started && adActive && adVideoIdValue != null
+                    && !adVideoIdValue.isEmpty() && adVideoIdValue.equals(adVideoId);
+            if (started && !sameAd) {
                 adActive = true;
                 adStartVersion++;
                 adSkippable = null;
                 adSkipEnabled = null;
                 adBumper = null;
                 adContentVideoId = "";
+                adVideoId = "";
             } else if (!adActive && "1".equals(state)) {
                 adActive = true;
                 adStartVersion++;
@@ -106,6 +110,9 @@ final class YouTubeLoungeClient {
             if (state != null && !state.isEmpty()) adState = state;
             if (contentVideoId != null && contentVideoId.matches("[A-Za-z0-9_-]{11}")) {
                 adContentVideoId = contentVideoId;
+            }
+            if (adVideoIdValue != null && adVideoIdValue.matches("[A-Za-z0-9_-]{11}")) {
+                adVideoId = adVideoIdValue;
             }
             adLastEventId = eventId;
             adEventVersion++;
@@ -121,6 +128,7 @@ final class YouTubeLoungeClient {
             adBumper = parsed.adBumper;
             adState = parsed.adState;
             adContentVideoId = parsed.adContentVideoId;
+            adVideoId = parsed.adVideoId;
             adLastEventId = parsed.adEventId;
         }
 
@@ -131,6 +139,7 @@ final class YouTubeLoungeClient {
             adBumper = null;
             adState = "";
             adContentVideoId = "";
+            adVideoId = "";
         }
 
         void awaitEventProgress(long timeoutMillis) throws InterruptedException {
@@ -227,6 +236,7 @@ final class YouTubeLoungeClient {
         Boolean adBumper;
         String adState = "";
         String adContentVideoId = "";
+        String adVideoId = "";
         long adEventId = -1;
         boolean timedOut = false;
         String remotePairingType = "";
@@ -613,6 +623,7 @@ final class YouTubeLoungeClient {
                                 Boolean bumper = findBoolean(eventData, "isBumper");
                                 String adState = findString(eventData, "adState");
                                 String contentVideoId = findString(eventData, "contentVideoId");
+                                String adVideoId = findString(eventData, "adVideoId");
                                 boolean started = "adPlaying".equals(eventName);
                                 parsed.hasAdEvent = true;
                                 if (started) {
@@ -633,10 +644,13 @@ final class YouTubeLoungeClient {
                                 if (contentVideoId.matches("[A-Za-z0-9_-]{11}")) {
                                     parsed.adContentVideoId = contentVideoId;
                                 }
+                                if (adVideoId.matches("[A-Za-z0-9_-]{11}")) {
+                                    parsed.adVideoId = adVideoId;
+                                }
                                 parsed.adEventId = eventId;
                                 if (liveSession != null) {
                                     liveSession.recordAdEvent(eventId, eventName, skippable,
-                                            skipEnabled, bumper, adState, contentVideoId);
+                                            skipEnabled, bumper, adState, contentVideoId, adVideoId);
                                 }
                                 parsed.eventDetails.add("AID=" + eventId + " " + eventName
                                         + " adActive=" + parsed.adActive
