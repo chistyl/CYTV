@@ -7814,6 +7814,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         rowTitle.setText(title);
         rowTitle.setTextColor(Color.WHITE);
         if (showCheckbox) {
+            LinearLayout.LayoutParams titleLp = (LinearLayout.LayoutParams) rowTitle.getLayoutParams();
+            titleLp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            titleLp.weight = 0f;
+            titleLp.setMargins(titleLp.leftMargin, titleLp.topMargin, 0, titleLp.bottomMargin);
+            rowTitle.setLayoutParams(titleLp);
             android.widget.CheckBox checkbox = new android.widget.CheckBox(this);
             checkbox.setButtonTintList(new android.content.res.ColorStateList(
                     new int[][]{
@@ -7829,7 +7834,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams checkboxLp = new LinearLayout.LayoutParams(
                     (int) (26 * density), (int) (26 * density));
             checkboxLp.gravity = Gravity.CENTER_VERTICAL;
-            checkboxLp.leftMargin = (int) (6 * density);
+            checkboxLp.leftMargin = 0;
             ((LinearLayout) row).addView(checkbox, checkboxLp);
         }
         row.setFocusable(true);
