@@ -647,3 +647,42 @@ Issue：`https://github.com/schwabe/ics-openvpn/issues/1327`
 ### 22.5 結論更新
 
 根因候選由「未定位的 vendor / Tethering / driver 路徑」更新為「AOSP Android EthernetNetworkFactory.releaseNetworkFor() refCount 判斷錯誤」；證據強度高且有官方修正。尚待確認 Toshiba firmware 是否含舊程式碼。下一步不再盲查 Tethering regex，而是取得 Toshiba 對應 build 的 EthernetNetworkFactory source/build fingerprint，直接比對官方修正是否已包含。
+
+
+## 23. 第二十七階段：封裝可回移植的 Android 9 系統修補檔
+
+已將 AOSP 官方修正整理成可套用 patch，放入 CYTV repo：
+`patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcount.patch`
+
+Patch 來源為官方 commit `64ba6b016cff7aae69da0af9430bf77eaeeefd30`，內容只修正：
+- releaseNetworkFor 的錯誤 log 標籤（needNetworkFor → releaseNetworkFor）
+- refCount 歸零才呼叫 network.stop()（原本錯誤地在遞減後等於 1 就停止）
+
+### 套用前檢查（必須）
+
+在 Toshiba 對應 Android 9 source tree 的 frameworks/opt/net/ethernet 專案執行：
+```sh
+git -C frameworks/opt/net/ethernet status --short
+git -C frameworks/opt/net/ethernet rev-parse HEAD
+grep -n -A12 -B3 'releaseNetworkFor(NetworkRequest' frameworks/opt/net/ethernet/java/com/android/server/ethernet/EthernetNetworkFactory.java
+```
+
+只有在 Toshiba 原始碼確實有 `if (--network.refCount == 1)` 舊條件，且檔案上下文與 patch 相符時才套用：
+```sh
+git -C frameworks/opt/net/ethernet apply --check patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcount.patch
+git -C frameworks/opt/net/ethernet apply patches/android9/0001-EthernetNetworkFactory-fix-releaseNetworkFor-refcount.patch
+```
+
+若 patch check 失敗，不可強制套用；先以 Toshiba source revision 為基礎做等價最小修改並保留原廠差異。
+
+### 最低驗證矩陣（系統映像層）
+
+1. 單一 Ethernet NetworkRequest：refCount 0→1 時啟動 Ethernet；1→0 時停止。
+2. 兩個 Ethernet NetworkRequest：0→1→2；釋放一個 2→1 時 Ethernet 必須保持連線及 IP provisioning；最後 1→0 才停止。
+3. VPN NetworkRequest 建立/撤銷時，確認 Ethernet refCount 變化不會在仍有 request 時觸發 stop。
+4. Ethernet DHCP lease、IP、default route、DNS 在 VPN 建立與撤銷前後保持可用。
+5. 驗證 Wi-Fi、USB tethering 及正常 Ethernet 無回歸。
+
+### 狀態與界線
+
+Patch 已封裝進 repo，但尚未套用到 Toshiba firmware，因為 CYTV repo 不包含 Toshiba 的 frameworks/opt/net/ethernet 原始碼或可建置的系統映像。此 patch 不是可安裝的 APK。R1 guard 仍須保留，直到 OEM/system image 修補、完整編譯及實機驗收完成。
