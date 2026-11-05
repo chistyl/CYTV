@@ -5100,7 +5100,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             android.view.ViewGroup finalGrid = (android.view.ViewGroup) list.getChildAt(list.getChildCount() - 1);
             for (int i = 0; i < finalGrid.getChildCount(); i++) {
                 View candidate = finalGrid.getChildAt(i);
-                if (candidate.isFocusable()) candidate.setNextFocusDownId(cancel.getId());
+                if (!candidate.isFocusable()) continue;
+                candidate.setNextFocusDownId(cancel.getId());
+                // Some TV firmware ignores nextFocusDownId when a ScrollView is at its
+                // lower edge. Handle the last-row transition explicitly and reveal the
+                // action row before moving focus.
+                candidate.setOnKeyListener((v, keyCode, event) -> {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                            && event.getAction() == KeyEvent.ACTION_DOWN) {
+                        scroll.post(() -> {
+                            scroll.fullScroll(View.FOCUS_DOWN);
+                            cancel.requestFocus();
+                        });
+                        return true;
+                    }
+                    return false;
+                });
             }
         }
         if (lastRow != null) lastRow.setNextFocusDownId(cancel.getId());
@@ -6021,8 +6036,23 @@ private GradientDrawable roundSurface(int color, float radius) {
                 View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
                 int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
                 // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
-                for (int i = lastRowStart; i < selectionTiles.size(); i++)
-                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
+                for (int i = lastRowStart; i < selectionTiles.size(); i++) {
+                    View lastTile = selectionTiles.get(i);
+                    lastTile.setNextFocusDownId(cancelButton.getId());
+                    // Force the final row -> action bar transition on TV devices whose
+                    // focus finder stops at the ScrollView boundary.
+                    lastTile.setOnKeyListener((v, keyCode, event) -> {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                                && event.getAction() == KeyEvent.ACTION_DOWN) {
+                            scroll.post(() -> {
+                                scroll.fullScroll(View.FOCUS_DOWN);
+                                cancelButton.requestFocus();
+                            });
+                            return true;
+                        }
+                        return false;
+                    });
+                }
                 // 第一列向上回到操作列；中間列仍依同欄上下移動。
                 for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
                     selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
