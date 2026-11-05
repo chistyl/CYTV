@@ -5114,7 +5114,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             edit.apply(); dialog.dismiss(); reloadApps(false);
         });
-        dialog.setContentView(outer);
+        DialogDpadBridge dpadRoot = new DialogDpadBridge(this, outer, list, cancel);
+        dialog.setContentView(dpadRoot);
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -5977,7 +5978,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
+        DialogDpadBridge dpadRoot = new DialogDpadBridge(this, scroll, list, null);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(dpadRoot)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
@@ -5996,6 +5998,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
         Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (cancelButton != null && saveButton != null) {
+            dpadRoot.setAction(cancelButton);
             cancelButton.setAllCaps(false);
             saveButton.setAllCaps(false);
             cancelButton.setMinWidth((int)(104*density));
