@@ -3906,6 +3906,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
+    /** 右上角「介面設定」子選單：集中桌面顯示、桌布、資料夾與一週天氣設定。 */
+    private void showInterfaceSettingsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (170 * density));
+        addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
+        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
+        addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
+        addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
     /**
      * Open the TV power dialog when the optional accessibility helper is available.
      * On Android 9 TV builds without an Accessibility settings entry, try the platform
