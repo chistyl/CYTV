@@ -43,6 +43,16 @@ final class YouTubeLoungeClient {
         final String initialEventSummary;
         volatile String latestVideoId;
         volatile String latestPlayerState;
+        volatile long lastPlaybackEventId = -1;
+        volatile long adLastEventId = -1;
+        volatile long adEventVersion = 0;
+        volatile long adStartVersion = 0;
+        volatile boolean adActive = false;
+        volatile Boolean adSkippable;
+        volatile Boolean adSkipEnabled;
+        volatile Boolean adBumper;
+        volatile String adState = "";
+        volatile String adContentVideoId = "";
 
         Session(String sid, String gsessionId, String screenId, String deviceId, long lastEventId,
                 String initialVideoId, double initialCurrentTime, double initialDuration,
@@ -64,11 +74,63 @@ final class YouTubeLoungeClient {
 
         int nextCommandOffset() { return commandOffset.getAndIncrement(); }
 
-        void noteEvent(long eventId) {
-            if (eventId > lastEventId) {
-                lastEventId = eventId;
-                if (eventId > initialEventId) firstEvent.countDown();
+        synchronized boolean noteEvent(long eventId) {
+            if (eventId <= lastEventId) return false;
+            lastEventId = eventId;
+            if (eventId > initialEventId) firstEvent.countDown();
+            return true;
+        }
+
+        synchronized void notePlaybackEvent(long eventId) {
+            if (eventId > lastPlaybackEventId) lastPlaybackEventId = eventId;
+        }
+
+        synchronized void recordAdEvent(long eventId, String name, Boolean skippable,
+                                        Boolean skipEnabled, Boolean bumper, String state,
+                                        String contentVideoId) {
+            boolean started = "adPlaying".equals(name);
+            if (started) {
+                adActive = true;
+                adStartVersion++;
+                adSkippable = null;
+                adSkipEnabled = null;
+                adBumper = null;
+                adContentVideoId = "";
+            } else if (!adActive && "1".equals(state)) {
+                adActive = true;
+                adStartVersion++;
             }
+            if (skippable != null) adSkippable = skippable;
+            if (skipEnabled != null) adSkipEnabled = skipEnabled;
+            if (bumper != null) adBumper = bumper;
+            if (state != null && !state.isEmpty()) adState = state;
+            if (contentVideoId != null && contentVideoId.matches("[A-Za-z0-9_-]{11}")) {
+                adContentVideoId = contentVideoId;
+            }
+            adLastEventId = eventId;
+            adEventVersion++;
+        }
+
+        synchronized void restoreAdState(ParsedEvents parsed) {
+            if (!parsed.hasAdEvent || !parsed.adActive) return;
+            adActive = true;
+            adEventVersion = 1;
+            adStartVersion = parsed.adStarted ? 1 : 0;
+            adSkippable = parsed.adSkippable;
+            adSkipEnabled = parsed.adSkipEnabled;
+            adBumper = parsed.adBumper;
+            adState = parsed.adState;
+            adContentVideoId = parsed.adContentVideoId;
+            adLastEventId = parsed.adEventId;
+        }
+
+        synchronized void clearAdState() {
+            adActive = false;
+            adSkippable = null;
+            adSkipEnabled = null;
+            adBumper = null;
+            adState = "";
+            adContentVideoId = "";
         }
 
         void awaitEventProgress(long timeoutMillis) throws InterruptedException {
@@ -157,6 +219,15 @@ final class YouTubeLoungeClient {
         double duration = -1;
         String playerState = "";
         final PlaybackEventAccumulator playback = new PlaybackEventAccumulator();
+        boolean hasAdEvent = false;
+        boolean adActive = false;
+        boolean adStarted = false;
+        Boolean adSkippable;
+        Boolean adSkipEnabled;
+        Boolean adBumper;
+        String adState = "";
+        String adContentVideoId = "";
+        long adEventId = -1;
         boolean timedOut = false;
         String remotePairingType = "";
         String remoteIdentityMatchStatus = "";
@@ -247,9 +318,11 @@ final class YouTubeLoungeClient {
             }
             String identitySummary = buildIdentitySummary(events);
             if (!identitySummary.isEmpty()) initialSummary += "；裝置身分診斷：" + identitySummary;
-            return new Session(events.sid, events.gsessionId, credentials.screenId,
+            Session session = new Session(events.sid, events.gsessionId, credentials.screenId,
                     credentials.deviceId, events.lastEventId, events.videoId,
                     events.currentTime, events.duration, events.playerState, initialSummary);
+            session.restoreAdState(events);
+            return session;
         } finally {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
@@ -384,6 +457,14 @@ final class YouTubeLoungeClient {
                 String.format(java.util.Locale.US, "%.3f", seconds));
     }
 
+    /**
+     * Requests the paired YouTube TV to skip its current ad.
+     * HTTP 200 confirms command transport only; a later Lounge event must confirm the result.
+     */
+    static String skipAd(Context context, Session session) throws Exception {
+        return sendCommand(context, session, "skipAd", null, null);
+    }
+
     private static String sendCommand(Context context, Session session,
                                       String command, String argumentName,
                                       String argumentValue) throws Exception {
@@ -512,14 +593,12 @@ final class YouTubeLoungeClient {
                     long eventId = envelope.optLong(0, -1);
                     JSONArray payload = envelope.optJSONArray(1);
                     if (payload == null || payload.length() == 0) continue;
-                    String eventName = payload.optString(0, "");
-                    // Keep a bounded sample of every event, including unknown event types.
-                    // Lounge playback payloads can be nested differently across TV clients.
-                    String detail = sanitizeDiagnosticJson(payloadAsObject(payload)).toString();
-                    if (detail.length() > 1400) detail = detail.substring(0, 1400) + "…";
-                    if (!"c".equals(eventName) && !"S".equals(eventName)) {
-                        parsed.eventDetails.add("AID=" + eventId + " " + eventName + " " + detail);
+                    if (eventId >= 0 && liveSession != null && !liveSession.noteEvent(eventId)) {
+                        continue;
                     }
+                    String eventName = payload.optString(0, "");
+                    boolean adEvent = "adPlaying".equals(eventName)
+                            || "onAdStateChange".equals(eventName);
                     if ("c".equals(eventName) && payload.length() > 1) {
                         parsed.sid = payload.optString(1, "");
                     } else if ("S".equals(eventName) && payload.length() > 1) {
@@ -528,11 +607,56 @@ final class YouTubeLoungeClient {
                         if (!eventName.isEmpty()) parsed.eventNames.add(eventName);
                         if (payload.length() > 1) {
                             Object eventData = payload.opt(1);
+                            if (adEvent) {
+                                Boolean skippable = findBoolean(eventData, "isSkippable");
+                                Boolean skipEnabled = findBoolean(eventData, "isSkipEnabled");
+                                Boolean bumper = findBoolean(eventData, "isBumper");
+                                String adState = findString(eventData, "adState");
+                                String contentVideoId = findString(eventData, "contentVideoId");
+                                boolean started = "adPlaying".equals(eventName);
+                                parsed.hasAdEvent = true;
+                                if (started) {
+                                    parsed.adStarted = true;
+                                    parsed.adActive = true;
+                                    parsed.adSkippable = null;
+                                    parsed.adSkipEnabled = null;
+                                    parsed.adBumper = null;
+                                    parsed.adContentVideoId = "";
+                                } else if (!parsed.adActive && "1".equals(adState)) {
+                                    parsed.adActive = true;
+                                    parsed.adStarted = true;
+                                }
+                                if (skippable != null) parsed.adSkippable = skippable;
+                                if (skipEnabled != null) parsed.adSkipEnabled = skipEnabled;
+                                if (bumper != null) parsed.adBumper = bumper;
+                                if (!adState.isEmpty()) parsed.adState = adState;
+                                if (contentVideoId.matches("[A-Za-z0-9_-]{11}")) {
+                                    parsed.adContentVideoId = contentVideoId;
+                                }
+                                parsed.adEventId = eventId;
+                                if (liveSession != null) {
+                                    liveSession.recordAdEvent(eventId, eventName, skippable,
+                                            skipEnabled, bumper, adState, contentVideoId);
+                                }
+                                parsed.eventDetails.add("AID=" + eventId + " " + eventName
+                                        + " adActive=" + parsed.adActive
+                                        + " skippable=" + (parsed.adSkippable == null ? "unknown" : parsed.adSkippable)
+                                        + " skipEnabled=" + (parsed.adSkipEnabled == null ? "unknown" : parsed.adSkipEnabled)
+                                        + " bumper=" + (parsed.adBumper == null ? "unknown" : parsed.adBumper)
+                                        + " adState=" + (parsed.adState.isEmpty() ? "unknown" : parsed.adState));
+                            } else {
+                                String detail = sanitizeDiagnosticJson(payloadAsObject(payload)).toString();
+                                if (detail.length() > 1400) detail = detail.substring(0, 1400) + "…";
+                                parsed.eventDetails.add("AID=" + eventId + " " + eventName + " " + detail);
+                            }
+
                             JSONObject stateData = eventData instanceof JSONObject
                                     ? (JSONObject) eventData : null;
+                            String id = "";
+                            String playbackState = "";
                             if (stateData != null) {
                                 if ("loungeStatus".equals(eventName)) captureLoungeIdentity(stateData, parsed);
-                                String id = findString(stateData, "videoId");
+                                id = findString(stateData, "videoId");
                                 if (!id.matches("[A-Za-z0-9_-]{11}")) {
                                     id = findString(stateData, "firstVideoId");
                                 }
@@ -540,27 +664,25 @@ final class YouTubeLoungeClient {
                                 String state = findString(stateData, "state");
                                 if (!state.isEmpty()) parsed.playerState = state;
                             }
-                            // Search nested objects, arrays and JSON-encoded strings. Some
-                            // Lounge clients wrap playback data instead of exposing it at root.
-                            double position = findNumber(eventData, "currentTime");
-                            double length = findNumber(eventData, "duration");
-                            String playbackState = findString(eventData, "state");
-                            if (position >= 0) parsed.currentTime = position;
-                            if (length > 0) parsed.duration = length;
-                            // Lounge may send progress and player-state changes as separate
-                            // events in the same subscription response. Keep the newest value
-                            // for each field from this response instead of requiring both fields
-                            // to be embedded in one event (which can suppress every skip).
-                            // A later pause/state event overwrites an earlier playing state, so
-                            // the monitor still refuses to seek when the latest state is paused.
-                            if (position >= 0) parsed.playback.recordPosition(position, length);
-                            if (!playbackState.isEmpty()) parsed.playback.recordPlayerState(playbackState);
+                            if (!adEvent) {
+                                double position = findNumber(eventData, "currentTime");
+                                double length = findNumber(eventData, "duration");
+                                playbackState = findString(eventData, "state");
+                                if (position >= 0) parsed.currentTime = position;
+                                if (length > 0) parsed.duration = length;
+                                if (position >= 0) parsed.playback.recordPosition(position, length);
+                                if (!playbackState.isEmpty()) parsed.playback.recordPlayerState(playbackState);
+                                if (liveSession != null && eventId >= 0
+                                        && ("nowPlaying".equals(eventName) || "onStateChange".equals(eventName))
+                                        && (!id.isEmpty() || !playbackState.isEmpty() || position >= 0)) {
+                                    liveSession.notePlaybackEvent(eventId);
+                                }
+                            }
                         }
                     }
                     parsed.eventCount++;
                     if (eventId > parsed.lastEventId) parsed.lastEventId = eventId;
                     if (eventId >= 0 && liveSession != null) {
-                        liveSession.noteEvent(eventId);
                         if (!parsed.videoId.isEmpty()) liveSession.latestVideoId = parsed.videoId;
                         if (!parsed.playerState.isEmpty()) liveSession.latestPlayerState = parsed.playerState;
                     }
@@ -611,7 +733,14 @@ final class YouTubeLoungeClient {
                     || normalized.contains("authorization")
                     || normalized.contains("cookie")
                     || normalized.equals("sid")
-                    || normalized.equals("gsessionid");
+                    || normalized.equals("gsessionid")
+                    || normalized.contains("advideour")
+                    || normalized.contains("adtitle")
+                    || normalized.contains("clickthroughurl")
+                    || normalized.contains("adnextparams")
+                    || normalized.contains("remoteslotsdata")
+                    || normalized.equals("advideoid")
+                    || normalized.equals("contentvideoid");
             try {
                 clean.put(key, sensitive ? "[已遮蔽]" : sanitizeDiagnosticValue(source.opt(key)));
             } catch (JSONException ignored) { }
@@ -711,6 +840,41 @@ final class YouTubeLoungeClient {
             }
         }
         return -1;
+    }
+
+    private static Boolean findBoolean(Object value, String key) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            if (object.has(key)) {
+                Object raw = object.opt(key);
+                if (raw instanceof Boolean) return (Boolean) raw;
+                if (raw instanceof String) {
+                    String text = ((String) raw).trim();
+                    if ("true".equalsIgnoreCase(text)) return Boolean.TRUE;
+                    if ("false".equalsIgnoreCase(text)) return Boolean.FALSE;
+                }
+            }
+            java.util.Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                Boolean nested = findBoolean(object.opt(keys.next()), key);
+                if (nested != null) return nested;
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int i = 0; i < array.length(); i++) {
+                Boolean nested = findBoolean(array.opt(i), key);
+                if (nested != null) return nested;
+            }
+        } else if (value instanceof String) {
+            String raw = ((String) value).trim();
+            if (raw.startsWith("{") || raw.startsWith("[")) {
+                try {
+                    Object nested = raw.startsWith("{") ? new JSONObject(raw) : new JSONArray(raw);
+                    return findBoolean(nested, key);
+                } catch (JSONException ignored) { }
+            }
+        }
+        return null;
     }
 
     private static String form(String key, String value) throws Exception {
