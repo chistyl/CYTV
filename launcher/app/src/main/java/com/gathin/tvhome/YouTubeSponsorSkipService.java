@@ -127,7 +127,15 @@ public final class YouTubeSponsorSkipService extends Service {
 
                     // A player-state event newer than the last ad event is required before
                     // considering the ad finished. HTTP 200 from skipAd is not proof of success.
-                    if (adActive && session.lastPlaybackEventId > session.adLastEventId
+                    if (adActive && "1082".equals(session.adState)) {
+                        session.clearAdState();
+                        adActive = false;
+                        skipAttemptedForCurrentAd = false;
+                        handledAdEventVersion = session.adEventVersion;
+                        handledAdStartVersion = session.adStartVersion;
+                        android.util.Log.i("CYTV-YouTubeAdSkip",
+                                "Lounge ad state confirmed AdSkipped");
+                    } else if (adActive && session.lastPlaybackEventId > session.adLastEventId
                             && event.hasFreshPlayerState) {
                         boolean adSkipped = "1082".equals(event.playerState);
                         String expectedContentVideoId = session.adContentVideoId.isEmpty()
