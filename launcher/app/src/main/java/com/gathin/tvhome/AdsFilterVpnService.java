@@ -715,14 +715,14 @@ public class AdsFilterVpnService extends VpnService {
         startupHandler.removeCallbacksAndMessages(null);
         cancelPendingNetworkLossCheck();
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務；停止前網路快照");
-        appendNetworkSnapshot(cm);
+        if (cm != null) appendNetworkSnapshot(cm);
         running.set(false);
 
         // Do not mutate VPN underlay state here; Android 9 TV firmware has shown
         // that setUnderlyingNetworks() can disrupt Ethernet restoration.
 
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         if (cm != null && networkCallback != null) {
             try { cm.unregisterNetworkCallback(networkCallback); }
             catch (Exception e) { Log.w(TAG, "Unable to unregister network callback", e); }
