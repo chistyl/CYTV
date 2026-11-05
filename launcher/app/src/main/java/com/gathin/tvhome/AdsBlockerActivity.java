@@ -296,6 +296,7 @@ public class AdsBlockerActivity extends Activity {
     }
     private void promptDomain(String key) {
         EditText input = new EditText(this);
+        input.setId(View.generateViewId());
         input.setSingleLine(true);
         input.setFocusable(true);
         input.setFocusableInTouchMode(true);
