@@ -18,6 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
+    @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private static final int BG = Color.rgb(29, 33, 43);
     private static final int PANEL = Color.rgb(52, 58, 70);
     private static final int FOCUS = Color.rgb(70, 83, 102);
@@ -62,7 +67,7 @@ public class YouTubeAssistantActivity extends Activity {
         root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
-        title.setText("YouTube 贊助片段略過");
+        title.setText(TraditionalText.display(this, "YouTube 贊助片段略過"));
         title.setTextColor(TEXT);
         title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -223,7 +228,7 @@ public class YouTubeAssistantActivity extends Activity {
         box.addView(input, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("連接 YouTube TV")
+                .setTitle(TraditionalText.display(this, "連接 YouTube TV"))
                 .setView(box)
                 .setPositiveButton("連接", null)
                 .setNegativeButton("取消", (d, w) -> d.dismiss())
