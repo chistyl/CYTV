@@ -3,6 +3,12 @@ name: CYTV Toshiba Ethernet VPN Diagnostics
 on:
   push:
     branches:
+      - diagnostic/toshiba-65u7000vs-vpn-ethernet-link-drop
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-toshiba-ethernet-diagnostics.yml'
+  pull_request:
+    branches:
       - fix/ethernet-dns-recovery-r4-r98
     paths:
       - 'launcher/**'
@@ -16,10 +22,10 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout isolated Toshiba Ethernet diagnostics branch
+      - name: Checkout diagnostics source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
 
       - name: Set up JDK 17
