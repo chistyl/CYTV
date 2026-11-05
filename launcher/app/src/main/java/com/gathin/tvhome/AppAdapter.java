@@ -328,27 +328,20 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (!seen.add(pkg + '\n' + label)) continue;
             Drawable banner = null;
             Drawable icon = null;
-            if (card == null) {
-                String customIcon = custom.getString("icon_" + pkg, null);
-                if (customIcon != null) {
-                    try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
-                        if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
-                    } catch (Exception ignored) { }
-                }
-                if (icon == null) icon = ri.loadIcon(pm);
-                int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
-                int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
-                float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                // Use the app's own square launcher icon as the source for both ordinary app
-                // thumbnails and the TV-format artwork. Do not substitute a separately supplied
-                // landscape banner: it can depict a different crop or visual identity.
-                banner = iconBanner(icon, tileBackground, iconScale);
-                icon = null;
-            } else {
-                banner = bundledBanner(appBanners.get(pkg));
-                if (banner == null) banner = loadBanner(pm, ri);
-                icon = banner == null ? ri.loadIcon(pm) : null;
+            String customIcon = custom.getString("icon_" + pkg, null);
+            if (customIcon != null) {
+                try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
+                    if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
+                } catch (Exception ignored) { }
             }
+            if (icon == null) icon = ri.loadIcon(pm);
+            int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
+            int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+            float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
+            // Both ordinary app tiles and module-card tiles use the app's square launcher icon.
+            // Never keep a separately supplied landscape banner in the TV-format thumbnail path.
+            banner = iconBanner(icon, tileBackground, iconScale);
+            icon = null;
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
             } else {
