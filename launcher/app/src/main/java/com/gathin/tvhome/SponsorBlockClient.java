@@ -11,6 +11,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -20,6 +22,17 @@ import java.util.List;
  */
 final class SponsorBlockClient {
     private static final String API = "https://sponsor.ajay.app/api/skipSegments/";
+
+    // Categories that are safe and useful to skip automatically by default.
+    // SponsorBlock explicitly warns that "filler" is aggressive; POI, full-video,
+    // and chapter categories are not ordinary time ranges and are intentionally excluded.
+    static final List<String> AUTO_SKIP_CATEGORIES = Collections.unmodifiableList(Arrays.asList(
+            "sponsor", "selfpromo", "interaction", "intro", "outro",
+            "preview", "hook", "music_offtopic"));
+    private static final List<String> SUPPORTED_CATEGORIES = Collections.unmodifiableList(Arrays.asList(
+            "sponsor", "selfpromo", "interaction", "intro", "outro", "preview",
+            "hook", "music_offtopic", "poi_highlight", "filler",
+            "exclusive_access", "chapter"));
 
     static final class Segment {
         final double startSeconds;
@@ -72,6 +85,34 @@ final class SponsorBlockClient {
 
     static LookupResult lookupSponsorSegmentsDetailed(String videoId,
                                                         YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupSegmentsDetailed(videoId, monitor, Collections.singletonList("sponsor"));
+    }
+
+    static List<Segment> lookupAutoSkipSegments(String videoId,
+                                                 YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupAutoSkipSegmentsDetailed(videoId, monitor).segments;
+    }
+
+    static LookupResult lookupAutoSkipSegmentsDetailed(String videoId,
+                                                        YouTubeLoungeClient.MonitorHandle monitor) throws Exception {
+        return lookupSegmentsDetailed(videoId, monitor, AUTO_SKIP_CATEGORIES);
+    }
+
+    static LookupResult lookupSegmentsDetailed(String videoId,
+                                                YouTubeLoungeClient.MonitorHandle monitor,
+                                                List<String> categories) throws Exception {
+        if (categories == null || categories.isEmpty()) {
+            throw new IllegalArgumentException("至少需要選擇一個 SponsorBlock 分類。");
+        }
+        JSONArray categoryArray = new JSONArray();
+        for (String category : categories) {
+            if (!SUPPORTED_CATEGORIES.contains(category)) {
+                throw new IllegalArgumentException("不支援的 SponsorBlock 分類：" + category);
+            }
+            if (!categoryArray.toString().contains("\"" + category + "\"")) {
+                categoryArray.put(category);
+            }
+        }
         if (monitor != null && monitor.isStopped()) {
             throw new java.util.concurrent.CancellationException("SponsorBlock 查詢已取消。");
         }
@@ -82,8 +123,8 @@ final class SponsorBlockClient {
 
         String hash = sha256Hex(id);
         String prefix = hash.substring(0, 4);
-        String categories = URLEncoder.encode("[\"sponsor\"]", "UTF-8");
-        URL url = new URL(API + prefix + "?categories=" + categories);
+        String encodedCategories = URLEncoder.encode(categoryArray.toString(), "UTF-8");
+        URL url = new URL(API + prefix + "?categories=" + encodedCategories);
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) url.openConnection();
@@ -133,14 +174,16 @@ final class SponsorBlockClient {
                 if (segments == null) continue;
                 for (int j = 0; j < segments.length(); j++) {
                     JSONObject item = segments.optJSONObject(j);
-                    if (item == null || !"sponsor".equals(item.optString("category", ""))) continue;
+                    if (item == null) continue;
+                    String category = item.optString("category", "");
+                    if (!isCategorySelected(category, categories)) continue;
                     JSONArray range = item.optJSONArray("segment");
                     if (range == null || range.length() < 2) continue;
                     double start = range.optDouble(0, -1);
                     double end = range.optDouble(1, -1);
                     if (!Double.isFinite(start) || !Double.isFinite(end)
                             || start < 0 || end <= start) continue;
-                    matches.add(new Segment(start, end, "sponsor", item.optString("UUID", "")));
+                    matches.add(new Segment(start, end, category, item.optString("UUID", "")));
                 }
             }
             java.util.Collections.sort(matches,
@@ -151,6 +194,10 @@ final class SponsorBlockClient {
             if (monitor != null && connection != null) monitor.detach(connection);
             if (connection != null) connection.disconnect();
         }
+    }
+
+    static boolean isCategorySelected(String category, List<String> categories) {
+        return category != null && categories != null && categories.contains(category);
     }
 
     static Segment findSegmentAtPosition(List<Segment> segments, double positionSeconds) {
