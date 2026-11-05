@@ -4562,9 +4562,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         if (fixed && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
-            // Also perform the lookup when the dialog opens with fixed-city mode already selected.
-            cityMode.setChecked(false);
-            cityMode.setChecked(true);
+            // Detect the suggested city without toggling the RadioButton or disturbing the saved selection.
+            lookupStarted[0] = true;
+            weatherExecutor.execute(() -> {
+                String detected = detectWeatherCityFromNetwork();
+                if (detected == null) return;
+                weatherHandler.post(() -> {
+                    if (!cityEditedByUser[0]
+                            && initialCity.equals(city.getText().toString().trim())) {
+                        city.setText(detected);
+                        city.setSelection(city.length());
+                    }
+                });
+            });
         }
         AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (dialog, which) -> {

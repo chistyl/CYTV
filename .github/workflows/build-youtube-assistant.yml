@@ -5,6 +5,7 @@ on:
     branches:
       - r1-sponsorblock-integration
       - fix/youtube-unpaired-confirm-button-position-color
+      - fix/weekly-weather-radio-selection-r98
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-assistant.yml'
