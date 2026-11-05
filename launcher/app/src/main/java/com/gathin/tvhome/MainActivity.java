@@ -4729,40 +4729,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** 桌面顯示：APP／資料夾分頁，勾選代表隱藏。APP 使用 TV 16:9 橫幅預覽。 */
     /**
-     * Intercept DPAD before the focused child or ScrollView can consume it.
-     * Dialog.setOnKeyListener runs after the window has offered the event to its view
-     * hierarchy; some TV firmware consumes DPAD_DOWN at the ScrollView edge first.
-     * ViewTreeObserver.OnKeyListener is dispatched before normal view-tree key handling.
+     * Root container intercepts DPAD before ScrollView and child rows dispatch keys.
      */
-    private void installDialogDpadPreDispatchBridge(Dialog dialog, ViewGroup list, View actionButton) {
-        Window window = dialog.getWindow();
-        if (window == null || list == null || actionButton == null) return;
-        View decor = window.getDecorView();
-        ViewTreeObserver observer = decor.getViewTreeObserver();
-        ViewTreeObserver.OnKeyListener listener = (view, keyCode, event) -> {
-            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            View focused = decor.findFocus();
-            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (focused == actionButton) return true;
-                int count = list.getChildCount();
-                if (focused != null && count > 0) {
-                    View finalRow = list.getChildAt(count - 1);
-                    if (isViewInside(focused, finalRow) && actionButton.isShown()
-                            && actionButton.isFocusable()) {
-                        actionButton.requestFocus();
-                        return true;
-                    }
+    private final class DialogDpadBridge extends FrameLayout {
+        private final ViewGroup rows;
+        private View action;
+        DialogDpadBridge(Context context, View content, ViewGroup rows, View action) {
+            super(context);
+            this.rows = rows;
+            this.action = action;
+            setFocusable(false);
+            setClipChildren(false);
+            setClipToPadding(false);
+            addView(content, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        void setAction(View button) { action = button; }
+        @Override public boolean dispatchKeyEvent(KeyEvent event) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN
+                    && action != null && action.isShown() && action.isFocusable()) {
+                View focused = findFocus();
+                int count = rows.getChildCount();
+                if (focused != null && count > 0
+                        && isViewInside(focused, rows.getChildAt(count - 1))) {
+                    action.requestFocus();
+                    return true;
                 }
             }
-            return false;
-        };
-        observer.addOnKeyListener(listener);
-        dialog.setOnDismissListener(dismissed -> {
-            if (observer.isAlive()) observer.removeOnKeyListener(listener);
-        });
+            return super.dispatchKeyEvent(event);
+        }
     }
 
-    /** True when child is the ancestor itself or is nested anywhere inside ancestor. */
     private boolean isViewInside(View child, View ancestor) {
         View current = child;
         while (current != null) {
@@ -5117,7 +5115,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             edit.apply(); dialog.dismiss(); reloadApps(false);
         });
-        dialog.setContentView(outer);
+        DialogDpadBridge dpadRoot = new DialogDpadBridge(this, outer, list, cancel);
+        dialog.setContentView(dpadRoot);
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -5982,7 +5981,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
+        DialogDpadBridge dpadRoot = new DialogDpadBridge(this, scroll, list, null);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(dpadRoot)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
         dialog.show();
@@ -6086,8 +6086,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             saveButton.setNextFocusRightId(saveButton.getId());
             saveButton.setNextFocusDownId(saveButton.getId());
         }
-        // Intercept DPAD_DOWN before the ScrollView or focused tile can consume it.
-        installDialogDpadPreDispatchBridge(dialog, list, cancelButton);
+        // Root ViewGroup intercepts DPAD before ScrollView child dispatch.
+        dpadRoot.setAction(cancelButton);
         if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
     }
 
