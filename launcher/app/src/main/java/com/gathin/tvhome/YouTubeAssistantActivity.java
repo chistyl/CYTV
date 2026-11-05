@@ -230,8 +230,8 @@ public class YouTubeAssistantActivity extends Activity {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(TraditionalText.display(this, "連接 YouTube TV"))
                 .setView(box)
-                .setPositiveButton("連接", null)
-                .setNegativeButton("取消", (d, w) -> d.dismiss())
+                .setPositiveButton(TraditionalText.display(this, "連接"), null)
+                .setNegativeButton(TraditionalText.display(this, "取消"), (d, w) -> d.dismiss())
                 .create();
         dialog.setOnShowListener(ignored -> {
             styleDialog(dialog, false);
@@ -393,7 +393,7 @@ public class YouTubeAssistantActivity extends Activity {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(TraditionalText.display(this, title))
                 .setMessage(TraditionalText.display(this, message))
-                .setPositiveButton("確定", (d, w) -> d.dismiss())
+                .setPositiveButton(TraditionalText.display(this, "確定"), (d, w) -> d.dismiss())
                 .create();
         dialog.show();
         styleDialog(dialog, true);
