@@ -6395,7 +6395,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         // mis-place weighted GridLayout children even when row/column specs are explicit.
         LinearLayout grid = new LinearLayout(this);
         grid.setOrientation(LinearLayout.VERTICAL);
-        grid.setGravity(Gravity.TOP | Gravity.START);
+        grid.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         grid.setBackgroundColor(Color.TRANSPARENT);
         grid.setForeground(null);
         grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
@@ -6536,7 +6536,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
                     page.setGravity(Gravity.CENTER);
-                    grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
+                    grid.addView(page, new LinearLayout.LayoutParams(
+                            Math.round((folderTileDp + 12f) * folderColumns * density), -2));
                     folderPages.add(page);
                 }
                 LinearLayout page = folderPages.get(pageIndex);
@@ -6615,7 +6616,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
                     page.setGravity(Gravity.CENTER);
-                    grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
+                    grid.addView(page, new LinearLayout.LayoutParams(
+                            Math.round((folderTileDp + 12f) * folderColumns * density), -2));
                     folderPages.add(page);
                 }
                 LinearLayout page = folderPages.get(pageIndex);
@@ -6636,12 +6638,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         };
         populate.run();
-        // Full three-card rows are centered as a group with equal left/right outer space.
-        // Incomplete rows stay left-aligned so paging never shifts sparse content unexpectedly.
+        // Center one fixed three-column grid as a unit. Every row (including the add tile)
+        // shares the same column origin and equal slot spacing, even when the last row is sparse.
         for (LinearLayout page : folderPages) {
             for (int rowIndex = 0; rowIndex < page.getChildCount(); rowIndex++) {
-                LinearLayout row = (LinearLayout) page.getChildAt(rowIndex);
-                row.setGravity(row.getChildCount() == folderColumns ? Gravity.CENTER : Gravity.START);
+                ((LinearLayout) page.getChildAt(rowIndex)).setGravity(Gravity.START);
             }
         }
         for (int pageIndex = 0; pageIndex < folderPages.size(); pageIndex++) {
