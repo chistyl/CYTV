@@ -5801,344 +5801,271 @@ private GradientDrawable roundSurface(int color, float radius) {
 
     private interface AppSelectionListener { void onSave(boolean[] checked); }
 
-    /** TV 遙控器友善的 APP 選擇清單：16:9 TV 橫幅／圖示卡片、名稱及勾選框。 */
+    /** 單次新增 APP：使用資料夾相同的 3 欄 TV 卡片版型，不顯示勾選框或新增「＋」卡。 */
     private void showAppSelectionDialog(String title, List<String> packages,
                                         Map<String, ResolveInfo> appInfos, boolean[] checked,
                                         AppSelectionListener listener) {
+        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
+        Dialog dialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        GradientDrawable outerSurface = new GradientDrawable();
+        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setCornerRadius(22*density);
+        outerSurface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        outer.setBackground(outerSurface);
+
+        TextView heading = new TextView(this);
+        heading.setText(TraditionalText.display(this, "添加"));
+        heading.setTextColor(Color.WHITE);
+        heading.setTextSize(20);
+        heading.setGravity(Gravity.CENTER);
+        heading.setPadding((int)(8*density), (int)(4*density), 0, (int)(12*density));
+        outer.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
         ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setClipChildren(false);
-        scroll.setClipToPadding(false);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
+        scroll.setForeground(null);
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.setFillViewport(false);
 
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setClipChildren(false);
-        list.setClipToPadding(false);
-        list.setPadding((int)(18*density), (int)(8*density), (int)(18*density), (int)(8*density));
-        scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        grid.setBackgroundColor(Color.TRANSPARENT);
+        grid.setForeground(null);
+        grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
-        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        java.util.ArrayList<View> selectionTiles = new java.util.ArrayList<>();
-        java.util.ArrayList<LinearLayout> gridRows = new java.util.ArrayList<>();
+        int screenWidthDp = (int)(getResources().getDisplayMetrics().widthPixels / density);
+        int dialogWidthDp = Math.min(680, screenWidthDp - 48);
+        int contentWidthDp = Math.max(1, dialogWidthDp - 36);
+        int columns = 3;
+        int tileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 48) / columns));
+        java.util.ArrayList<LinearLayout> pages = new java.util.ArrayList<>();
+        java.util.ArrayList<View> focusTiles = new java.util.ArrayList<>();
+        java.util.ArrayList<View> pageDots = new java.util.ArrayList<>();
+        final int[] currentPage = {0};
+
+        FrameLayout content = new FrameLayout(this);
+        content.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        LinearLayout pageIndicator = new LinearLayout(this);
+        pageIndicator.setOrientation(LinearLayout.VERTICAL);
+        pageIndicator.setGravity(Gravity.CENTER);
+        pageIndicator.setPadding((int)(8*density), 0, (int)(2*density), 0);
+        content.addView(pageIndicator, new FrameLayout.LayoutParams(
+                (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL));
+        outer.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));
+        scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 
         for (int i = 0; i < packages.size(); i++) {
-            final int index = i;
             String pkg = packages.get(i);
             ResolveInfo ri = appInfos.get(pkg);
+            if (ri == null) continue;
 
             LinearLayout tile = new LinearLayout(this);
-            tile.setOrientation(LinearLayout.HORIZONTAL);
-            tile.setGravity(Gravity.CENTER_VERTICAL);
+            tile.setOrientation(LinearLayout.VERTICAL);
+            tile.setGravity(Gravity.CENTER_HORIZONTAL);
+            tile.setId(View.generateViewId());
             tile.setFocusable(true);
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
-            tile.setId(View.generateViewId());
-            tile.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
-            tile.setMinimumHeight((int)(82*density));
-
-            FrameLayout art = new FrameLayout(this);
-            GradientDrawable artBg = new GradientDrawable();
-            artBg.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
-            artBg.setCornerRadius(9*density);
-            art.setBackground(artBg);
-            art.setClipToOutline(true);
-
-            ImageView image = new ImageView(this);
-            Drawable banner = ri == null ? null : loadFolderTvBanner(ri, pkg, prefs);
-            if (banner != null) {
-                image.setImageDrawable(banner);
-                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            } else {
-                image.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-                image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-                int pad = Math.max((int)(3*density), (int)(13*density/scale));
-                image.setPadding(pad, pad, pad, pad);
-            }
-            art.addView(image, new FrameLayout.LayoutParams(-1, -1));
-            tile.addView(art, new LinearLayout.LayoutParams((int)(120*density), (int)(68*density)));
-
-            android.widget.CheckBox check = new android.widget.CheckBox(this);
-            check.setText(TraditionalText.display(this, ri == null ? pkg : String.valueOf(ri.loadLabel(getPackageManager()))));
-            check.setTextColor(0xFFF5F6FA);
-            check.setTextSize(15);
-            check.setChecked(checked[i]);
-            check.setFocusable(false);
-            check.setButtonTintList(new ColorStateList(
-                    new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                    new int[]{0xFF80C9C2, 0xFFACB8C1}));
-            LinearLayout.LayoutParams checkLp = new LinearLayout.LayoutParams(0, (int)(68*density), 1f);
-            checkLp.leftMargin = (int)(10*density);
-            check.setLayoutParams(checkLp);
-            check.setOnCheckedChangeListener((button, value) -> checked[index] = value);
-            tile.addView(check);
-
-            GradientDrawable tileBg = new GradientDrawable();
-            tileBg.setColor(0x18343A46);
-            tileBg.setCornerRadius(10*density);
-            tile.setBackground(tileBg);
             tile.setDefaultFocusHighlightEnabled(false);
+            tile.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
+
+            FrameLayout card = new FrameLayout(this);
+            GradientDrawable cardSurface = new GradientDrawable();
+            cardSurface.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
+            cardSurface.setCornerRadius(20*density);
+            card.setBackground(cardSurface);
+            GradientDrawable cardBorder = new GradientDrawable();
+            cardBorder.setColor(Color.TRANSPARENT);
+            cardBorder.setCornerRadius(20*density);
+            cardBorder.setStroke(0, Color.TRANSPARENT);
+            card.setForeground(cardBorder);
+            card.setClipToOutline(false);
+
+            ImageView artwork = new ImageView(this);
+            GradientDrawable artworkClip = new GradientDrawable();
+            artworkClip.setColor(Color.TRANSPARENT);
+            artworkClip.setCornerRadius(20*density);
+            artwork.setBackground(artworkClip);
+            artwork.setClipToOutline(true);
+            Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
+            if (banner != null) {
+                artwork.setImageDrawable(banner);
+                artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            } else {
+                artwork.setImageDrawable(loadFolderAppIcon(pkg, prefs));
+                artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+                float scale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
+                int pad = Math.max((int)(3*density), (int)(10*density/scale));
+                artwork.setPadding(pad, pad, pad, pad);
+            }
+            card.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
+            tile.addView(card, new LinearLayout.LayoutParams(-1,
+                    Math.round(tileWidthDp * 9f / 16f * density)));
+
+            TextView name = new TextView(this);
+            String customName = prefs.getString("label_" + pkg, null);
+            name.setText(TraditionalText.display(this, customName != null ? customName
+                    : String.valueOf(ri.loadLabel(getPackageManager()))));
+            name.setTextColor(Color.WHITE);
+            name.setTextSize(11);
+            name.setGravity(Gravity.CENTER);
+            name.setMaxLines(2);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
+            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
+            nameLp.topMargin = (int)(3*density);
+            tile.addView(name, nameLp);
+
             tile.setOnFocusChangeListener((v, focused) -> {
-                tileBg.setColor(focused ? 0xFF465366 : 0x18343A46);
-                tileBg.setStroke(focused ? Math.max(2, (int)(2*density)) : 0,
+                cardBorder.setStroke(focused ? Math.max(1, Math.round(3f*density)) : 0,
                         focused ? 0xFF80C9C2 : Color.TRANSPARENT);
-                check.setTextColor(0xFFF5F6FA);
-                check.setButtonTintList(new ColorStateList(
-                        new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
-                        new int[]{0xFF80C9C2, 0xFFACB8C1}));
-                v.setElevation(focused ? 3f * density : 0f);
+                card.setElevation(focused ? 10f*density : 0f);
                 if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                         new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
-            tile.setOnClickListener(v -> check.setChecked(!check.isChecked()));
-            tile.setOnKeyListener((v, key, event) -> {
+            final int selectedIndex = i;
+            tile.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_UP
-                        && (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
-                        || key == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                    check.setChecked(!check.isChecked());
+                        && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                    v.performClick();
                     return true;
                 }
                 return false;
             });
+            tile.setOnClickListener(v -> {
+                boolean[] selected = new boolean[packages.size()];
+                selected[selectedIndex] = true;
+                listener.onSave(selected);
+                dialog.dismiss();
+            });
 
-            int column = i % 2;
-            if (column == 0) {
-                LinearLayout gridRow = new LinearLayout(this);
-                gridRow.setOrientation(LinearLayout.HORIZONTAL);
-                gridRow.setGravity(Gravity.TOP);
-                gridRow.setClipChildren(false);
-                gridRow.setClipToPadding(false);
-                list.addView(gridRow, new LinearLayout.LayoutParams(-1, -2));
-                gridRows.add(gridRow);
+            int tileIndex = focusTiles.size();
+            int pageIndex = tileIndex / 9;
+            int rowIndex = (tileIndex % 9) / columns;
+            while (pages.size() <= pageIndex) {
+                LinearLayout page = new LinearLayout(this);
+                page.setOrientation(LinearLayout.VERTICAL);
+                page.setGravity(Gravity.CENTER);
+                grid.addView(page, new LinearLayout.LayoutParams(
+                        Math.round((tileWidthDp + 12f) * columns * density), -2));
+                pages.add(page);
             }
-            LinearLayout gridRow = gridRows.get(gridRows.size() - 1);
-            LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0, -2, 1f);
-            tileLp.leftMargin = (int)(2*density);
-            tileLp.rightMargin = (int)(5*density);
-            tileLp.bottomMargin = (int)(8*density);
-            if (column == 1) {
-                tileLp.leftMargin = (int)(5*density);
-                tileLp.rightMargin = (int)(2*density);
+            LinearLayout page = pages.get(pageIndex);
+            while (page.getChildCount() <= rowIndex) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.START);
+                row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+                page.addView(row, new LinearLayout.LayoutParams(-1, -2));
             }
-            gridRow.addView(tile, tileLp);
-            selectionTiles.add(tile);
+            LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
+                    Math.round(tileWidthDp*density),
+                    Math.round((tileWidthDp*9f/16f + 34f)*density));
+            tileLp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+            ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
+            focusTiles.add(tile);
         }
 
-        // 遙控器導覽：左右切換同列，上下移動同欄；最後一列可直接前往操作按鈕。
-        for (int i = 0; i < selectionTiles.size(); i++) {
-            View tile = selectionTiles.get(i);
-            int row = i / 2;
-            int column = i % 2;
-            tile.setNextFocusLeftId(column == 1 ? selectionTiles.get(i - 1).getId() : tile.getId());
-            tile.setNextFocusRightId(column == 0 && i + 1 < selectionTiles.size()
-                    ? selectionTiles.get(i + 1).getId() : tile.getId());
-            int down = i + 2;
-            if (down < selectionTiles.size()) tile.setNextFocusDownId(selectionTiles.get(down).getId());
-            int up = i - 2;
-            if (up >= 0) tile.setNextFocusUpId(selectionTiles.get(up).getId());
+        for (LinearLayout page : pages) {
+            for (int row = 0; row < page.getChildCount(); row++)
+                ((LinearLayout)page.getChildAt(row)).setGravity(Gravity.START);
+        }
+        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+            pages.get(pageIndex).setVisibility(pageIndex == 0 ? View.VISIBLE : View.GONE);
+            View dot = new View(this);
+            GradientDrawable dotBg = new GradientDrawable();
+            dotBg.setShape(GradientDrawable.OVAL);
+            dotBg.setColor(pageIndex == 0 ? Color.WHITE : 0x66888888);
+            dot.setBackground(dotBg);
+            LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(
+                    (int)(8*density), (int)(8*density));
+            dotLp.topMargin = (int)(5*density);
+            dotLp.bottomMargin = (int)(5*density);
+            pageIndicator.addView(dot, dotLp);
+            pageDots.add(dot);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(TraditionalText.display(this, title)).setView(scroll)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("儲存", (d, which) -> listener.onSave(checked)).create();
+        java.util.function.BiConsumer<Integer, Integer> showPage = (pageIndex, preferredLocalIndex) -> {
+            if (pageIndex < 0 || pageIndex >= pages.size()) return;
+            currentPage[0] = pageIndex;
+            for (int i = 0; i < pages.size(); i++) {
+                pages.get(i).setVisibility(i == pageIndex ? View.VISIBLE : View.GONE);
+                GradientDrawable dotBg = new GradientDrawable();
+                dotBg.setShape(GradientDrawable.OVAL);
+                dotBg.setColor(i == pageIndex ? Color.WHITE : 0x66888888);
+                pageDots.get(i).setBackground(dotBg);
+            }
+            int first = pageIndex * 9;
+            int count = Math.min(9, focusTiles.size() - first);
+            if (count > 0) focusTiles.get(first + Math.min(Math.max(0, preferredLocalIndex), count - 1)).requestFocus();
+        };
+        final int[] lastDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
+        dialog.setOnKeyListener((d, keyCode, event) -> {
+            boolean directional = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+            if (!directional) return false;
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                if (lastDpadDown[0] == keyCode) lastDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
+                return true;
+            }
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            lastDpadDown[0] = keyCode;
+            int index = focusTiles.indexOf(dialog.getCurrentFocus());
+            if (index < 0) { if (!focusTiles.isEmpty()) showPage.accept(currentPage[0], 0); return true; }
+            int page = index / 9;
+            int local = index % 9;
+            int row = local / columns;
+            int column = local % columns;
+            int pageCount = Math.min(9, focusTiles.size() - page*9);
+            int target = -1;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < columns - 1 && local + 1 < pageCount) target = index + 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (row > 0 && local - columns >= 0) target = index - columns;
+                else if (page > 0) { showPage.accept(page - 1, 6 + column); return true; }
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (row < 2 && local + columns < pageCount) target = index + columns;
+                else if (page + 1 < pages.size()) { showPage.accept(page + 1, column); return true; }
+            }
+            if (target >= 0) focusTiles.get(target).requestFocus();
+            return true;
+        });
+
+        final ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup)parent).removeView(backdropBlur);
+                Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable)image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
+        dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable();
-            rounded.setColor(0xFF1D212B);
-            rounded.setCornerRadius(22*density);
-            rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            dialog.getWindow().setBackgroundDrawable(rounded);
-            dialog.getWindow().setLayout(Math.min((int)(760*density),
-                    getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(660*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
-        styleRemoteDialogActions(dialog);
-        Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (cancelButton != null && saveButton != null) {
-            cancelButton.setAllCaps(false);
-            saveButton.setAllCaps(false);
-            cancelButton.setMinWidth((int)(104*density));
-            saveButton.setMinWidth((int)(112*density));
-            cancelButton.setMinHeight((int)(52*density));
-            saveButton.setMinHeight((int)(52*density));
-            LinearLayout.LayoutParams cancelParams = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelParams.rightMargin = (int)(18*density);
-            cancelButton.setLayoutParams(cancelParams);
-            LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
-            saveParams.leftMargin = (int)(4*density);
-            saveButton.setLayoutParams(saveParams);
-
-            // 底部操作列增加明確的上下留白，避免取消／儲存按鈕貼近對話框邊緣。
-            ViewParent actionParent = cancelButton.getParent();
-            if (actionParent instanceof ViewGroup) {
-                ViewGroup actionPanel = (ViewGroup) actionParent;
-                actionPanel.setClipToPadding(false);
-                actionPanel.setPadding(
-                        actionPanel.getPaddingLeft(),
-                        actionPanel.getPaddingTop() + (int)(32*density),
-                        actionPanel.getPaddingRight(),
-                        Math.max(0, actionPanel.getPaddingBottom() - (int)(8*density)));
-            }
-            LinearLayout.LayoutParams cancelSpacing = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelSpacing.topMargin = (int)(6*density);
-            cancelSpacing.bottomMargin = (int)(6*density);
-            cancelButton.setLayoutParams(cancelSpacing);
-            LinearLayout.LayoutParams saveSpacing = (LinearLayout.LayoutParams) saveButton.getLayoutParams();
-            saveSpacing.topMargin = (int)(6*density);
-            saveSpacing.bottomMargin = (int)(6*density);
-            saveButton.setLayoutParams(saveSpacing);
-            cancelButton.setFocusable(true);
-            saveButton.setFocusable(true);
-            cancelButton.setFocusableInTouchMode(true);
-            saveButton.setFocusableInTouchMode(true);
-            cancelButton.setDefaultFocusHighlightEnabled(false);
-            saveButton.setDefaultFocusHighlightEnabled(false);
-            cancelButton.setMinHeight((int)(48*density));
-            saveButton.setMinHeight((int)(48*density));
-            cancelButton.setId(View.generateViewId());
-            saveButton.setId(View.generateViewId());
-            GradientDrawable buttonNormal = new GradientDrawable();
-            buttonNormal.setColor(0xFF343B47);
-            buttonNormal.setCornerRadius(14*density);
-            GradientDrawable buttonFocused = new GradientDrawable();
-            buttonFocused.setColor(0xFF465366);
-            buttonFocused.setCornerRadius(14*density);
-            buttonFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
-            cancelButton.setBackground(buttonNormal);
-            saveButton.setBackground(buttonNormal);
-            cancelButton.setTextColor(0xFFF1F2F4);
-            saveButton.setTextColor(0xFFF1F2F4);
-            View.OnFocusChangeListener buttonFocus = (v, focused) -> {
-                v.setBackground(focused ? buttonFocused : buttonNormal);
-                ((Button)v).setTextColor(0xFFF5F6FA);
-                v.setScaleX(1f);
-                v.setScaleY(1f);
-            };
-            cancelButton.setOnFocusChangeListener(buttonFocus);
-            saveButton.setOnFocusChangeListener(buttonFocus);
-            cancelButton.setNextFocusRightId(saveButton.getId());
-            saveButton.setNextFocusLeftId(cancelButton.getId());
-            if (!selectionTiles.isEmpty()) {
-                View lastRowTile = selectionTiles.get(selectionTiles.size() - 1);
-                int lastRowStart = ((selectionTiles.size() - 1) / 2) * 2;
-                // 最後一列的每個項目都導向取消，避免左欄最後一項向下時跳出 Dialog。
-                for (int i = lastRowStart; i < selectionTiles.size(); i++)
-                    selectionTiles.get(i).setNextFocusDownId(cancelButton.getId());
-                // 第一列向上回到操作列；中間列仍依同欄上下移動。
-                for (int i = 0; i < Math.min(2, selectionTiles.size()); i++)
-                    selectionTiles.get(i).setNextFocusUpId(cancelButton.getId());
-                cancelButton.setNextFocusUpId(lastRowTile.getId());
-                saveButton.setNextFocusUpId(lastRowTile.getId());
-            } else {
-                cancelButton.post(cancelButton::requestFocus);
-            }
-            // 操作列的焦點邊界封閉在 Dialog 內。
-            cancelButton.setNextFocusLeftId(cancelButton.getId());
-            cancelButton.setNextFocusRightId(saveButton.getId());
-            cancelButton.setNextFocusDownId(cancelButton.getId());
-            saveButton.setNextFocusLeftId(cancelButton.getId());
-            saveButton.setNextFocusRightId(saveButton.getId());
-            saveButton.setNextFocusDownId(saveButton.getId());
-        }
-        if (!selectionTiles.isEmpty()) selectionTiles.get(0).post(selectionTiles.get(0)::requestFocus);
-    }
-
-    private void showFolderAppAssignment() {
-        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        List<String> folders = new ArrayList<>(prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet()));
-        if (folders.isEmpty()) { Toast.makeText(this, "請先新增資料夾", Toast.LENGTH_SHORT).show(); return; }
-        final AlertDialog[] folderDialogRef = new AlertDialog[1];
-        Runnable dismissFolderPicker = () -> { if (folderDialogRef[0] != null) folderDialogRef[0].dismiss(); };
-        float d = density;
-        ScrollView scroll = new ScrollView(this);
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        LinearLayout options = new LinearLayout(this);
-        options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding((int)(12*d), (int)(8*d), (int)(12*d), (int)(8*d));
-        scroll.addView(options, new ScrollView.LayoutParams(-1, -2));
-        java.util.ArrayList<View> folderRows = new java.util.ArrayList<>();
-        for (String folder : folders) {
-            TextView item = new TextView(this);
-            item.setText(folder); item.setTextColor(Color.WHITE); item.setTextSize(17);
-            item.setGravity(Gravity.CENTER_VERTICAL);
-            item.setPadding((int)(18*d), 0, (int)(18*d), 0);
-            item.setMinHeight((int)(62*d));
-            item.setFocusable(true); item.setFocusableInTouchMode(true); item.setClickable(true);
-            item.setId(View.generateViewId());
-            GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343A46); normal.setCornerRadius(12*d);
-            GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF465366); focused.setCornerRadius(12*d);
-            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
-            item.setBackground(normal); item.setDefaultFocusHighlightEnabled(false);
-            item.setOnFocusChangeListener((v, hasFocus) -> {
-                v.setBackground(hasFocus ? focused : normal);
-                v.setScaleX(hasFocus ? 1.015f : 1f); v.setScaleY(hasFocus ? 1.015f : 1f);
-            });
-            item.setOnClickListener(v -> { dismissFolderPicker.run(); showFolderAppAssignment(folder); });
-            item.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_UP
-                        && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)) {
-                    dismissFolderPicker.run(); showFolderAppAssignment(folder); return true;
-                }
-                return false;
-            });
-            item.setNextFocusLeftId(item.getId());
-            item.setNextFocusRightId(item.getId());
-            if (!folderRows.isEmpty()) {
-                View previous = folderRows.get(folderRows.size()-1);
-                previous.setNextFocusDownId(item.getId()); item.setNextFocusUpId(previous.getId());
-            }
-            folderRows.add(item);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.bottomMargin = (int)(8*d); options.addView(item, lp);
-        }
-        AlertDialog folderDialog = new AlertDialog.Builder(this).setTitle("選擇資料夾")
-                .setView(scroll).setNegativeButton("取消", null).create();
-        folderDialogRef[0] = folderDialog;
-        folderDialog.show();
-        if (folderDialog.getWindow() != null) {
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(Color.rgb(28,32,40)); bg.setCornerRadius(22*d);
-            bg.setStroke(Math.max(1,(int)d), 0x28FFFFFF);
-            folderDialog.getWindow().setBackgroundDrawable(bg);
-            folderDialog.getWindow().setLayout(Math.min((int)(620*d), getResources().getDisplayMetrics().widthPixels-(int)(48*d)),
-                    Math.min((int)(560*d), getResources().getDisplayMetrics().heightPixels-(int)(64*d)));
-        }
-        Button cancel = folderDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        if (cancel != null) {
-            cancel.setFocusable(true); cancel.setFocusableInTouchMode(true);
-            cancel.setDefaultFocusHighlightEnabled(false);
-            GradientDrawable normal = new GradientDrawable();
-            normal.setColor(0xFF343A46); normal.setCornerRadius(14*d);
-            GradientDrawable focused = new GradientDrawable();
-            focused.setColor(0xFF465366); focused.setCornerRadius(14*d);
-            focused.setStroke(Math.max(2,(int)(2*d)), 0xFF80C9C2);
-            cancel.setBackground(normal);
-            cancel.setOnFocusChangeListener((v, hasFocus) -> {
-                v.setBackground(hasFocus ? focused : normal);
-                ((Button)v).setTextColor(0xFFF5F6FA);
-            });
-            if (!folderRows.isEmpty()) {
-                View first = folderRows.get(0);
-                View last = folderRows.get(folderRows.size()-1);
-                first.setNextFocusUpId(first.getId());
-                last.setNextFocusDownId(cancel.getId());
-                cancel.setNextFocusUpId(last.getId());
-            }
-            cancel.setNextFocusDownId(cancel.getId());
-            cancel.setNextFocusLeftId(cancel.getId());
-            cancel.setNextFocusRightId(cancel.getId());
-        }
-        if (!folderRows.isEmpty()) folderRows.get(0).post(folderRows.get(0)::requestFocus);
-        else if (cancel != null) cancel.post(cancel::requestFocus);
+        grid.post(() -> {
+            if (!focusTiles.isEmpty()) showPage.accept(0, 0);
+        });
     }
 
     private void styleRemoteEditField(EditText edit) {
@@ -6190,42 +6117,52 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         List<String> folders = new ArrayList<>(prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet()));
         if (!folders.contains(folder)) return;
-        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
-            List<String> packages = new ArrayList<>(candidates.keySet());
-            boolean[] checked = new boolean[packages.size()];
-            Set<String> members = prefs.getStringSet("folder_apps_" + folder, java.util.Collections.<String>emptySet());
-            // The ordinary folder's own saved membership controls this dialog's checkboxes.
-            // Do not hide a saved selection merely because the system-folder preferences are stale;
-            // the save action below resolves the conflict and moves selected packages here.
+        java.util.TreeMap<String, ResolveInfo> allCandidates = getFolderAssignmentCandidates();
+        java.util.HashSet<String> alreadyAssigned = new java.util.HashSet<>();
+        for (String other : folders) {
+            alreadyAssigned.addAll(prefs.getStringSet("folder_apps_" + other,
+                    java.util.Collections.<String>emptySet()));
+        }
+        alreadyAssigned.addAll(prefs.getStringSet("system_folder_added",
+                java.util.Collections.<String>emptySet()));
+        java.util.ArrayList<String> packages = new java.util.ArrayList<>();
+        java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>();
+        for (Map.Entry<String, ResolveInfo> entry : allCandidates.entrySet()) {
+            String pkg = entry.getKey();
+            if (alreadyAssigned.contains(pkg)) continue;
+            try {
+                ApplicationInfo info = getPackageManager().getApplicationInfo(pkg, 0);
+                if (isPreinstalledSystemApp(info)
+                        && !prefs.getStringSet("system_folder_excluded",
+                        java.util.Collections.<String>emptySet()).contains(pkg)) continue;
+            } catch (PackageManager.NameNotFoundException ignored) { }
+            packages.add(pkg);
+            candidates.put(pkg, entry.getValue());
+        }
+        if (packages.isEmpty()) {
+            Toast.makeText(this, "沒有可添加的 APP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean[] unused = new boolean[packages.size()];
+        showAppSelectionDialog("添加", packages, candidates, unused, selected -> {
             for (int i = 0; i < packages.size(); i++) {
-                checked[i] = members.contains(packages.get(i));
-            }
-            showAppSelectionDialog("勾選要放入「" + folder + "」", packages, candidates, checked, selected -> {
-                java.util.LinkedHashSet<String> chosen = new java.util.LinkedHashSet<>();
-                for (int i=0;i<packages.size();i++) if (selected[i]) chosen.add(packages.get(i));
-                SharedPreferences.Editor edit = prefs.edit().putStringSet("folder_apps_" + folder, chosen);
-                for (String other : folders) if (!other.equals(folder)) {
-                    java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>(prefs.getStringSet("folder_apps_" + other, java.util.Collections.<String>emptySet()));
-                    set.removeAll(chosen);
-                    edit.putStringSet("folder_apps_" + other, set);
-                }
-                java.util.HashSet<String> systemAdded = new java.util.HashSet<>(prefs.getStringSet(
-                        "system_folder_added", java.util.Collections.<String>emptySet()));
-                systemAdded.removeAll(chosen);
+                if (!selected[i]) continue;
+                String pkg = packages.get(i);
+                java.util.HashSet<String> members = new java.util.HashSet<>(prefs.getStringSet(
+                        "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
+                members.add(pkg);
+                SharedPreferences.Editor edit = prefs.edit().putStringSet("folder_apps_" + folder, members);
                 java.util.HashSet<String> systemExcluded = new java.util.HashSet<>(prefs.getStringSet(
                         "system_folder_excluded", java.util.Collections.<String>emptySet()));
-                for (String packageName : chosen) {
-                    try {
-                        int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                        if (isPreinstalledSystemApp(getPackageManager().getApplicationInfo(packageName, 0)))
-                            systemExcluded.add(packageName);
-                    } catch (PackageManager.NameNotFoundException ignored) { }
-                }
-                edit.putStringSet("system_folder_added", systemAdded)
-                        .putStringSet("system_folder_excluded", systemExcluded);
-                edit.apply();
-                reloadApps(false);
-            });
+                try {
+                    ApplicationInfo info = getPackageManager().getApplicationInfo(pkg, 0);
+                    if (isPreinstalledSystemApp(info)) systemExcluded.add(pkg);
+                } catch (PackageManager.NameNotFoundException ignored) { }
+                edit.putStringSet("system_folder_excluded", systemExcluded).apply();
+                break;
+            }
+            reloadApps(false);
+        });
     }
 
     private void showSystemFolderComingSoon() {
@@ -6242,6 +6179,63 @@ private GradientDrawable roundSurface(int color, float radius) {
     @Override
     public void onOpenFolder(String folderName) {
         showFolderContents(folderName, "系統".equals(folderName));
+    }
+
+    /**
+     * Adds a blurred snapshot of the launcher behind a folder dialog.
+     * The snapshot is downsampled before RenderScript blur to keep memory use
+     * reasonable on Android TV devices; the foreground dialog remains untouched.
+     * If capture or blur is unavailable, the normal dimmed dialog remains usable.
+     */
+    private android.widget.ImageView installFolderBackdropBlur() {
+        final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (!(decor instanceof android.view.ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        android.graphics.Bitmap source = null;
+        android.graphics.Bitmap small = null;
+        android.graphics.Bitmap blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null;
+        android.renderscript.Allocation output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decor.getWidth();
+            int height = decor.getHeight();
+            source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(source);
+            decor.draw(canvas);
+            int smallWidth = Math.max(1, width / 4);
+            int smallHeight = Math.max(1, height / 4);
+            small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
+            source.recycle(); source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(6.25f); // 6.25px at 1/4 scale ≈ 25px Gaussian blur on the TV screen
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = android.graphics.Bitmap.createScaledBitmap(small, width, height, true);
+            android.widget.ImageView overlay = new android.widget.ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setFocusableInTouchMode(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((android.view.ViewGroup) decor).addView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
     }
 
     /** Open folders as a grid of real app shortcuts; long-press an app to rename or move it out. */
@@ -6321,7 +6315,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         heading.setText(TraditionalText.display(this, folderName));
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(20);
-        heading.setGravity(Gravity.CENTER_VERTICAL);
+        heading.setGravity(Gravity.CENTER);
         heading.setPadding((int)(8*density), (int)(4*density), 0, (int)(12*density));
         outer.addView(heading, new LinearLayout.LayoutParams(-1, -2));
 
@@ -6338,7 +6332,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         // mis-place weighted GridLayout children even when row/column specs are explicit.
         LinearLayout grid = new LinearLayout(this);
         grid.setOrientation(LinearLayout.VERTICAL);
-        grid.setGravity(Gravity.TOP | Gravity.START);
+        grid.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         grid.setBackgroundColor(Color.TRANSPARENT);
         grid.setForeground(null);
         grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
@@ -6346,12 +6340,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         // sized four cards for a wider area than the dialog's padded content, clipping the
         // rightmost card on wide screens. Include the outer padding and each slot's side margins.
         int screenWidthDp = (int) (getResources().getDisplayMetrics().widthPixels / density);
-        int folderDialogWidthDp = Math.min(760, screenWidthDp - 48);
+        int folderDialogWidthDp = Math.min(680, screenWidthDp - 48);
         int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
-        int folderColumns = 4;
-        int folderTileDp = Math.max(72, Math.min(184, (folderContentWidthDp - 48) / folderColumns));
-        java.util.ArrayList<LinearLayout> folderRows = new java.util.ArrayList<>();
+        int folderColumns = 3;
+        int folderTileDp = Math.max(72, Math.min(176, (folderContentWidthDp - 48) / folderColumns));
+        java.util.ArrayList<LinearLayout> folderPages = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
+        java.util.ArrayList<View> folderPageDots = new java.util.ArrayList<>();
+        final int[] currentFolderPage = {0};
+        LinearLayout folderPageIndicator = new LinearLayout(this);
+        folderPageIndicator.setOrientation(LinearLayout.VERTICAL);
+        folderPageIndicator.setGravity(Gravity.CENTER);
+        folderPageIndicator.setPadding((int)(8*density), 0, (int)(2*density), 0);
         android.graphics.drawable.GradientDrawable scrollClip = new android.graphics.drawable.GradientDrawable();
         scrollClip.setColor(Color.TRANSPARENT);
         scrollClip.setCornerRadius(16 * density);
@@ -6364,11 +6364,20 @@ private GradientDrawable roundSurface(int color, float radius) {
         scroll.addView(grid, new ScrollView.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
-        outer.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        // Keep the app grid centered in the full dialog width; page dots overlay at the right edge.
+        FrameLayout folderContent = new FrameLayout(this);
+        folderContent.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        FrameLayout.LayoutParams indicatorLp = new FrameLayout.LayoutParams(
+                (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL);
+        folderContent.addView(folderPageIndicator, indicatorLp);
+        outer.addView(folderContent, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         Runnable populate = () -> {
             grid.removeAllViews();
-            folderRows.clear();
+            folderPages.clear();
+            folderFocusTiles.clear();
+            folderPageIndicator.removeAllViews();
+            folderPageDots.clear();
             for (ResolveInfo ri : matches.values()) {
                 String packageName = ri.activityInfo.packageName;
                 LinearLayout tile = new LinearLayout(this);
@@ -6458,23 +6467,29 @@ private GradientDrawable roundSurface(int color, float radius) {
                     return true;
                 });
                 int tileIndex = folderFocusTiles.size();
-                int rowIndex = tileIndex / folderColumns;
-                while (folderRows.size() <= rowIndex) {
+                int pageIndex = tileIndex / 9;
+                int rowIndex = (tileIndex % 9) / folderColumns;
+                while (folderPages.size() <= pageIndex) {
+                    LinearLayout page = new LinearLayout(this);
+                    page.setOrientation(LinearLayout.VERTICAL);
+                    page.setGravity(Gravity.CENTER);
+                    grid.addView(page, new LinearLayout.LayoutParams(
+                            Math.round((folderTileDp + 12f) * folderColumns * density), -2));
+                    folderPages.add(page);
+                }
+                LinearLayout page = folderPages.get(pageIndex);
+                while (page.getChildCount() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    // Keep folder items in natural left-to-right order; incomplete rows start at the first column.
-                    row.setGravity(Gravity.TOP | Gravity.START);
+                    row.setGravity(Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-                    grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
-                    folderRows.add(row);
+                    page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
-                // Every folder row uses four fixed-width slots. Incomplete rows keep
-                // equal outer spacing and never stretch the remaining cards.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
+                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                folderRows.get(rowIndex).addView(tile, lp);
+                ((LinearLayout) page.getChildAt(rowIndex)).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
             {
@@ -6532,65 +6547,68 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // a weighted column: GridLayout would stretch it across the entire row.
                 // Keep the empty-state add tile at the same fixed TV-card width as normal apps.
                 int addIndex = folderFocusTiles.size();
-                int rowIndex = addIndex / folderColumns;
-                while (folderRows.size() <= rowIndex) {
+                int pageIndex = addIndex / 9;
+                int rowIndex = (addIndex % 9) / folderColumns;
+                while (folderPages.size() <= pageIndex) {
+                    LinearLayout page = new LinearLayout(this);
+                    page.setOrientation(LinearLayout.VERTICAL);
+                    page.setGravity(Gravity.CENTER);
+                    grid.addView(page, new LinearLayout.LayoutParams(
+                            Math.round((folderTileDp + 12f) * folderColumns * density), -2));
+                    folderPages.add(page);
+                }
+                LinearLayout page = folderPages.get(pageIndex);
+                while (page.getChildCount() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    // Keep the add tile after the last app, starting at the first column on incomplete rows.
-                    row.setGravity(Gravity.TOP | Gravity.START);
+                    row.setGravity(Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-                    grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
-                    folderRows.add(row);
+                    page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
-                // The "+" tile occupies one fixed column just like every app tile.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
+                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                folderRows.get(rowIndex).addView(add, lp);
+                ((LinearLayout) page.getChildAt(rowIndex)).addView(add, lp);
                 add.setId(View.generateViewId());
                 folderFocusTiles.add(add);
             }
         };
         populate.run();
-        // 明確設定遙控器焦點路徑：每列五個，左右相鄰、上下對應同欄。
-        for (int i = 0; i < folderFocusTiles.size(); i++) {
-            View item = folderFocusTiles.get(i);
-            if (i % folderColumns > 0) item.setNextFocusLeftId(folderFocusTiles.get(i - 1).getId());
-            if (i % folderColumns < folderColumns - 1 && i + 1 < folderFocusTiles.size()) item.setNextFocusRightId(folderFocusTiles.get(i + 1).getId());
-            if (i - folderColumns >= 0) item.setNextFocusUpId(folderFocusTiles.get(i - folderColumns).getId());
-            if (i + folderColumns < folderFocusTiles.size()) item.setNextFocusDownId(folderFocusTiles.get(i + folderColumns).getId());
-
+        // Center one fixed three-column grid as a unit. Every row (including the add tile)
+        // shares the same column origin and equal slot spacing, even when the last row is sparse.
+        for (LinearLayout page : folderPages) {
+            for (int rowIndex = 0; rowIndex < page.getChildCount(); rowIndex++) {
+                ((LinearLayout) page.getChildAt(rowIndex)).setGravity(Gravity.START);
+            }
         }
-        Button close = new Button(this);
-        close.setText("關閉"); close.setAllCaps(false);
-        close.setFocusable(true); close.setFocusableInTouchMode(true);
-        close.setDefaultFocusHighlightEnabled(false);
-        close.setMinHeight((int)(52*density));
-        close.setId(View.generateViewId());
-        GradientDrawable closeNormal = new GradientDrawable();
-        closeNormal.setColor(0xFF343A46); closeNormal.setCornerRadius(14*density);
-        closeNormal.setStroke(Math.max(1, Math.round(1f * density)), 0x24FFFFFF);
-        GradientDrawable closeFocused = new GradientDrawable();
-        closeFocused.setColor(0xFF465366); closeFocused.setCornerRadius(14*density);
-        // Match the shared teal focus outline used by the rest of the launcher.
-        closeFocused.setStroke(Math.max(1, Math.round(2f * density)), 0xFF80C9C2);
-        close.setBackground(closeNormal);
-        close.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? closeFocused : closeNormal));
-        close.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-1, -2);
-        closeLp.topMargin = (int)(10*density);
-        outer.addView(close, closeLp);
-        if (!folderFocusTiles.isEmpty()) {
-            View firstTile = folderFocusTiles.get(0);
-            View lastTile = folderFocusTiles.get(folderFocusTiles.size()-1);
-            firstTile.setNextFocusUpId(close.getId());
-            lastTile.setNextFocusDownId(close.getId());
-            close.setNextFocusUpId(lastTile.getId());
-            close.setNextFocusDownId(firstTile.getId());
-            close.setNextFocusLeftId(lastTile.getId());
+        for (int pageIndex = 0; pageIndex < folderPages.size(); pageIndex++) {
+            folderPages.get(pageIndex).setVisibility(pageIndex == 0 ? View.VISIBLE : View.GONE);
+            View dot = new View(this);
+            android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
+            dotBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            dotBg.setColor(pageIndex == 0 ? Color.WHITE : 0x66888888);
+            dot.setBackground(dotBg);
+            LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams((int)(8*density), (int)(8*density));
+            dotLp.topMargin = (int)(5*density);
+            dotLp.bottomMargin = (int)(5*density);
+            folderPageIndicator.addView(dot, dotLp);
+            folderPageDots.add(dot);
         }
-        // Handle DPAD at the folder dialog boundary so TV firmware cannot swallow tile navigation.
+        java.util.function.BiConsumer<Integer, Integer> showFolderPage = (pageIndex, preferredLocalIndex) -> {
+            if (pageIndex < 0 || pageIndex >= folderPages.size()) return;
+            currentFolderPage[0] = pageIndex;
+            for (int i = 0; i < folderPages.size(); i++) {
+                folderPages.get(i).setVisibility(i == pageIndex ? View.VISIBLE : View.GONE);
+                android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
+                dotBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                dotBg.setColor(i == pageIndex ? Color.WHITE : 0x66888888);
+                folderPageDots.get(i).setBackground(dotBg);
+            }
+            int first = pageIndex * 9;
+            int count = Math.min(9, folderFocusTiles.size() - first);
+            if (count > 0) folderFocusTiles.get(first + Math.min(Math.max(0, preferredLocalIndex), count - 1)).requestFocus();
+        };
         final int[] lastFolderDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
         dialog.setOnKeyListener((d, keyCode, event) -> {
             boolean directional = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
@@ -6599,60 +6617,59 @@ private GradientDrawable roundSurface(int color, float radius) {
                     || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
             if (!directional) return false;
             if (event.getAction() == KeyEvent.ACTION_UP) {
-                if (lastFolderDpadDown[0] == keyCode) {
-                    lastFolderDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
-                    return true;
-                }
+                if (lastFolderDpadDown[0] == keyCode) lastFolderDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
                 return true;
             }
             if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
             lastFolderDpadDown[0] = keyCode;
-            View focused = dialog.getCurrentFocus();
-            int index = folderFocusTiles.indexOf(focused);
-            if (focused == close) {
-                // The close button is a first-class stop in the remote-control focus loop.
-                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !folderFocusTiles.isEmpty()) {
-                    folderFocusTiles.get(folderFocusTiles.size() - 1).requestFocus();
-                } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !folderFocusTiles.isEmpty()) {
-                    folderFocusTiles.get(0).requestFocus();
-                }
-                return true;
-            }
-            if (index < 0) {
-                if (!folderFocusTiles.isEmpty()) folderFocusTiles.get(0).requestFocus();
-                else close.requestFocus();
-                return true;
-            }
+            int index = folderFocusTiles.indexOf(dialog.getCurrentFocus());
+            if (index < 0) { if (!folderFocusTiles.isEmpty()) showFolderPage.accept(currentFolderPage[0], 0); return true; }
+            int page = index / 9;
+            int local = index % 9;
+            int row = local / folderColumns;
+            int column = local % folderColumns;
+            int pageCount = Math.min(9, folderFocusTiles.size() - page * 9);
             int target = -1;
-            int column = index % folderColumns;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1
-                    && index + 1 < folderFocusTiles.size()) target = index + 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= folderColumns) target = index - folderColumns;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (index + folderColumns < folderFocusTiles.size()) target = index + folderColumns;
-                else close.requestFocus();            }
-            if (target >= 0) {
-                View next = folderFocusTiles.get(target);
-                next.requestFocus();
-                next.post(() -> {
-                    android.graphics.Rect rect = new android.graphics.Rect();                    next.getDrawingRect(rect);
-                    scroll.requestChildRectangleOnScreen(next, rect, true);
-                });
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1 && local + 1 < pageCount) target = index + 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (row > 0 && local - folderColumns >= 0) target = index - folderColumns;
+                else if (page > 0) { showFolderPage.accept(page - 1, 6 + column); return true; }
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (row < 2 && local + folderColumns < pageCount) target = index + folderColumns;
+                else if (page + 1 < folderPages.size()) { showFolderPage.accept(page + 1, column); return true; }
             }
+            if (target >= 0) folderFocusTiles.get(target).requestFocus();
             return true;
-        });        dialog.setContentView(outer);
+        });
+        // Blur only the desktop behind this folder window; the dialog surface and its
+        // app tiles remain sharp. Keep the standard dim layer as the readability overlay.
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
+        dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             // show() 後再指定透明 Window 背景，避免主題的預設 Dialog panel
             // 疊在資料夾內容後方，產生截圖中不應存在的整片底色。
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                Math.min((int)(760*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                Math.min((int)(620*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         grid.post(() -> {
-            View first = folderFocusTiles.isEmpty() ? null : folderFocusTiles.get(0);
-            if (first != null) first.requestFocus();
+            if (!folderFocusTiles.isEmpty()) showFolderPage.accept(0, 0);
         });
     }
 
@@ -7124,60 +7141,58 @@ private GradientDrawable roundSurface(int color, float radius) {
         return candidates;
     }
 
-    /** 管理系統資料夾：清單包含 APP 圖示，打勾的 APP 留在「系統」資料夾。 */
+    /** 管理系統資料夾：以資料夾相同的 3 欄卡片介面，一次添加一個 APP。 */
     private void showSystemFolderAssignment() {
-        java.util.TreeMap<String, ResolveInfo> candidates = getFolderAssignmentCandidates();
-        java.util.ArrayList<String> packages = new java.util.ArrayList<>(candidates.keySet());
-        boolean[] checked = new boolean[packages.size()];
+        java.util.TreeMap<String, ResolveInfo> allCandidates = getFolderAssignmentCandidates();
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         Set<String> excluded = prefs.getStringSet("system_folder_excluded", java.util.Collections.<String>emptySet());
         Set<String> added = prefs.getStringSet("system_folder_added", java.util.Collections.<String>emptySet());
-        for (int i = 0; i < packages.size(); i++) {
-            String pkg = packages.get(i);
-            try {
-                int flags = getPackageManager().getApplicationInfo(pkg, 0).flags;
-                boolean isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0));
-                boolean belongsToSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
-                // The system-folder preference is authoritative for system apps. Do not
-                // mask its checkbox based on stale ordinary-folder membership: that can make
-                // the same package appear unchecked in BOTH dialogs. Saving this dialog
-                // removes selected packages from every ordinary folder below.
-                checked[i] = belongsToSystem;
-            } catch (PackageManager.NameNotFoundException ignored) { }
+        Set<String> generalFolders = prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
+        java.util.HashSet<String> assignedElsewhere = new java.util.HashSet<>();
+        for (String folder : generalFolders) assignedElsewhere.addAll(prefs.getStringSet(
+                "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
+
+        java.util.ArrayList<String> packages = new java.util.ArrayList<>();
+        java.util.TreeMap<String, ResolveInfo> candidates = new java.util.TreeMap<>();
+        for (Map.Entry<String, ResolveInfo> entry : allCandidates.entrySet()) {
+            String pkg = entry.getKey();
+            boolean isSystem = false;
+            try { isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0)); }
+            catch (PackageManager.NameNotFoundException ignored) { }
+            boolean alreadyInSystem = added.contains(pkg) || (isSystem && !excluded.contains(pkg));
+            if (alreadyInSystem || assignedElsewhere.contains(pkg)) continue;
+            packages.add(pkg);
+            candidates.put(pkg, entry.getValue());
         }
-        showAppSelectionDialog("勾選要放入「系統」", packages, candidates, checked, selected -> {
-            java.util.HashSet<String> excludedNow = new java.util.HashSet<>();
-            java.util.HashSet<String> addedNow = new java.util.HashSet<>();
-            for (int i=0;i<packages.size();i++) {
-                String packageName = packages.get(i);
-                boolean isSystem = false;
-                try {
-                    int flags = getPackageManager().getApplicationInfo(packageName, 0).flags;
-                    isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(packageName, 0));
-                } catch (PackageManager.NameNotFoundException ignored) { }
-                if (selected[i] && !isSystem) addedNow.add(packageName);
-                if (!selected[i] && isSystem) excludedNow.add(packageName);
-            }
-            SharedPreferences.Editor edit = prefs.edit()
-                    .putStringSet("system_folder_excluded", excludedNow)
-                    .putStringSet("system_folder_added", addedNow);
-            // A package can belong to only one folder. Remove every APP selected for the
-            // System folder from all ordinary folders, including system packages (not just
-            // user-added apps). The previous code removed only addedNow, so built-in system
-            // apps could remain checked in both places and the two dialogs drifted out of sync.
-            java.util.HashSet<String> selectedForSystem = new java.util.HashSet<>();
+        if (packages.isEmpty()) {
+            Toast.makeText(this, "沒有可添加的 APP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean[] unused = new boolean[packages.size()];
+        showAppSelectionDialog("添加", packages, candidates, unused, selected -> {
             for (int i = 0; i < packages.size(); i++) {
-                if (selected[i]) selectedForSystem.add(packages.get(i));
+                if (!selected[i]) continue;
+                String pkg = packages.get(i);
+                boolean isSystem = false;
+                try { isSystem = isPreinstalledSystemApp(getPackageManager().getApplicationInfo(pkg, 0)); }
+                catch (PackageManager.NameNotFoundException ignored) { }
+                java.util.HashSet<String> addedNow = new java.util.HashSet<>(prefs.getStringSet(
+                        "system_folder_added", java.util.Collections.<String>emptySet()));
+                java.util.HashSet<String> excludedNow = new java.util.HashSet<>(prefs.getStringSet(
+                        "system_folder_excluded", java.util.Collections.<String>emptySet()));
+                if (isSystem) excludedNow.remove(pkg); else addedNow.add(pkg);
+                SharedPreferences.Editor edit = prefs.edit()
+                        .putStringSet("system_folder_added", addedNow)
+                        .putStringSet("system_folder_excluded", excludedNow);
+                for (String folder : generalFolders) {
+                    java.util.HashSet<String> members = new java.util.HashSet<>(prefs.getStringSet(
+                            "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
+                    members.remove(pkg);
+                    edit.putStringSet("folder_apps_" + folder, members);
+                }
+                edit.apply();
+                break;
             }
-            Set<String> generalFolders = new java.util.HashSet<>(prefs.getStringSet(
-                    "home_folders", java.util.Collections.<String>emptySet()));
-            for (String folder : generalFolders) {
-                java.util.HashSet<String> set = new java.util.HashSet<>(prefs.getStringSet(
-                        "folder_apps_" + folder, java.util.Collections.<String>emptySet()));
-                set.removeAll(selectedForSystem);
-                edit.putStringSet("folder_apps_" + folder, set);
-            }
-            edit.apply();
             reloadApps(false);
         });
     }

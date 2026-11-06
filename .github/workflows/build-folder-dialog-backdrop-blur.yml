@@ -1,0 +1,80 @@
+name: CYTV Folder Dialog Backdrop Blur
+
+on:
+  push:
+    branches:
+      - feature/dialog-backdrop-blur-方案A
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-folder-dialog-backdrop-blur.yml'
+  pull_request:
+    branches:
+      - fix/toshiba-65u7000vs-disable-auto-dns-route
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-folder-dialog-backdrop-blur.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backdrop blur branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Run launcher unit tests
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+
+      - name: Build debug APK
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Folder-Backdrop-Blur-APK
+          path: launcher/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Package complete source archive
+        run: |
+          zip -qr CYTV-Folder-Backdrop-Blur-source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './CYTV-Folder-Backdrop-Blur-source.zip'
+
+      - name: Upload complete source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Folder-Backdrop-Blur-Complete-Source
+          path: CYTV-Folder-Backdrop-Blur-source.zip
+          if-no-files-found: error
+          retention-days: 30
