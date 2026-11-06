@@ -4804,7 +4804,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             tab.setElevation(0f); tab.setId(View.generateViewId());
             tab.setPadding((int)(8*density), 0, (int)(8*density), 0);
         }
-        tabs.setPadding((int)(30*density), 0, 0, 0);
+        // Tabs extend beyond the list panel equally on both sides, as in the reference.
+        tabs.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams appTabLp = new LinearLayout.LayoutParams(
                 0, (int)(44*density), 0.92f);
         appTabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
@@ -4836,7 +4837,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // remains centered in the dialog while pagination stays outside on the right.
         LinearLayout leftBalanceRail = new LinearLayout(this);
         LinearLayout.LayoutParams balanceLp = new LinearLayout.LayoutParams(
-                (int)(30*density), -1);
+                (int)(24*density), -1);
         contentRow.addView(leftBalanceRail, balanceLp);
 
         FrameLayout listPanel = new FrameLayout(this);
@@ -4849,10 +4850,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout pageHost = new LinearLayout(this);
         pageHost.setOrientation(LinearLayout.VERTICAL);
-        // Match the supplied reference: widen the two-column content area so
-        // the left group moves outward and the right group moves outward evenly.
-        pageHost.setPadding((int)(8*density), (int)(7*density),
-                (int)(12*density), (int)(7*density));
+        // Narrow and center the two column groups to match the reference spacing.
+        pageHost.setPadding((int)(24*density), (int)(7*density),
+                (int)(24*density), (int)(7*density));
         listPanel.addView(pageHost, new FrameLayout.LayoutParams(-1, -1));
 
         // Pagination rail is outside the list panel; its width plus margins
