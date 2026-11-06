@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="600dp" android:height="600dp"
-    android:viewportWidth="600" android:viewportHeight="600">
-    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-        android:pathData="M36,600 L276,0 L331,0 L567,600 L424,600 L375,467 L228,467 L179,600 Z M240,349 L356,349 L302,181 Z" />
-    <path android:fillColor="#35BDF1"
-        android:pathData="M538,0 L600,0 L600,250 L538,250 L538,158 L451,158 L451,83 L538,83 Z" />
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Keep all foreground artwork inside Android's 66dp adaptive-icon safe zone. -->
+    <group
+        android:scaleX="0.11"
+        android:scaleY="0.11"
+        android:translateX="21"
+        android:translateY="21">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M36,600 L276,0 L331,0 L567,600 L424,600 L375,467 L228,467 L179,600 Z M240,349 L356,349 L302,181 Z" />
+        <path
+            android:fillColor="#35BDF1"
+            android:pathData="M538,0 L600,0 L600,250 L538,250 L538,158 L451,158 L451,83 L538,83 Z" />
+    </group>
 </vector>
