@@ -12,6 +12,7 @@ on:
     branches:
       - fix/ethernet-dns-recovery-r4-r98
       - fix/move-global-app-names-setting-85eb84a
+      - fix/rename-app-name-toggle-labels-582ba02
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'

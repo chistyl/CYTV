@@ -6959,13 +6959,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
 
-        addSettingsMenuRow(rows, popup, "修改 APP 名稱", () -> {
+        addSettingsMenuRow(rows, popup, "修改應用名稱", () -> {
             EditText edit = new EditText(this);
             edit.setSingleLine(true);
             edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             edit.setText(prefs.getString("label_" + packageName, currentLabel));
             edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改 APP 名稱").setView(edit)
+            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改應用名稱").setView(edit)
                     .setNegativeButton("取消", null)
                     .setPositiveButton("儲存", (d, which) -> {
                         String value = edit.getText().toString().trim();
@@ -7722,13 +7722,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
         SharedPreferences appPrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         String savedLabel = appPrefs.getString("label_" + pkg, adapter.labelAt(position));
-        addSettingsMenuRow(rows, popup, "修改 APP 名稱", () -> {
+        addSettingsMenuRow(rows, popup, "修改應用名稱", () -> {
             EditText edit = new EditText(this);
             edit.setSingleLine(true);
             edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
             edit.setText(savedLabel);
             edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改 APP 名稱").setView(edit)
+            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("修改應用名稱").setView(edit)
                     .setNegativeButton("取消", null)
                     .setPositiveButton("儲存", (dialog, which) -> {
                         String value = edit.getText().toString().trim();
