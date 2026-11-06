@@ -8,6 +8,8 @@ on:
       - fix/move-app-category-below-weekly-weather-512f50d
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
+      - fix/system-folder-app-category-entry-6f700f1
+      - fix/system-folder-remote-long-press-screen-jump-30f3f92
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
