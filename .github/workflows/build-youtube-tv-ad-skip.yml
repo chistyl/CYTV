@@ -20,6 +20,7 @@ on:
       - fix/shorten-system-folder-picker-title-8d682ba
       - fix/shorten-folder-picker-title-1933dab
       - fix/shorten-remove-folder-menu-label-c1e3def
+      - fix/move-app-category-below-weekly-weather-512f50d
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
