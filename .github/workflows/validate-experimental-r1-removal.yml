@@ -1,6 +1,13 @@
 name: Validate experimental R1 removal (no device release)
 
 on:
+  pull_request:
+    branches:
+      - fix/ethernet-dns-recovery-r4-r98
+    paths:
+      - 'launcher/**'
+      - 'scripts/validate-experimental-r1-removal.py'
+      - '.github/workflows/validate-experimental-r1-removal.yml'
   push:
     branches:
       - experiment/remove-toshiba-r1-vpn-guard
