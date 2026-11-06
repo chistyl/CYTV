@@ -4826,6 +4826,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         contentRow.setGravity(Gravity.CENTER_VERTICAL);
         content.addView(contentRow, new FrameLayout.LayoutParams(-1, -1));
 
+        // Reserve a matching invisible gutter on the left so the list panel
+        // remains centered in the dialog while pagination stays outside on the right.
+        LinearLayout leftBalanceRail = new LinearLayout(this);
+        LinearLayout.LayoutParams balanceLp = new LinearLayout.LayoutParams(
+                (int)(30*density), -1);
+        contentRow.addView(leftBalanceRail, balanceLp);
+
         FrameLayout listPanel = new FrameLayout(this);
         GradientDrawable listClip = new GradientDrawable();
         listClip.setColor(0xFF343A46);
@@ -4836,12 +4843,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout pageHost = new LinearLayout(this);
         pageHost.setOrientation(LinearLayout.VERTICAL);
-        // Symmetric inset is applied to the whole 2-column grid.
-        pageHost.setPadding((int)(16*density), (int)(7*density),
-                (int)(16*density), (int)(7*density));
+        // Exact equal grid inset from the left and right edges of the list surface.
+        pageHost.setPadding((int)(24*density), (int)(7*density),
+                (int)(24*density), (int)(7*density));
         listPanel.addView(pageHost, new FrameLayout.LayoutParams(-1, -1));
 
-        // Independent right-side rail, visibly outside the list panel.
+        // Pagination rail is outside the list panel; its width plus margins
+        // matches the invisible left rail to preserve overall centering.
         LinearLayout pageIndicator = new LinearLayout(this);
         pageIndicator.setOrientation(LinearLayout.VERTICAL);
         pageIndicator.setGravity(Gravity.CENTER);
