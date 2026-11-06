@@ -5007,6 +5007,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, -1, 1f);
                         itemLp.setMargins((int)(2*density), (int)(2*density),
                                 (int)(2*density), (int)(2*density));
+                        // Nudge the complete right-hand column slightly right without
+                        // changing its measured width or disturbing the left column.
+                        if (col == 1) item.setTranslationX(8 * density);
                         row.addView(item, itemLp);
                         focusItems.add(item);
                     }
