@@ -5811,6 +5811,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         LinearLayout grid = new LinearLayout(this);
         grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.CENTER_HORIZONTAL);
         grid.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
         scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 
@@ -5829,7 +5830,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (i % 3 == 0) {
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER);
+                row.setGravity(Gravity.START);
                 LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
                 rowLp.bottomMargin = (int)(16*density);
                 grid.addView(row, rowLp);
@@ -5901,7 +5902,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                 AlertDialog dialog = (AlertDialog) scroll.getTag();
                 if (dialog != null) dialog.dismiss();
             });
-            row.addView(tile, new LinearLayout.LayoutParams(0, -2, 1f));
+            LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
+                    (int)(tileWidthDp*density), -2);
+            tileLp.leftMargin = (int)(6*density);
+            tileLp.rightMargin = (int)(6*density);
+            row.addView(tile, tileLp);
             tiles.add(tile);
         }
 
