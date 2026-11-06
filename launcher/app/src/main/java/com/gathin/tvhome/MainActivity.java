@@ -5941,6 +5941,51 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (!tiles.isEmpty()) tiles.get(0).requestFocus();
     }
 
+    private void styleRemoteEditField(EditText edit) {
+        edit.setFocusable(true);
+        edit.setFocusableInTouchMode(true);
+        edit.setSelectAllOnFocus(false);
+        edit.setTextColor(0xFFF5F6FA);
+        edit.setHintTextColor(0xFFACB8C1);
+        edit.setPadding((int)(12*density), (int)(10*density), (int)(12*density), (int)(10*density));
+        edit.setBackgroundTintList(new ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}},
+                new int[]{0xFF80C9C2, 0xFFACB8C1}));
+        edit.setOnFocusChangeListener((v, focused) -> {
+            v.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xFF80C9C2 : 0xFFACB8C1));
+            v.setElevation(focused ? 4f*density : 0f);
+        });
+    }
+
+    private void styleRemoteDialogActions(AlertDialog dialog) {
+        Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (cancel == null || save == null) return;
+        cancel.setFocusable(true); save.setFocusable(true);
+        cancel.setFocusableInTouchMode(true); save.setFocusableInTouchMode(true);
+        cancel.setDefaultFocusHighlightEnabled(false); save.setDefaultFocusHighlightEnabled(false);
+        cancel.setAllCaps(false); save.setAllCaps(false);
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
+        focused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
+        View.OnFocusChangeListener focus = (v, hasFocus) -> {
+            v.setBackground(hasFocus ? focused : normal);
+            ((Button)v).setTextColor(0xFFF5F6FA);
+            v.setScaleX(hasFocus ? 1.02f : 1f); v.setScaleY(hasFocus ? 1.02f : 1f);
+        };
+        cancel.setBackground(normal); save.setBackground(normal);
+        cancel.setOnFocusChangeListener(focus); save.setOnFocusChangeListener(focus);
+        cancel.setMinWidth((int)(108*density)); save.setMinWidth((int)(108*density));
+        cancel.setMinHeight((int)(52*density)); save.setMinHeight((int)(52*density));
+        LinearLayout.LayoutParams cp = (LinearLayout.LayoutParams) cancel.getLayoutParams();
+        cp.rightMargin = (int)(16*density); cancel.setLayoutParams(cp);
+        LinearLayout.LayoutParams sp = (LinearLayout.LayoutParams) save.getLayoutParams();
+        sp.leftMargin = (int)(8*density); save.setLayoutParams(sp);
+        cancel.setNextFocusRightId(save.getId()); save.setNextFocusLeftId(cancel.getId());
+    }
+
     private void showFolderAppAssignment(String folder) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         List<String> folders = new ArrayList<>(prefs.getStringSet("home_folders", java.util.Collections.<String>emptySet()));
