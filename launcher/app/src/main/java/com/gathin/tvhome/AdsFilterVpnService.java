@@ -290,25 +290,20 @@ public class AdsFilterVpnService extends VpnService {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
             boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
-            // Fail closed for the affected Toshiba firmware if Ethernet exists at all,
-            // even when Android currently reports Wi-Fi as the selected physical network.
-            // This avoids bypassing R1 when transport selection changes during startup.
+            // Record whether Ethernet is present independently of the selected upstream.
+            // This is diagnostic only; the experimental branch does not apply the R1 guard.
             if (!ethernet && cm != null) {
                 for (Network candidate : cm.getAllNetworks()) {
                     NetworkCapabilities candidateCaps = cm.getNetworkCapabilities(candidate);
                     if (candidateCaps != null
                             && candidateCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
                         ethernet = true;
-                        appendDnsLog("-", "安全保護", "偵測到其他已連線 Ethernet：" + candidate
-                                + "；即使目前選取其他實體網路，仍套用 Toshiba 安全保護");
+                        appendDnsLog("-", "診斷", "偵測到其他已連線 Ethernet：" + candidate
+                                + "；目前選取的實體網路為 " + selected);
                         break;
                     }
                 }
             }
-            String deviceModel = Build.MODEL == null ? "" : Build.MODEL.toLowerCase(Locale.ROOT);
-            boolean toshiba = "toshiba".equalsIgnoreCase(Build.MANUFACTURER)
-                    || "toshiba".equalsIgnoreCase(Build.BRAND)
-                    || deviceModel.contains("65u7000vs");
             appendDnsLog("-", "診斷", "選取實體網路 " + selected
                     + "；Ethernet=" + ethernet
                     + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
@@ -317,12 +312,14 @@ public class AdsFilterVpnService extends VpnService {
                     + "；Brand=" + Build.BRAND
                     + "；Model=" + Build.MODEL
                     + "；Android API=" + Build.VERSION.SDK_INT);
+            appendDnsLog("-", "診斷", "準備呼叫 VpnService.Builder.establish()；selected="
+                    + selected + "；EthernetPresent=" + ethernet);
 
             Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
                     .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
-            appendDnsLog("-", "診斷", "VPN TUN 建立成功");
+            appendDnsLog("-", "診斷", "VpnService.Builder.establish() 已返回成功；VPN TUN 建立成功");
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
