@@ -6548,7 +6548,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
+                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(tile, lp);
                 folderFocusTiles.add(tile);
@@ -6627,7 +6627,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
+                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
                 lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(add, lp);
                 add.setId(View.generateViewId());
