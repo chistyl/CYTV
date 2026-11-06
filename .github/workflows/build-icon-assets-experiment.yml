@@ -1,0 +1,69 @@
+name: Build CYTV icon assets experiment
+
+on:
+  push:
+    branches:
+      - feature/icon-assets-from-experiment-b3a294e
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-icon-assets-experiment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-build-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Run launcher unit tests
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+
+      - name: Build debug APK
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Package exact source and version marker
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          mkdir -p delivery
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk delivery/CYTV-icon-assets-experiment-debug.apk
+          git archive --format=zip --output=delivery/CYTV-icon-assets-experiment-source.zip HEAD
+          printf 'repository=chistyl/CYTV\\nbranch=%s\\ncommit=%s\\n' "${GITHUB_REF_NAME}" "${SOURCE_COMMIT}" > delivery/VERSION.txt
+          sha256sum delivery/CYTV-icon-assets-experiment-debug.apk delivery/CYTV-icon-assets-experiment-source.zip > delivery/SHA256SUMS.txt
+
+      - name: Upload matched delivery bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-icon-assets-experiment-${{ github.sha }}
+          path: delivery/*
+          if-no-files-found: error
+          retention-days: 30
