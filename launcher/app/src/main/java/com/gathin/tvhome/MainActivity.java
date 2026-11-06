@@ -7012,7 +7012,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             open(info);
         });
 
-        addSettingsMenuRow(rows, popup, systemFolder ? "移出" : "移出資料夾", () -> {
+        addSettingsMenuRow(rows, popup, "移出", () -> {
             if (systemFolder) {
                 boolean isSystem = false;
                 try {
