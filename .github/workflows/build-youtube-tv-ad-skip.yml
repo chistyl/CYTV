@@ -15,6 +15,7 @@ on:
       - fix/rename-app-name-toggle-labels-582ba02
       - fix/rename-modify-app-name-label-049bd3c
       - fix/rename-add-to-dock-label-049bd3c
+      - fix/rename-folder-to-app-category-7807c63
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
