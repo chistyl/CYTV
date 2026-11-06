@@ -6274,7 +6274,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             input = android.renderscript.Allocation.createFromBitmap(rs, small);
             output = android.renderscript.Allocation.createTyped(rs, input.getType());
             blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
-            blur.setRadius(3.0f); // 3px at 1/4 scale ≈ 12px on the TV screen
+            blur.setRadius(6.25f); // 6.25px at 1/4 scale ≈ 25px Gaussian blur on the TV screen
             blur.setInput(input);
             blur.forEach(output);
             output.copyTo(small);
