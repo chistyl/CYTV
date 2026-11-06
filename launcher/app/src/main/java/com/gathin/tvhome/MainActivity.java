@@ -4923,7 +4923,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         item.setOrientation(LinearLayout.HORIZONTAL);
                         item.setGravity(Gravity.CENTER_VERTICAL);
                         // Match the icon's leading inset with the checkbox's trailing inset.
-                        item.setPadding((int)(7*density), (int)(4*density),
+                        item.setPadding((int)((col == 1 ? 15 : 7)*density), (int)(4*density),
                                 (int)(7*density), (int)(4*density));
                         item.setFocusable(true); item.setFocusableInTouchMode(true);
                         item.setClickable(true); item.setDefaultFocusHighlightEnabled(false);
@@ -5007,9 +5007,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, -1, 1f);
                         itemLp.setMargins((int)(2*density), (int)(2*density),
                                 (int)(2*density), (int)(2*density));
-                        // Nudge the complete right-hand column slightly right without
-                        // changing its measured width or disturbing the left column.
-                        if (col == 1) item.setTranslationX(8 * density);
+                        // Shift only the right-column contents inward; keep the item
+                        // bounds and focus outline fixed so they are never clipped.
                         row.addView(item, itemLp);
                         focusItems.add(item);
                     }
