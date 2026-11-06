@@ -1,9 +1,10 @@
-name: Build CYTV Toshiba Ethernet Safety R1
+name: Build CYTV Toshiba Network Stability R2
 
 on:
   push:
     branches:
       - safety/toshiba-android9-ethernet-disable-vpn-r1
+      - fix/toshiba-network-stability-r2-diagnostics
     paths:
       - 'launcher/**'
       - 'scripts/validate-toshiba-r1-guard.py'
@@ -54,19 +55,19 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-Toshiba-Ethernet-Safety-R1-APK
+          name: CYTV-Toshiba-Network-Stability-R2-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-Toshiba-Ethernet-Safety-R1-source.zip . \
+          zip -qr CYTV-Toshiba-Network-Stability-R2-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
                './launcher/app/build/*' './CYTV-Toshiba-Ethernet-Safety-R1-source.zip'
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-Toshiba-Ethernet-Safety-R1-Complete-Source
+          name: CYTV-Toshiba-Network-Stability-R2-Complete-Source
           path: CYTV-Toshiba-Ethernet-Safety-R1-source.zip
           if-no-files-found: error
           retention-days: 30
