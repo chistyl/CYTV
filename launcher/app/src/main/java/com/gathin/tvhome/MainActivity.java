@@ -4823,18 +4823,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         listClip.setColor(0xFF343A46); listClip.setCornerRadius(16*density);
         content.setBackground(listClip); content.setClipToOutline(true);
 
+        LinearLayout contentRow = new LinearLayout(this);
+        contentRow.setOrientation(LinearLayout.HORIZONTAL);
+        contentRow.setGravity(Gravity.CENTER_VERTICAL);
+        contentRow.setPadding((int)(10*density), 0, (int)(10*density), 0);
+        content.addView(contentRow, new FrameLayout.LayoutParams(-1, -1));
+
         LinearLayout pageHost = new LinearLayout(this);
         pageHost.setOrientation(LinearLayout.VERTICAL);
-        pageHost.setPadding((int)(10*density), (int)(7*density),
-                (int)(30*density), (int)(7*density));
-        content.addView(pageHost, new FrameLayout.LayoutParams(-1, -1));
+        pageHost.setPadding(0, (int)(7*density), 0, (int)(7*density));
+        contentRow.addView(pageHost, new LinearLayout.LayoutParams(0, -1, 1f));
 
+        // Keep page dots in a separate rail, outside the app rows.
         LinearLayout pageIndicator = new LinearLayout(this);
         pageIndicator.setOrientation(LinearLayout.VERTICAL);
         pageIndicator.setGravity(Gravity.CENTER);
-        FrameLayout.LayoutParams indicatorLp = new FrameLayout.LayoutParams(
-                (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL);
-        content.addView(pageIndicator, indicatorLp);
+        LinearLayout.LayoutParams indicatorLp = new LinearLayout.LayoutParams(
+                (int)(12*density), -1);
+        indicatorLp.leftMargin = (int)(8*density);
+        contentRow.addView(pageIndicator, indicatorLp);
 
         final int columns = 2, rowsPerPage = 5, perPage = columns * rowsPerPage;
         final int itemHeight = Math.max(1, (int)(72*density));
@@ -4991,16 +4998,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             }
             currentPage[0] = 0;
+            if (!focusItemsByPage.isEmpty() && !focusItemsByPage.get(0).isEmpty()) {
+                int firstItemId = focusItemsByPage.get(0).get(0).getId();
+                appTab.setNextFocusDownId(firstItemId);
+                folderTab.setNextFocusDownId(firstItemId);
+            }
         };
 
         Runnable updateTabs = () -> {
-            GradientDrawable active = new GradientDrawable(); active.setColor(0xFF465366);
-            active.setCornerRadius(12*density);
-            GradientDrawable idle = new GradientDrawable(); idle.setColor(0xFF343A46);
-            idle.setCornerRadius(12*density);
-            appTab.setBackground(showingApps[0] ? active : idle);
-            folderTab.setBackground(showingApps[0] ? idle : active);
+            GradientDrawable appBackground = new GradientDrawable();
+            appBackground.setColor(showingApps[0] ? 0xFF465366 : 0xFF343A46);
+            appBackground.setCornerRadius(12*density);
+            appBackground.setStroke(appTab.hasFocus() ? Math.max(2, (int)(2*density)) : 0,
+                    appTab.hasFocus() ? 0xFF80C9C2 : Color.TRANSPARENT);
+            GradientDrawable folderBackground = new GradientDrawable();
+            folderBackground.setColor(showingApps[0] ? 0xFF343A46 : 0xFF465366);
+            folderBackground.setCornerRadius(12*density);
+            folderBackground.setStroke(folderTab.hasFocus() ? Math.max(2, (int)(2*density)) : 0,
+                    folderTab.hasFocus() ? 0xFF80C9C2 : Color.TRANSPARENT);
+            appTab.setBackground(appBackground);
+            folderTab.setBackground(folderBackground);
         };
+        appTab.setOnFocusChangeListener((v, focused) -> updateTabs.run());
+        folderTab.setOnFocusChangeListener((v, focused) -> updateTabs.run());
         Runnable render = () -> { buildPages.run(); updateTabs.run(); };
         Runnable showPage = () -> {
             for (int i = 0; i < pages.size(); i++) {
@@ -5030,7 +5050,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         };
-        appTab.setOnKeyListener(tabKey); folderTab.setOnKeyListener(tabKey);
+        appTab.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                folderTab.requestFocus(); return true;
+            }
+            return tabKey.onKey(v, keyCode, event);
+        });
+        folderTab.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                appTab.requestFocus(); return true;
+            }
+            return tabKey.onKey(v, keyCode, event);
+        });
         appTab.setNextFocusLeftId(appTab.getId()); appTab.setNextFocusRightId(folderTab.getId());
         folderTab.setNextFocusLeftId(appTab.getId()); folderTab.setNextFocusRightId(folderTab.getId());
         appTab.setNextFocusUpId(appTab.getId()); folderTab.setNextFocusUpId(folderTab.getId());
@@ -5039,6 +5070,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int[] lastDirection = {KeyEvent.KEYCODE_UNKNOWN};
         dialog.setOnKeyListener((d, keyCode, event) -> {
             boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+            View focusedView = dialog.getCurrentFocus();
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && (focusedView == appTab || focusedView == folderTab)) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && focusedView == folderTab) {
+                    appTab.requestFocus(); return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && focusedView == appTab) {
+                    folderTab.requestFocus(); return true;
+                }
+            }
             if (!vertical) return false;
             if (event.getAction() == KeyEvent.ACTION_UP) {
                 if (lastDirection[0] == keyCode) lastDirection[0] = KeyEvent.KEYCODE_UNKNOWN;
@@ -5054,11 +5095,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     && currentPage[0] + 1 < pages.size()) {
                 currentPage[0]++; showPage.run(); return true;
             }
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && row == 0 && currentPage[0] > 0) {
-                currentPage[0]--; showPage.run();
-                List<View> previous = focusItemsByPage.get(currentPage[0]);
-                if (!previous.isEmpty()) previous.get(Math.min(previous.size() - 1,
-                        (rowsPerPage - 1) * columns + index % columns)).requestFocus();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && row == 0) {
+                if (currentPage[0] > 0) {
+                    currentPage[0]--; showPage.run();
+                    List<View> previous = focusItemsByPage.get(currentPage[0]);
+                    if (!previous.isEmpty()) previous.get(Math.min(previous.size() - 1,
+                            (rowsPerPage - 1) * columns + index % columns)).requestFocus();
+                } else {
+                    (showingApps[0] ? appTab : folderTab).requestFocus();
+                }
                 return true;
             }
             return false;
@@ -5087,10 +5132,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
                     Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
-        content.post(() -> {
-            if (!focusItemsByPage.isEmpty() && !focusItemsByPage.get(0).isEmpty())
-                focusItemsByPage.get(0).get(0).requestFocus();
-        });
+        content.post(() -> appTab.requestFocus());
     }
 
     /** 取得 TV 橫幅；若使用者自訂圖示／尺寸，則依桌面設定改用圖示卡片。 */
