@@ -3914,8 +3914,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
-        addSettingsMenuRow(rows, popup, "應用分類", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
+        addSettingsMenuRow(rows, popup, "應用分類", this::showCreateFolderDialog);
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
