@@ -75,7 +75,7 @@ if not (guard.start() < builder.start() < establish.start()):
 
 diagnostic_checks = {
     "bounded network history preference": r'"network_stability_logs"',
-    "50-entry history bound": r'old\.length\s*-\s*49',
+    "50-entry history bound": r'old\.length\(\)\s*-\s*49',
     "IP address diagnostics": r'describeLinkAddresses',
     "default gateway diagnostics": r'describeDefaultGateway',
     "route diagnostics": r'describeRoutes',
