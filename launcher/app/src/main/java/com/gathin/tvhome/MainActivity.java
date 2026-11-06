@@ -5379,11 +5379,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(132*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(150*density));
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(132*density);
+                imageLp.height = (int)(150*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5435,12 +5435,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(132*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(150*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(160*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(178*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
@@ -5525,7 +5525,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
                     Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(620*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         dialog.getWindow().getDecorView().post(() -> {
             View initial = thumbnailItems[draftTheme[0] - 1];
@@ -5653,6 +5653,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         row.setTextColor(Color.WHITE);
         row.setTextSize(15);
         row.setGravity(Gravity.CENTER);
+        row.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         row.setPadding((int)(14*density), 0, (int)(14*density), 0);
         GradientDrawable rowNormal = new GradientDrawable();
         rowNormal.setColor(0xFF343B47);
