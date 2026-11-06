@@ -6,6 +6,8 @@ on:
       - feature/youtube-tv-ad-skip-lounge-dbfe6ad
       - fix/youtube-official-ad-skip-retry-c6e224b
       - fix/move-app-category-below-weekly-weather-512f50d
+      - fix/system-folder-remote-long-press-screen-jump-30f3f92
+      - fix/system-folder-remote-long-press-screen-jump-30f3f92
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
