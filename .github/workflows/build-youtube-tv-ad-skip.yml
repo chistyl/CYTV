@@ -8,9 +8,11 @@ on:
       - fix/move-app-category-below-weekly-weather-512f50d
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
+      - fix/long-press-menu-center-align-086e524
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/long-press-menu-center-align-086e524
+      - fix/long-press-menu-true-anchor-center-9502601
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
     paths:
       - 'launcher/**'
