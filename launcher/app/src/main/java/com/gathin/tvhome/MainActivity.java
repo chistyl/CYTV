@@ -7639,6 +7639,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             View folderPanel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
             LinearLayout folderRows = folderPanel.findViewById(R.id.rows);
             PopupWindow folderPopup = glassPopup(folderPanel, (int) (220 * density));
+            if (key.contains("/system-folder")) {
+                // The protected System folder has no rename/delete/reorder actions. Provide an explicit
+                // management entry so the popup is never empty when opened by a remote long-press.
+                addSettingsMenuRow(folderRows, folderPopup, "管理系統 APP", () -> {
+                    folderPopup.dismiss();
+                    showFolderContents("系統", true);
+                });
+            }
             if (key.contains("/folder:")) {
                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
                 addSettingsMenuRow(folderRows, folderPopup, "重新命名", () -> {
@@ -7712,7 +7720,12 @@ private GradientDrawable roundSurface(int color, float radius) {
             folderPanel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
             folderPopup.setWidth(Math.max((int) (220 * density), folderPanel.getMeasuredWidth()));
             dropIn(folderPopup, folderPanel, card, Gravity.START);
-            folderRows.getChildAt(0).requestFocus();
+            if (folderRows.getChildCount() > 0) {
+                folderRows.getChildAt(0).requestFocus();
+            } else {
+                folderPopup.dismiss();
+                return;
+            }
             return;
         }
         // Empty dock slots and the Default-home tile carry the launcher's own package: no menu for them.
