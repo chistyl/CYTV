@@ -5079,20 +5079,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             edit.apply(); dialog.dismiss(); reloadApps(false);
         });
-        // Blur only the desktop behind this folder window; the dialog surface and its
-        // app tiles remain sharp. Keep the standard dim layer as the readability overlay.
-        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
-        if (backdropBlur != null) {
-            dialog.setOnDismissListener(ignored -> {
-                android.view.ViewParent parent = backdropBlur.getParent();
-                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
-                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
-                if (image instanceof android.graphics.drawable.BitmapDrawable) {
-                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
-                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                }
-            });
-        }
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
@@ -6713,9 +6699,25 @@ private GradientDrawable roundSurface(int color, float radius) {
                 });
             }
             return true;
-        });        dialog.setContentView(outer);
+        });        // Blur only the desktop behind this folder window; the dialog surface and its
+        // app tiles remain sharp. Keep the standard dim layer as the readability overlay.
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
+        dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             // show() 後再指定透明 Window 背景，避免主題的預設 Dialog panel
             // 疊在資料夾內容後方，產生截圖中不應存在的整片底色。
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
