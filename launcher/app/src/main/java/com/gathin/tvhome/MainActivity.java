@@ -4734,7 +4734,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** 勾選隱藏：與資料夾視窗共用尺寸、玻璃背景、桌面模糊及右側分頁。 */
+    /** 選擇隱藏：與資料夾視窗共用尺寸、玻璃背景、桌面模糊及右側分頁。 */
     private void showHomeAppVisibilityDialog() {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         PackageManager pm = getPackageManager();
@@ -4785,7 +4785,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.setBackground(outerSurface);
 
         TextView title = new TextView(this);
-        title.setText(TraditionalText.display(this, "勾選隱藏"));
+        title.setText(TraditionalText.display(this, "選擇隱藏"));
         title.setTextColor(Color.WHITE); title.setTextSize(20); title.setGravity(Gravity.CENTER);
         title.setPadding((int)(8*density), (int)(4*density), 0, (int)(12*density));
         outer.addView(title, new LinearLayout.LayoutParams(-1, -2));
