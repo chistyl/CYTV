@@ -6430,8 +6430,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout folderContent = new LinearLayout(this);
         folderContent.setOrientation(LinearLayout.HORIZONTAL);
         folderContent.setGravity(Gravity.CENTER_VERTICAL);
-        folderContent.addView(scroll, new LinearLayout.LayoutParams(0, 0, 1f));
-        folderContent.addView(folderPageIndicator, new LinearLayout.LayoutParams((int)(22*density), 0));
+        folderContent.addView(scroll, new LinearLayout.LayoutParams(0, -1, 1f));
+        folderContent.addView(folderPageIndicator, new LinearLayout.LayoutParams((int)(22*density), -1));
         outer.addView(folderContent, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         Runnable populate = () -> {
@@ -6648,7 +6648,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             folderPageIndicator.addView(dot, dotLp);
             folderPageDots.add(dot);
         }
-        java.util.function.BiConsumer<Integer, Integer> showFolderPage = (pageIndex, preferredColumn) -> {
+        java.util.function.BiConsumer<Integer, Integer> showFolderPage = (pageIndex, preferredLocalIndex) -> {
             if (pageIndex < 0 || pageIndex >= folderPages.size()) return;
             currentFolderPage[0] = pageIndex;
             for (int i = 0; i < folderPages.size(); i++) {
@@ -6660,7 +6660,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
             int first = pageIndex * 9;
             int count = Math.min(9, folderFocusTiles.size() - first);
-            if (count > 0) folderFocusTiles.get(first + Math.min(Math.max(0, preferredColumn), count - 1)).requestFocus();
+            if (count > 0) folderFocusTiles.get(first + Math.min(Math.max(0, preferredLocalIndex), count - 1)).requestFocus();
         };
         final int[] lastFolderDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
         dialog.setOnKeyListener((d, keyCode, event) -> {
@@ -6687,7 +6687,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < folderColumns - 1 && local + 1 < pageCount) target = index + 1;
             else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                 if (row > 0 && local - folderColumns >= 0) target = index - folderColumns;
-                else if (page > 0) { showFolderPage.accept(page - 1, column); return true; }
+                else if (page > 0) { showFolderPage.accept(page - 1, 6 + column); return true; }
             } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 if (row < 2 && local + folderColumns < pageCount) target = index + folderColumns;
                 else if (page + 1 < folderPages.size()) { showFolderPage.accept(page + 1, column); return true; }
