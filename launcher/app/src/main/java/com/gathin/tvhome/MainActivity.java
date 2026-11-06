@@ -6509,13 +6509,36 @@ private GradientDrawable roundSurface(int color, float radius) {
                             focused ? 0xFF80C9C2 : Color.TRANSPARENT);
                     tvCard.setElevation(focused ? 10f * density : 0f);
                 });
+                // TV remotes report a held OK key as repeated DPAD_CENTER key-down events.
+                // Do not turn the key-up after a long hold into an app launch: open the tile
+                // context menu once, consume the matching key-up, and preserve normal click
+                // behavior for a short OK press.
+                final boolean[] folderLongPressHandled = {false};
                 tile.setOnKeyListener((v, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_UP
-                            && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                        v.performClick(); return true;
+                    boolean centerKey = keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                            || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER;
+                    if (!centerKey) return false;
+                    if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                        if (event.getRepeatCount() > 0 || event.isLongPress()) {
+                            if (!folderLongPressHandled[0]) {
+                                folderLongPressHandled[0] = true;
+                                showFolderAppContextMenu(v, packageName,
+                                        String.valueOf(name.getText()), folderName, systemFolder, dialog);
+                            }
+                            return true;
+                        }
+                        return true;
                     }
-                    return false;
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        if (folderLongPressHandled[0]) {
+                            folderLongPressHandled[0] = false;
+                            return true;
+                        }
+                        v.performClick();
+                        return true;
+                    }
+                    return true;
                 });
 
                 TextView name = new TextView(this);
