@@ -4869,6 +4869,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
                     row.setGravity(Gravity.CENTER_VERTICAL);
+                    // Equal inner margins keep the first and second columns visually balanced.
+                    row.setPadding((int)(10*density), 0, (int)(10*density), 0);
                     LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, 0, 1f);
                     rowLp.setMargins(0, (int)(2*density), 0, (int)(2*density));
                     page.addView(row, rowLp);
@@ -5069,17 +5071,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         final int[] lastDirection = {KeyEvent.KEYCODE_UNKNOWN};
         dialog.setOnKeyListener((d, keyCode, event) -> {
-            boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
             View focusedView = dialog.getCurrentFocus();
-            if (event.getAction() == KeyEvent.ACTION_DOWN
-                    && (focusedView == appTab || focusedView == folderTab)) {
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && focusedView == folderTab) {
-                    appTab.requestFocus(); return true;
+            boolean onTab = focusedView == appTab || focusedView == folderTab;
+            if (onTab) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                        if (focusedView == folderTab) appTab.requestFocus();
+                        return true;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        if (focusedView == appTab) folderTab.requestFocus();
+                        return true;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        List<View> firstPage = focusItemsByPage.get(0);
+                        if (!firstPage.isEmpty()) firstPage.get(0).requestFocus();
+                        return true;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                            || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                        focusedView.performClick();
+                        return true;
+                    }
                 }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && focusedView == appTab) {
-                    folderTab.requestFocus(); return true;
-                }
+                if (event.getAction() == KeyEvent.ACTION_UP
+                        && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+                        || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                        || keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                        || keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) return true;
+                return false;
             }
+            boolean vertical = keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
             if (!vertical) return false;
             if (event.getAction() == KeyEvent.ACTION_UP) {
                 if (lastDirection[0] == keyCode) lastDirection[0] = KeyEvent.KEYCODE_UNKNOWN;
