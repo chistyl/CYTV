@@ -6467,7 +6467,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             folderPageDots.clear();
             for (String orderedPackageName : folderAppOrder) {
                 ResolveInfo ri = matches.get(orderedPackageName);
-                if (ri == null) continue; {
+                if (ri == null) continue;
                 String packageName = ri.activityInfo.packageName;
                 LinearLayout tile = new LinearLayout(this);
                 tile.setOrientation(LinearLayout.VERTICAL);
