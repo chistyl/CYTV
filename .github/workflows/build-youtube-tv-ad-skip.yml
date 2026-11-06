@@ -19,6 +19,7 @@ on:
       - fix/shorten-remove-system-folder-label-53a0454
       - fix/shorten-system-folder-picker-title-8d682ba
       - fix/shorten-folder-picker-title-1933dab
+      - fix/shorten-remove-folder-menu-label-c1e3def
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
