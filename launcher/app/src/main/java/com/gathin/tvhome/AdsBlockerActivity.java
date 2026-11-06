@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.VpnService;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -62,6 +63,11 @@ public class AdsBlockerActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            // Ensure a previously running local DNS VPN is torn down when this screen opens.
+            stopService(new Intent(this, AdsFilterVpnService.class));
+        }
         installBundledRules();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().setStatusBarColor(Color.rgb(20, 21, 27));
@@ -150,6 +156,15 @@ public class AdsBlockerActivity extends Activity {
         content.addView(desc, new LinearLayout.LayoutParams(-1, dp(68)));
         status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(39,42,50), 0));
         content.addView(status, new LinearLayout.LayoutParams(-1, dp(58)));
+        TextView deviceInfo = label("裝置識別（請回傳此行）：\nMODEL=" + Build.MODEL
+                + " | BRAND=" + Build.BRAND + " | MANUFACTURER=" + Build.MANUFACTURER
+                + " | DEVICE=" + Build.DEVICE + " | PRODUCT=" + Build.PRODUCT, 13);
+        deviceInfo.setTextColor(Color.LTGRAY);
+        deviceInfo.setGravity(Gravity.TOP);
+        deviceInfo.setMaxLines(3);
+        LinearLayout.LayoutParams deviceInfoParams = new LinearLayout.LayoutParams(-1, dp(58));
+        deviceInfoParams.topMargin = dp(6);
+        content.addView(deviceInfo, deviceInfoParams);
         TextView networkModeTitle = label("網路連線模式", 19);
         networkModeTitle.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams modeTitleParams = new LinearLayout.LayoutParams(-1, dp(42));
@@ -205,8 +220,21 @@ public class AdsBlockerActivity extends Activity {
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
     private void refresh() {
         if (status == null) return;
-        status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
-        toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
+        boolean unsupportedDevice = AdFilterDevicePolicy.isToshiba65U7000Vs();
+        if (unsupportedDevice) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            status.setText("●  TOSHIBA 65U7000VS：已停用 DNS VPN（保護有線網路）");
+            toggle.setText("此機型已停用 DNS VPN");
+            toggle.setEnabled(false);
+            autoDnsChoice.setEnabled(false);
+            manualDnsChoice.setEnabled(false);
+        } else {
+            status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
+            toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
+            toggle.setEnabled(true);
+            autoDnsChoice.setEnabled(true);
+            manualDnsChoice.setEnabled(true);
+        }
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
         autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
         manualDnsChoice.setText(auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）");
@@ -215,6 +243,10 @@ public class AdsBlockerActivity extends Activity {
         renderRules(BLOCK); renderRules(ALLOW);
     }
     private void setDnsMode(String mode) {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            Toast.makeText(this, "此機型已停用 DNS VPN，不會變更 DNS 或路由", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String current = prefs.getString("dns_mode", "auto");
         if (mode.equals(current)) return;
         prefs.edit().putString("dns_mode", mode).apply();
@@ -638,6 +670,11 @@ public class AdsBlockerActivity extends Activity {
     }
 
     private void toggleFilter() {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            refresh();
+            return;
+        }
         if (enabled()) {
             Intent stop = new Intent(this, AdsFilterVpnService.class);
             stop.setAction(AdsFilterVpnService.ACTION_STOP);
@@ -655,6 +692,11 @@ public class AdsBlockerActivity extends Activity {
         if (request == VPN_REQUEST && result == RESULT_OK) startFilter();
     }
     private void startFilter() {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            refresh();
+            return;
+        }
         prefs.edit().putBoolean("enabled", true).apply();
         Intent service = new Intent(this, AdsFilterVpnService.class);
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);
