@@ -7814,7 +7814,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 });
             }
             if (key.contains("/folder:")) {
-                addSettingsMenuRow(folderRows, folderPopup, "調整應用順序", () -> {
+                addSettingsMenuRow(folderRows, folderPopup, "調整順序", () -> {
                     folderPopup.dismiss();
                     if (!beginReorder()) {
                         Toast.makeText(this, "目前沒有可移動的項目", Toast.LENGTH_SHORT).show();
