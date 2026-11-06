@@ -7897,6 +7897,19 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (LibraryApps.save(this, pkg, false)) reloadApps(false);
             else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
         });
+        addSettingsMenuRow(rows, popup, "調整順序", () -> {
+            popup.dismiss();
+            if (!beginReorder()) return;
+            int at = adapter.positionOf(key);
+            if (at < 0 || at >= adapter.movableCount()) {
+                endReorder();
+                Toast.makeText(this, "找不到要調整順序的 APP", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            focusTile(at);
+            pickUp(at);
+            Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+        });
         // Some firmware has no App info page at all; a row that only toasts "can't open" helps nobody.
         Intent info = SystemSettings.appInfo(this, pkg);
         if (info != null) addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(info));
