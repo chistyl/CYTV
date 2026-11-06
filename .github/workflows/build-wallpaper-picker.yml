@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/theme-background-on-60-weather-clean
+      - fix/wallpaper-dialog-folder-style
     paths:
       - 'launcher/**'
       - '.github/workflows/build-wallpaper-picker.yml'
