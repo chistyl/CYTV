@@ -7808,6 +7808,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * Read the coordinates after PopupWindow has completed its first layout.
      * Filter Logcat by the CYTV_MENU_POSITION tag.
      */
+    // Diagnostic-only build based on the pre-PR71 placement implementation.
     private void logDesktopMenuPlacement(View anchor, View panel) {
         panel.post(() -> {
             if (!panel.isAttachedToWindow()) return;
