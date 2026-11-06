@@ -4804,11 +4804,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             tab.setElevation(0f); tab.setId(View.generateViewId());
             tab.setPadding((int)(8*density), 0, (int)(8*density), 0);
         }
-        // Match the reference: extend the tab strip 16dp to the left while
-        // keeping its right edge anchored to the dialog's existing content edge.
+        // Align the tab strip exactly with the visible list panel below.
+        // The list reserves 24dp on the left and 30dp on the right for its
+        // pagination balance rails; mirror those insets here to avoid overflow.
         tabs.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams appTabLp = new LinearLayout.LayoutParams(
-                0, (int)(44*density), 0.92f);
+                0, (int)(44*density), 1f);
         appTabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
         LinearLayout.LayoutParams folderTabLp = new LinearLayout.LayoutParams(
                 0, (int)(44*density), 1f);
@@ -4817,8 +4818,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         tabs.addView(folderTab, folderTabLp);
         LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(
                 -1, -2);
-        tabsLp.leftMargin = -(int)(16*density);
-        tabsLp.rightMargin = 0;
+        tabsLp.leftMargin = (int)(24*density);
+        tabsLp.rightMargin = (int)(30*density);
         outer.addView(tabs, tabsLp);
 
         final boolean[] showingApps = {true};
