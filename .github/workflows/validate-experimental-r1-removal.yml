@@ -47,6 +47,13 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
-      - name: Compile debug APK (not published)
+      - name: Compile debug APK (experimental only)
         working-directory: launcher
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Upload experimental APK for controlled testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cytv-r1-removed-experimental-debug-apk
+          path: launcher/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 3
