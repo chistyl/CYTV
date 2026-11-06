@@ -38,6 +38,30 @@ jobs:
         run: |
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Generate density-specific launcher icons from supplied artwork
+        run: |
+          python3 -m pip install --user Pillow
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src = Path("launcher/app/src/main/res/drawable-nodpi/ic_launcher_art.png")
+          image = Image.open(src).convert("RGBA")
+          sizes = {
+              "mipmap-mdpi": 48,
+              "mipmap-hdpi": 72,
+              "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144,
+              "mipmap-xxxhdpi": 192,
+          }
+          for folder, size in sizes.items():
+              target = Path("launcher/app/src/main/res") / folder / "ic_launcher.png"
+              target.parent.mkdir(parents=True, exist_ok=True)
+              image.resize((size, size), Image.Resampling.LANCZOS).save(target, format="PNG", optimize=True)
+              check = Image.open(target)
+              assert check.size == (size, size), (target, check.size)
+              assert check.getbbox() is not None, target
+              print(f"{target}: {check.size}, RGBA={check.mode}")
+          PY
       - name: Run launcher unit tests
         working-directory: launcher
         run: |
@@ -49,7 +73,7 @@ jobs:
       - name: Upload test APK
         uses: actions/upload-artifact@v4
         with:
-          name: cytv-launcher-icon-banner-r2-debug-apk
+          name: cytv-launcher-icon-banner-r3-debug-apk
           path: launcher/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
