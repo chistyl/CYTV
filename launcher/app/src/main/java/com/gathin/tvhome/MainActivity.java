@@ -3916,6 +3916,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
+        SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
+        boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
+        addSettingsMenuRow(rows, popup,
+                allNamesHidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
+                    appNamePrefs.edit().putBoolean("hide_all_names", !allNamesHidden).apply();
+                    reloadApps(false);
+                });
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
@@ -6973,14 +6980,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             edit.post(edit::requestFocus);
         });
 
-        boolean allNamesHidden = prefs.getBoolean("hide_all_names", true);
-        addSettingsMenuRow(rows, popup, allNamesHidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
-            prefs.edit().putBoolean("hide_all_names", !allNamesHidden).apply();
-            reloadApps(false);
-            folderDialog.dismiss();
-            showFolderContents(folderName, systemFolder);
-        });
-
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(anchor, packageName, prefs, folderName, systemFolder, folderDialog));
 
@@ -7692,10 +7691,6 @@ private GradientDrawable roundSurface(int color, float radius) {
                     styleRemoteDialogActions(deleteDialog);
                 });
             }
-            addSettingsMenuRow(folderRows, folderPopup, hidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
-                folderPrefs.edit().putBoolean("hide_all_names", !hidden).apply();
-                reloadApps(false);
-            });
             if (key.contains("/folder:")) {
                 addSettingsMenuRow(folderRows, folderPopup, "調整應用順序", () -> {
                     folderPopup.dismiss();
@@ -7744,11 +7739,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             styleRemoteDialogActions(renameDialog);
             styleRemoteEditField(edit);
             edit.post(edit::requestFocus);
-        });
-        boolean allNamesHidden = appPrefs.getBoolean("hide_all_names", true);
-        addSettingsMenuRow(rows, popup, allNamesHidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
-            appPrefs.edit().putBoolean("hide_all_names", !allNamesHidden).apply();
-            reloadApps(false);
         });
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(card, pkg, appPrefs, null, false, null));
