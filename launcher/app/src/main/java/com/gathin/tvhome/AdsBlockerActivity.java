@@ -205,8 +205,11 @@ public class AdsBlockerActivity extends Activity {
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
     private void refresh() {
         if (status == null) return;
-        status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
-        toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
+        boolean unsupportedDevice = AdFilterDevicePolicy.isToshiba65U7000Vs();
+        status.setText(unsupportedDevice ? "○  TOSHIBA 65U7000VS：已停用 DNS VPN（保護有線網路）"
+                : (enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉"));
+        toggle.setText(unsupportedDevice ? "此機型已停用" : (enabled() ? "停用廣告阻擋" : "啟用廣告阻擋"));
+        toggle.setEnabled(!unsupportedDevice);
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
         autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
         manualDnsChoice.setText(auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）");
@@ -638,6 +641,12 @@ public class AdsBlockerActivity extends Activity {
     }
 
     private void toggleFilter() {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            Toast.makeText(this, "TOSHIBA 65U7000VS 已停用 DNS VPN，以保護有線網路", Toast.LENGTH_LONG).show();
+            refresh();
+            return;
+        }
         if (enabled()) {
             Intent stop = new Intent(this, AdsFilterVpnService.class);
             stop.setAction(AdsFilterVpnService.ACTION_STOP);
@@ -655,6 +664,12 @@ public class AdsBlockerActivity extends Activity {
         if (request == VPN_REQUEST && result == RESULT_OK) startFilter();
     }
     private void startFilter() {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            prefs.edit().putBoolean("enabled", false).apply();
+            Toast.makeText(this, "此機型不啟動 DNS VPN；其他功能不受影響", Toast.LENGTH_LONG).show();
+            refresh();
+            return;
+        }
         prefs.edit().putBoolean("enabled", true).apply();
         Intent service = new Intent(this, AdsFilterVpnService.class);
         if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(service); else startService(service);

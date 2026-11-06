@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/ethernet-dns-recovery-r4-r98
+      - fix/toshiba-65u7000vs-disable-dns-vpn-dbfe6ad
     paths:
       - 'launcher/**'
       - '.github/workflows/build-ethernet-dns-recovery-r4-r98.yml'
