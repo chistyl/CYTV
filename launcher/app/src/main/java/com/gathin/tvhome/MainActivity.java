@@ -3919,7 +3919,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
-                allNamesHidden ? "顯示全部 APP 名稱" : "隱藏全部 APP 名稱", () -> {
+                allNamesHidden ? "顯示應用名稱" : "隱藏應用名稱", () -> {
                     appNamePrefs.edit().putBoolean("hide_all_names", !allNamesHidden).apply();
                     reloadApps(false);
                 });
