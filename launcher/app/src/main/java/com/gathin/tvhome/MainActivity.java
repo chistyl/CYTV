@@ -4793,6 +4793,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setGravity(Gravity.CENTER);
+        // Align the first tab with the list surface's left edge (the list has a 30dp balance rail).
         TextView appTab = new TextView(this), folderTab = new TextView(this);
         appTab.setText("應用"); folderTab.setText("分類");
         TextView[] tabViews = {appTab, folderTab};
@@ -4803,10 +4804,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             tab.setElevation(0f); tab.setId(View.generateViewId());
             tab.setPadding((int)(8*density), 0, (int)(8*density), 0);
         }
-        LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
-        tabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
-        tabs.addView(appTab, new LinearLayout.LayoutParams(tabLp));
-        tabs.addView(folderTab, new LinearLayout.LayoutParams(tabLp));
+        tabs.setPadding((int)(30*density), 0, 0, 0);
+        LinearLayout.LayoutParams appTabLp = new LinearLayout.LayoutParams(
+                0, (int)(44*density), 0.92f);
+        appTabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
+        LinearLayout.LayoutParams folderTabLp = new LinearLayout.LayoutParams(
+                0, (int)(44*density), 1f);
+        folderTabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
+        tabs.addView(appTab, appTabLp);
+        tabs.addView(folderTab, folderTabLp);
         outer.addView(tabs);
 
         final boolean[] showingApps = {true};
@@ -4843,9 +4849,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout pageHost = new LinearLayout(this);
         pageHost.setOrientation(LinearLayout.VERTICAL);
-        // Exact equal grid inset from the left and right edges of the list surface.
-        pageHost.setPadding((int)(24*density), (int)(7*density),
-                (int)(24*density), (int)(7*density));
+        // Match the supplied reference: widen the two-column content area so
+        // the left group moves outward and the right group moves outward evenly.
+        pageHost.setPadding((int)(8*density), (int)(7*density),
+                (int)(12*density), (int)(7*density));
         listPanel.addView(pageHost, new FrameLayout.LayoutParams(-1, -1));
 
         // Pagination rail is outside the list panel; its width plus margins
