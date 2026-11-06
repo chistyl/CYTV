@@ -4934,7 +4934,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
                         FrameLayout art = new FrameLayout(this);
                         GradientDrawable artBg = new GradientDrawable();
-                        artBg.setColor(isApp ? prefs.getInt("background_" + pkg, Color.WHITE) : 0xFF343B47);
+                        artBg.setColor(isApp ? prefs.getInt("background_" + pkg, Color.WHITE) : 0xFF1E222D);
                         artBg.setCornerRadius(10*density); art.setBackground(artBg);
                         art.setClipToOutline(true);
                         ImageView image = new ImageView(this);
