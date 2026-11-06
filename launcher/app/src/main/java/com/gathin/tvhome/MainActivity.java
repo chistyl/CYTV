@@ -5079,9 +5079,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             edit.apply(); dialog.dismiss(); reloadApps(false);
         });
+        // Blur only the desktop behind this folder window; the dialog surface and its
+        // app tiles remain sharp. Keep the standard dim layer as the readability overlay.
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
@@ -6242,6 +6258,63 @@ private GradientDrawable roundSurface(int color, float radius) {
     @Override
     public void onOpenFolder(String folderName) {
         showFolderContents(folderName, "系統".equals(folderName));
+    }
+
+    /**
+     * Adds a blurred snapshot of the launcher behind a folder dialog.
+     * The snapshot is downsampled before RenderScript blur to keep memory use
+     * reasonable on Android TV devices; the foreground dialog remains untouched.
+     * If capture or blur is unavailable, the normal dimmed dialog remains usable.
+     */
+    private android.widget.ImageView installFolderBackdropBlur() {
+        final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (!(decor instanceof android.view.ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        android.graphics.Bitmap source = null;
+        android.graphics.Bitmap small = null;
+        android.graphics.Bitmap blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null;
+        android.renderscript.Allocation output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decor.getWidth();
+            int height = decor.getHeight();
+            source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(source);
+            decor.draw(canvas);
+            int smallWidth = Math.max(1, width / 4);
+            int smallHeight = Math.max(1, height / 4);
+            small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
+            source.recycle(); source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(3.0f); // 3px at 1/4 scale ≈ 12px on the TV screen
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = android.graphics.Bitmap.createScaledBitmap(small, width, height, true);
+            android.widget.ImageView overlay = new android.widget.ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setFocusableInTouchMode(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((android.view.ViewGroup) decor).addView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
     }
 
     /** Open folders as a grid of real app shortcuts; long-press an app to rename or move it out. */
