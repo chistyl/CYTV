@@ -156,7 +156,7 @@ public class AdsBlockerActivity extends Activity {
         content.addView(desc, new LinearLayout.LayoutParams(-1, dp(68)));
         status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(39,42,50), 0));
         content.addView(status, new LinearLayout.LayoutParams(-1, dp(58)));
-        TextView deviceInfo = label("裝置識別（請回傳此行）：\\nMODEL=" + Build.MODEL
+        TextView deviceInfo = label("裝置識別（請回傳此行）：\nMODEL=" + Build.MODEL
                 + " | BRAND=" + Build.BRAND + " | MANUFACTURER=" + Build.MANUFACTURER
                 + " | DEVICE=" + Build.DEVICE + " | PRODUCT=" + Build.PRODUCT, 13);
         deviceInfo.setTextColor(Color.LTGRAY);
