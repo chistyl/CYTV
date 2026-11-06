@@ -252,109 +252,33 @@ public class AdsFilterVpnService extends VpnService {
         }, STARTUP_RETRY_MS);
     }
 
-    // Capture a bounded, UI-independent network diagnostic history. This is
-    // observational only: it never changes routes, DHCP, DNS, or Ethernet state.
     private void appendNetworkSnapshot(ConnectivityManager cm) {
         try {
             Network active = cm.getActiveNetwork();
             appendDnsLog("-", "診斷", "目前 ActiveNetwork=" + active);
-            Network[] networks = cm.getAllNetworks();
-            if (networks == null || networks.length == 0) {
-                appendNetworkStabilityLog("目前 Android 未發布任何 Network", null, null, null);
-                return;
-            }
-            for (Network candidate : networks) {
+            for (Network candidate : cm.getAllNetworks()) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(candidate);
                 LinkProperties links = cm.getLinkProperties(candidate);
-                boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
-                boolean wifi = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-                boolean vpn = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
-                boolean internet = caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-                boolean validated = caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-                String iface = links == null ? "未知" : String.valueOf(links.getInterfaceName());
-                String addresses = describeLinkAddresses(links);
-                String gateway = describeDefaultGateway(links);
-                String dns = links == null ? "未知" : describeDnsServersFromLinks(links);
-                String routes = describeRoutes(links);
-                String transport = ethernet ? "Ethernet" : (wifi ? "Wi-Fi" : (vpn ? "VPN" : "其他"));
-                String summary = "Network=" + candidate
-                        + "；類型=" + transport
-                        + "；Internet=" + internet
-                        + "；Validated=" + validated
-                        + "；介面=" + iface
-                        + "；IP=" + addresses
-                        + "；Gateway=" + gateway
-                        + "；DNS=" + dns
-                        + "；Routes=" + routes;
-                appendDnsLog("-", "診斷", summary);
-                appendNetworkStabilityLog(summary, candidate, caps, links);
+                appendDnsLog("-", "診斷", "Network=" + candidate
+                        + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                        + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                        + "；VPN=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
+                        + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+                        + "；介面=" + (links == null ? "未知" : links.getInterfaceName())
+                        + "；DNS=" + (links == null ? "未知" : describeDnsServersFromLinks(links)));
             }
         } catch (Exception e) {
-            String failure = "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage();
-            appendDnsLog("-", "診斷", failure);
-            appendNetworkStabilityLog(failure, null, null, null);
+            appendDnsLog("-", "診斷", "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage());
         }
     }
 
-    private String describeLinkAddresses(LinkProperties links) {
-        if (links == null || links.getLinkAddresses().isEmpty()) return "無";
+    private String describeDnsServersFromLinks(LinkProperties links) {
         StringBuilder out = new StringBuilder();
-        for (android.net.LinkAddress address : links.getLinkAddresses()) {
+        for (InetAddress server : links.getDnsServers()) {
             if (out.length() > 0) out.append("、");
-            out.append(address.getAddress().getHostAddress()).append("/").append(address.getPrefixLength());
+            out.append(server.getHostAddress());
         }
-        return out.toString();
-    }
-
-    private String describeDefaultGateway(LinkProperties links) {
-        if (links == null) return "未知";
-        for (android.net.RouteInfo route : links.getRoutes()) {
-            if (route.isDefaultRoute() && route.getGateway() != null) {
-                return route.getGateway().getHostAddress();
-            }
-        }
-        return "無";
-    }
-
-    private String describeRoutes(LinkProperties links) {
-        if (links == null || links.getRoutes().isEmpty()) return "無";
-        StringBuilder out = new StringBuilder();
-        for (android.net.RouteInfo route : links.getRoutes()) {
-            if (out.length() > 0) out.append("；");
-            out.append(route.toString());
-        }
-        return out.toString();
-    }
-
-    private void appendNetworkStabilityLog(String summary, Network network,
-                                           NetworkCapabilities caps, LinkProperties links) {
-        try {
-            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-            synchronized (AdsFilterVpnService.class) {
-                JSONArray old = new JSONArray(prefs.getString("network_stability_logs", "[]"));
-                JSONArray next = new JSONArray();
-                int start = Math.max(0, old.length() - 49);
-                for (int i = start; i < old.length(); i++) next.put(old.getJSONObject(i));
-                JSONObject item = new JSONObject();
-                item.put("time", System.currentTimeMillis());
-                item.put("network", network == null ? "none" : network.toString());
-                item.put("ethernet", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
-                item.put("wifi", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
-                item.put("vpn", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN));
-                item.put("internet", caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
-                item.put("validated", caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED));
-                item.put("interface", links == null ? "" : String.valueOf(links.getInterfaceName()));
-                item.put("ip", describeLinkAddresses(links));
-                item.put("gateway", describeDefaultGateway(links));
-                item.put("dns", links == null ? "未知" : describeDnsServersFromLinks(links));
-                item.put("routes", describeRoutes(links));
-                item.put("summary", summary);
-                next.put(item);
-                prefs.edit().putString("network_stability_logs", next.toString()).apply();
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Unable to save network stability history", e);
-        }
+        return out.length() == 0 ? "無" : out.toString();
     }
 
     private void startTunnelWhenNetworkReady() {
@@ -365,46 +289,10 @@ public class AdsFilterVpnService extends VpnService {
             if (selected == null) throw new IllegalStateException("Physical network is null");
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
-            boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
-            // Fail closed for the affected Toshiba firmware if Ethernet exists at all,
-            // even when Android currently reports Wi-Fi as the selected physical network.
-            // This avoids bypassing R1 when transport selection changes during startup.
-            if (!ethernet && cm != null) {
-                for (Network candidate : cm.getAllNetworks()) {
-                    NetworkCapabilities candidateCaps = cm.getNetworkCapabilities(candidate);
-                    if (candidateCaps != null
-                            && candidateCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-                        ethernet = true;
-                        appendDnsLog("-", "安全保護", "偵測到其他已連線 Ethernet：" + candidate
-                                + "；即使目前選取其他實體網路，仍套用 Toshiba 安全保護");
-                        break;
-                    }
-                }
-            }
-            String deviceModel = Build.MODEL == null ? "" : Build.MODEL.toLowerCase(Locale.ROOT);
-            boolean toshiba = "toshiba".equalsIgnoreCase(Build.MANUFACTURER)
-                    || "toshiba".equalsIgnoreCase(Build.BRAND)
-                    || deviceModel.contains("65u7000vs");
             appendDnsLog("-", "診斷", "選取實體網路 " + selected
-                    + "；Ethernet=" + ethernet
+                    + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
                     + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                    + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
-                    + "；Manufacturer=" + Build.MANUFACTURER
-                    + "；Brand=" + Build.BRAND
-                    + "；Model=" + Build.MODEL
-                    + "；Android API=" + Build.VERSION.SDK_INT);
-
-            // Toshiba Android 9 Ethernet firmware has been observed losing the
-            // physical network immediately after VpnService.Builder.establish().
-            // Prefer connectivity over filtering until this firmware is understood.
-            if (toshiba && Build.VERSION.SDK_INT == Build.VERSION_CODES.P && ethernet) {
-                appendNetworkSnapshot(cm);
-                appendDnsLog("-", "安全保護", "偵測到 Toshiba／Android 9／Ethernet 組合；為避免建立 VPN 後造成整台電視斷網，已略過 VPN 啟動並自動關閉阻擋廣告。");
-                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-                stopFilter();
-                return;
-            }
-
+                    + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)));
             Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
                     .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
