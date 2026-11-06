@@ -3765,7 +3765,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int anchorLeft = anchorLocation[0] - rootLocation[0];
         int anchorTop = anchorLocation[1] - rootLocation[1];
         int anchorCenter = anchorLeft + anchor.getWidth() / 2;
-        int x = anchorCenter - menuWidth / 2;
+        // The tile's visible artwork sits slightly right of the long-press hit target
+        // on the current TV grid layout. Align the menu to the visual card center.
+        int visualCenterCorrection = (int) (14 * density);
+        int x = anchorCenter + visualCenterCorrection - menuWidth / 2;
         x = Math.max(margin, Math.min(x, availableWidth - menuWidth - margin));
 
         int belowY = anchorTop + anchor.getHeight() + gap;
