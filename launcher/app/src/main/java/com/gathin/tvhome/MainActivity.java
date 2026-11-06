@@ -3914,7 +3914,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
-        addSettingsMenuRow(rows, popup, "新增資料夾", this::showCreateFolderDialog);
+        addSettingsMenuRow(rows, popup, "應用分類", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "一週天氣", this::showWeeklyWeatherSettings);
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
@@ -5628,7 +5628,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
         name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
-        name.setHint("輸入資料夾名稱");
+        name.setHint("輸入分類名稱");
         LinearLayout nameWrap = new LinearLayout(this);
         nameWrap.setOrientation(LinearLayout.VERTICAL);
         // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
@@ -5647,7 +5647,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             v.setElevation(focused ? 4*density : 0f);
         });
         nameWrap.addView(name, new LinearLayout.LayoutParams(-1, (int)(58*density)));
-        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle("新增資料夾").setView(nameWrap)
+        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle("應用分類").setView(nameWrap)
                 .setNegativeButton("取消", null).setPositiveButton("建立", (x, y) -> {
                     String value = name.getText().toString().trim();
                     if (value.isEmpty() || value.equals("系統")) {
