@@ -7799,7 +7799,46 @@ private GradientDrawable roundSurface(int color, float radius) {
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         // Use the same centered, edge-clamped placement for every desktop long-press menu.
         dropIn(popup, panel, card, Gravity.CENTER_HORIZONTAL);
+        logDesktopMenuPlacement(card, panel);
         rows.getChildAt(0).requestFocus();
+    }
+
+    /**
+     * Temporary diagnostics for desktop APP long-press menu placement.
+     * Read the coordinates after PopupWindow has completed its first layout.
+     * Filter Logcat by the CYTV_MENU_POSITION tag.
+     */
+    // Diagnostic-only build based on the pre-PR71 placement implementation.
+    private void logDesktopMenuPlacement(View anchor, View panel) {
+        panel.post(() -> {
+            if (!panel.isAttachedToWindow()) return;
+            int[] anchorScreen = new int[2];
+            int[] panelScreen = new int[2];
+            anchor.getLocationOnScreen(anchorScreen);
+            panel.getLocationOnScreen(panelScreen);
+            android.graphics.Rect anchorVisible = new android.graphics.Rect();
+            android.graphics.Rect panelVisible = new android.graphics.Rect();
+            android.graphics.Rect rootVisible = new android.graphics.Rect();
+            anchor.getGlobalVisibleRect(anchorVisible);
+            panel.getGlobalVisibleRect(panelVisible);
+            View windowRoot = anchor.getRootView();
+            if (windowRoot != null) windowRoot.getGlobalVisibleRect(rootVisible);
+            float anchorCenterX = anchorScreen[0] + anchor.getWidth() / 2f;
+            float panelCenterX = panelScreen[0] + panel.getWidth() / 2f;
+            float deltaX = panelCenterX - anchorCenterX;
+            android.util.Log.d("CYTV_MENU_POSITION",
+                    "anchorScreen=(" + anchorScreen[0] + "," + anchorScreen[1] + ")"
+                    + " anchorSize=" + anchor.getWidth() + "x" + anchor.getHeight()
+                    + " anchorScale=(" + anchor.getScaleX() + "," + anchor.getScaleY() + ")"
+                    + " anchorTranslation=(" + anchor.getTranslationX() + "," + anchor.getTranslationY() + ")"
+                    + " anchorVisible=" + anchorVisible
+                    + " panelScreen=(" + panelScreen[0] + "," + panelScreen[1] + ")"
+                    + " panelSize=" + panel.getWidth() + "x" + panel.getHeight()
+                    + " panelVisible=" + panelVisible
+                    + " rootVisible=" + rootVisible
+                    + " centerDeltaX=" + deltaX + "px"
+                    + " density=" + density);
+        });
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, String title, Runnable action) {
