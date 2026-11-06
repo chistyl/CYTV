@@ -6378,17 +6378,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         }
 
-        // Persist folder ordering separately from the launcher desktop order.
-        String folderOrderKey = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
-        java.util.ArrayList<String> folderAppOrder = new java.util.ArrayList<>();
-        String savedFolderOrder = prefs.getString(folderOrderKey, "");
-        if (!savedFolderOrder.isEmpty()) {
-            for (String pkg : savedFolderOrder.split("\\n")) {
-                if (matches.containsKey(pkg) && !folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
-            }
-        }
-        for (String pkg : matches.keySet()) if (!folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
-
         Dialog dialog = new Dialog(this);
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -6465,9 +6454,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             folderFocusTiles.clear();
             folderPageIndicator.removeAllViews();
             folderPageDots.clear();
-            for (String orderedPackageName : folderAppOrder) {
-                ResolveInfo ri = matches.get(orderedPackageName);
-                if (ri == null) continue;
+            for (ResolveInfo ri : matches.values()) {
                 String packageName = ri.activityInfo.packageName;
                 LinearLayout tile = new LinearLayout(this);
                 tile.setOrientation(LinearLayout.VERTICAL);
@@ -6537,7 +6524,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                             if (!folderLongPressHandled[0]) {
                                 folderLongPressHandled[0] = true;
                                 showFolderAppContextMenu(v, packageName,
-                                        String.valueOf(prefs.getString("label_" + packageName, String.valueOf(ri.loadLabel(getPackageManager())))), folderName, systemFolder, dialog, folderAppOrder);
+                                        String.valueOf(prefs.getString("label_" + packageName, String.valueOf(ri.loadLabel(getPackageManager())))), folderName, systemFolder, dialog);
                             }
                             return true;
                         }
@@ -6575,7 +6562,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     dialog.dismiss();
                 });
                 tile.setOnLongClickListener(v -> {
-                    showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog, folderAppOrder);
+                    showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog);
                     return true;
                 });
                 int tileIndex = folderFocusTiles.size();
@@ -7082,7 +7069,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * "移出資料夾" is added at the end; edits refresh the folder after saving.
      */
     private void showFolderAppContextMenu(View anchor, String packageName, String currentLabel,
-                                          String folderName, boolean systemFolder, Dialog folderDialog, java.util.List<String> folderAppOrder) {
+                                          String folderName, boolean systemFolder, Dialog folderDialog) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
@@ -7111,13 +7098,6 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(anchor, packageName, prefs, folderName, systemFolder, folderDialog));
-
-        addSettingsMenuRow(rows, popup, "移動順序", () -> {
-            java.util.ArrayList<String> currentOrder = new java.util.ArrayList<>(folderAppOrder);
-            if (!currentOrder.contains(packageName)) currentOrder.add(packageName);
-            folderDialog.dismiss();
-            showFolderAppReorderDialog(currentOrder, folderName, systemFolder);
-        });
 
         if (prefs.contains("label_" + packageName) || prefs.contains("hide_" + packageName)
                 || prefs.contains("icon_" + packageName) || prefs.contains("icon_scale_" + packageName)
@@ -7190,134 +7170,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
-
-    /** Folder-only ordering editor. DPAD Up/Down moves the focused app one slot. */
-    private void showFolderAppReorderDialog(java.util.ArrayList<String> initialOrder,
-                                            String folderName, boolean systemFolder) {
-        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
-        java.util.ArrayList<String> order = new java.util.ArrayList<>();
-        for (String pkg : initialOrder) if (pkg != null && !order.contains(pkg)) order.add(pkg);
-        PackageManager pm = getPackageManager();
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
-        content.setBackgroundColor(Color.rgb(29, 33, 43));
-        ScrollView scroll = new ScrollView(this);
-        scroll.setVerticalScrollBarEnabled(false);
-        LinearLayout rows = new LinearLayout(this);
-        rows.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(rows, new ScrollView.LayoutParams(-1, -2));
-        content.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
-        TextView hint = new TextView(this);
-        hint.setText("使用遙控器上下鍵移動，按「儲存」套用順序");
-        hint.setTextColor(0xFFB9C1CC);
-        hint.setTextSize(12);
-        hint.setGravity(Gravity.CENTER);
-        hint.setPadding(0, (int)(10*density), 0, (int)(4*density));
-        content.addView(hint, new LinearLayout.LayoutParams(-1, -2));
-        final int[] focusedIndex = {0};
-        final AlertDialog[] reorderDialog = {null};
-        final Runnable[] render = new Runnable[1];
-        render[0] = () -> {
-            rows.removeAllViews();
-            for (int i = 0; i < order.size(); i++) {
-                final int index = i;
-                String pkg = order.get(i);
-                LinearLayout row = new LinearLayout(this);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setFocusable(true);
-                row.setClickable(true);
-                row.setPadding((int)(12*density), (int)(7*density), (int)(12*density), (int)(7*density));
-                GradientDrawable bg = new GradientDrawable();
-                bg.setColor(0xFF343A46);
-                bg.setCornerRadius(12*density);
-                row.setBackground(bg);
-                ImageView icon = new ImageView(this);
-                try { icon.setImageDrawable(pm.getApplicationIcon(pkg)); } catch (Exception ignored) { }
-                icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                row.addView(icon, new LinearLayout.LayoutParams((int)(42*density), (int)(42*density)));
-                TextView label = new TextView(this);
-                String title;
-                try { title = String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0))); }
-                catch (Exception ignored) { title = pkg; }
-                label.setText(TraditionalText.display(this, title));
-                label.setTextColor(Color.WHITE);
-                label.setTextSize(16);
-                label.setSingleLine(true);
-                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(0, -2, 1f);
-                labelLp.leftMargin = (int)(14*density);
-                row.addView(label, labelLp);
-                TextView position = new TextView(this);
-                position.setText(String.valueOf(i + 1));
-                position.setTextColor(0xFFB9C1CC);
-                position.setTextSize(14);
-                row.addView(position);
-                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, (int)(58*density));
-                rowLp.bottomMargin = (int)(5*density);
-                rows.addView(row, rowLp);
-                row.setOnFocusChangeListener((v, hasFocus) -> {
-                    bg.setStroke(hasFocus ? Math.max(1, (int)(2*density)) : 0,
-                            hasFocus ? 0xFF80C9C2 : Color.TRANSPARENT);
-                    if (hasFocus) focusedIndex[0] = index;
-                });
-                row.setOnKeyListener((v, keyCode, event) -> {
-                    boolean center = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER;
-                    if (center) {
-                        if (event.getAction() == KeyEvent.ACTION_UP && reorderDialog[0] != null) {
-                            String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
-                            StringBuilder value = new StringBuilder();
-                            for (String item : order) {
-                                if (value.length() > 0) value.append('\n');
-                                value.append(item);
-                            }
-                            prefs.edit().putString(key, value.toString()).apply();
-                            reorderDialog[0].dismiss();
-                            showFolderContents(folderName, systemFolder);
-                        }
-                        return true;
-                    }
-                    if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
-                    int target = keyCode == KeyEvent.KEYCODE_DPAD_UP ? index - 1
-                            : keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? index + 1 : -1;
-                    if (target >= 0 && target < order.size()) {
-                        java.util.Collections.swap(order, index, target);
-                        focusedIndex[0] = target;
-                        render[0].run();
-                        rows.getChildAt(target).requestFocus();
-                        scroll.post(() -> scroll.smoothScrollTo(0, rows.getChildAt(target).getTop()));
-                        return true;
-                    }
-                    return keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
-                });
-            }
-            if (!order.isEmpty()) rows.getChildAt(Math.max(0, Math.min(focusedIndex[0], order.size() - 1))).requestFocus();
-        };
-        render[0].run();
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("移動順序")
-                .setView(content)
-                .setNegativeButton("取消", (d, which) -> showFolderContents(folderName, systemFolder))
-                .setPositiveButton("儲存", (d, which) -> {
-                    String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
-                    StringBuilder value = new StringBuilder();
-                    for (String pkg : order) {
-                        if (value.length() > 0) value.append('\n');
-                        value.append(pkg);
-                    }
-                    prefs.edit().putString(key, value.toString()).apply();
-                    showFolderContents(folderName, systemFolder);
-                }).create();
-        reorderDialog[0] = dialog;
-        dialog.show();
-        styleRemoteDialogActions(dialog);
-        dialog.getWindow().setLayout(Math.min((int)(520*density),
-                getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                Math.min((int)(620*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
-        if (!order.isEmpty()) rows.getChildAt(0).requestFocus();
-    }
 
     private void reopenPendingFolderAfterAppEdit() {
         if (pendingFolderNameAfterAppEdit == null) return;
