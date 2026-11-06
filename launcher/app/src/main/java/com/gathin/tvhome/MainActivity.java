@@ -4976,10 +4976,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         check.setFocusable(false);
                         check.setOnCheckedChangeListener((button, checked) ->
                                 prefs.edit().putBoolean(prefKey, checked).apply());
-                        // Keep the checkbox view close to its intrinsic 24dp button size;
-                        // avoid the unused trailing width that made the right edge look inset.
+                        // Reserve enough width for the complete native checkbox drawable and
+                        // its touch target; 24dp clipped the button on some TV densities.
+                        check.setMinWidth((int)(44*density));
+                        check.setMinimumWidth((int)(44*density));
+                        check.setPadding(0, 0, 0, 0);
                         item.addView(check, new LinearLayout.LayoutParams(
-                                (int)(24*density), (int)(48*density)));
+                                (int)(44*density), (int)(48*density)));
                         item.setOnClickListener(v -> check.setChecked(!check.isChecked()));
                         item.setOnKeyListener((v, keyCode, event) -> {
                             if (event.getAction() == KeyEvent.ACTION_UP
