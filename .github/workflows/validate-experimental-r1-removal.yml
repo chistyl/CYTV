@@ -3,9 +3,7 @@ name: Validate experimental R1 removal (no device release)
 on:
   pull_request:
     branches:
-      - fix/ethernet-dns-recovery-r4-r98
       - experiment/remove-toshiba-r1-vpn-guard
-      - feature/replace-app-icon-tv-banner-b3a294e
     paths:
       - 'launcher/**'
       - 'scripts/validate-experimental-r1-removal.py'
@@ -13,6 +11,7 @@ on:
   push:
     branches:
       - experiment/remove-toshiba-r1-vpn-guard
+      - feature/replace-app-icon-tv-banner-b3a294e
     paths:
       - 'launcher/**'
       - 'scripts/validate-experimental-r1-removal.py'
