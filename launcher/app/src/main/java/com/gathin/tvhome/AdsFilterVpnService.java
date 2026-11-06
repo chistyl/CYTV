@@ -69,6 +69,14 @@ public class AdsFilterVpnService extends VpnService {
     private static final long NETWORK_LOSS_GRACE_MS = 3000L;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+            appendDnsLog("-", "診斷", "TOSHIBA 65U7000VS 安全政策：DNS VPN 已停用，保護有線網路");
+            // This also closes any existing TUN descriptor and unregisters its network callback.
+            stopFilter();
+            stopSelf(startId);
+            return START_NOT_STICKY;
+        }
         if (intent != null && ACTION_REFRESH_NETWORK.equals(intent.getAction())) {
             if (running.get()) {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
