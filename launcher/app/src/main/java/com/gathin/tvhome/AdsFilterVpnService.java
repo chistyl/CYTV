@@ -318,17 +318,6 @@ public class AdsFilterVpnService extends VpnService {
                     + "；Model=" + Build.MODEL
                     + "；Android API=" + Build.VERSION.SDK_INT);
 
-            // Toshiba Android 9 Ethernet firmware has been observed losing the
-            // physical network immediately after VpnService.Builder.establish().
-            // Prefer connectivity over filtering until this firmware is understood.
-            if (toshiba && Build.VERSION.SDK_INT == Build.VERSION_CODES.P && ethernet) {
-                appendNetworkSnapshot(cm);
-                appendDnsLog("-", "安全保護", "偵測到 Toshiba／Android 9／Ethernet 組合；為避免建立 VPN 後造成整台電視斷網，已略過 VPN 啟動並自動關閉阻擋廣告。");
-                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-                stopFilter();
-                return;
-            }
-
             Builder builder = new Builder().setSession("CleanYourTV 廣告過濾").setMtu(1500)
                     .addAddress(DNS_CLIENT, 32).addDnsServer(DNS_LOCAL).addRoute(DNS_LOCAL, 32);
             tunnel = builder.establish();
