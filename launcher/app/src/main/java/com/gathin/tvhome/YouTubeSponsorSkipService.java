@@ -147,7 +147,7 @@ public final class YouTubeSponsorSkipService extends Service {
                         if (adSkipped || contentResumed) {
                             session.clearAdState();
                             adActive = false;
-                            skipAttemptedForCurrentAd = false;
+                            adSkipRetry.reset();
                             handledAdEventVersion = session.adEventVersion;
                             handledAdStartVersion = session.adStartVersion;
                             android.util.Log.i("CYTV-YouTubeAdSkip",
