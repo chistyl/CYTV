@@ -174,13 +174,16 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
-                    if (network.equals(underlyingNetwork)) {
+                    NetworkCapabilities changedCaps = cm.getNetworkCapabilities(network);
+                    if (isPhysicalTransport(changedCaps)) {
                         appendDnsLog("-", "診斷", "ConnectivityCallback onLinkPropertiesChanged："
-                                + network + "；介面=" + (properties == null ? "-" : properties.getInterfaceName())
+                                + network + "；目前實體網路=" + network.equals(underlyingNetwork)
+                                + "；Ethernet=" + changedCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                + "；介面=" + (properties == null ? "-" : properties.getInterfaceName())
                                 + "；Link=" + (properties == null ? "-" : properties.getLinkAddresses())
                                 + "；DNS=" + (properties == null ? "-" : properties.getDnsServers()));
-                        updateUpstreamServers(network, cm);
                     }
+                    if (network.equals(underlyingNetwork)) updateUpstreamServers(network, cm);
                 }
             };
             cm.registerNetworkCallback(request, networkCallback);
@@ -309,6 +312,8 @@ public class AdsFilterVpnService extends VpnService {
             if (selected == null) throw new IllegalStateException("Physical network is null");
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
             NetworkCapabilities caps = cm == null ? null : cm.getNetworkCapabilities(selected);
+            appendDnsLog("-", "診斷", "VPN 建立前網路快照");
+            if (cm != null) appendNetworkSnapshot(cm);
             boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
             // Record whether Ethernet is present independently of the selected upstream.
             // This is diagnostic only; the experimental branch does not apply the R1 guard.
@@ -340,6 +345,10 @@ public class AdsFilterVpnService extends VpnService {
             tunnel = builder.establish();
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
             appendDnsLog("-", "診斷", "VpnService.Builder.establish() 已返回成功；VPN TUN 建立成功");
+            if (cm != null) {
+                appendDnsLog("-", "診斷", "VPN 建立後網路快照");
+                appendNetworkSnapshot(cm);
+            }
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
@@ -347,6 +356,11 @@ public class AdsFilterVpnService extends VpnService {
         } catch (Exception e) {
             Log.e(TAG, "Unable to establish DNS tunnel", e);
             appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
+            ConnectivityManager failedCm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (failedCm != null) {
+                appendDnsLog("-", "診斷", "VPN 建立失敗後網路快照");
+                appendNetworkSnapshot(failedCm);
+            }
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             stopFilter();
         }
