@@ -5194,7 +5194,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
                     Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    Math.min((int)(580*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         content.post(() -> appTab.requestFocus());
     }
@@ -5324,6 +5324,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.addView(randomSwitch);
         randomSwitch.setFocusable(false);
         randomSwitch.setFocusableInTouchMode(false);
+        randomRow.setId(View.generateViewId());
         randomRow.setFocusable(true);
         randomRow.setFocusableInTouchMode(true);
         randomRow.setClickable(true);
@@ -5376,14 +5377,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(62*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(92*density));
                 item.addView(preview, imageLp);
 
-                // 主題卡片只顯示完整圖片預覽，不顯示主題名稱。
-                imageLp.height = (int)(72*density);
+                // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
+                imageLp.height = (int)(92*density);
                 preview.setLayoutParams(imageLp);
 
-                item.setOnFocusChangeListener((v, hasFocus) -> v.setElevation(0f));
+                item.setOnFocusChangeListener((v, hasFocus) -> {
+                    v.setElevation(0f);
+                    setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, hasFocus);
+                });
+                // 部分 Android TV 韌體不會替一般 clickable View 正確轉送 OK 鍵，明確處理遙控器確認鍵。
+                item.setOnKeyListener((v, keyCode, event) -> {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                        if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) v.performClick();
+                        return true;
+                    }
+                    return false;
+                });
                 setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
                     wallpaperPrefs.edit().putInt("builtin_wallpaper", index + 1)
@@ -5397,12 +5410,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(72*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(92*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(80*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(100*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
@@ -5420,8 +5433,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int col = i % columnsCount;
             int row = i / columnsCount;
             if (col > 0) tile.setNextFocusLeftId(thumbnailItems[i - 1].getId());
+            else tile.setNextFocusLeftId(tile.getId());
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
+            else tile.setNextFocusRightId(tile.getId());
             if (row == 0) tile.setNextFocusUpId(randomRow.getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
