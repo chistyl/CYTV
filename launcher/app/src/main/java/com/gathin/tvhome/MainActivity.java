@@ -5315,9 +5315,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (localWallpaper.exists()) localWallpaper.delete();
             for (int i = 0; i < thumbnailImages.length; i++) {
-                if (thumbnailImages[i] != null) setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
+                if (thumbnailImages[i] != null) {
+                    setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
+                }
             }
-            if (checked) recreate();
+            recreate();
         });
         randomRow.addView(randomSwitch);
         randomSwitch.setFocusable(false);
