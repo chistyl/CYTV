@@ -73,6 +73,19 @@ if not builder or not establish:
 if not (guard.start() < builder.start() < establish.start()):
     sys.exit("FAIL: VPN Builder/establish is not ordered after the safety guard")
 
+diagnostic_checks = {
+    "bounded network history preference": r'"network_stability_logs"',
+    "50-entry history bound": r'old\.length\s*-\s*49',
+    "IP address diagnostics": r'describeLinkAddresses',
+    "default gateway diagnostics": r'describeDefaultGateway',
+    "route diagnostics": r'describeRoutes',
+    "validated network capability": r'NET_CAPABILITY_VALIDATED',
+}
+for label, pattern in diagnostic_checks.items():
+    if not re.search(pattern, text):
+        sys.exit(f"FAIL: missing {label}")
+
+print("PASS: bounded network diagnostics include IP, gateway, routes, DNS and validation state.")
 print("PASS: Toshiba/API 28/Ethernet guard exists, disables filtering, stops service,")
 print("      returns before VPN Builder creation and establish().")
 print("NOTE: static regression check only; it does not prove OEM framework root cause.")
