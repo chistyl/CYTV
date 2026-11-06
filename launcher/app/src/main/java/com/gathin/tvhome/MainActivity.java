@@ -7270,7 +7270,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                             String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
                             StringBuilder value = new StringBuilder();
                             for (String item : order) {
-                                if (value.length() > 0) value.append('\\n');
+                                if (value.length() > 0) value.append('\n');
                                 value.append(item);
                             }
                             prefs.edit().putString(key, value.toString()).apply();
@@ -7304,7 +7304,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
                     StringBuilder value = new StringBuilder();
                     for (String pkg : order) {
-                        if (value.length() > 0) value.append('\\n');
+                        if (value.length() > 0) value.append('\n');
                         value.append(pkg);
                     }
                     prefs.edit().putString(key, value.toString()).apply();
