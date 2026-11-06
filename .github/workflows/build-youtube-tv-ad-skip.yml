@@ -18,6 +18,7 @@ on:
       - fix/rename-folder-to-app-category-7807c63
       - fix/shorten-remove-system-folder-label-53a0454
       - fix/shorten-system-folder-picker-title-8d682ba
+      - fix/shorten-folder-picker-title-1933dab
     paths:
       - 'launcher/**'
       - '.github/workflows/build-youtube-tv-ad-skip.yml'
