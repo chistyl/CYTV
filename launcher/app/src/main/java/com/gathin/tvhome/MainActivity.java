@@ -7640,11 +7640,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout folderRows = folderPanel.findViewById(R.id.rows);
             PopupWindow folderPopup = glassPopup(folderPanel, (int) (220 * density));
             if (key.contains("/system-folder")) {
-                // The protected System folder has no rename/delete/reorder actions. Provide an explicit
-                // management entry so the popup is never empty when opened by a remote long-press.
-                addSettingsMenuRow(folderRows, folderPopup, "管理系統 APP", () -> {
+                // Open the exact same category-creation flow as Settings > Interface Settings > App Categories.
+                // The System folder remains protected: it cannot be renamed, deleted, or reordered.
+                addSettingsMenuRow(folderRows, folderPopup, "新增分類", () -> {
                     folderPopup.dismiss();
-                    showFolderContents("系統", true);
+                    showCreateFolderDialog();
                 });
             }
             if (key.contains("/folder:")) {
