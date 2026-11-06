@@ -3894,7 +3894,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
         // 不論 Wi-Fi 或有線 Ethernet，都顯示廣告阻擋入口。
-        addSettingsMenuRow(rows, popup, "阻擋廣告", () -> {
+        addSettingsMenuRow(rows, popup, "廣告過濾", () -> {
             popup.dismiss();
             startActivity(new Intent(this, AdsBlockerActivity.class));
         });
