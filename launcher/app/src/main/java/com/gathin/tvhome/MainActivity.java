@@ -6537,7 +6537,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                             if (!folderLongPressHandled[0]) {
                                 folderLongPressHandled[0] = true;
                                 showFolderAppContextMenu(v, packageName,
-                                        String.valueOf(prefs.getString("label_" + packageName, String.valueOf(ri.loadLabel(getPackageManager())))), folderName, systemFolder, dialog);
+                                        String.valueOf(prefs.getString("label_" + packageName, String.valueOf(ri.loadLabel(getPackageManager())))), folderName, systemFolder, dialog, folderAppOrder);
                             }
                             return true;
                         }
@@ -6575,7 +6575,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     dialog.dismiss();
                 });
                 tile.setOnLongClickListener(v -> {
-                    showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog);
+                    showFolderAppContextMenu(v, packageName, String.valueOf(name.getText()), folderName, systemFolder, dialog, folderAppOrder);
                     return true;
                 });
                 int tileIndex = folderFocusTiles.size();
@@ -6790,7 +6790,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * entry. Each action keeps its original picker/dialog and persistence behavior.
      */
     private void showAppIconSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
-                                         String folderName, boolean systemFolder, Dialog folderDialog) {
+                                         String folderName, boolean systemFolder, Dialog folderDialog, java.util.List<String> folderAppOrder) {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
@@ -7113,7 +7113,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 showAppIconSettingsMenu(anchor, packageName, prefs, folderName, systemFolder, folderDialog));
 
         addSettingsMenuRow(rows, popup, "移動順序", () -> {
-            java.util.ArrayList<String> currentOrder = new java.util.ArrayList<>(folderAppOrderForMenu(folderName, systemFolder, prefs));
+            java.util.ArrayList<String> currentOrder = new java.util.ArrayList<>(folderAppOrder);
             if (!currentOrder.contains(packageName)) currentOrder.add(packageName);
             folderDialog.dismiss();
             showFolderAppReorderDialog(currentOrder, folderName, systemFolder);
@@ -7190,22 +7190,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
-
-    private java.util.List<String> folderAppOrderForMenu(String folderName, boolean systemFolder,
-                                                           SharedPreferences prefs) {
-        String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
-        String saved = prefs.getString(key, "");
-        java.util.ArrayList<String> result = new java.util.ArrayList<>();
-        if (!saved.isEmpty()) for (String pkg : saved.split("\\n")) if (!result.contains(pkg)) result.add(pkg);
-        if (result.isEmpty()) {
-            Set<String> members = systemFolder
-                    ? prefs.getStringSet("system_folder_added", java.util.Collections.<String>emptySet())
-                    : prefs.getStringSet("folder_apps_" + folderName, java.util.Collections.<String>emptySet());
-            result.addAll(members);
-            java.util.Collections.sort(result, String.CASE_INSENSITIVE_ORDER);
-        }
-        return result;
-    }
 
     /** Folder-only ordering editor. DPAD Up/Down moves the focused app one slot. */
     private void showFolderAppReorderDialog(java.util.ArrayList<String> initialOrder,
