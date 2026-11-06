@@ -6534,7 +6534,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderPages.size() <= pageIndex) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
-                    page.setGravity(Gravity.CENTER);
+                    page.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
                     grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
                     folderPages.add(page);
                 }
@@ -6542,7 +6542,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (page.getChildCount() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    row.setGravity(Gravity.CENTER);
+                    row.setGravity(Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
@@ -6613,7 +6613,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderPages.size() <= pageIndex) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
-                    page.setGravity(Gravity.CENTER);
+                    page.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
                     grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
                     folderPages.add(page);
                 }
@@ -6621,7 +6621,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (page.getChildCount() <= rowIndex) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    row.setGravity(Gravity.CENTER);
+                    row.setGravity(Gravity.START);
                     row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
                     page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
