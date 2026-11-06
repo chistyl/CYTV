@@ -4819,28 +4819,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         contentLp.topMargin = (int)(10*density);
         outer.addView(content, contentLp);
 
-        GradientDrawable listClip = new GradientDrawable();
-        listClip.setColor(0xFF343A46); listClip.setCornerRadius(16*density);
-        content.setBackground(listClip); content.setClipToOutline(true);
-
+        // The list surface and page indicator are siblings: dots sit completely
+        // outside the rounded list panel, not merely outside the app row widgets.
         LinearLayout contentRow = new LinearLayout(this);
         contentRow.setOrientation(LinearLayout.HORIZONTAL);
         contentRow.setGravity(Gravity.CENTER_VERTICAL);
-        contentRow.setPadding((int)(10*density), 0, (int)(10*density), 0);
         content.addView(contentRow, new FrameLayout.LayoutParams(-1, -1));
+
+        FrameLayout listPanel = new FrameLayout(this);
+        GradientDrawable listClip = new GradientDrawable();
+        listClip.setColor(0xFF343A46);
+        listClip.setCornerRadius(16*density);
+        listPanel.setBackground(listClip);
+        listPanel.setClipToOutline(true);
+        contentRow.addView(listPanel, new LinearLayout.LayoutParams(0, -1, 1f));
 
         LinearLayout pageHost = new LinearLayout(this);
         pageHost.setOrientation(LinearLayout.VERTICAL);
-        pageHost.setPadding(0, (int)(7*density), 0, (int)(7*density));
-        contentRow.addView(pageHost, new LinearLayout.LayoutParams(0, -1, 1f));
+        // Symmetric inset is applied to the whole 2-column grid.
+        pageHost.setPadding((int)(16*density), (int)(7*density),
+                (int)(16*density), (int)(7*density));
+        listPanel.addView(pageHost, new FrameLayout.LayoutParams(-1, -1));
 
-        // Keep page dots in a separate rail, outside the app rows.
+        // Independent right-side rail, visibly outside the list panel.
         LinearLayout pageIndicator = new LinearLayout(this);
         pageIndicator.setOrientation(LinearLayout.VERTICAL);
         pageIndicator.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams indicatorLp = new LinearLayout.LayoutParams(
-                (int)(12*density), -1);
+                (int)(20*density), -1);
         indicatorLp.leftMargin = (int)(8*density);
+        indicatorLp.rightMargin = (int)(2*density);
         contentRow.addView(pageIndicator, indicatorLp);
 
         final int columns = 2, rowsPerPage = 5, perPage = columns * rowsPerPage;
@@ -4869,8 +4877,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
                     row.setGravity(Gravity.CENTER_VERTICAL);
-                    // Equal inner margins keep the first and second columns visually balanced.
-                    row.setPadding((int)(10*density), 0, (int)(10*density), 0);
+                    // Grid-level left/right inset is applied by pageHost above.
+                    row.setPadding(0, 0, 0, 0);
                     LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, 0, 1f);
                     rowLp.setMargins(0, (int)(2*density), 0, (int)(2*density));
                     page.addView(row, rowLp);
