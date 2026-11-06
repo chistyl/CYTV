@@ -62,6 +62,22 @@ jobs:
               assert check.getbbox() is not None, target
               print(f"{target}: {check.size}, RGBA={check.mode}")
           PY
+      - name: Generate Android TV xhdpi banner at the documented 320x180 size
+        run: |
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src = Path("launcher/app/src/main/res/drawable-nodpi/banner.png")
+          target = Path("launcher/app/src/main/res/drawable-xhdpi/banner.png")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          image = Image.open(src).convert("RGBA")
+          # Keep the full 16:9 artwork; resize only, never crop or stretch.
+          assert abs(image.width / image.height - 16 / 9) < 0.002
+          image.resize((320, 180), Image.Resampling.LANCZOS).save(target, format="PNG", optimize=True)
+          check = Image.open(target)
+          assert check.size == (320, 180), check.size
+          print(f"{target}: {check.size}, RGBA={check.mode}")
+          PY
       - name: Run launcher unit tests
         working-directory: launcher
         run: |
