@@ -4804,7 +4804,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             tab.setElevation(0f); tab.setId(View.generateViewId());
             tab.setPadding((int)(8*density), 0, (int)(8*density), 0);
         }
-        // Tabs extend beyond the list panel equally on both sides, as in the reference.
+        // Match the reference: extend the tab strip 16dp to the left while
+        // keeping its right edge anchored to the dialog's existing content edge.
         tabs.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams appTabLp = new LinearLayout.LayoutParams(
                 0, (int)(44*density), 0.92f);
@@ -4814,7 +4815,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         folderTabLp.setMargins((int)(2*density), 0, (int)(2*density), 0);
         tabs.addView(appTab, appTabLp);
         tabs.addView(folderTab, folderTabLp);
-        outer.addView(tabs);
+        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(
+                -1, -2);
+        tabsLp.leftMargin = -(int)(16*density);
+        tabsLp.rightMargin = 0;
+        outer.addView(tabs, tabsLp);
 
         final boolean[] showingApps = {true};
         final int[] currentPage = {0};
