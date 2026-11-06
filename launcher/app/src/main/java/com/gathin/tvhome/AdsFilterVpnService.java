@@ -104,6 +104,11 @@ public class AdsFilterVpnService extends VpnService {
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override public void onAvailable(Network network) {
                     NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+                    if (isPhysicalTransport(caps)) {
+                        appendDnsLog("-", "診斷", "ConnectivityCallback onAvailable：" + network
+                                + "；Ethernet=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                + "；Wi-Fi=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
+                    }
                     // Keep the physical default selected before the VPN was established.
                     // A second available transport (for example Wi-Fi while Ethernet is active)
                     // must not silently steal DNS forwarding from the current default.
@@ -118,6 +123,8 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onLost(Network network) {
+                    appendDnsLog("-", "診斷", "ConnectivityCallback onLost：" + network
+                            + "；是否目前實體網路=" + network.equals(underlyingNetwork));
                     if (network.equals(underlyingNetwork)) {
                         if (running.get()) {
                             // Android 9 TV firmware may hide the physical Network after the
@@ -136,6 +143,13 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
+                    if (network.equals(underlyingNetwork) || isPhysicalTransport(caps)) {
+                        appendDnsLog("-", "診斷", "ConnectivityCallback onCapabilitiesChanged：" + network
+                                + "；Ethernet=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                + "；Wi-Fi=" + caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                                + "；Internet=" + caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                                + "；目前實體網路=" + network.equals(underlyingNetwork));
+                    }
                     if (network.equals(underlyingNetwork) && !isPhysicalTransport(caps)) {
                         if (running.get()) {
                             underlyingNetwork = null;
@@ -160,7 +174,13 @@ public class AdsFilterVpnService extends VpnService {
                     }
                 }
                 @Override public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
-                    if (network.equals(underlyingNetwork)) updateUpstreamServers(network, cm);
+                    if (network.equals(underlyingNetwork)) {
+                        appendDnsLog("-", "診斷", "ConnectivityCallback onLinkPropertiesChanged："
+                                + network + "；介面=" + (properties == null ? "-" : properties.getInterfaceName())
+                                + "；Link=" + (properties == null ? "-" : properties.getLinkAddresses())
+                                + "；DNS=" + (properties == null ? "-" : properties.getDnsServers()));
+                        updateUpstreamServers(network, cm);
+                    }
                 }
             };
             cm.registerNetworkCallback(request, networkCallback);
