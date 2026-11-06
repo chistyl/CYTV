@@ -288,6 +288,8 @@ public class AdsFilterVpnService extends VpnService {
                         + "；VPN=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
                         + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
                         + "；介面=" + (links == null ? "未知" : links.getInterfaceName())
+                        + "；IP=" + (links == null ? "未知" : links.getLinkAddresses())
+                        + "；路由=" + (links == null ? "未知" : links.getRoutes())
                         + "；DNS=" + (links == null ? "未知" : describeDnsServersFromLinks(links)));
             }
         } catch (Exception e) {
