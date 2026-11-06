@@ -173,6 +173,10 @@ public class YouTubeAssistantActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         refreshPairingCodeFromSavedDetection();
+        // AccessibilityService may publish the detected code just after Activity resume.
+        // Retry briefly so returning from YouTube TV reliably opens/fills the dialog.
+        getWindow().getDecorView().postDelayed(this::refreshPairingCodeFromSavedDetection, 350L);
+        getWindow().getDecorView().postDelayed(this::refreshPairingCodeFromSavedDetection, 1000L);
         if (!pairingCodeReceiverRegistered) {
             IntentFilter filter = new IntentFilter(
                     YouTubePairingCodeAccessibilityService.ACTION_CODE_DETECTED);
