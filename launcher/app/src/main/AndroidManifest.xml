@@ -93,7 +93,9 @@
             android:excludeFromRecents="true"
             android:clearTaskOnLaunch="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
-            android:screenOrientation="landscape">
+            android:screenOrientation="landscape"
+            android:icon="@mipmap/ic_launcher"
+            android:banner="@drawable/banner">
             <!-- CVTE firmware (ro.CVT_EN_COMMON_HOME_INTENT=1) sends the Home key and boot as MAIN + HOME +
                  COMMON_HOME, which only matches a filter that lists both (#1201). In this one filter, not a second
                  one: a plain HOME intent still matches it, and a second filter could list this activity twice. -->
