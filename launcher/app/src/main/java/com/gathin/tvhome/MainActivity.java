@@ -4774,17 +4774,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         folders.addAll(prefs.getStringSet("home_folders", Collections.<String>emptySet()));
         folders.add("系統");
 
-        // Persist folder ordering separately from the launcher desktop order.
-        String folderOrderKey = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
-        java.util.ArrayList<String> folderAppOrder = new java.util.ArrayList<>();
-        String savedFolderOrder = prefs.getString(folderOrderKey, "");
-        if (!savedFolderOrder.isEmpty()) {
-            for (String pkg : savedFolderOrder.split("\\n")) {
-                if (matches.containsKey(pkg) && !folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
-            }
-        }
-        for (String pkg : matches.keySet()) if (!folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
-
         Dialog dialog = new Dialog(this);
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -6388,6 +6377,17 @@ private GradientDrawable roundSurface(int color, float radius) {
                 } catch (PackageManager.NameNotFoundException | RuntimeException ignored) { }
             }
         }
+
+        // Persist folder ordering separately from the launcher desktop order.
+        String folderOrderKey = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
+        java.util.ArrayList<String> folderAppOrder = new java.util.ArrayList<>();
+        String savedFolderOrder = prefs.getString(folderOrderKey, "");
+        if (!savedFolderOrder.isEmpty()) {
+            for (String pkg : savedFolderOrder.split("\\n")) {
+                if (matches.containsKey(pkg) && !folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
+            }
+        }
+        for (String pkg : matches.keySet()) if (!folderAppOrder.contains(pkg)) folderAppOrder.add(pkg);
 
         Dialog dialog = new Dialog(this);
         LinearLayout outer = new LinearLayout(this);
