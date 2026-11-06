@@ -7145,7 +7145,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 checked[i] = belongsToSystem;
             } catch (PackageManager.NameNotFoundException ignored) { }
         }
-        showAppSelectionDialog("勾選要放入「系統」資料夾的 APP", packages, candidates, checked, selected -> {
+        showAppSelectionDialog("勾選要放入「系統」", packages, candidates, checked, selected -> {
             java.util.HashSet<String> excludedNow = new java.util.HashSet<>();
             java.util.HashSet<String> addedNow = new java.util.HashSet<>();
             for (int i=0;i<packages.size();i++) {
