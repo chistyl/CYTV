@@ -5082,8 +5082,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
-            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(Math.min((int)(780*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)),
                     Math.min((int)(680*density), getResources().getDisplayMetrics().heightPixels-(int)(48*density)));
