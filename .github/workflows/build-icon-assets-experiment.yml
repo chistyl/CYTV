@@ -57,7 +57,7 @@ jobs:
           mkdir -p delivery
           cp launcher/app/build/outputs/apk/debug/app-debug.apk delivery/CYTV-icon-assets-experiment-debug.apk
           git archive --format=zip --output=delivery/CYTV-icon-assets-experiment-source.zip HEAD
-          printf 'repository=chistyl/CYTV\\nbranch=%s\\ncommit=%s\\n' "${GITHUB_REF_NAME}" "${SOURCE_COMMIT}" > delivery/VERSION.txt
+          printf 'repository=chistyl/CYTV\nbranch=%s\ncommit=%s\n' "${GITHUB_REF_NAME}" "${SOURCE_COMMIT}" > delivery/VERSION.txt
           sha256sum delivery/CYTV-icon-assets-experiment-debug.apk delivery/CYTV-icon-assets-experiment-source.zip > delivery/SHA256SUMS.txt
 
       - name: Upload matched delivery bundle
