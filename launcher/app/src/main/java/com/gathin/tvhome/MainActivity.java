@@ -5805,59 +5805,94 @@ private GradientDrawable roundSurface(int color, float radius) {
     private void showAppSelectionDialog(String title, List<String> packages,
                                         Map<String, ResolveInfo> appInfos, boolean[] checked,
                                         AppSelectionListener listener) {
+        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
+        Dialog dialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        GradientDrawable outerSurface = new GradientDrawable();
+        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setCornerRadius(22*density);
+        outerSurface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        outer.setBackground(outerSurface);
+
+        TextView heading = new TextView(this);
+        heading.setText(TraditionalText.display(this, "添加"));
+        heading.setTextColor(Color.WHITE);
+        heading.setTextSize(20);
+        heading.setGravity(Gravity.CENTER);
+        heading.setPadding((int)(8*density), (int)(4*density), 0, (int)(12*density));
+        outer.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
         ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
+        scroll.setForeground(null);
         scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.setFillViewport(false);
+
         LinearLayout grid = new LinearLayout(this);
         grid.setOrientation(LinearLayout.VERTICAL);
-        grid.setGravity(Gravity.CENTER_HORIZONTAL);
-        grid.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
-        scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
+        grid.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        grid.setBackgroundColor(Color.TRANSPARENT);
+        grid.setForeground(null);
+        grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
-        SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         int screenWidthDp = (int)(getResources().getDisplayMetrics().widthPixels / density);
         int dialogWidthDp = Math.min(680, screenWidthDp - 48);
         int contentWidthDp = Math.max(1, dialogWidthDp - 36);
-        int tileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 32) / 3));
-        java.util.ArrayList<View> tiles = new java.util.ArrayList<>();
+        int columns = 3;
+        int tileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 48) / columns));
+        java.util.ArrayList<LinearLayout> pages = new java.util.ArrayList<>();
+        java.util.ArrayList<View> focusTiles = new java.util.ArrayList<>();
+        java.util.ArrayList<View> pageDots = new java.util.ArrayList<>();
+        final int[] currentPage = {0};
+
+        FrameLayout content = new FrameLayout(this);
+        content.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        LinearLayout pageIndicator = new LinearLayout(this);
+        pageIndicator.setOrientation(LinearLayout.VERTICAL);
+        pageIndicator.setGravity(Gravity.CENTER);
+        pageIndicator.setPadding((int)(8*density), 0, (int)(2*density), 0);
+        content.addView(pageIndicator, new FrameLayout.LayoutParams(
+                (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL));
+        outer.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));
+        scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
+
         for (int i = 0; i < packages.size(); i++) {
-            final int index = i;
             String pkg = packages.get(i);
             ResolveInfo ri = appInfos.get(pkg);
             if (ri == null) continue;
 
-            if (i % 3 == 0) {
-                LinearLayout row = new LinearLayout(this);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.START);
-                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
-                rowLp.bottomMargin = (int)(16*density);
-                grid.addView(row, rowLp);
-            }
-            LinearLayout row = (LinearLayout) grid.getChildAt(grid.getChildCount() - 1);
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setGravity(Gravity.CENTER_HORIZONTAL);
+            tile.setId(View.generateViewId());
             tile.setFocusable(true);
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
-            tile.setId(View.generateViewId());
             tile.setDefaultFocusHighlightEnabled(false);
             tile.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
 
             FrameLayout card = new FrameLayout(this);
-            GradientDrawable cardBg = new GradientDrawable();
-            cardBg.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
-            cardBg.setCornerRadius(20*density);
-            card.setBackground(cardBg);
-            card.setClipToOutline(true);
-            GradientDrawable focusBorder = new GradientDrawable();
-            focusBorder.setColor(Color.TRANSPARENT);
-            focusBorder.setCornerRadius(20*density);
-            card.setForeground(focusBorder);
+            GradientDrawable cardSurface = new GradientDrawable();
+            cardSurface.setColor(prefs.getInt("background_" + pkg, Color.WHITE));
+            cardSurface.setCornerRadius(20*density);
+            card.setBackground(cardSurface);
+            GradientDrawable cardBorder = new GradientDrawable();
+            cardBorder.setColor(Color.TRANSPARENT);
+            cardBorder.setCornerRadius(20*density);
+            cardBorder.setStroke(0, Color.TRANSPARENT);
+            card.setForeground(cardBorder);
+            card.setClipToOutline(false);
 
             ImageView artwork = new ImageView(this);
+            GradientDrawable artworkClip = new GradientDrawable();
+            artworkClip.setColor(Color.TRANSPARENT);
+            artworkClip.setCornerRadius(20*density);
+            artwork.setBackground(artworkClip);
+            artwork.setClipToOutline(true);
             Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
             if (banner != null) {
                 artwork.setImageDrawable(banner);
@@ -5865,8 +5900,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             } else {
                 artwork.setImageDrawable(loadFolderAppIcon(pkg, prefs));
                 artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
+                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+                float scale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
                 int pad = Math.max((int)(3*density), (int)(10*density/scale));
                 artwork.setPadding(pad, pad, pad, pad);
             }
@@ -5889,56 +5924,148 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.addView(name, nameLp);
 
             tile.setOnFocusChangeListener((v, focused) -> {
-                focusBorder.setStroke(focused ? Math.max(1, (int)(3*density)) : 0,
+                cardBorder.setStroke(focused ? Math.max(1, Math.round(3f*density)) : 0,
                         focused ? 0xFF80C9C2 : Color.TRANSPARENT);
-                card.setElevation(focused ? 10*density : 0f);
+                card.setElevation(focused ? 10f*density : 0f);
                 if (focused) scroll.post(() -> scroll.requestChildRectangleOnScreen(v,
                         new android.graphics.Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
+            final int selectedIndex = i;
+            tile.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_UP
+                        && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                    v.performClick();
+                    return true;
+                }
+                return false;
+            });
             tile.setOnClickListener(v -> {
                 boolean[] selected = new boolean[packages.size()];
-                selected[index] = true;
+                selected[selectedIndex] = true;
                 listener.onSave(selected);
-                AlertDialog dialog = (AlertDialog) scroll.getTag();
-                if (dialog != null) dialog.dismiss();
+                dialog.dismiss();
             });
+
+            int tileIndex = focusTiles.size();
+            int pageIndex = tileIndex / 9;
+            int rowIndex = (tileIndex % 9) / columns;
+            while (pages.size() <= pageIndex) {
+                LinearLayout page = new LinearLayout(this);
+                page.setOrientation(LinearLayout.VERTICAL);
+                page.setGravity(Gravity.CENTER);
+                grid.addView(page, new LinearLayout.LayoutParams(
+                        Math.round((tileWidthDp + 12f) * columns * density), -2));
+                pages.add(page);
+            }
+            LinearLayout page = pages.get(pageIndex);
+            while (page.getChildCount() <= rowIndex) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.START);
+                row.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+                page.addView(row, new LinearLayout.LayoutParams(-1, -2));
+            }
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
-                    (int)(tileWidthDp*density), -2);
-            tileLp.leftMargin = (int)(6*density);
-            tileLp.rightMargin = (int)(6*density);
-            row.addView(tile, tileLp);
-            tiles.add(tile);
+                    Math.round(tileWidthDp*density),
+                    Math.round((tileWidthDp*9f/16f + 34f)*density));
+            tileLp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+            ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
+            focusTiles.add(tile);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(TraditionalText.display(this, "添加"))
-                .setView(scroll)
-                .setNegativeButton("取消", null)
-                .create();
-        scroll.setTag(dialog);
+        for (LinearLayout page : pages) {
+            for (int row = 0; row < page.getChildCount(); row++)
+                ((LinearLayout)page.getChildAt(row)).setGravity(Gravity.START);
+        }
+        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+            pages.get(pageIndex).setVisibility(pageIndex == 0 ? View.VISIBLE : View.GONE);
+            View dot = new View(this);
+            GradientDrawable dotBg = new GradientDrawable();
+            dotBg.setShape(GradientDrawable.OVAL);
+            dotBg.setColor(pageIndex == 0 ? Color.WHITE : 0x66888888);
+            dot.setBackground(dotBg);
+            LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(
+                    (int)(8*density), (int)(8*density));
+            dotLp.topMargin = (int)(5*density);
+            dotLp.bottomMargin = (int)(5*density);
+            pageIndicator.addView(dot, dotLp);
+            pageDots.add(dot);
+        }
+
+        java.util.function.BiConsumer<Integer, Integer> showPage = (pageIndex, preferredLocalIndex) -> {
+            if (pageIndex < 0 || pageIndex >= pages.size()) return;
+            currentPage[0] = pageIndex;
+            for (int i = 0; i < pages.size(); i++) {
+                pages.get(i).setVisibility(i == pageIndex ? View.VISIBLE : View.GONE);
+                GradientDrawable dotBg = new GradientDrawable();
+                dotBg.setShape(GradientDrawable.OVAL);
+                dotBg.setColor(i == pageIndex ? Color.WHITE : 0x66888888);
+                pageDots.get(i).setBackground(dotBg);
+            }
+            int first = pageIndex * 9;
+            int count = Math.min(9, focusTiles.size() - first);
+            if (count > 0) focusTiles.get(first + Math.min(Math.max(0, preferredLocalIndex), count - 1)).requestFocus();
+        };
+        final int[] lastDpadDown = { KeyEvent.KEYCODE_UNKNOWN };
+        dialog.setOnKeyListener((d, keyCode, event) -> {
+            boolean directional = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+            if (!directional) return false;
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                if (lastDpadDown[0] == keyCode) lastDpadDown[0] = KeyEvent.KEYCODE_UNKNOWN;
+                return true;
+            }
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            lastDpadDown[0] = keyCode;
+            int index = focusTiles.indexOf(dialog.getCurrentFocus());
+            if (index < 0) { if (!focusTiles.isEmpty()) showPage.accept(currentPage[0], 0); return true; }
+            int page = index / 9;
+            int local = index % 9;
+            int row = local / columns;
+            int column = local % columns;
+            int pageCount = Math.min(9, focusTiles.size() - page*9);
+            int target = -1;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column > 0) target = index - 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column < columns - 1 && local + 1 < pageCount) target = index + 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (row > 0 && local - columns >= 0) target = index - columns;
+                else if (page > 0) { showPage.accept(page - 1, 6 + column); return true; }
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (row < 2 && local + columns < pageCount) target = index + columns;
+                else if (page + 1 < pages.size()) { showPage.accept(page + 1, column); return true; }
+            }
+            if (target >= 0) focusTiles.get(target).requestFocus();
+            return true;
+        });
+
+        final ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup)parent).removeView(backdropBlur);
+                Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable)image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
+        dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable();
-            rounded.setColor(0xFF1D212B);
-            rounded.setCornerRadius(22*density);
-            rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            dialog.getWindow().setBackgroundDrawable(rounded);
-            dialog.getWindow().setLayout(Math.min((int)(680*density),
-                    getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(64*density)));
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
-        styleRemoteDialogActions(dialog);
-        for (int i = 0; i < tiles.size(); i++) {
-            final int idx = i;
-            View tile = tiles.get(i);
-            tile.setNextFocusLeftId(i % 3 == 0 ? tile.getId() : tiles.get(i - 1).getId());
-            tile.setNextFocusRightId(i % 3 == 2 || i + 1 >= tiles.size()
-                    ? tile.getId() : tiles.get(i + 1).getId());
-            if (i >= 3) tile.setNextFocusUpId(tiles.get(i - 3).getId());
-            if (i + 3 < tiles.size()) tile.setNextFocusDownId(tiles.get(i + 3).getId());
-        }
-        if (!tiles.isEmpty()) tiles.get(0).requestFocus();
+        grid.post(() -> {
+            if (!focusTiles.isEmpty()) showPage.accept(0, 0);
+        });
     }
 
     private void styleRemoteEditField(EditText edit) {
