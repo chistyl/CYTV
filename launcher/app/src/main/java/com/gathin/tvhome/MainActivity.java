@@ -5264,14 +5264,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(20);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, (int)(4*density), 0, (int)(12*density));
+        title.setPadding(0, (int)(2*density), 0, (int)(6*density));
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
@@ -5296,7 +5296,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomLabel.setGravity(Gravity.CENTER_VERTICAL);
         randomLabel.setIncludeFontPadding(false);
         randomLabel.setPadding((int)(12*density), 0, 0, 0);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(42*density), 1f));
+        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(36*density), 1f));
         android.widget.Switch randomSwitch = new android.widget.Switch(this);
         randomSwitch.setTextOn("");
         randomSwitch.setTextOff("");
@@ -5336,7 +5336,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5354,7 +5354,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(110*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5379,11 +5379,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(150*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(110*density));
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(150*density);
+                imageLp.height = (int)(110*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5435,15 +5435,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(150*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(110*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(178*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(116*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
             }
         }
         scroll.setFillViewport(false);
@@ -5470,8 +5470,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-        scrollLp.topMargin = (int)(4*density);
-        scrollLp.bottomMargin = (int)(8*density);
+        scrollLp.topMargin = (int)(2*density);
+        scrollLp.bottomMargin = (int)(4*density);
         panel.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
@@ -5494,6 +5494,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
+        // 在資料夾視窗相同的 520dp 高度內完整呈現六張圖與三個操作列。
+        // 縮小操作列並統一間距，避免按鈕覆蓋第二排縮圖。
+        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
+            LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
+            actionLp.height = (int)(40*density);
+            actionLp.bottomMargin = (int)(4*density);
+            action.setLayoutParams(actionLp);
+        }
         // 主題圖片下方保留 QR 傳圖、選擇圖片與還原預設三項功能；不再顯示取消／儲存。
         thumbnailItems[3].setNextFocusDownId(qrAction.getId());
         thumbnailItems[4].setNextFocusDownId(qrAction.getId());
