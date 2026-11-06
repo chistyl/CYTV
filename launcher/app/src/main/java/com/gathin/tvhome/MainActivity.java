@@ -4901,8 +4901,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         LinearLayout item = new LinearLayout(this);
                         item.setOrientation(LinearLayout.HORIZONTAL);
                         item.setGravity(Gravity.CENTER_VERTICAL);
+                        // Match the icon's leading inset with the checkbox's trailing inset.
                         item.setPadding((int)(7*density), (int)(4*density),
-                                (int)(5*density), (int)(4*density));
+                                (int)(7*density), (int)(4*density));
                         item.setFocusable(true); item.setFocusableInTouchMode(true);
                         item.setClickable(true); item.setDefaultFocusHighlightEnabled(false);
                         item.setId(View.generateViewId());
@@ -4960,8 +4961,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         check.setFocusable(false);
                         check.setOnCheckedChangeListener((button, checked) ->
                                 prefs.edit().putBoolean(prefKey, checked).apply());
+                        // Keep the checkbox view close to its intrinsic 24dp button size;
+                        // avoid the unused trailing width that made the right edge look inset.
                         item.addView(check, new LinearLayout.LayoutParams(
-                                (int)(38*density), (int)(48*density)));
+                                (int)(24*density), (int)(48*density)));
                         item.setOnClickListener(v -> check.setChecked(!check.isChecked()));
                         item.setOnKeyListener((v, keyCode, event) -> {
                             if (event.getAction() == KeyEvent.ACTION_UP
