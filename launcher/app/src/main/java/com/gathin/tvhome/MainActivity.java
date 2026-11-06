@@ -6427,11 +6427,12 @@ private GradientDrawable roundSurface(int color, float radius) {
         scroll.addView(grid, new ScrollView.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
-        LinearLayout folderContent = new LinearLayout(this);
-        folderContent.setOrientation(LinearLayout.HORIZONTAL);
-        folderContent.setGravity(Gravity.CENTER_VERTICAL);
-        folderContent.addView(scroll, new LinearLayout.LayoutParams(0, -1, 1f));
-        folderContent.addView(folderPageIndicator, new LinearLayout.LayoutParams((int)(22*density), -1));
+        // Keep the app grid centered in the full dialog width; page dots overlay at the right edge.
+        FrameLayout folderContent = new FrameLayout(this);
+        folderContent.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        FrameLayout.LayoutParams indicatorLp = new FrameLayout.LayoutParams(
+                (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL);
+        folderContent.addView(folderPageIndicator, indicatorLp);
         outer.addView(folderContent, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         Runnable populate = () -> {
@@ -6534,7 +6535,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderPages.size() <= pageIndex) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
-                    page.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+                    page.setGravity(Gravity.CENTER);
                     grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
                     folderPages.add(page);
                 }
@@ -6613,7 +6614,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 while (folderPages.size() <= pageIndex) {
                     LinearLayout page = new LinearLayout(this);
                     page.setOrientation(LinearLayout.VERTICAL);
-                    page.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+                    page.setGravity(Gravity.CENTER);
                     grid.addView(page, new LinearLayout.LayoutParams(-1, -2));
                     folderPages.add(page);
                 }
@@ -6635,6 +6636,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         };
         populate.run();
+        // Full three-card rows are centered as a group with equal left/right outer space.
+        // Incomplete rows stay left-aligned so paging never shifts sparse content unexpectedly.
+        for (LinearLayout page : folderPages) {
+            for (int rowIndex = 0; rowIndex < page.getChildCount(); rowIndex++) {
+                LinearLayout row = (LinearLayout) page.getChildAt(rowIndex);
+                row.setGravity(row.getChildCount() == folderColumns ? Gravity.CENTER : Gravity.START);
+            }
+        }
         for (int pageIndex = 0; pageIndex < folderPages.size(); pageIndex++) {
             folderPages.get(pageIndex).setVisibility(pageIndex == 0 ? View.VISIBLE : View.GONE);
             View dot = new View(this);
