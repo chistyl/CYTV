@@ -4897,7 +4897,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 for (int rowIndex = 0; rowIndex < rowsPerPage; rowIndex++) {
                     LinearLayout row = new LinearLayout(this);
                     row.setOrientation(LinearLayout.HORIZONTAL);
-                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setGravity(Gravity.CENTER);
                     // Grid-level left/right inset is applied by pageHost above.
                     row.setPadding(0, 0, 0, 0);
                     LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, 0, 1f);
@@ -5340,6 +5340,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
+        scroll.setFocusable(false);
+        scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         scroll.setVerticalScrollBarEnabled(true);
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
@@ -5352,7 +5354,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(92*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5390,12 +5392,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
                 // 部分 Android TV 韌體不會替一般 clickable View 正確轉送 OK 鍵，明確處理遙控器確認鍵。
                 item.setOnKeyListener((v, keyCode, event) -> {
+                    if (event.getAction() != KeyEvent.ACTION_DOWN && event.getAction() != KeyEvent.ACTION_UP)
+                        return false;
                     if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                             || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                         if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) v.performClick();
                         return true;
                     }
-                    return false;
+                    if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                    int targetId = View.NO_ID;
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) targetId = v.getNextFocusLeftId();
+                    else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) targetId = v.getNextFocusRightId();
+                    else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) targetId = v.getNextFocusUpId();
+                    else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) targetId = v.getNextFocusDownId();
+                    if (targetId == View.NO_ID || targetId == v.getId()) return targetId == v.getId();
+                    View target = panel.findViewById(targetId);
+                    if (target == null) return false;
+                    target.requestFocus();
+                    if (target.getParent() != panel && target.getParent() != choices) {
+                        int[] targetLoc = new int[2];
+                        int[] scrollLoc = new int[2];
+                        target.getLocationOnScreen(targetLoc);
+                        scroll.getLocationOnScreen(scrollLoc);
+                        int top = targetLoc[1] - scrollLoc[1] + scroll.getScrollY();
+                        int bottom = top + target.getHeight();
+                        if (top < scroll.getScrollY()) scroll.smoothScrollTo(0, top);
+                        else if (bottom > scroll.getScrollY() + scroll.getHeight())
+                            scroll.smoothScrollTo(0, bottom - scroll.getHeight());
+                    }
+                    return true;
                 });
                 setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
@@ -5415,7 +5440,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(100*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(120*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
@@ -5500,7 +5525,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
                     Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    Math.min((int)(560*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         dialog.getWindow().getDecorView().post(() -> {
             View initial = thumbnailItems[draftTheme[0] - 1];
