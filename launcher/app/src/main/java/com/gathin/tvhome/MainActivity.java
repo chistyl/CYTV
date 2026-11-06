@@ -6790,7 +6790,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * entry. Each action keeps its original picker/dialog and persistence behavior.
      */
     private void showAppIconSettingsMenu(View anchor, String packageName, SharedPreferences prefs,
-                                         String folderName, boolean systemFolder, Dialog folderDialog, java.util.List<String> folderAppOrder) {
+                                         String folderName, boolean systemFolder, Dialog folderDialog) {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
@@ -7082,7 +7082,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * "移出資料夾" is added at the end; edits refresh the folder after saving.
      */
     private void showFolderAppContextMenu(View anchor, String packageName, String currentLabel,
-                                          String folderName, boolean systemFolder, Dialog folderDialog) {
+                                          String folderName, boolean systemFolder, Dialog folderDialog, java.util.List<String> folderAppOrder) {
         SharedPreferences prefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
