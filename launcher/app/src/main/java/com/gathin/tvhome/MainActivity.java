@@ -6200,7 +6200,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             for (int i = 0; i < packages.size(); i++) {
                 checked[i] = members.contains(packages.get(i));
             }
-            showAppSelectionDialog("勾選要放入「" + folder + "」的 APP", packages, candidates, checked, selected -> {
+            showAppSelectionDialog("勾選要放入「" + folder + "」", packages, candidates, checked, selected -> {
                 java.util.LinkedHashSet<String> chosen = new java.util.LinkedHashSet<>();
                 for (int i=0;i<packages.size();i++) if (selected[i]) chosen.add(packages.get(i));
                 SharedPreferences.Editor edit = prefs.edit().putStringSet("folder_apps_" + folder, chosen);
