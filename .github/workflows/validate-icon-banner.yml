@@ -42,10 +42,19 @@ jobs:
       - name: Build debug APK
         working-directory: launcher
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Package complete source at this commit
+        run: git archive --format=zip --output=cytv-icon-banner-source.zip HEAD
       - name: Upload icon/banner test APK
         uses: actions/upload-artifact@v4
         with:
           name: cytv-icon-banner-debug-apk
           path: launcher/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload complete source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: cytv-icon-banner-source
+          path: cytv-icon-banner-source.zip
           if-no-files-found: error
           retention-days: 3
