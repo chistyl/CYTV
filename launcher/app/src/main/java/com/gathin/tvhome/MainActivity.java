@@ -7216,6 +7216,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         hint.setPadding(0, (int)(10*density), 0, (int)(4*density));
         content.addView(hint, new LinearLayout.LayoutParams(-1, -2));
         final int[] focusedIndex = {0};
+        final AlertDialog[] reorderDialog = {null};
         final Runnable[] render = new Runnable[1];
         render[0] = () -> {
             rows.removeAllViews();
@@ -7262,6 +7263,22 @@ private GradientDrawable roundSurface(int color, float radius) {
                     if (hasFocus) focusedIndex[0] = index;
                 });
                 row.setOnKeyListener((v, keyCode, event) -> {
+                    boolean center = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER;
+                    if (center) {
+                        if (event.getAction() == KeyEvent.ACTION_UP && reorderDialog[0] != null) {
+                            String key = systemFolder ? "system_folder_app_order" : "folder_app_order_" + folderName;
+                            StringBuilder value = new StringBuilder();
+                            for (String item : order) {
+                                if (value.length() > 0) value.append('\\n');
+                                value.append(item);
+                            }
+                            prefs.edit().putString(key, value.toString()).apply();
+                            reorderDialog[0].dismiss();
+                            showFolderContents(folderName, systemFolder);
+                        }
+                        return true;
+                    }
                     if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
                     int target = keyCode == KeyEvent.KEYCODE_DPAD_UP ? index - 1
                             : keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? index + 1 : -1;
@@ -7293,6 +7310,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     prefs.edit().putString(key, value.toString()).apply();
                     showFolderContents(folderName, systemFolder);
                 }).create();
+        reorderDialog[0] = dialog;
         dialog.show();
         styleRemoteDialogActions(dialog);
         dialog.getWindow().setLayout(Math.min((int)(520*density),
