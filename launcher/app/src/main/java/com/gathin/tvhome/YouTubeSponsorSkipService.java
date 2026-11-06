@@ -86,7 +86,7 @@ public final class YouTubeSponsorSkipService extends Service {
                 long handledAdEventVersion = session.adEventVersion;
                 long handledAdStartVersion = session.adStartVersion;
                 boolean adActive = session.adActive;
-                boolean skipAttemptedForCurrentAd = false;
+                YouTubeAdSkipRetryPolicy adSkipRetry = new YouTubeAdSkipRetryPolicy();
 
                 if (!session.adActive && isValidVideoId(videoId)
                         && session.initialCurrentTime >= 0 && "1".equals(session.initialPlayerState)) {
@@ -118,7 +118,7 @@ public final class YouTubeSponsorSkipService extends Service {
                     if (session.adEventVersion != handledAdEventVersion) {
                         if (session.adStartVersion != handledAdStartVersion) {
                             playback.reset();
-                            skipAttemptedForCurrentAd = false;
+                            adSkipRetry.reset();
                         }
                         handledAdEventVersion = session.adEventVersion;
                         handledAdStartVersion = session.adStartVersion;
@@ -130,7 +130,7 @@ public final class YouTubeSponsorSkipService extends Service {
                     if (adActive && "1082".equals(session.adState)) {
                         session.clearAdState();
                         adActive = false;
-                        skipAttemptedForCurrentAd = false;
+                        adSkipRetry.reset();
                         handledAdEventVersion = session.adEventVersion;
                         handledAdStartVersion = session.adStartVersion;
                         android.util.Log.i("CYTV-YouTubeAdSkip",
@@ -157,21 +157,22 @@ public final class YouTubeSponsorSkipService extends Service {
                     }
 
                     if (adActive) {
-                        if (!skipAttemptedForCurrentAd
-                                && Boolean.TRUE.equals(session.adSkippable)
+                        if (Boolean.TRUE.equals(session.adSkippable)
                                 && Boolean.TRUE.equals(session.adSkipEnabled)
-                                && Boolean.FALSE.equals(session.adBumper)) {
-                            // Lock before sending: duplicate/replayed events cannot issue a
-                            // second skipAd for the same ad, even if the request fails.
-                            skipAttemptedForCurrentAd = true;
+                                && Boolean.FALSE.equals(session.adBumper)
+                                && adSkipRetry.shouldAttempt(session.adEventVersion)) {
+                            // Retry only after a new Lounge ad event, with a strict per-ad cap.
+                            // A successful transport is not treated as proof that the TV skipped.
+                            adSkipRetry.recordAttempt(session.adEventVersion);
                             try {
                                 String response = YouTubeLoungeClient.skipAd(this, session);
+                                adSkipRetry.recordAccepted();
                                 android.util.Log.i("CYTV-YouTubeAdSkip",
                                         "skipAd command accepted by Lounge; awaiting TV confirmation: "
                                                 + response);
                             } catch (Exception commandError) {
                                 android.util.Log.w("CYTV-YouTubeAdSkip",
-                                        "skipAd command failed; will not retry this ad",
+                                        "skipAd command failed; eligible for bounded retry on next ad event",
                                         commandError);
                             }
                         }
