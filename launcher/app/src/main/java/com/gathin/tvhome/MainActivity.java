@@ -7814,7 +7814,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 });
             }
             if (key.contains("/folder:")) {
-                addSettingsMenuRow(folderRows, folderPopup, "調整順序", () -> {
+                addSettingsMenuRow(folderRows, folderPopup, "移動順序", () -> {
                     folderPopup.dismiss();
                     if (!beginReorder()) {
                         Toast.makeText(this, "目前沒有可移動的項目", Toast.LENGTH_SHORT).show();
@@ -7897,13 +7897,13 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (LibraryApps.save(this, pkg, false)) reloadApps(false);
             else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
         });
-        addSettingsMenuRow(rows, popup, "調整順序", () -> {
+        addSettingsMenuRow(rows, popup, "移動順序", () -> {
             popup.dismiss();
             if (!beginReorder()) return;
             int at = adapter.positionOf(key);
             if (at < 0 || at >= adapter.movableCount()) {
                 endReorder();
-                Toast.makeText(this, "找不到要調整順序的 APP", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "找不到要移動的 APP", Toast.LENGTH_SHORT).show();
                 return;
             }
             focusTile(at);
