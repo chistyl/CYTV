@@ -7797,9 +7797,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
 
             if (key.contains("/folder:")) {
-                addSettingsMenuRow(folderRows, folderPopup, "刪除資料夾", () -> {
-                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除資料夾")
-                            .setMessage("刪除資料夾後，裡面的 APP 會移回桌面，不會解除安裝。")
+                addSettingsMenuRow(folderRows, folderPopup, "刪除分類", () -> {
+                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除分類")
+                            .setMessage("刪除分類後，裡面的 APP 會移回桌面，不會解除安裝。")
                             .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
                                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
                                 java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
