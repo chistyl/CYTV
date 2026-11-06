@@ -3741,11 +3741,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // and calculates its coordinates against the wrong window.
         View windowRoot = anchor.getRootView();
         if (windowRoot == null) windowRoot = root;
-        int rootLocation[] = new int[2];
-        int anchorLocation[] = new int[2];
-        windowRoot.getLocationInWindow(rootLocation);
-        anchor.getLocationInWindow(anchorLocation);
-
         int availableWidth = Math.max(1, windowRoot.getWidth());
         int availableHeight = Math.max(1, windowRoot.getHeight());
         int desiredWidth = popup.getWidth() > 0 ? popup.getWidth() : (int) (220 * density);
@@ -3754,36 +3749,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(menuWidth);
 
         int widthSpec = View.MeasureSpec.makeMeasureSpec(menuWidth, View.MeasureSpec.EXACTLY);
-        int heightSpec = View.MeasureSpec.makeMeasureSpec(availableHeight, View.MeasureSpec.AT_MOST);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(availableHeight - (int) (24 * density), View.MeasureSpec.AT_MOST);
         panel.measure(widthSpec, heightSpec);
-        int menuHeight = Math.min(panel.getMeasuredHeight(), availableHeight - (int) (24 * density));
-        menuHeight = Math.max(1, menuHeight);
         popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
 
-        int margin = (int) (12 * density);
         int gap = (int) (10 * density);
-        int anchorLeft = anchorLocation[0] - rootLocation[0];
-        int anchorTop = anchorLocation[1] - rootLocation[1];
-        int anchorCenter = anchorLeft + anchor.getWidth() / 2;
-        // Center the popup directly on the actual long-press anchor view.
-        // Do not apply a fixed offset: the anchor view already represents the app card.
-        int x = anchorCenter - menuWidth / 2;
-        x = Math.max(margin, Math.min(x, availableWidth - menuWidth - margin));
-
-        int belowY = anchorTop + anchor.getHeight() + gap;
-        int aboveY = anchorTop - gap - menuHeight;
-        boolean fitsBelow = belowY + menuHeight <= availableHeight - margin;
-        boolean fitsAbove = aboveY >= margin;
-        boolean showBelow = fitsBelow || !fitsAbove && (availableHeight - belowY) >= (anchorTop - margin);
-        int y = showBelow ? belowY : aboveY;
-        y = Math.max(margin, Math.min(y, availableHeight - menuHeight - margin));
-
+        // Let PopupWindow position itself relative to the actual anchor view. CENTER_HORIZONTAL
+        // is resolved by Android against the anchor's window coordinates, avoiding manual
+        // screen/window offset math that can shift the menu on TV launchers and Dialog windows.
         panel.setAlpha(0f);
-        panel.setPivotY(showBelow ? 0f : menuHeight);
+        panel.setPivotY(0f);
         panel.setScaleY(0.92f);
-        panel.setTranslationY((showBelow ? -8f : 8f) * density);
-        // showAtLocation(anchor) inherits the anchor's window token (including folder Dialogs).
-        popup.showAtLocation(anchor, Gravity.TOP | Gravity.LEFT, x, y);
+        panel.setTranslationY(-8f * density);
+        popup.showAsDropDown(anchor, 0, gap, Gravity.CENTER_HORIZONTAL);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f)
                 .setDuration(reducedMotion ? Motion.REDUCED_MS : 220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
