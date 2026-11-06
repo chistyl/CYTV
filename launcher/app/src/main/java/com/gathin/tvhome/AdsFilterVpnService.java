@@ -252,33 +252,109 @@ public class AdsFilterVpnService extends VpnService {
         }, STARTUP_RETRY_MS);
     }
 
+    // Capture a bounded, UI-independent network diagnostic history. This is
+    // observational only: it never changes routes, DHCP, DNS, or Ethernet state.
     private void appendNetworkSnapshot(ConnectivityManager cm) {
         try {
             Network active = cm.getActiveNetwork();
             appendDnsLog("-", "診斷", "目前 ActiveNetwork=" + active);
-            for (Network candidate : cm.getAllNetworks()) {
+            Network[] networks = cm.getAllNetworks();
+            if (networks == null || networks.length == 0) {
+                appendNetworkStabilityLog("目前 Android 未發布任何 Network", null, null, null);
+                return;
+            }
+            for (Network candidate : networks) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(candidate);
                 LinkProperties links = cm.getLinkProperties(candidate);
-                appendDnsLog("-", "診斷", "Network=" + candidate
-                        + "；Ethernet=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-                        + "；Wi-Fi=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                        + "；VPN=" + (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
-                        + "；Internet=" + (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
-                        + "；介面=" + (links == null ? "未知" : links.getInterfaceName())
-                        + "；DNS=" + (links == null ? "未知" : describeDnsServersFromLinks(links)));
+                boolean ethernet = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+                boolean wifi = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+                boolean vpn = caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+                boolean internet = caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                boolean validated = caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                String iface = links == null ? "未知" : String.valueOf(links.getInterfaceName());
+                String addresses = describeLinkAddresses(links);
+                String gateway = describeDefaultGateway(links);
+                String dns = links == null ? "未知" : describeDnsServersFromLinks(links);
+                String routes = describeRoutes(links);
+                String transport = ethernet ? "Ethernet" : (wifi ? "Wi-Fi" : (vpn ? "VPN" : "其他"));
+                String summary = "Network=" + candidate
+                        + "；類型=" + transport
+                        + "；Internet=" + internet
+                        + "；Validated=" + validated
+                        + "；介面=" + iface
+                        + "；IP=" + addresses
+                        + "；Gateway=" + gateway
+                        + "；DNS=" + dns
+                        + "；Routes=" + routes;
+                appendDnsLog("-", "診斷", summary);
+                appendNetworkStabilityLog(summary, candidate, caps, links);
             }
         } catch (Exception e) {
-            appendDnsLog("-", "診斷", "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage());
+            String failure = "讀取網路清單失敗：" + e.getClass().getSimpleName() + "：" + e.getMessage();
+            appendDnsLog("-", "診斷", failure);
+            appendNetworkStabilityLog(failure, null, null, null);
         }
     }
 
-    private String describeDnsServersFromLinks(LinkProperties links) {
+    private String describeLinkAddresses(LinkProperties links) {
+        if (links == null || links.getLinkAddresses().isEmpty()) return "無";
         StringBuilder out = new StringBuilder();
-        for (InetAddress server : links.getDnsServers()) {
+        for (android.net.LinkAddress address : links.getLinkAddresses()) {
             if (out.length() > 0) out.append("、");
-            out.append(server.getHostAddress());
+            out.append(address.getAddress().getHostAddress()).append("/").append(address.getPrefixLength());
         }
-        return out.length() == 0 ? "無" : out.toString();
+        return out.toString();
+    }
+
+    private String describeDefaultGateway(LinkProperties links) {
+        if (links == null) return "未知";
+        for (android.net.RouteInfo route : links.getRoutes()) {
+            if (route.isDefaultRoute() && route.getGateway() != null) {
+                return route.getGateway().getHostAddress();
+            }
+        }
+        return "無";
+    }
+
+    private String describeRoutes(LinkProperties links) {
+        if (links == null || links.getRoutes().isEmpty()) return "無";
+        StringBuilder out = new StringBuilder();
+        for (android.net.RouteInfo route : links.getRoutes()) {
+            if (out.length() > 0) out.append("；");
+            out.append(route.toString());
+        }
+        return out.toString();
+    }
+
+    private void appendNetworkStabilityLog(String summary, Network network,
+                                           NetworkCapabilities caps, LinkProperties links) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+            synchronized (AdsFilterVpnService.class) {
+                JSONArray old = new JSONArray(prefs.getString("network_stability_logs", "[]"));
+                JSONArray next = new JSONArray();
+                int start = Math.max(0, old.length() - 49);
+                for (int i = start; i < old.length(); i++) next.put(old.getJSONObject(i));
+                JSONObject item = new JSONObject();
+                item.put("time", System.currentTimeMillis());
+                item.put("network", network == null ? "none" : network.toString());
+                item.put("ethernet", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+                item.put("wifi", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
+                item.put("vpn", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN));
+                item.put("internet", caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
+                item.put("validated", caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED));
+                item.put("interface", links == null ? "" : String.valueOf(links.getInterfaceName()));
+                item.put("ip", describeLinkAddresses(links));
+                item.put("gateway", describeDefaultGateway(links));
+                item.put("dns", links == null ? "未知" : describeDnsServersFromLinks(links));
+                item.put("routes", describeRoutes(links));
+                item.put("summary", summary);
+                next.put(item);
+                prefs.edit().putString("network_stability_logs", next.toString()).apply();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Unable to save network stability history", e);
+        }
     }
 
     private void startTunnelWhenNetworkReady() {
