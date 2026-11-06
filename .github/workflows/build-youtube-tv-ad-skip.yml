@@ -9,10 +9,12 @@ on:
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/long-press-menu-center-align-086e524
+      - fix/long-press-menu-true-anchor-center-9502601
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/long-press-menu-center-align-086e524
       - fix/long-press-menu-true-anchor-center-9502601
+      - fix/long-press-menu-anchor-dropdown-center-5fb3ca6
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
     paths:
       - 'launcher/**'
