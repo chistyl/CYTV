@@ -6524,7 +6524,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                             if (!folderLongPressHandled[0]) {
                                 folderLongPressHandled[0] = true;
                                 showFolderAppContextMenu(v, packageName,
-                                        String.valueOf(name.getText()), folderName, systemFolder, dialog);
+                                        String.valueOf(prefs.getString("label_" + packageName, String.valueOf(ri.loadLabel(getPackageManager())))), folderName, systemFolder, dialog);
                             }
                             return true;
                         }
