@@ -7935,20 +7935,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
-        TextView name = new TextView(this);
-        String label = targetPackage;
-        for (int i = 0; adapter != null && i < adapter.appCount(); i++) {
-            if (targetPackage.equals(adapter.packageAt(i))) { label = adapter.labelAt(i); break; }
-        }
-        name.setText(label);
-        name.setTextColor(0xFFE8EBF0);
-        name.setTextSize(12);
-        name.setGravity(Gravity.CENTER);
-        name.setMaxLines(1);
-        name.setEllipsize(TextUtils.TruncateAt.END);
-        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(cardWidth, (int)(18*density));
-        nameLp.topMargin = (int)(2*density);
-        previewArea.addView(name, nameLp);
 
         result.targetCard = card;
         result.targetIcon = icon;
