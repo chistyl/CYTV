@@ -4441,82 +4441,141 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** Opens a separate seven-day forecast window from the compact single-day desktop card. */
+    /** Opens a seven-day forecast using the same seven-column layout as the desktop weather card. */
     private void showWeeklyForecastDialog(JSONArray dates, JSONArray codes, JSONArray highs,
                                           JSONArray lows, JSONArray rain, String place) {
         if (isFinishing() || dates == null || dates.length() < 7) return;
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(22*density), (int)(16*density),
-                (int)(22*density), (int)(16*density));
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        panel.setPadding((int)(24*density), (int)(18*density),
+                (int)(24*density), (int)(18*density));
+        // The forecast panel itself stays fully transparent: show only the blurred,
+        // dimmed desktop backdrop behind the seven-column weather content.
+        panel.setBackgroundColor(Color.TRANSPARENT);
 
         TextView title = new TextView(this);
         title.setText(TraditionalText.toTraditional("一週天氣・" +
                 (place == null || place.trim().isEmpty() ? "未知城市" : place)));
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(21);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, (int)(12*density));
+        title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        title.setPadding((int)(2*density), 0, 0, (int)(12*density));
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(false);
-        LinearLayout days = new LinearLayout(this);
-        days.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout forecast = new LinearLayout(this);
+        forecast.setOrientation(LinearLayout.HORIZONTAL);
+        forecast.setGravity(Gravity.CENTER_VERTICAL);
+        forecast.setWeightSum(7f);
         for (int i = 0; i < 7; i++) {
-            String rawDate = dates.optString(i, "");
-            String day = rawDate.length() >= 10 ? rawDate.substring(5).replace('-', '/') : rawDate;
-            int code = codes.optInt(i, -1);
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
-            if (i > 0) row.setBackground(roundSurface(0x22343A46, 12*density));
-            TextView date = new TextView(this);
-            date.setText(day);
-            date.setTextColor(0xFFD5D9E0);
-            date.setTextSize(15);
-            row.addView(date, new LinearLayout.LayoutParams((int)(82*density), -2));
-            View icon = new WeeklyWeatherIconView(this, code);
-            row.addView(icon, new LinearLayout.LayoutParams((int)(54*density), (int)(48*density)));
-            TextView condition = new TextView(this);
-            condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
-            condition.setTextColor(0xFFF5F6FA);
-            condition.setTextSize(15);
-            condition.setMaxLines(2);
-            row.addView(condition, new LinearLayout.LayoutParams(0, -2, 1f));
-            TextView values = new TextView(this);
-            values.setText(Math.round(highs.optDouble(i)) + "° / " + Math.round(lows.optDouble(i))
-                    + "°\n降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--"));
-            values.setTextColor(0xFFE8EBF0);
-            values.setTextSize(14);
-            values.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-            row.addView(values, new LinearLayout.LayoutParams((int)(112*density), -2));
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
-            rowLp.bottomMargin = (int)(5*density);
-            days.addView(row, rowLp);
+            try {
+                String rawDate = dates.optString(i, "");
+                String day = rawDate.length() >= 10 ? rawDate.substring(5).replace('-', '/') : rawDate;
+                int code = codes.optInt(i, -1);
+                LinearLayout dayColumn = new LinearLayout(this);
+                dayColumn.setOrientation(LinearLayout.VERTICAL);
+                dayColumn.setGravity(Gravity.CENTER);
+                dayColumn.setPadding((int)(3*density), (int)(5*density),
+                        (int)(3*density), (int)(5*density));
+
+                TextView dateView = new TextView(this);
+                dateView.setText(day);
+                dateView.setTextColor(Color.WHITE);
+                dateView.setTextSize(15);
+                dateView.setGravity(Gravity.CENTER);
+                dateView.setMaxLines(1);
+                dateView.setAutoSizeTextTypeUniformWithConfiguration(10, 15, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                dayColumn.addView(dateView, new LinearLayout.LayoutParams(-1, -2));
+
+                View iconView = new WeeklyWeatherIconView(this, code);
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(58*density));
+                iconLp.topMargin = (int)(3*density);
+                dayColumn.addView(iconView, iconLp);
+
+                TextView condition = new TextView(this);
+                condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
+                condition.setTextColor(0xFFE8EBF0);
+                condition.setTextSize(15);
+                condition.setGravity(Gravity.CENTER);
+                condition.setAutoSizeTextTypeUniformWithConfiguration(10, 15, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                condition.setMaxLines(2);
+                dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
+
+                TextView temperature = new TextView(this);
+                int highTemp = (int) Math.round(highs.optDouble(i));
+                int lowTemp = (int) Math.round(lows.optDouble(i));
+                String temperatureText = highTemp + " / " + lowTemp;
+                SpannableString coloredTemperature = new SpannableString(temperatureText);
+                int separator = temperatureText.indexOf(" / ");
+                int warmColor = Color.rgb(255, 242, 166);
+                int coolColor = Color.rgb(157, 231, 239);
+                if (highTemp >= 25) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(warmColor), 0, separator,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (highTemp <= 22) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(coolColor), 0, separator,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                int lowStart = separator + 3;
+                if (lowTemp >= 25) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(warmColor), lowStart,
+                            temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (lowTemp <= 22) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(coolColor), lowStart,
+                            temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                temperature.setText(coloredTemperature);
+                temperature.setTextColor(Color.WHITE);
+                temperature.setTextSize(15);
+                temperature.setGravity(Gravity.CENTER);
+                temperature.setMaxLines(1);
+                temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 15, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                LinearLayout.LayoutParams tempLp = new LinearLayout.LayoutParams(-1, -2);
+                tempLp.topMargin = (int)(4*density);
+                dayColumn.addView(temperature, tempLp);
+
+                TextView precipitation = new TextView(this);
+                precipitation.setText(TraditionalText.toTraditional("降雨 "
+                        + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
+                precipitation.setTextColor(0xFFD5D9E0);
+                precipitation.setTextSize(14);
+                precipitation.setGravity(Gravity.CENTER);
+                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1,
+                        android.util.TypedValue.COMPLEX_UNIT_SP);
+                precipitation.setMaxLines(1);
+                dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
+
+                forecast.addView(dayColumn, new LinearLayout.LayoutParams(0, -2, 1f));
+            } catch (Exception ignored) { }
         }
-        scroll.addView(days, new ScrollView.LayoutParams(-1, -2));
-        panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        panel.addView(forecast, new LinearLayout.LayoutParams(-1, -2));
+
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof android.view.ViewGroup)
+                    ((android.view.ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            window.setDimAmount(0.6f);
-            window.setLayout(Math.min((int)(760*density), (int)(getResources().getDisplayMetrics().widthPixels * 0.88f)),
-                    Math.min((int)(560*density), (int)(getResources().getDisplayMetrics().heightPixels * 0.82f)));
-        }
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
-            dialog.getWindow().setLayout(Math.min((int)(760*density), (int)(getResources().getDisplayMetrics().widthPixels * 0.88f)),
-                    Math.min((int)(560*density), (int)(getResources().getDisplayMetrics().heightPixels * 0.82f)));
+            int width = Math.min((int)(1120*density),
+                    (int)(getResources().getDisplayMetrics().widthPixels * 0.90f));
+            dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         panel.setFocusable(true);
         panel.requestFocus();
