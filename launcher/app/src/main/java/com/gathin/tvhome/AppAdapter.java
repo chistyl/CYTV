@@ -330,27 +330,29 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Drawable icon = null;
             if (card == null) {
                 String customIcon = custom.getString("icon_" + pkg, null);
+                Drawable customArtwork = null;
                 if (customIcon != null) {
                     try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
-                        if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
+                        if (in != null) customArtwork = Drawable.createFromStream(in, null);
                     } catch (Exception ignored) { }
                 }
-                if (icon == null) icon = ri.loadIcon(pm);
-                int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
-                int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
-                float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                // A custom icon or an explicit size adjustment switches this tile to icon artwork,
-                // otherwise keep the app's native TV banner when one exists.
-                boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
-                        custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
-                if (!forceIconTile) {
-                    banner = bundledBanner(appBanners.get(pkg));
-                    if (banner == null) banner = loadBanner(pm, ri);
+                if (customArtwork != null) {
+                    // Preserve uploaded shape: square/portrait stays square; wide artwork stays a banner.
+                    banner = customArtwork;
+                } else {
+                    icon = ri.loadIcon(pm);
+                    int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
+                    int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+                    float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
+                    boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
+                            custom.contains("icon_scale_adjust_" + pkg));
+                    if (!forceIconTile) {
+                        banner = bundledBanner(appBanners.get(pkg));
+                        if (banner == null) banner = loadBanner(pm, ri);
+                    }
+                    if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
+                    icon = null;
                 }
-                // No-banner apps and explicitly customized icons use the original/custom icon, centred
-                // on white by default, at 125% unless the owner adjusts it.
-                if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
-                icon = null;
             } else {
                 banner = bundledBanner(appBanners.get(pkg));
                 if (banner == null) banner = loadBanner(pm, ri);
@@ -680,6 +682,17 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
+            h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            int artworkWidth = e.banner.getIntrinsicWidth();
+            int artworkHeight = e.banner.getIntrinsicHeight();
+            FrameLayout.LayoutParams artworkParams;
+            if (artworkWidth > 0 && artworkHeight > 0 && artworkWidth < artworkHeight * 1.4f) {
+                int squareSize = (int) (101f * ctx.getResources().getDisplayMetrics().density);
+                artworkParams = new FrameLayout.LayoutParams(squareSize, squareSize, android.view.Gravity.CENTER);
+            } else {
+                artworkParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            }
+            h.banner.setLayoutParams(artworkParams);
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
