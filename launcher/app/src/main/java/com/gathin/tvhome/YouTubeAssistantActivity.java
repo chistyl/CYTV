@@ -462,41 +462,75 @@ public class YouTubeAssistantActivity extends Activity {
      */
     // Keep this dialog's confirmation action independently styled for TV focus.
     private void showMessageDialog(String title, String message) {
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("確定", (d, w) -> d.dismiss())
-                .create();
-        dialog.show();
-        styleDialog(dialog, true);
-        android.widget.Button confirm = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (confirm != null) {
-            // Keep the confirmation label white and raise only this button slightly.
-            confirm.setTextColor(Color.WHITE);
-            // Keep the dialog and button position unchanged; reduce the button footprint
-            // so its full rounded shape remains visible inside the fixed dialog surface.
-            confirm.setTranslationY(-dp(12));
-            // Prevent the button bar or its intermediate containers from clipping
-            // the rounded button; this changes clipping only, not layout positions.
-            android.view.ViewParent parent = confirm.getParent();
-            while (parent instanceof android.view.ViewGroup) {
-                android.view.ViewGroup group = (android.view.ViewGroup) parent;
-                group.setClipChildren(false);
-                group.setClipToPadding(false);
-                parent = group.getParent();
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(28), dp(22), dp(28), dp(22));
+        GradientDrawable surface = round(Color.rgb(29, 33, 43), dp(22));
+        surface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(surface);
+
+        TextView heading = text(title, 20, true, TEXT);
+        heading.setGravity(android.view.Gravity.CENTER);
+        panel.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView body = text(message, 16, false, 0xFFE7EAF0);
+        body.setGravity(android.view.Gravity.CENTER);
+        body.setLineSpacing(dp(3), 1.0f);
+        LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(-1, -2);
+        bodyLp.topMargin = dp(10);
+        panel.addView(body, bodyLp);
+
+        TextView confirm = text("確定", 16, true, Color.WHITE);
+        confirm.setGravity(android.view.Gravity.CENTER);
+        confirm.setFocusable(true);
+        confirm.setFocusableInTouchMode(true);
+        confirm.setClickable(true);
+        confirm.setDefaultFocusHighlightEnabled(false);
+        confirm.setId(View.generateViewId());
+        confirm.setBackground(round(FOCUS, dp(16)));
+        confirm.setOnFocusChangeListener((view, hasFocus) -> {
+            GradientDrawable state = round(hasFocus ? FOCUS : PANEL, dp(16));
+            if (hasFocus) state.setStroke(dp(2), ACCENT);
+            view.setBackground(state);
+            view.setElevation(hasFocus ? dp(4) : 0f);
+            ((TextView) view).setTextColor(Color.WHITE);
+        });
+        LinearLayout.LayoutParams confirmLp = new LinearLayout.LayoutParams(dp(112), dp(52));
+        confirmLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
+        confirmLp.topMargin = dp(22);
+        panel.addView(confirm, confirmLp);
+        confirm.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(false);
+        final android.widget.ImageView backdropBlur = installPairingBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur == null) return;
+            android.view.ViewParent parent = backdropBlur.getParent();
+            if (parent instanceof android.view.ViewGroup)
+                ((android.view.ViewGroup) parent).removeView(backdropBlur);
+            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                android.graphics.Bitmap bitmap =
+                        ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
             }
-            confirm.setMinWidth(dp(96));
-            confirm.setMinHeight(dp(42));
-            confirm.setPadding(dp(14), dp(6), dp(14), dp(6));
-            confirm.setTextSize(14);
-            confirm.setOnFocusChangeListener((view, hasFocus) -> {
-                view.setBackground(hasFocus
-                        ? round(FOCUS, dp(16))
-                        : round(0xFF343A46, dp(16)));
-                ((android.widget.Button) view).setTextColor(Color.WHITE);
-                view.setElevation(hasFocus ? dp(3) : 0f);
-            });
+        });
+        dialog.show();
+        android.view.Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            window.setDimAmount(0.6f);
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            window.setLayout(Math.min(dp(680), screenWidth - dp(48)),
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+            window.setGravity(android.view.Gravity.CENTER);
         }
+        confirm.post(confirm::requestFocus);
     }
 
     private void styleDialog(AlertDialog dialog, boolean focusPrimary) {
