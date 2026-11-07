@@ -342,13 +342,14 @@ public class YouTubeAssistantActivity extends Activity {
 
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(false);
-        final android.widget.ImageView backdropBlur = installPairingBackdropBlur();
+        final android.widget.ImageView[] backdropBlur = new android.widget.ImageView[1];
         dialog.setOnDismissListener(ignored -> {
-            if (backdropBlur == null) return;
-            android.view.ViewParent parent = backdropBlur.getParent();
+            android.widget.ImageView overlay = backdropBlur[0];
+            if (overlay == null) return;
+            android.view.ViewParent parent = overlay.getParent();
             if (parent instanceof android.view.ViewGroup)
-                ((android.view.ViewGroup) parent).removeView(backdropBlur);
-            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                ((android.view.ViewGroup) parent).removeView(overlay);
+            android.graphics.drawable.Drawable drawable = overlay.getDrawable();
             if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
                 android.graphics.Bitmap bitmap =
                         ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
@@ -356,6 +357,9 @@ public class YouTubeAssistantActivity extends Activity {
             }
         });
         dialog.show();
+        // Capture the fully laid-out activity behind the dialog, then add the blurred
+        // snapshot above the activity decor. The dialog window stays crisp on top.
+        backdropBlur[0] = installPairingBackdropBlur();
         android.view.Window window = dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
@@ -505,13 +509,14 @@ public class YouTubeAssistantActivity extends Activity {
 
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(false);
-        final android.widget.ImageView backdropBlur = installPairingBackdropBlur();
+        final android.widget.ImageView[] backdropBlur = new android.widget.ImageView[1];
         dialog.setOnDismissListener(ignored -> {
-            if (backdropBlur == null) return;
-            android.view.ViewParent parent = backdropBlur.getParent();
+            android.widget.ImageView overlay = backdropBlur[0];
+            if (overlay == null) return;
+            android.view.ViewParent parent = overlay.getParent();
             if (parent instanceof android.view.ViewGroup)
-                ((android.view.ViewGroup) parent).removeView(backdropBlur);
-            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                ((android.view.ViewGroup) parent).removeView(overlay);
+            android.graphics.drawable.Drawable drawable = overlay.getDrawable();
             if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
                 android.graphics.Bitmap bitmap =
                         ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
@@ -519,6 +524,9 @@ public class YouTubeAssistantActivity extends Activity {
             }
         });
         dialog.show();
+        // Capture the fully laid-out activity behind the dialog, then add the blurred
+        // snapshot above the activity decor. The dialog window stays crisp on top.
+        backdropBlur[0] = installPairingBackdropBlur();
         android.view.Window window = dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(
