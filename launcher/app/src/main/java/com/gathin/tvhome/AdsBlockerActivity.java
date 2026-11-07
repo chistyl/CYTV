@@ -11,6 +11,8 @@ import android.graphics.drawable.StateListDrawable;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -45,6 +47,14 @@ public class AdsBlockerActivity extends Activity {
     private Button toggle;
     private Button autoDnsChoice;
     private Button manualDnsChoice;
+    private final Handler statusHandler = new Handler(Looper.getMainLooper());
+    private final Runnable statusRefresh = new Runnable() {
+        @Override public void run() {
+            if (content == null) return;
+            refreshVpnStatus();
+            statusHandler.postDelayed(this, 1000L);
+        }
+    };
 
     // Bundled starter rules. Allow rules take precedence over block rules.
     private static final String DEFAULT_BLOCK =
@@ -105,7 +115,19 @@ public class AdsBlockerActivity extends Activity {
         prefs.edit().putString("bundled_rules_version", DEFAULT_RULES_VERSION).apply();
     }
 
-    @Override protected void onResume() { super.onResume(); if (content != null) refresh(); }
+    @Override protected void onResume() {
+        super.onResume();
+        if (content != null) {
+            refresh();
+            statusHandler.removeCallbacks(statusRefresh);
+            statusHandler.post(statusRefresh);
+        }
+    }
+
+    @Override protected void onPause() {
+        statusHandler.removeCallbacks(statusRefresh);
+        super.onPause();
+    }
 
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
     private GradientDrawable bg(int color, int stroke) {
@@ -224,23 +246,36 @@ public class AdsBlockerActivity extends Activity {
         content.addView(add, ap);
     }
     private boolean enabled() { return prefs.getBoolean("enabled", false); }
-    private void refresh() {
-        if (status == null) return;
-        boolean unsupportedDevice = AdFilterDevicePolicy.isToshiba65U7000Vs();
-        if (unsupportedDevice) {
+    private void refreshVpnStatus() {
+        if (status == null || toggle == null) return;
+        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
             prefs.edit().putBoolean("enabled", false).apply();
             status.setText("●  TOSHIBA 65U7000VS：已停用 DNS VPN（保護有線網路）");
             toggle.setText("此機型已停用 DNS VPN");
             toggle.setEnabled(false);
             autoDnsChoice.setEnabled(false);
             manualDnsChoice.setEnabled(false);
-        } else {
-            status.setText(enabled() ? "●  過濾狀態：已啟用" : "○  過濾狀態：已關閉");
-            toggle.setText(enabled() ? "停用廣告阻擋" : "啟用廣告阻擋");
-            toggle.setEnabled(true);
-            autoDnsChoice.setEnabled(true);
-            manualDnsChoice.setEnabled(true);
+            return;
         }
+        boolean requested = enabled();
+        boolean active = AdsFilterVpnService.isTunnelActive();
+        if (active) {
+            status.setText("●  過濾狀態：已啟用");
+            toggle.setText("停用廣告阻擋");
+        } else if (requested) {
+            status.setText("◌  過濾狀態：啟動中／等待網路");
+            toggle.setText("取消啟用廣告阻擋");
+        } else {
+            status.setText("○  過濾狀態：已關閉");
+            toggle.setText("啟用廣告阻擋");
+        }
+        toggle.setEnabled(true);
+        autoDnsChoice.setEnabled(true);
+        manualDnsChoice.setEnabled(true);
+    }
+    private void refresh() {
+        if (status == null) return;
+        refreshVpnStatus();
         boolean auto = "auto".equals(prefs.getString("dns_mode", "auto"));
         autoDnsChoice.setText(auto ? "✓ 自動（Auto）" : "自動（Auto）");
         manualDnsChoice.setText(auto ? "手動（固定 DNS）" : "✓ 手動（固定 DNS）");
