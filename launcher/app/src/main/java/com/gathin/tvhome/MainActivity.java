@@ -7165,7 +7165,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 電視遙控器不適合在設定視窗內操作捲軸；改成固定高度、一次完整顯示。
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(18*density), (int)(6*density), (int)(18*density), (int)(8*density));
+        // 內容左右再內縮，與資料夾視窗外框保留一致的安全留白。
+        panel.setPadding((int)(10*density), (int)(6*density), (int)(10*density), (int)(8*density));
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
@@ -7276,7 +7277,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         // 自訂底部操作列，避免 AlertDialog 系統按鈕佔用高度而遮住藍色滑桿。
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
-        actionRow.setGravity(Gravity.CENTER_VERTICAL);
+        actionRow.setGravity(Gravity.CENTER);
         actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
         Button resetButton = new Button(this);
         resetButton.setText("恢復預設");
@@ -7313,8 +7314,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams((int)(112*density),(int)(46*density));
         resetLp.rightMargin=(int)(8*density);
         actionRow.addView(resetButton,resetLp);
-        View actionSpacer = new View(this);
-        actionRow.addView(actionSpacer,new LinearLayout.LayoutParams(0,1,1f));
         LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         actionLp.leftMargin=(int)(4*density);
         actionLp.rightMargin=(int)(4*density);
@@ -7324,10 +7323,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionRow.addView(applyButton,applyLp);
         panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("圖標外觀設定")
-                .setView(panel)
-                .create();
+        // 使用與資料夾視窗相同的自訂 Dialog 外框、標題列、背景遮罩及尺寸。
+        Dialog dialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        GradientDrawable outerSurface = new GradientDrawable();
+        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setCornerRadius(22*density);
+        outerSurface.setStroke(Math.max(1,(int)density),0x28FFFFFF);
+        outer.setBackground(outerSurface);
+        TextView heading = new TextView(this);
+        heading.setText("圖標設定");
+        heading.setTextColor(Color.WHITE);
+        heading.setTextSize(20);
+        heading.setGravity(Gravity.CENTER);
+        heading.setPadding((int)(8*density),(int)(4*density),0,(int)(12*density));
+        outer.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+        outer.addView(panel,new LinearLayout.LayoutParams(-1,-2));
+        dialog.setContentView(outer);
         resetButton.setOnClickListener(v -> {
             prefs.edit().remove("icon_scale_adjust_"+packageName)
                     .remove("icon_scale_"+packageName)
@@ -7352,18 +7366,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.setOnCancelListener(d -> reopenPendingFolderAfterAppEdit());
         dialog.show();
         if(dialog.getWindow()!=null) {
-            GradientDrawable surface=new GradientDrawable();
-            surface.setColor(0xFF1D212B);
-            surface.setCornerRadius(22*density);
-            surface.setStroke(Math.max(1,(int)density),0x24FFFFFF);
-            dialog.getWindow().setBackgroundDrawable(surface);
-            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-            int screenWidth = metrics.widthPixels;
-            int dialogWidth = Math.min((int)(760*density), Math.round(screenWidth * 0.86f));
-            // Let the content determine height; keep the dialog centered with breathing room
-            // instead of stretching it to almost the full TV screen.
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setGravity(Gravity.CENTER);
-            dialog.getWindow().setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setLayout(
+                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
 
         // 遙控器固定焦點路徑：圖標大小 → 紅 → 綠 → 藍 → 恢復預設 → 取消 → 套用。
