@@ -5936,9 +5936,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
-        GradientDrawable surface = new GradientDrawable();
-        surface.setColor(Color.rgb(28, 32, 40)); surface.setCornerRadius(22*density);
-        surface.setStroke(Math.max(1, (int)density), 0x28FFFFFF); panel.setBackground(surface);
+        // 與資料夾視窗共用完全相同的外框背景、圓角與描邊。
+        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
 
         TextView title = new TextView(this); title.setText("QR Code 掃碼傳圖");
         title.setTextColor(Color.WHITE); title.setTextSize(20); title.setGravity(Gravity.CENTER);
@@ -6006,9 +6005,25 @@ private GradientDrawable roundSurface(int color, float radius) {
         } catch (WriterException e) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
-        dialog.setOnDismissListener(d -> server.stopServer());
+        // 與資料夾視窗完全共用桌面背景快照模糊；只模糊視窗外桌面，面板與 QR Code 保持清晰。
+        final ImageView backdropBlur = installFolderBackdropBlur();
+        dialog.setOnDismissListener(d -> {
+            server.stopServer();
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
+            // Match the folder dialog's dimmed desktop backdrop exactly.
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(Math.min((int)(440*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)), -2);
         }
