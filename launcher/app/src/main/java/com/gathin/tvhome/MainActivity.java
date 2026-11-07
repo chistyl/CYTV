@@ -6006,8 +6006,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
         // 與資料夾視窗完全共用桌面背景快照模糊；只模糊視窗外桌面，面板與 QR Code 保持清晰。
-        final ImageView backdropBlur = installFolderBackdropBlur();
+        final ImageView backdropBlur = installQrWallpaperBackdropBlur();
+        final boolean[] backdropDismissed = {false};
         dialog.setOnDismissListener(d -> {
+            backdropDismissed[0] = true;
             server.stopServer();
             if (backdropBlur != null) {
                 ViewParent parent = backdropBlur.getParent();
@@ -6592,6 +6594,81 @@ private GradientDrawable roundSurface(int color, float radius) {
     @Override
     public void onOpenFolder(String folderName) {
         showFolderContents(folderName, "系統".equals(folderName));
+    }
+
+    /**
+     * Capture the composited launcher window (including hardware-backed SurfaceViews)
+     * for the QR transfer dialog. View.draw() misses those layers on some TV devices,
+     * which made the previous blur overlay appear unchanged.
+     */
+    private ImageView installQrWallpaperBackdropBlur() {
+        final android.view.Window activityWindow = getWindow();
+        final View decor = activityWindow != null ? activityWindow.getDecorView() : null;
+        if (!(decor instanceof ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+
+        final int width = decor.getWidth();
+        final int height = decor.getHeight();
+        final Bitmap captured;
+        try {
+            captured = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        } catch (Throwable allocationFailure) {
+            return null;
+        }
+
+        final ImageView overlay = new ImageView(this);
+        overlay.setScaleType(ImageView.ScaleType.FIT_XY);
+        overlay.setClickable(false);
+        overlay.setFocusable(false);
+        overlay.setFocusableInTouchMode(false);
+        overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        overlay.setVisibility(View.INVISIBLE);
+        ((ViewGroup) decor).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
+
+        android.view.PixelCopy.request(activityWindow, captured, copyResult -> {
+            if (copyResult != android.view.PixelCopy.SUCCESS) {
+                if (!captured.isRecycled()) captured.recycle();
+                ViewParent parent = overlay.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(overlay);
+                return;
+            }
+
+            Bitmap small = null;
+            Bitmap blurred = null;
+            android.renderscript.RenderScript rs = null;
+            android.renderscript.Allocation input = null;
+            android.renderscript.Allocation output = null;
+            android.renderscript.ScriptIntrinsicBlur blur = null;
+            try {
+                if (!overlay.isAttachedToWindow()) return;
+                int smallWidth = Math.max(1, width / 4);
+                int smallHeight = Math.max(1, height / 4);
+                small = Bitmap.createScaledBitmap(captured, smallWidth, smallHeight, true);
+                rs = android.renderscript.RenderScript.create(this);
+                input = android.renderscript.Allocation.createFromBitmap(rs, small);
+                output = android.renderscript.Allocation.createTyped(rs, input.getType());
+                blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+                blur.setRadius(6.25f);
+                blur.setInput(input);
+                blur.forEach(output);
+                output.copyTo(small);
+                blurred = Bitmap.createScaledBitmap(small, width, height, true);
+                overlay.setImageBitmap(blurred);
+                overlay.setVisibility(View.VISIBLE);
+                blurred = null; // ImageView now owns the bitmap until dialog dismissal.
+            } catch (Throwable blurFailure) {
+                ViewParent parent = overlay.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(overlay);
+            } finally {
+                if (!captured.isRecycled()) captured.recycle();
+                if (small != null && !small.isRecycled()) small.recycle();
+                if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+                try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+                try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+                try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+                try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+            }
+        }, new android.os.Handler(android.os.Looper.getMainLooper()));
+        return overlay;
     }
 
     /**
