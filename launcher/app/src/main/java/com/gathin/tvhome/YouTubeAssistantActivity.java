@@ -54,13 +54,13 @@ public class YouTubeAssistantActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        root.setGravity(android.view.Gravity.CENTER);
         root.setPadding(horizontalInset, verticalInset, horizontalInset, verticalInset);
         GradientDrawable pageBackground = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 new int[]{Color.rgb(5, 17, 33), Color.rgb(8, 39, 61), Color.rgb(5, 23, 43)});
         root.setBackground(pageBackground);
-        scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -2));
+        scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -1));
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
