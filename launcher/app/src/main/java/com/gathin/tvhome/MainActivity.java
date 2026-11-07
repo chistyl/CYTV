@@ -5999,7 +5999,20 @@ private GradientDrawable roundSurface(int color, float radius) {
         } catch (WriterException e) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
-        dialog.setOnDismissListener(d -> server.stopServer());
+        // 與資料夾視窗完全共用桌面背景快照模糊；只模糊視窗外桌面，面板與 QR Code 保持清晰。
+        final ImageView backdropBlur = installFolderBackdropBlur();
+        dialog.setOnDismissListener(d -> {
+            server.stopServer();
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
             // Match the folder dialog's dimmed desktop backdrop exactly.
