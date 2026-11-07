@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/custom-artwork-aspect-ratio-unified-r1
+      - fix/remove-restore-app-original-settings-menu-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-custom-artwork-aspect-ratio-unified-r1.yml'
