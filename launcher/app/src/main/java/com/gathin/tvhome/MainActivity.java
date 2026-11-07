@@ -578,7 +578,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
             SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
             boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
-            lp.width = Math.round(availableWidth * (dailyMode ? 0.42f : 0.60f));
+            lp.width = Math.round(availableWidth * (dailyMode ? 0.56f : 0.60f));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setMinimumHeight((int)(140 * density));
             weeklyWeatherView.setLayoutParams(lp);
@@ -4099,6 +4099,91 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     (dailyMode ? "天氣預報・" : "一週天氣・")
                     + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
             weeklyWeatherHeading.setVisibility(View.VISIBLE);
+        }
+
+        // 單日模式採用橫向資訊卡：不顯示日期，放大天氣圖示與文字層級。
+        if (dailyMode && dates.length() > 0) {
+            int code = codes.optInt(0, -1);
+            LinearLayout dailyContent = new LinearLayout(this);
+            dailyContent.setOrientation(LinearLayout.HORIZONTAL);
+            dailyContent.setGravity(Gravity.CENTER_VERTICAL);
+            dailyContent.setPadding((int)(2*density), (int)(4*density),
+                    (int)(2*density), (int)(4*density));
+
+            FrameLayout iconFrame = new FrameLayout(this);
+            LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
+                    0, (int)(142*density), 4f);
+            iconFrameLp.rightMargin = (int)(12*density);
+            dailyContent.addView(iconFrame, iconFrameLp);
+            WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
+            iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            View separator = new View(this);
+            separator.setBackgroundColor(0x665C6068);
+            dailyContent.addView(separator, new LinearLayout.LayoutParams(
+                    Math.max(1, (int)(1*density)), (int)(132*density)));
+
+            LinearLayout details = new LinearLayout(this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setGravity(Gravity.CENTER_VERTICAL);
+            details.setPadding((int)(18*density), 0, (int)(4*density), 0);
+            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 6f);
+            dailyContent.addView(details, detailsLp);
+
+            TextView condition = new TextView(this);
+            condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
+            condition.setTextColor(0xFFF5F6FA);
+            condition.setTextSize(25);
+            condition.setMaxLines(1);
+            details.addView(condition, new LinearLayout.LayoutParams(-1, -2));
+
+            TextView temperature = new TextView(this);
+            temperature.setText(Math.round(highs.optDouble(0)) + "° / "
+                    + Math.round(lows.optDouble(0)) + "°");
+            temperature.setTextColor(Color.WHITE);
+            temperature.setTextSize(32);
+            temperature.setMaxLines(1);
+            temperature.setAutoSizeTextTypeUniformWithConfiguration(22, 32, 1,
+                    android.util.TypedValue.COMPLEX_UNIT_SP);
+            LinearLayout.LayoutParams temperatureLp = new LinearLayout.LayoutParams(-1, -2);
+            temperatureLp.topMargin = (int)(3*density);
+            details.addView(temperature, temperatureLp);
+
+            TextView precipitation = new TextView(this);
+            precipitation.setText(TraditionalText.toTraditional("降雨 "
+                    + (rain != null && !rain.isNull(0) ? rain.optInt(0) + "%" : "--")));
+            precipitation.setTextColor(0xFFD5D9E0);
+            precipitation.setTextSize(19);
+            precipitation.setMaxLines(1);
+            LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
+            precipitationLp.topMargin = (int)(2*density);
+            details.addView(precipitation, precipitationLp);
+
+            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));
+            weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
+            if (!weatherHiddenByScroll) {
+                final android.view.ViewTreeObserver observer = weeklyWeatherView.getViewTreeObserver();
+                observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override public boolean onPreDraw() {
+                        if (weeklyWeatherView == null || root == null) {
+                            if (weeklyWeatherView != null && weeklyWeatherView.getViewTreeObserver().isAlive())
+                                weeklyWeatherView.getViewTreeObserver().removeOnPreDrawListener(this);
+                            return true;
+                        }
+                        if (weeklyWeatherView.getWidth() > 0 && weeklyWeatherView.getHeight() > 0
+                                && clockBlock.getWidth() > 0 && clockBlock.getHeight() > 0) {
+                            weeklyWeatherView.getViewTreeObserver().removeOnPreDrawListener(this);
+                            if (placeWeatherOverlay != null) placeWeatherOverlay.run();
+                            weeklyWeatherView.invalidate();
+                            root.invalidate();
+                        }
+                        return true;
+                    }
+                });
+                weeklyWeatherView.requestLayout();
+            }
+            return;
         }
 
         LinearLayout forecast = new LinearLayout(this);
