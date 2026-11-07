@@ -7566,8 +7566,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             prefs.edit().putString("label_" + packageName, value).apply();
             renameDialog.dismiss();
             reloadApps(false);
-            folderDialog.dismiss();
-            showFolderContents(folderName, systemFolder);
+            // 資料夾內重新命名需重新開啟資料夾；桌面 APP 重新命名則只需刷新桌面。
+            if (folderDialog != null) {
+                folderDialog.dismiss();
+                showFolderContents(folderName, systemFolder);
+            }
         };
         cancelButton.setOnClickListener(v -> renameDialog.dismiss());
         saveButton.setOnClickListener(v -> saveName.run());
@@ -8318,22 +8321,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         SharedPreferences appPrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         String savedLabel = appPrefs.getString("label_" + pkg, adapter.labelAt(position));
         addSettingsMenuRow(rows, popup, "重新命名", () -> {
-            EditText edit = new EditText(this);
-            edit.setSingleLine(true);
-            edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-            edit.setText(savedLabel);
-            edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("儲存", (dialog, which) -> {
-                        String value = edit.getText().toString().trim();
-                        if (!value.isEmpty()) appPrefs.edit().putString("label_" + pkg, value).apply();
-                        reloadApps(false);
-                    }).create();
-            renameDialog.show();
-            styleRemoteDialogActions(renameDialog);
-            styleRemoteEditField(edit);
-            edit.post(edit::requestFocus);
+            popup.dismiss();
+            // 桌面 APP 長按的重新命名入口也必須使用與「應用分類」相同的自訂視窗。
+            showAppRenameDialog(pkg, savedLabel, appPrefs, null, false, null);
         });
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(card, pkg, appPrefs, null, false, null));
