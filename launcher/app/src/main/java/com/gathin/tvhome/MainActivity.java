@@ -7250,14 +7250,27 @@ private GradientDrawable roundSurface(int color, float radius) {
             int adjustment = sizeBar.getProgress() - 50;
             float iconScale = Math.max(0.10f, Math.min(3.75f,
                     1.25f * (1f + adjustment / 100f)));
-            // Match AppAdapter.iconBanner(): a 240px square mark on a 640px-wide 16:9 tile.
+            // Keep the source image's own aspect ratio while applying the same scale range as the tile renderer.
             int cardWidth = preview.targetCard.getWidth() > 0
                     ? preview.targetCard.getWidth()
                     : preview.targetCard.getLayoutParams().width;
-            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+            int cardHeight = preview.targetCard.getHeight() > 0
+                    ? preview.targetCard.getHeight()
+                    : Math.round(cardWidth * 9f / 16f);
+            Drawable artwork = preview.targetIcon.getDrawable();
+            float aspect = artwork == null || artwork.getIntrinsicWidth() <= 0 || artwork.getIntrinsicHeight() <= 0
+                    ? 1f : (float) artwork.getIntrinsicWidth() / artwork.getIntrinsicHeight();
+            float maxWidth = cardWidth * 0.375f * iconScale;
+            float maxHeight = cardHeight * (2f / 3f) * iconScale;
+            float iconWidth = maxWidth;
+            float iconHeight = iconWidth / aspect;
+            if (iconHeight > maxHeight) {
+                iconHeight = maxHeight;
+                iconWidth = iconHeight * aspect;
+            }
             FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
-            iconLp.width = iconSide;
-            iconLp.height = iconSide;
+            iconLp.width = Math.max(1, Math.round(iconWidth));
+            iconLp.height = Math.max(1, Math.round(iconHeight));
             iconLp.gravity = Gravity.CENTER;
             preview.targetIcon.setPadding(0, 0, 0, 0);
             preview.targetIcon.setLayoutParams(iconLp);
@@ -7930,8 +7943,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
         float iconScale = Math.max(0.10f, Math.min(3.75f,
                 1.25f * (1f + adjust / 100f)));
-        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        Drawable artwork = icon.getDrawable();
+        float aspect = artwork == null || artwork.getIntrinsicWidth() <= 0 || artwork.getIntrinsicHeight() <= 0
+                ? 1f : (float) artwork.getIntrinsicWidth() / artwork.getIntrinsicHeight();
+        float iconWidth = cardWidth * 0.375f * iconScale;
+        float iconHeight = iconWidth / aspect;
+        float maxHeight = cardHeight * (2f / 3f) * iconScale;
+        if (iconHeight > maxHeight) {
+            iconHeight = maxHeight;
+            iconWidth = iconHeight * aspect;
+        }
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(
+                Math.max(1, Math.round(iconWidth)), Math.max(1, Math.round(iconHeight)), Gravity.CENTER);
         card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
