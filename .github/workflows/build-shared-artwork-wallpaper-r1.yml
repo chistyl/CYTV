@@ -5,7 +5,7 @@ on:
       - fix/app-artwork-shared-render-wallpaper-thumbs-r1
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-custom-artwork-appearance-r2.yml'
+      - '.github/workflows/build-shared-artwork-wallpaper-r1.yml'
 permissions:
   contents: read
 jobs:
