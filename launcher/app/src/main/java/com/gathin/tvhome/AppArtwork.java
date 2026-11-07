@@ -1,0 +1,42 @@
+package com.gathin.tvhome;
+
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+
+/** Shared aspect-preserving renderer for custom app artwork in every launcher surface. */
+final class AppArtwork {
+    private AppArtwork() { }
+
+    static void draw(Canvas canvas, RectF tile, Drawable artwork, int backgroundColor, float scale) {
+        Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
+        background.setColor(backgroundColor);
+        canvas.drawRect(tile, background);
+        if (artwork == null) return;
+
+        Drawable mark = artwork.getConstantState() != null
+                ? artwork.getConstantState().newDrawable().mutate() : artwork.mutate();
+        int sourceWidth = Math.max(1, mark.getIntrinsicWidth());
+        int sourceHeight = Math.max(1, mark.getIntrinsicHeight());
+        float aspect = (float) sourceWidth / sourceHeight;
+        float maxWidth = tile.width() * 0.375f;
+        float maxHeight = tile.height() * (2f / 3f);
+        float factor = Math.max(0.10f, Math.min(3.75f, scale));
+        float drawWidth = maxWidth * factor;
+        float drawHeight = drawWidth / aspect;
+        if (drawHeight > maxHeight * factor) {
+            drawHeight = maxHeight * factor;
+            drawWidth = drawHeight * aspect;
+        }
+        float left = tile.centerX() - drawWidth / 2f;
+        float top = tile.centerY() - drawHeight / 2f;
+        Rect oldBounds = new Rect(mark.getBounds());
+        mark.setBounds(Math.round(left), Math.round(top),
+                Math.round(left + drawWidth), Math.round(top + drawHeight));
+        mark.draw(canvas);
+        mark.setBounds(oldBounds);
+    }
+}
