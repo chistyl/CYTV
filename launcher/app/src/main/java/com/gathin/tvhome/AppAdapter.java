@@ -330,25 +330,33 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Drawable icon = null;
             if (card == null) {
                 String customIcon = custom.getString("icon_" + pkg, null);
+                Drawable customArtwork = null;
                 if (customIcon != null) {
                     try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
-                        if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
+                        if (in != null) customArtwork = Drawable.createFromStream(in, null);
                     } catch (Exception ignored) { }
                 }
-                if (icon == null) icon = ri.loadIcon(pm);
+                if (customArtwork != null) {
+                    int imageWidth = customArtwork.getIntrinsicWidth();
+                    int imageHeight = customArtwork.getIntrinsicHeight();
+                    // User-selected wide artwork is the actual TV banner; square artwork remains an app icon.
+                    if (imageWidth > 0 && imageHeight > 0 && imageWidth >= imageHeight * 1.4f) {
+                        banner = customArtwork;
+                    } else {
+                        icon = customArtwork;
+                    }
+                }
+                if (icon == null && banner == null) icon = ri.loadIcon(pm);
                 int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
                 int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
                 float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                // A custom icon or an explicit size adjustment switches this tile to icon artwork,
-                // otherwise keep the app's native TV banner when one exists.
                 boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
-                        custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
-                if (!forceIconTile) {
+                        custom.contains("icon_scale_adjust_" + pkg));
+                if (banner == null && !forceIconTile && customArtwork == null) {
                     banner = bundledBanner(appBanners.get(pkg));
                     if (banner == null) banner = loadBanner(pm, ri);
                 }
-                // No-banner apps and explicitly customized icons use the original/custom icon, centred
-                // on white by default, at 125% unless the owner adjusts it.
+                // Square custom artwork follows the same centered icon-card pipeline as the native APP icon.
                 if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
                 icon = null;
             } else {
@@ -680,6 +688,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
+            // Preserve the complete artwork. Custom TV banners must never be center-cropped.
+            h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            int artworkWidth = e.banner.getIntrinsicWidth();
+            int artworkHeight = e.banner.getIntrinsicHeight();
+            if (artworkWidth > 0 && artworkHeight > 0
+                    && Math.abs((artworkWidth / (float) artworkHeight) - (16f / 9f)) > 0.02f) {
+                h.card.setBackground(h.cardBackground);
+            }
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
