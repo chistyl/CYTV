@@ -4121,7 +4121,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
-                    0, (int)(104*density), 4f);
+                    0, (int)(80*density), 4f);
             iconFrameLp.leftMargin = (int)(8*density);
             dailyContent.addView(iconFrame, iconFrameLp);
             WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
