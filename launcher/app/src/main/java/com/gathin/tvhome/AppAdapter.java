@@ -332,7 +332,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 String customIcon = custom.getString("icon_" + pkg, null);
                 if (customIcon != null) {
                     try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
-                        if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
+                        if (in != null) {
+                            Bitmap customBitmap = BitmapFactory.decodeStream(in);
+                            if (customBitmap != null) icon = new BitmapDrawable(ctx.getResources(), customBitmap);
+                        }
                     } catch (Exception ignored) { }
                 }
                 if (icon == null) icon = ri.loadIcon(pm);
@@ -349,7 +352,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 }
                 // No-banner apps and explicitly customized icons use the original/custom icon, centred
                 // on white by default, at 125% unless the owner adjusts it.
-                if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
+                if (banner == null) {
+                    // A user-selected landscape image is already a TV banner. Keep its source aspect
+                    // ratio and fit it inside the 16:9 tile instead of treating it as a square app glyph.
+                    if (customIcon != null && icon.getIntrinsicWidth() > icon.getIntrinsicHeight() * 1.15f) {
+                        banner = fittedCustomBanner(icon, tileBackground);
+                    } else {
+                        banner = iconBanner(icon, tileBackground, iconScale);
+                    }
+                }
                 icon = null;
             } else {
                 banner = bundledBanner(appBanners.get(pkg));
@@ -514,15 +525,39 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return new BitmapDrawable(ctx.getResources(), bitmap);
     }
 
+    /** Fit a user-selected horizontal banner into the 16:9 tile without cropping or distortion. */
+    private Drawable fittedCustomBanner(Drawable source, int backgroundColor) {
+        int w = 640, h = 360;
+        int sourceW = Math.max(1, source.getIntrinsicWidth());
+        int sourceH = Math.max(1, source.getIntrinsicHeight());
+        float scale = Math.min((float) w / sourceW, (float) h / sourceH);
+        int drawW = Math.max(1, Math.round(sourceW * scale));
+        int drawH = Math.max(1, Math.round(sourceH * scale));
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        canvas.drawColor(backgroundColor);
+        Drawable mark = source.getConstantState() != null ? source.getConstantState().newDrawable().mutate() : source;
+        int left = (w - drawW) / 2, top = (h - drawH) / 2;
+        mark.setBounds(left, top, left + drawW, top + drawH);
+        mark.draw(canvas);
+        return new BitmapDrawable(ctx.getResources(), bmp);
+    }
+
     /** Apps without a TV banner: larger original icon centred on a solid, user-selectable colour. */
     private Drawable iconBanner(Drawable icon, int backgroundColor, float iconScale) {
         int w = 640, h = 360;
         int side = Math.max(36, Math.min(640, Math.round(240 * Math.max(0.10f, Math.min(3.75f, iconScale)))));
+        int sourceW = Math.max(1, icon.getIntrinsicWidth());
+        int sourceH = Math.max(1, icon.getIntrinsicHeight());
+        float fit = Math.min(1f, (float) side / Math.max(sourceW, sourceH));
+        int drawW = Math.max(1, Math.round(sourceW * fit));
+        int drawH = Math.max(1, Math.round(sourceH * fit));
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         canvas.drawColor(backgroundColor);
         Drawable mark = icon.getConstantState() != null ? icon.getConstantState().newDrawable().mutate() : icon;
-        mark.setBounds((w - side) / 2, (h - side) / 2, (w + side) / 2, (h + side) / 2);
+        int left = (w - drawW) / 2, top = (h - drawH) / 2;
+        mark.setBounds(left, top, left + drawW, top + drawH);
         mark.draw(canvas);
         return new BitmapDrawable(ctx.getResources(), bmp);
     }
