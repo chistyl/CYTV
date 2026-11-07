@@ -5930,9 +5930,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
-        GradientDrawable surface = new GradientDrawable();
-        surface.setColor(Color.rgb(28, 32, 40)); surface.setCornerRadius(22*density);
-        surface.setStroke(Math.max(1, (int)density), 0x28FFFFFF); panel.setBackground(surface);
+        // 與資料夾視窗共用完全相同的外框背景、圓角與描邊。
+        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
 
         TextView title = new TextView(this); title.setText("QR Code 掃碼傳圖");
         title.setTextColor(Color.WHITE); title.setTextSize(20); title.setGravity(Gravity.CENTER);
