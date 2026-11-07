@@ -582,14 +582,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
-            lp.leftMargin = clockPos[0] - rootPos[0];
-            // Keep the forecast card independent of the right-side buttons, but avoid stretching it
-            // across almost the entire TV screen. Use a proportion of the available content width.
-            int rightInset = (int) (56 * density);
-            int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
+            // Align the compact daily card slightly inward from the clock edge, matching the approved layout.
             SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
             boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
-            lp.width = Math.round(availableWidth * (dailyMode ? 0.50f : 0.60f));
+            lp.leftMargin = clockPos[0] - rootPos[0] + (dailyMode ? (int) (25 * density) : 0);
+            // Daily mode uses the compact reference width; weekly mode retains its existing width.
+            int rightInset = (int) (56 * density);
+            int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
+            lp.width = Math.round(availableWidth * (dailyMode ? 0.35f : 0.60f));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setMinimumHeight((int)(112 * density));
             weeklyWeatherView.setLayoutParams(lp);
