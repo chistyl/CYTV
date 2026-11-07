@@ -4092,9 +4092,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
         // Keep the city heading in its own permanent card row, separate from forecast content.
         // This prevents any forecast refresh/scroll container update from replacing or clipping it.
+        boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                .getString("display_mode", "week"));
         if (weeklyWeatherHeading != null) {
-            boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
-                    .getString("display_mode", "week"));
             weeklyWeatherHeading.setText(TraditionalText.toTraditional(
                     (dailyMode ? "天氣預報・" : "一週天氣・")
                     + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
@@ -4185,9 +4185,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         forecast.setOrientation(LinearLayout.HORIZONTAL);
         forecast.setGravity(Gravity.CENTER_VERTICAL);
         forecast.setWeightSum(7f);
-        boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
-                .getString("display_mode", "week"));
-        int count = Math.min(dailyMode ? 1 : 7, dates.length());
+        int count = Math.min(7, dates.length());
         for (int i = 0; i < count; i++) {
             try {
                 String date = dates.getString(i);
