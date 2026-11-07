@@ -6,6 +6,8 @@ on:
       - feature/youtube-tv-ad-skip-lounge-dbfe6ad
       - fix/youtube-official-ad-skip-retry-c6e224b
       - fix/move-app-category-below-weekly-weather-512f50d
+      - fix/adblock-settings-ui-center-layout-r1
+      - fix/youtube-assistant-centered-teal-gradient-r2
       - fix/wallpaper-restore-default-label-r1
       - feature/weekly-forecast-dialog-match-card-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
@@ -13,6 +15,7 @@ on:
       - fix/icon-appearance-dialog-match-folder-r1
       - fix/wallpaper-restore-default-label-r1
       - fix/adblock-settings-ui-center-layout-r1
+      - fix/youtube-assistant-centered-teal-gradient-r2
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
