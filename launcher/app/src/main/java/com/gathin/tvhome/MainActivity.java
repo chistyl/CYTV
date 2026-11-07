@@ -4126,7 +4126,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             details.setOrientation(LinearLayout.VERTICAL);
             details.setGravity(Gravity.CENTER_VERTICAL);
             details.setPadding((int)(8*density), 0, (int)(2*density), 0);
-            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 6f);
+            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -2, 6f);
             dailyContent.addView(details, detailsLp);
 
             TextView condition = new TextView(this);
