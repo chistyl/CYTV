@@ -605,6 +605,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherView.setFocusableInTouchMode(false);
         weeklyWeatherView.setClickable(true);
         weeklyWeatherView.setDefaultFocusHighlightEnabled(false);
+        weeklyWeatherView.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(0);
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                firstTopButton().requestFocus();
+                return true;
+            }
+            return false;
+        });
         weeklyWeatherView.setLongClickable(false);
         weeklyWeatherView.setForeground(null);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1005,14 +1017,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps, cfg.launchActions);
-        // DPAD_DOWN from a top-bar pill must enter the first dock tile, not RecyclerView's
-        // previously focused child. Letting focus search target the grid container can restore
-        // an old lower-row tile and make the header shelf disappear on the first Down press.
+        // DPAD navigation enters the visible single-day weather card before the app dock.
+        // In weekly mode (or when weather is hidden), preserve the original direct-to-dock route.
         ViewGroup topBarForNavigation = findViewById(R.id.topButtons);
         for (int i = 0; i < topBarForNavigation.getChildCount(); i++) {
             View topButton = topBarForNavigation.getChildAt(i);
             topButton.setOnKeyListener((v, keyCode, event) -> {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    boolean dailyWeatherVisible = weeklyWeatherView != null
+                            && weeklyWeatherView.getVisibility() == View.VISIBLE
+                            && "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                                    .getString("display_mode", "week"));
+                    if (dailyWeatherVisible && weeklyWeatherView.requestFocus()) return true;
                     focusTile(0);
                     return true;
                 }
