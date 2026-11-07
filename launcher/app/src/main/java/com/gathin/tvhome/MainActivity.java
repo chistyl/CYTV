@@ -4094,6 +4094,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // This prevents any forecast refresh/scroll container update from replacing or clipping it.
         boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
                 .getString("display_mode", "week"));
+        weeklyWeatherView.setBackgroundResource(dailyMode ? android.R.color.transparent : R.drawable.v17_weather_card);
         if (weeklyWeatherHeading != null) {
             weeklyWeatherHeading.setText(TraditionalText.toTraditional(
                     (dailyMode ? "天氣預報・" : "一週天氣・")
@@ -4110,21 +4111,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dailyContent.setPadding((int)(2*density), (int)(4*density),
                     (int)(2*density), (int)(4*density));
 
+            // 單日模式改為無邊框、無底色的透明資訊呈現：文字在左，圖示在右。
+            LinearLayout details = new LinearLayout(this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setGravity(Gravity.CENTER_VERTICAL);
+            details.setPadding((int)(4*density), 0, (int)(8*density), 0);
+            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 6f);
+            dailyContent.addView(details, detailsLp);
+
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
-                    0, (int)(112*density), 4.5f);
-            iconFrameLp.rightMargin = (int)(12*density);
+                    0, (int)(104*density), 4f);
+            iconFrameLp.leftMargin = (int)(8*density);
             dailyContent.addView(iconFrame, iconFrameLp);
             WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
             iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-            LinearLayout details = new LinearLayout(this);
-            details.setOrientation(LinearLayout.VERTICAL);
-            details.setGravity(Gravity.CENTER_VERTICAL);
-            details.setPadding((int)(10*density), 0, (int)(4*density), 0);
-            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 5.5f);
-            dailyContent.addView(details, detailsLp);
 
             TextView condition = new TextView(this);
             condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
