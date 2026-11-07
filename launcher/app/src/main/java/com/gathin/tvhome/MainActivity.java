@@ -6002,6 +6002,9 @@ private GradientDrawable roundSurface(int color, float radius) {
         dialog.setOnDismissListener(d -> server.stopServer());
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
+            // Match the folder dialog's dimmed desktop backdrop exactly.
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(Math.min((int)(440*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)), -2);
         }
