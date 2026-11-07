@@ -6,7 +6,9 @@ on:
       - feature/youtube-tv-ad-skip-lounge-dbfe6ad
       - fix/youtube-official-ad-skip-retry-c6e224b
       - fix/move-app-category-below-weekly-weather-512f50d
+      - feature/weekly-forecast-dialog-match-card-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
+      - fix/rename-dialog-match-app-category-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
