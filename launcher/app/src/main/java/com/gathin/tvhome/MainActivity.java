@@ -216,6 +216,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private LinearLayout weeklyWeatherDays;
     private TextView weeklyWeatherHeading;
     private boolean weatherHiddenByScroll;
+    private boolean openWeeklyForecastAfterRefresh;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
@@ -556,6 +557,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherView = findViewById(R.id.weeklyWeather);
         weeklyWeatherDays = findViewById(R.id.weeklyWeatherDays);
         weeklyWeatherHeading = findViewById(R.id.weeklyWeatherHeading);
+        weeklyWeatherView.setFocusable(true);
+        weeklyWeatherView.setFocusableInTouchMode(false);
+        weeklyWeatherView.setClickable(true);
+        weeklyWeatherView.setOnClickListener(v -> {
+            if ("day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                    .getString("display_mode", "week"))) {
+                openWeeklyForecastAfterRefresh = true;
+                loadWeeklyWeather();
+            }
+        });
         // Keep the weather card visually below the clock, but outside leftBlock's measurement.
         // Otherwise enabling the forecast shrinks the weighted grid viewport and changes Dock sizing/scroll geometry.
         ViewGroup weatherParent = (ViewGroup) weeklyWeatherView.getParent();
@@ -4069,7 +4080,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("預報資料不足七天，請稍後重試");
-            weatherHandler.post(() -> renderWeeklyWeather(dates, codes, highs, lows, rain, place));
+            weatherHandler.post(() -> {
+                renderWeeklyWeather(dates, codes, highs, lows, rain, place);
+                if (openWeeklyForecastAfterRefresh) {
+                    openWeeklyForecastAfterRefresh = false;
+                    showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
+                }
+            });
         } catch (Exception e) {
             showWeatherError("天氣資料讀取失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
         }
@@ -4281,6 +4298,87 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
             weeklyWeatherView.requestLayout();
         }
+    }
+
+    /** Opens a separate seven-day forecast window from the compact single-day desktop card. */
+    private void showWeeklyForecastDialog(JSONArray dates, JSONArray codes, JSONArray highs,
+                                          JSONArray lows, JSONArray rain, String place) {
+        if (isFinishing() || dates == null || dates.length() < 7) return;
+        final Dialog dialog = new Dialog(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding((int)(22*density), (int)(16*density),
+                (int)(22*density), (int)(16*density));
+        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+        TextView title = new TextView(this);
+        title.setText(TraditionalText.toTraditional("一週天氣・" +
+                (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+        title.setTextColor(0xFFF5F6FA);
+        title.setTextSize(21);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, (int)(12*density));
+        panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        LinearLayout days = new LinearLayout(this);
+        days.setOrientation(LinearLayout.VERTICAL);
+        for (int i = 0; i < 7; i++) {
+            String rawDate = dates.optString(i, "");
+            String day = rawDate.length() >= 10 ? rawDate.substring(5).replace('-', '/') : rawDate;
+            int code = codes.optInt(i, -1);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding((int)(8*density), (int)(5*density), (int)(8*density), (int)(5*density));
+            if (i > 0) row.setBackground(roundSurface(0x22343A46, 12*density));
+            TextView date = new TextView(this);
+            date.setText(day);
+            date.setTextColor(0xFFD5D9E0);
+            date.setTextSize(15);
+            row.addView(date, new LinearLayout.LayoutParams((int)(82*density), -2));
+            View icon = new WeeklyWeatherIconView(this, code);
+            row.addView(icon, new LinearLayout.LayoutParams((int)(54*density), (int)(48*density)));
+            TextView condition = new TextView(this);
+            condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
+            condition.setTextColor(0xFFF5F6FA);
+            condition.setTextSize(15);
+            condition.setMaxLines(2);
+            row.addView(condition, new LinearLayout.LayoutParams(0, -2, 1f));
+            TextView values = new TextView(this);
+            values.setText(Math.round(highs.optDouble(i)) + "° / " + Math.round(lows.optDouble(i))
+                    + "°\n降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--"));
+            values.setTextColor(0xFFE8EBF0);
+            values.setTextSize(14);
+            values.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            row.addView(values, new LinearLayout.LayoutParams((int)(112*density), -2));
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.bottomMargin = (int)(5*density);
+            days.addView(row, rowLp);
+        }
+        scroll.addView(days, new ScrollView.LayoutParams(-1, -2));
+        panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(true);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            window.setDimAmount(0.6f);
+            window.setLayout(Math.min((int)(760*density), (int)(getResources().getDisplayMetrics().widthPixels * 0.88f)),
+                    Math.min((int)(560*density), (int)(getResources().getDisplayMetrics().heightPixels * 0.82f)));
+        }
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
+            dialog.getWindow().setLayout(Math.min((int)(760*density), (int)(getResources().getDisplayMetrics().widthPixels * 0.88f)),
+                    Math.min((int)(560*density), (int)(getResources().getDisplayMetrics().heightPixels * 0.82f)));
+        }
+        panel.setFocusable(true);
+        panel.requestFocus();
     }
 
     private JSONObject getJson(String address) throws Exception {
