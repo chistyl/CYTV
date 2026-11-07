@@ -8,6 +8,7 @@ on:
       - fix/wallpaper-thumbnails-lower-r85
       - fix/qr-wallpaper-folder-background-pr109-r1
       - fix/icon-settings-rgb-spacing-pr110-r1
+      - fix/dns-log-dialog-folder-height-pr111-r1
       - fix/wallpaper-thumbnails-lower-pr108-r1
     paths:
       - 'launcher/**'
