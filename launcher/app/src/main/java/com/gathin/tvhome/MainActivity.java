@@ -5572,11 +5572,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String uri = prefs.getString("icon_" + pkg, null);
         if (uri != null) {
             try (java.io.InputStream in = getContentResolver().openInputStream(Uri.parse(uri))) {
-                if (in != null) return Drawable.createFromStream(in, null);
+                if (in != null) {
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(in);
+                    if (bitmap != null) return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
+                }
             } catch (Exception ignored) { }
         }
         try { return getPackageManager().getApplicationIcon(pkg); }
         catch (PackageManager.NameNotFoundException ignored) { return getDrawable(android.R.drawable.sym_def_app_icon); }
+    }
+
+    /** Resolve and render an APP tile through the exact same 16:9 artwork renderer as the desktop. */
+    private Drawable loadFolderTileArtwork(ResolveInfo ri, String pkg, SharedPreferences prefs) {
+        int background = prefs.getInt("background_" + pkg, Color.WHITE);
+        int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+        float scale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + adjustment / 100f)));
+        Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
+        if (banner != null) return AppArtwork.render(getResources(), banner, background, scale, true);
+        Drawable icon = loadFolderAppIcon(pkg, prefs);
+        return AppArtwork.render(getResources(), icon, background, scale, false);
     }
 
     /**
@@ -6810,21 +6824,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                 artworkClip.setCornerRadius(20 * density);
                 artwork.setBackground(artworkClip);
                 artwork.setClipToOutline(true);
-                Drawable banner = loadFolderTvBanner(ri, packageName, prefs);
-                if (banner != null) {
-                    artwork.setImageDrawable(banner);
-                    // Fit the complete source artwork; never crop a custom or native banner to fill the card.
-                    artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                } else {
-                    artwork.setImageDrawable(loadFolderAppIcon(packageName, prefs));
-                    artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    int adjustment = prefs.getInt("icon_scale_adjust_" + packageName, 0);
-                    float relativeScale = Math.max(0.10f, Math.min(3.75f,
-                            1.25f * (1f + adjustment / 100f)));
-                    // Keep the same size range as the desktop renderer while preserving the source ratio.
-                    int iconPadding = Math.max((int)(1*density), (int)(10*density/relativeScale));
-                    artwork.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                }
+                // Render the complete tile bitmap with the same dimensions, scale math and background
+                // as the desktop. Do not independently approximate the desktop result with ImageView padding.
+                artwork.setImageDrawable(loadFolderTileArtwork(ri, packageName, prefs));
+                artwork.setScaleType(ImageView.ScaleType.FIT_XY);
+                artwork.setPadding(0, 0, 0, 0);
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
                 LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1,
                         Math.round(folderTileDp * 9f / 16f * density));
