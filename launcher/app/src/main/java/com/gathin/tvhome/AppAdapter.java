@@ -336,25 +336,21 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         if (in != null) customArtwork = Drawable.createFromStream(in, null);
                     } catch (Exception ignored) { }
                 }
-                // Wide uploads use the TV banner surface. Square uploads stay in the existing icon pipeline,
-                // preserving the saved icon-size and background appearance adjustments.
-                if (customArtwork != null && isBannerShaped(
-                        customArtwork.getIntrinsicWidth(), customArtwork.getIntrinsicHeight())) {
-                    banner = customArtwork;
+                int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
+                int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+                float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
+                if (customArtwork != null) {
+                    // Both square artwork and TV banners use one renderer, so size and background settings
+                    // remain effective without changing the source artwork's aspect ratio.
+                    banner = iconBanner(customArtwork, tileBackground, iconScale);
                 } else {
-                    icon = customArtwork != null ? customArtwork : ri.loadIcon(pm);
-                    int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
-                    int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
-                    float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                    // A custom icon or an explicit size adjustment switches this tile to icon artwork,
-                    // otherwise keep the app's native TV banner when one exists.
+                    icon = ri.loadIcon(pm);
                     boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
-                            custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
+                            custom.contains("icon_scale_adjust_" + pkg));
                     if (!forceIconTile) {
                         banner = bundledBanner(appBanners.get(pkg));
                         if (banner == null) banner = loadBanner(pm, ri);
                     }
-                    // Square custom uploads use the same iconBanner renderer and adjustment values as native icons.
                     if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
                     icon = null;
                 }
@@ -495,25 +491,26 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             canvas.clipPath(rounded);
             try {
                 ResolveInfo ri = resolved.get(pkg);
-                Drawable banner = null;
-                boolean forceIcon = custom.getString("icon_" + pkg, null) != null || custom.getBoolean(
-                        "icon_scale_override_" + pkg, custom.contains("icon_scale_adjust_" + pkg));
-                if (ri != null && !forceIcon) banner = loadBanner(ctx.getPackageManager(), ri);
-                if (banner != null) {
-                    banner.setBounds(x, y, x + cellW, y + cellH); banner.draw(canvas);
-                } else {
-                    Drawable icon = null;
-                    String customUri = custom.getString("icon_" + pkg, null);
-                    if (customUri != null) {
-                        try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customUri))) {
-                            if (in != null) icon = Drawable.createFromStream(in, null);
-                        } catch (Exception ignored) { }
-                    }
-                    if (icon == null) icon = ctx.getPackageManager().getApplicationIcon(pkg);
-                    int side = 66;
-                    icon.setBounds(x + (cellW-side)/2, y + (cellH-side)/2, x + (cellW+side)/2, y + (cellH+side)/2);
-                    icon.draw(canvas);
+                Drawable customArtwork = null;
+                String customUri = custom.getString("icon_" + pkg, null);
+                if (customUri != null) {
+                    try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customUri))) {
+                        if (in != null) customArtwork = Drawable.createFromStream(in, null);
+                    } catch (Exception ignored) { }
                 }
+                int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
+                int adjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+                float scale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + adjustment / 100f)));
+                Drawable tile = customArtwork != null ? iconBanner(customArtwork, tileBackground, scale) : null;
+                if (tile == null) {
+                    boolean forceIcon = custom.getBoolean("icon_scale_override_" + pkg,
+                            custom.contains("icon_scale_adjust_" + pkg));
+                    Drawable nativeBanner = ri != null && !forceIcon ? loadBanner(previewPm, ri) : null;
+                    if (nativeBanner != null) tile = nativeBanner;
+                    else tile = iconBanner(ctx.getPackageManager().getApplicationIcon(pkg), tileBackground, scale);
+                }
+                tile.setBounds(x, y, x + cellW, y + cellH);
+                tile.draw(canvas);
             } catch (Exception ignored) { }
             canvas.restoreToCount(save);
             index++;
@@ -521,15 +518,32 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return new BitmapDrawable(ctx.getResources(), bitmap);
     }
 
-    /** Apps without a TV banner: larger original icon centred on a solid, user-selectable colour. */
-    private Drawable iconBanner(Drawable icon, int backgroundColor, float iconScale) {
+    /** Render square icons and wide banners through the same adjustable 16:9 tile pipeline. */
+    private Drawable iconBanner(Drawable artwork, int backgroundColor, float iconScale) {
         int w = 640, h = 360;
-        int side = Math.max(36, Math.min(640, Math.round(240 * Math.max(0.10f, Math.min(3.75f, iconScale)))));
+        float scale = Math.max(0.10f, Math.min(3.75f, iconScale));
+        int sourceW = artwork.getIntrinsicWidth();
+        int sourceH = artwork.getIntrinsicHeight();
+        boolean wide = isBannerShaped(sourceW, sourceH);
+        int drawW, drawH;
+        if (wide) {
+            float ratio = sourceW > 0 && sourceH > 0 ? (float) sourceW / sourceH : 16f / 9f;
+            drawW = Math.round(w * scale);
+            drawH = Math.round(drawW / ratio);
+            if (drawH < Math.round(h * scale)) {
+                drawH = Math.round(h * scale);
+                drawW = Math.round(drawH * ratio);
+            }
+        } else {
+            drawW = drawH = Math.max(36, Math.min(640, Math.round(240 * scale)));
+        }
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         canvas.drawColor(backgroundColor);
-        Drawable mark = icon.getConstantState() != null ? icon.getConstantState().newDrawable().mutate() : icon;
-        mark.setBounds((w - side) / 2, (h - side) / 2, (w + side) / 2, (h + side) / 2);
+        Drawable mark = artwork.getConstantState() != null
+                ? artwork.getConstantState().newDrawable().mutate() : artwork;
+        mark.setBounds((w - drawW) / 2, (h - drawH) / 2,
+                (w + drawW) / 2, (h + drawH) / 2);
         mark.draw(canvas);
         return new BitmapDrawable(ctx.getResources(), bmp);
     }
