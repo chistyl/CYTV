@@ -597,31 +597,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         clockBlock.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
         root.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
         root.post(placeWeatherOverlay);
-        // The forecast is informational only: never let TV focus, hover, pressed or ripple states
-        // brighten the entire weather panel when the remote cursor passes over it.
-        // The compact daily card opens its own seven-day forecast on OK/click.
-        // Keep it focusable for TV remotes without restoring the platform focus highlight.
-        weeklyWeatherView.setFocusable(true);
-        weeklyWeatherView.setFocusableInTouchMode(false);
-        weeklyWeatherView.setClickable(true);
-        weeklyWeatherView.setDefaultFocusHighlightEnabled(false);
-        weeklyWeatherView.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                focusTile(0);
-                return true;
-            }
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                firstTopButton().requestFocus();
-                return true;
-            }
-            return false;
-        });
-        // Use the launcher's existing moving GlassView as the weather card's focus indicator,
-        // so DPAD selection travels with the same spring motion used between app tiles.
-        weeklyWeatherView.setOnFocusChangeListener((v, focused) -> {
-            if (focused) showWeatherFocusGlass();
-        });
+        // Weekly forecast is display-only: it must never enter the TV remote focus path.
+        // Only the compact daily card remains actionable (OK opens the seven-day forecast).
+        configureWeatherInteraction();
         weeklyWeatherView.setLongClickable(false);
         weeklyWeatherView.setForeground(null);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -4054,8 +4032,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final ExecutorService weatherExecutor = Executors.newSingleThreadExecutor();
     private final Handler weatherHandler = new Handler(Looper.getMainLooper());
 
+    private void configureWeatherInteraction() {
+        if (weeklyWeatherView == null) return;
+        boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                .getString("display_mode", "week"));
+        weeklyWeatherView.setFocusable(dailyMode);
+        weeklyWeatherView.setFocusableInTouchMode(false);
+        weeklyWeatherView.setClickable(dailyMode);
+        weeklyWeatherView.setDefaultFocusHighlightEnabled(false);
+        weeklyWeatherView.setOnKeyListener(dailyMode ? (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(0);
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                firstTopButton().requestFocus();
+                return true;
+            }
+            return false;
+        } : null);
+        weeklyWeatherView.setOnFocusChangeListener(dailyMode
+                ? (v, focused) -> { if (focused) showWeatherFocusGlass(); }
+                : null);
+        if (!dailyMode && weeklyWeatherView.isFocused()) {
+            weeklyWeatherView.clearFocus();
+            hideGlass();
+        }
+    }
+
     private void refreshWeeklyWeatherVisibility() {
         if (weeklyWeatherView == null) return;
+        configureWeatherInteraction();
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         boolean enabled = prefs.getBoolean("enabled", false);
         if (!enabled) {
