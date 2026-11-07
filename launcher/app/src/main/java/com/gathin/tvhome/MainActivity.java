@@ -7166,18 +7166,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         // 內容左右再內縮，與資料夾視窗外框保留一致的安全留白。
-        panel.setPadding((int)(10*density), (int)(6*density), (int)(10*density), (int)(8*density));
+        panel.setPadding((int)(10*density), (int)(2*density), (int)(10*density), (int)(3*density));
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(2*density), 0, (int)(4*density));
+        preview.view.setPadding(0, (int)(1*density), 0, (int)(2*density));
         // Keep the preview card dimensions owned by the shared preview builder.
         // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
-            previewNameLp.height = (int)(20*density);
+            previewNameLp.height = (int)(18*density);
             previewNameLp.topMargin = (int)(2*density);
             preview.view.getChildAt(1).setLayoutParams(previewNameLp);
         }
@@ -7186,7 +7186,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         TextView sizeTitle = new TextView(this);
         sizeTitle.setText("圖標大小");
         sizeTitle.setTextColor(Color.WHITE);
-        sizeTitle.setTextSize(15);
+        sizeTitle.setTextSize(14);
         panel.addView(sizeTitle);
 
         SeekBar sizeBar = new SeekBar(this);
@@ -7195,18 +7195,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
         styleCytvAppearanceSeekBar(sizeBar);
-        LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
-        sizeBarLp.bottomMargin = (int)(5*density);
+        LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
+        sizeBarLp.bottomMargin = (int)(2*density);
         panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
         colorTitle.setText("背景色自訂");
         colorTitle.setTextColor(Color.WHITE);
-        colorTitle.setTextSize(15);
+        colorTitle.setTextSize(14);
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
         LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
         // 將「背景色自訂」標題與第一行「紅色：數值」明確拉開。
-        colorTitleLp.bottomMargin = (int)(14*density);
+        colorTitleLp.bottomMargin = (int)(5*density);
         panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -7217,11 +7217,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             final int channel=i;
             TextView label = new TextView(this);
             label.setTextColor(0xFFE8EBF0);
-            label.setTextSize(13);
+            label.setTextSize(12);
             // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = i == 0 ? 0 : (int)(5*density);
-            labelLp.bottomMargin = (int)(2*density);
+            labelLp.topMargin = i == 0 ? 0 : (int)(2*density);
+            labelLp.bottomMargin = (int)(1*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
 
@@ -7231,8 +7231,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
             styleCytvAppearanceSeekBar(bar);
-            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(34*density));
-            barLp.bottomMargin = (int)(4*density);
+            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(27*density));
+            barLp.bottomMargin = (int)(1*density);
             panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -7911,7 +7911,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         previewArea.setGravity(Gravity.CENTER_HORIZONTAL);
         previewArea.setClipChildren(false);
         previewArea.setClipToPadding(false);
-        previewArea.setPadding((int)(4*density), (int)(8*density), (int)(4*density), (int)(10*density));
+        previewArea.setPadding((int)(4*density), (int)(2*density), (int)(4*density), (int)(3*density));
         AppIconPreviewStrip result = new AppIconPreviewStrip(previewArea);
 
         // Only preview the APP currently being edited. Do not show or adjust other APPs.
@@ -7922,7 +7922,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         card.setBackground(background);
         card.setClipToOutline(true);
         // A more compact 16:9 preview card leaves the settings controls visually balanced.
-        int cardWidth = (int)(220*density);
+        int cardWidth = (int)(160*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
         icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
@@ -7946,8 +7946,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         name.setGravity(Gravity.CENTER);
         name.setMaxLines(1);
         name.setEllipsize(TextUtils.TruncateAt.END);
-        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(cardWidth, (int)(24*density));
-        nameLp.topMargin = (int)(5*density);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(cardWidth, (int)(18*density));
+        nameLp.topMargin = (int)(2*density);
         previewArea.addView(name, nameLp);
 
         result.targetCard = card;
