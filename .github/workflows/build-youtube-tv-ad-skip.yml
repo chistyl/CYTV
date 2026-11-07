@@ -10,6 +10,7 @@ on:
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/rename-dialog-match-app-category-r1
       - fix/icon-appearance-dialog-match-folder-r1
+      - fix/wallpaper-restore-default-label-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
@@ -19,6 +20,7 @@ on:
   pull_request:
     branches:
       - fix/rename-dialog-match-app-category-r1
+      - fix/icon-appearance-dialog-match-folder-r1
       - fix/ethernet-dns-recovery-r4-r98
       - fix/move-global-app-names-setting-85eb84a
       - fix/rename-app-name-toggle-labels-582ba02
