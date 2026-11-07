@@ -311,9 +311,9 @@ public class AdsFilterVpnService extends VpnService {
             if (tunnel == null) throw new IllegalStateException("VPN establish returned null");
             appendDnsLog("-", "診斷", "VPN TUN 建立成功");
             running.set(true);
+            tunnelActive = true;
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
-            tunnelActive = true;
             appendDnsLog("-", "診斷", "DNS 工作執行緒已啟動");
         } catch (Exception e) {
             Log.e(TAG, "Unable to establish DNS tunnel", e);
