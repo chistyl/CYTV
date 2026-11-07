@@ -4111,24 +4111,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dailyContent.setPadding((int)(2*density), (int)(4*density),
                     (int)(2*density), (int)(4*density));
 
-            // 單日模式改為無邊框、無底色的透明資訊呈現：文字在左，圖示在右。
-            LinearLayout details = new LinearLayout(this);
-            details.setOrientation(LinearLayout.VERTICAL);
-            details.setGravity(Gravity.CENTER_VERTICAL);
-            details.setPadding((int)(2*density), 0, (int)(8*density), 0);
-            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 6f);
-            dailyContent.addView(details, detailsLp);
-
+            // 單日模式採透明無邊框呈現：圖示在左，文字資訊在右。
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
                     0, (int)(80*density), 4f);
-            iconFrameLp.leftMargin = 0;
+            iconFrameLp.rightMargin = (int)(8*density);
             dailyContent.addView(iconFrame, iconFrameLp);
-            // Move the rendered weather icon itself; weighted LinearLayout margins can be absorbed.
-            iconFrame.setTranslationX(-56 * density);
+            iconFrame.setTranslationX(0f);
             WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
             iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            LinearLayout details = new LinearLayout(this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setGravity(Gravity.CENTER_VERTICAL);
+            details.setPadding((int)(8*density), 0, (int)(2*density), 0);
+            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -1, 6f);
+            dailyContent.addView(details, detailsLp);
 
             TextView condition = new TextView(this);
             condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
