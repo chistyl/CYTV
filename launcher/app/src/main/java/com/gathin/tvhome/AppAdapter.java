@@ -330,27 +330,34 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Drawable icon = null;
             if (card == null) {
                 String customIcon = custom.getString("icon_" + pkg, null);
+                Drawable customArtwork = null;
                 if (customIcon != null) {
                     try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customIcon))) {
-                        if (in != null) icon = new BitmapDrawable(ctx.getResources(), BitmapFactory.decodeStream(in));
+                        if (in != null) customArtwork = Drawable.createFromStream(in, null);
                     } catch (Exception ignored) { }
                 }
-                if (icon == null) icon = ri.loadIcon(pm);
-                int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
-                int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
-                float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
-                // A custom icon or an explicit size adjustment switches this tile to icon artwork,
-                // otherwise keep the app's native TV banner when one exists.
-                boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
-                        custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
-                if (!forceIconTile) {
-                    banner = bundledBanner(appBanners.get(pkg));
-                    if (banner == null) banner = loadBanner(pm, ri);
+                // Wide uploads use the TV banner surface. Square uploads stay in the existing icon pipeline,
+                // preserving the saved icon-size and background appearance adjustments.
+                if (customArtwork != null && isBannerShaped(
+                        customArtwork.getIntrinsicWidth(), customArtwork.getIntrinsicHeight())) {
+                    banner = customArtwork;
+                } else {
+                    icon = customArtwork != null ? customArtwork : ri.loadIcon(pm);
+                    int tileBackground = custom.getInt("background_" + pkg, Color.WHITE);
+                    int iconAdjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+                    float iconScale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + iconAdjustment / 100f)));
+                    // A custom icon or an explicit size adjustment switches this tile to icon artwork,
+                    // otherwise keep the app's native TV banner when one exists.
+                    boolean forceIconTile = custom.getBoolean("icon_scale_override_" + pkg,
+                            custom.contains("icon_scale_adjust_" + pkg)) || customIcon != null;
+                    if (!forceIconTile) {
+                        banner = bundledBanner(appBanners.get(pkg));
+                        if (banner == null) banner = loadBanner(pm, ri);
+                    }
+                    // Square custom uploads use the same iconBanner renderer and adjustment values as native icons.
+                    if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
+                    icon = null;
                 }
-                // No-banner apps and explicitly customized icons use the original/custom icon, centred
-                // on white by default, at 125% unless the owner adjusts it.
-                if (banner == null) banner = iconBanner(icon, tileBackground, iconScale);
-                icon = null;
             } else {
                 banner = bundledBanner(appBanners.get(pkg));
                 if (banner == null) banner = loadBanner(pm, ri);
