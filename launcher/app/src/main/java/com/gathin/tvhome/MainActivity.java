@@ -7370,6 +7370,20 @@ private GradientDrawable roundSurface(int color, float radius) {
             reopenPendingFolderAfterAppEdit();
         });
         dialog.setOnCancelListener(d -> reopenPendingFolderAfterAppEdit());
+        // 與資料夾視窗共用相同的桌面背景快照模糊效果；只模糊視窗外桌面，
+        // 圖標設定視窗本身保持清晰，並保留 60% 暗色遮罩。
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        if (backdropBlur != null) {
+            dialog.setOnDismissListener(ignored -> {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
+                if (image instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            });
+        }
         dialog.show();
         if(dialog.getWindow()!=null) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
