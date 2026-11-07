@@ -688,6 +688,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
+            // Preserve the complete artwork. Custom TV banners must never be center-cropped.
+            h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            int artworkWidth = e.banner.getIntrinsicWidth();
+            int artworkHeight = e.banner.getIntrinsicHeight();
+            if (artworkWidth > 0 && artworkHeight > 0
+                    && Math.abs((artworkWidth / (float) artworkHeight) - (16f / 9f)) > 0.02f) {
+                h.card.setBackground(h.cardBackground);
+            }
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
