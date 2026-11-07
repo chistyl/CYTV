@@ -2,7 +2,6 @@ package com.gathin.tvhome;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -25,6 +24,17 @@ final class AppArtwork {
         return new BitmapDrawable(resources, bitmap);
     }
 
+    private static float aspectRatio(Drawable artwork, RectF fallbackTile) {
+        if (artwork == null) return fallbackTile.width() / fallbackTile.height();
+        int width = artwork.getIntrinsicWidth();
+        int height = artwork.getIntrinsicHeight();
+        // Some platform/adaptive drawables report -1 for intrinsic dimensions. Never
+        // turn those into a 1:1 image: use the tile's aspect until real dimensions exist.
+        return width > 0 && height > 0
+                ? (float) width / (float) height
+                : fallbackTile.width() / fallbackTile.height();
+    }
+
     static void drawFull(Canvas canvas, RectF tile, Drawable artwork, int backgroundColor) {
         Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
         background.setColor(backgroundColor);
@@ -32,8 +42,7 @@ final class AppArtwork {
         if (artwork == null) return;
         Drawable mark = artwork.getConstantState() != null
                 ? artwork.getConstantState().newDrawable().mutate() : artwork.mutate();
-        float aspect = mark.getIntrinsicWidth() > 0 && mark.getIntrinsicHeight() > 0
-                ? (float) mark.getIntrinsicWidth() / mark.getIntrinsicHeight() : tile.width() / tile.height();
+        float aspect = aspectRatio(mark, tile);
         float width = tile.width();
         float height = width / aspect;
         if (height > tile.height()) {
@@ -55,9 +64,7 @@ final class AppArtwork {
 
         Drawable mark = artwork.getConstantState() != null
                 ? artwork.getConstantState().newDrawable().mutate() : artwork.mutate();
-        int sourceWidth = Math.max(1, mark.getIntrinsicWidth());
-        int sourceHeight = Math.max(1, mark.getIntrinsicHeight());
-        float aspect = (float) sourceWidth / sourceHeight;
+        float aspect = aspectRatio(mark, tile);
         float maxWidth = tile.width() * 0.375f;
         float maxHeight = tile.height() * (2f / 3f);
         float factor = Math.max(0.10f, Math.min(3.75f, scale));
