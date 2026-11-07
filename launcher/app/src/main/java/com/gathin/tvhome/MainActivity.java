@@ -589,7 +589,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Daily mode uses the compact reference width; weekly mode retains its existing width.
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * (dailyMode ? 0.35f : 0.60f));
+            lp.width = Math.round(availableWidth * (dailyMode ? 0.32f : 0.60f));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
             weeklyWeatherView.setMinimumHeight((int)(112 * density));
             weeklyWeatherView.setLayoutParams(lp);
@@ -4244,8 +4244,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             details.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
             TextView temperature = new TextView(this);
-            temperature.setText(Math.round(highs.optDouble(0)) + "° / "
-                    + Math.round(lows.optDouble(0)) + "°");
+            int highTemp = (int) Math.round(highs.optDouble(0));
+            int lowTemp = (int) Math.round(lows.optDouble(0));
+            String temperatureText = highTemp + "° / " + lowTemp + "°";
+            SpannableString coloredTemperature = new SpannableString(temperatureText);
+            int separator = temperatureText.indexOf(" / ");
+            int warmColor = Color.rgb(255, 242, 166); // soft warm yellow
+            int coolColor = Color.rgb(157, 231, 239); // soft cool aqua
+            if (highTemp >= 25) {
+                coloredTemperature.setSpan(new ForegroundColorSpan(warmColor),
+                        0, separator, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (highTemp <= 22) {
+                coloredTemperature.setSpan(new ForegroundColorSpan(coolColor),
+                        0, separator, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            int lowStart = separator + 3;
+            if (lowTemp >= 25) {
+                coloredTemperature.setSpan(new ForegroundColorSpan(warmColor),
+                        lowStart, temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (lowTemp <= 22) {
+                coloredTemperature.setSpan(new ForegroundColorSpan(coolColor),
+                        lowStart, temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            temperature.setText(coloredTemperature);
             temperature.setTextColor(Color.WHITE);
             temperature.setTextSize(32);
             temperature.setMaxLines(1);
