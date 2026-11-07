@@ -28,6 +28,7 @@ on:
       - feature/traditional-chinese-folder-app-lists
       - fix/youtube-pair-dialog-layout-remote-focus
       - feature/weather-forecast-dialog-day-week
+      - fix/weather-card-dpad-glass-focus-r2
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
