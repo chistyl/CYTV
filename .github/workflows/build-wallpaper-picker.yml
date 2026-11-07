@@ -6,6 +6,7 @@ on:
       - feature/theme-background-on-60-weather-clean
       - fix/wallpaper-dialog-folder-style
       - fix/wallpaper-thumbnails-lower-r85
+      - fix/wallpaper-thumbnails-lower-pr108-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-wallpaper-picker.yml'

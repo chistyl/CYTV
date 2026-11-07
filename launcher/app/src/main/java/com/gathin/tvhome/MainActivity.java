@@ -5714,7 +5714,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(128*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5739,11 +5739,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(132*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(112*density));
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(128*density);
+                imageLp.height = (int)(112*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5795,12 +5795,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(128*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(132*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(112*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
