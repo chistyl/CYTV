@@ -599,9 +599,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.post(placeWeatherOverlay);
         // The forecast is informational only: never let TV focus, hover, pressed or ripple states
         // brighten the entire weather panel when the remote cursor passes over it.
-        weeklyWeatherView.setFocusable(false);
+        // The compact daily card opens its own seven-day forecast on OK/click.
+        // Keep it focusable for TV remotes without restoring the platform focus highlight.
+        weeklyWeatherView.setFocusable(true);
         weeklyWeatherView.setFocusableInTouchMode(false);
-        weeklyWeatherView.setClickable(false);
+        weeklyWeatherView.setClickable(true);
+        weeklyWeatherView.setDefaultFocusHighlightEnabled(false);
         weeklyWeatherView.setLongClickable(false);
         weeklyWeatherView.setForeground(null);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
