@@ -4450,8 +4450,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(24*density), (int)(18*density),
                 (int)(24*density), (int)(18*density));
-        // Match the folder window's dark rounded surface, without an outline stroke.
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        // The forecast panel itself stays fully transparent: show only the blurred,
+        // dimmed desktop backdrop behind the seven-column weather content.
+        panel.setBackgroundColor(Color.TRANSPARENT);
 
         TextView title = new TextView(this);
         title.setText(TraditionalText.toTraditional("一週天氣・" +
