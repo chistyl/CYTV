@@ -2441,8 +2441,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Move the same spring-animated app selection glass onto the single-day weather card. */
     private void showWeatherFocusGlass() {
         if (weeklyWeatherView == null || root == null || glass == null
-                || weeklyWeatherView.getVisibility() != View.VISIBLE
-                || weeklyWeatherView.getWidth() <= 0 || weeklyWeatherView.getHeight() <= 0) return;
+                || weeklyWeatherView.getVisibility() != View.VISIBLE) return;
+        // Focus can arrive during the first layout pass; retry after the card has real bounds.
+        if (weeklyWeatherView.getWidth() <= 0 || weeklyWeatherView.getHeight() <= 0) {
+            weeklyWeatherView.post(() -> {
+                if (weeklyWeatherView != null && weeklyWeatherView.isFocused()) showWeatherFocusGlass();
+            });
+            return;
+        }
         Rect r = tileRect;
         r.set(0, 0, weeklyWeatherView.getWidth(), weeklyWeatherView.getHeight());
         root.offsetDescendantRectToMyCoords(weeklyWeatherView, r);
@@ -2720,7 +2726,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) {
+                // The daily weather card sits above the dock: Up from any dock tile enters it.
+                boolean dailyWeatherVisible = weeklyWeatherView != null
+                        && weeklyWeatherView.getVisibility() == View.VISIBLE
+                        && "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                                .getString("display_mode", "week"));
+                if (dailyWeatherVisible && weeklyWeatherView.requestFocus()) return true;
+                return false; // otherwise retain the original route to the top bar
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
