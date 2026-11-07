@@ -5668,181 +5668,156 @@ private GradientDrawable roundSurface(int color, float radius) {
     /** 從設定選單直接新增一般資料夾。 */
     private void showCreateFolderDialog() {
         EditText name = new EditText(this);
+        name.setId(View.generateViewId());
         name.setSingleLine(true);
         name.setFocusable(true);
         name.setFocusableInTouchMode(true);
         name.setSelectAllOnFocus(false);
-        name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
-        name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
+        name.setTextSize(18f);
+        name.setTextColor(0xFF202124);
+        name.setHintTextColor(0xFF68717D);
+        name.setPadding((int)(14*density), 0, (int)(14*density), 0);
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         name.setHint("輸入分類名稱");
-        LinearLayout nameWrap = new LinearLayout(this);
-        nameWrap.setOrientation(LinearLayout.VERTICAL);
-        // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
-        nameWrap.setPadding((int) (24 * density), (int) (8 * density),
-                (int) (24 * density), (int) (4 * density));
-        nameWrap.setClipChildren(false); nameWrap.setClipToPadding(false);
-        GradientDrawable fieldNormal = new GradientDrawable();
-        fieldNormal.setColor(0xFF343A46); fieldNormal.setCornerRadius(12*density);
-        fieldNormal.setStroke(Math.max(1,(int)density), 0x6680C9C2);
-        GradientDrawable fieldFocused = new GradientDrawable();
-        fieldFocused.setColor(0xFF465366); fieldFocused.setCornerRadius(12*density);
-        fieldFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
-        name.setBackground(fieldNormal);
-        name.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? fieldFocused : fieldNormal);
-            v.setElevation(focused ? 4*density : 0f);
+        name.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+
+        final Dialog createDialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(12*density),
+                (int)(18*density), (int)(12*density));
+        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+        TextView title = new TextView(this);
+        title.setText("應用分類");
+        title.setTextColor(0xFFF5F6FA);
+        title.setTextSize(20);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+        outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+        LinearLayout fieldPanel = new LinearLayout(this);
+        fieldPanel.setOrientation(LinearLayout.VERTICAL);
+        fieldPanel.setGravity(Gravity.CENTER_VERTICAL);
+        fieldPanel.setPadding((int)(18*density), (int)(12*density),
+                (int)(18*density), (int)(12*density));
+        fieldPanel.setBackground(roundSurface(0xFF343A46, 18*density));
+        LinearLayout.LayoutParams fieldPanelLp = new LinearLayout.LayoutParams(-1, (int)(92*density));
+        fieldPanelLp.topMargin = (int)(4*density);
+        outer.addView(fieldPanel, fieldPanelLp);
+        fieldPanel.addView(name, new LinearLayout.LayoutParams(-1, (int)(52*density)));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, (int)(52*density));
+        actionsLp.topMargin = (int)(12*density);
+        outer.addView(actions, actionsLp);
+
+        Button cancelButton = new Button(this);
+        Button createButton = new Button(this);
+        cancelButton.setText("取消");
+        createButton.setText("建立");
+        for (Button button : new Button[]{cancelButton, createButton}) {
+            button.setAllCaps(false);
+            button.setTextColor(Color.WHITE);
+            button.setTextSize(16);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setMinWidth((int)(104*density));
+            button.setMinHeight((int)(50*density));
+            button.setBackground(roundSurface(0xFF343A46, 14*density));
+            button.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                    (int)(112*density), (int)(50*density));
+            buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+            actions.addView(button, buttonLp);
+        }
+
+        Runnable createFolder = () -> {
+            String value = name.getText().toString().trim();
+            if (value.isEmpty() || value.equals("系統")) {
+                Toast.makeText(this, "請輸入其他資料夾名稱", Toast.LENGTH_SHORT).show();
+                name.requestFocus();
+                return;
+            }
+            java.util.LinkedHashSet<String> updated = new java.util.LinkedHashSet<>(
+                    getSharedPreferences("tv_app_customizations", MODE_PRIVATE)
+                            .getStringSet("home_folders", new java.util.LinkedHashSet<>()));
+            if (!updated.add(value)) {
+                Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
+                name.requestFocus();
+                return;
+            }
+            getSharedPreferences("tv_app_customizations", MODE_PRIVATE).edit()
+                    .putStringSet("home_folders", updated).apply();
+            createDialog.dismiss();
+            reloadApps(false);
+            Toast.makeText(this, "已建立資料夾：" + value, Toast.LENGTH_SHORT).show();
+        };
+        cancelButton.setOnClickListener(v -> createDialog.dismiss());
+        createButton.setOnClickListener(v -> createFolder.run());
+
+        createDialog.setContentView(outer);
+        createDialog.setCanceledOnTouchOutside(false);
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        createDialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
         });
-        nameWrap.addView(name, new LinearLayout.LayoutParams(-1, (int)(58*density)));
-        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle("應用分類").setView(nameWrap)
-                .setNegativeButton("取消", null).setPositiveButton("建立", (x, y) -> {
-                    String value = name.getText().toString().trim();
-                    if (value.isEmpty() || value.equals("系統")) {
-                        Toast.makeText(this, "請輸入其他資料夾名稱", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    java.util.LinkedHashSet<String> updated = new java.util.LinkedHashSet<>(
-                            getSharedPreferences("tv_app_customizations", MODE_PRIVATE)
-                                    .getStringSet("home_folders", new java.util.LinkedHashSet<>()));
-                    if (!updated.add(value)) {
-                        Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    getSharedPreferences("tv_app_customizations", MODE_PRIVATE).edit()
-                            .putStringSet("home_folders", updated).apply();
-                    reloadApps(false);
-                    Toast.makeText(this, "已建立資料夾：" + value, Toast.LENGTH_SHORT).show();
-                }).create();
         createDialog.show();
         if (createDialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(29,33,43));
-            rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            createDialog.getWindow().setBackgroundDrawable(rounded);
+            createDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int fixedWidth = Math.min((int)(680*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            int compactHeight = Math.min((int)(226*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+            createDialog.getWindow().setLayout(fixedWidth, compactHeight);
+            createDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            createDialog.getWindow().setDimAmount(0.6f);
         }
-        // TV remote focus order: name field -> Cancel -> Create. Avoid relying on
-        // theme-dependent AlertDialog focus defaults, which vary across TV devices.
-        Button cancelButton = createDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button createButton = createDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (cancelButton != null && createButton != null) {
-            cancelButton.setAllCaps(false); createButton.setAllCaps(false);
-            cancelButton.setMinWidth((int)(104*density)); createButton.setMinWidth((int)(104*density));
-            cancelButton.setMinHeight((int)(50*density)); createButton.setMinHeight((int)(50*density));
-            LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelLp.width = (int)(112*density);
-            cancelLp.height = (int)(54*density);
-            cancelLp.rightMargin = (int)(12*density);
-            cancelButton.setLayoutParams(cancelLp);
-            LinearLayout.LayoutParams createLp = (LinearLayout.LayoutParams) createButton.getLayoutParams();
-            createLp.width = (int)(112*density);
-            createLp.height = (int)(54*density);
-            createLp.leftMargin = 0;
-            createButton.setLayoutParams(createLp);
-            // 將兩顆等寬操作按鈕整組靠右，保留一致的右側內距與較緊湊間距。
-            ViewParent buttonParent = cancelButton.getParent();
-            if (buttonParent instanceof LinearLayout) {
-                LinearLayout buttonRow = (LinearLayout) buttonParent;
-                buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-                // 增加按鈕列上方留白，讓操作按鈕往下移；外層視窗寬度不變。
-                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(10*density),
-                        (int)(24*density), 0);
-                buttonRow.setClipChildren(false);
-                buttonRow.setClipToPadding(false);
-            }
-            cancelButton.setId(View.generateViewId());
-            createButton.setId(View.generateViewId());
-            name.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusRightId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            for (Button button : new Button[]{cancelButton, createButton}) {
-                button.setFocusable(true);
-                button.setFocusableInTouchMode(true);
-                button.setDefaultFocusHighlightEnabled(false);
-                button.setTextColor(0xFFF1F2F4);
-                button.setElevation(0f);
-                GradientDrawable normal = new GradientDrawable();
-                normal.setColor(0xFF343A46);
-                normal.setCornerRadius(14*density);
-                GradientDrawable focused = new GradientDrawable();
-                focused.setColor(0xFF465366);
-                focused.setCornerRadius(14*density);
-                focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
-                button.setBackground(normal);
-                button.setOnFocusChangeListener((v, hasFocus) -> {
-                    v.setBackground(hasFocus ? focused : normal);
-                    ((Button) v).setTextColor(0xFFF5F6FA);
-                    v.setElevation(hasFocus ? 2f*density : 0f);
-                    v.setScaleX(1f);
-                    v.setScaleY(1f);
-                });
-                button.setMinHeight((int)(54*density));
-                button.setMinWidth((int)(112*density));
-            }
-            // Use the shared teal focus outline for TV remote actions.
-            cancelButton.setNextFocusRightId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            name.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusRightId(createButton.getId());
-            cancelButton.setNextFocusDownId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            createButton.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusUpId(name.getId());
-            createButton.setNextFocusUpId(name.getId());
 
-            // Explicit TV remote routing: UP from either action returns to the name field;
-            // DOWN from the field enters Cancel; horizontal navigation switches the actions.
-            name.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    cancelButton.requestFocus();
-                    return true;
-                }
-                return false;
-            });
-            View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                    name.requestFocus();
-                    name.setSelection(name.getText().length());
-                    return true;
-                }
-                if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    createButton.requestFocus();
-                    return true;
-                }
-                if (v == createButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    cancelButton.requestFocus();
-                    return true;
-                }
-                return false;
-            };
-            cancelButton.setOnKeyListener(actionNavigation);
-            createButton.setOnKeyListener(actionNavigation);
-        }
-        // 外層視窗只增加高度，寬度沿用 AlertDialog 原本實際寬度。
-        if (createDialog.getWindow() != null) {
-            createDialog.getWindow().getDecorView().post(() -> {
-                android.view.Window window = createDialog.getWindow();
-                if (window == null) return;
-                View decor = window.getDecorView();
-                int originalWidth = decor.getWidth();
-                int originalHeight = decor.getHeight();
-                if (originalWidth <= 0 || originalHeight <= 0) return;
-                int screenHeight = getResources().getDisplayMetrics().heightPixels;
-                int targetHeight = Math.min(originalHeight + (int)(20*density),
-                        screenHeight - (int)(48*density));
-                window.setLayout(originalWidth, targetHeight);
-            });
-        }
-        name.setId(View.generateViewId());
-        name.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
-        if (cancelButton != null) {
-            cancelButton.setNextFocusUpId(name.getId());
-            cancelButton.setNextFocusDownId(createButton != null ? createButton.getId() : View.NO_ID);
-        }
-        if (createButton != null) {
-            createButton.setNextFocusUpId(name.getId());
-            createButton.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
-        }
+        // 遙控器焦點順序：輸入分類名稱 → 取消 → 建立。
+        name.setNextFocusDownId(cancelButton.getId());
+        cancelButton.setNextFocusUpId(name.getId());
+        createButton.setNextFocusUpId(name.getId());
+        cancelButton.setNextFocusRightId(createButton.getId());
+        createButton.setNextFocusLeftId(cancelButton.getId());
+        name.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                createButton.requestFocus();
+                return true;
+            }
+            if (v == createButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                name.requestFocus();
+                name.setSelection(name.getText().length());
+                return true;
+            }
+            return false;
+        };
+        cancelButton.setOnKeyListener(actionNavigation);
+        createButton.setOnKeyListener(actionNavigation);
         name.post(() -> { name.requestFocus(); name.setSelection(name.getText().length()); });
     }
 
