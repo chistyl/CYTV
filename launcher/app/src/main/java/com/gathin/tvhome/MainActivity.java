@@ -7418,21 +7418,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(anchor, packageName, prefs, folderName, systemFolder, folderDialog));
 
-        if (prefs.contains("label_" + packageName) || prefs.contains("hide_" + packageName)
-                || prefs.contains("icon_" + packageName) || prefs.contains("icon_scale_" + packageName)
-                || prefs.contains("icon_scale_adjust_" + packageName) || prefs.contains("icon_scale_override_" + packageName)
-                || prefs.contains("background_" + packageName)) {
-            addSettingsMenuRow(rows, popup, "還原 APP 原始設定", () -> {
-                prefs.edit().remove("label_" + packageName).remove("hide_" + packageName)
-                        .remove("icon_" + packageName).remove("icon_scale_" + packageName)
-                        .remove("icon_scale_adjust_" + packageName).remove("icon_scale_override_" + packageName)
-                        .remove("background_" + packageName).apply();
-                reloadApps(false);
-                folderDialog.dismiss();
-                showFolderContents(folderName, systemFolder);
-            });
-        }
-
         if (appLibraryEnabled) addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
             if (LibraryApps.save(this, packageName, false)) {
                 reloadApps(false);
@@ -8350,17 +8335,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         });
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
                 showAppIconSettingsMenu(card, pkg, appPrefs, null, false, null));
-        if (appPrefs.contains("label_" + pkg) || appPrefs.contains("hide_" + pkg)
-                || appPrefs.contains("icon_" + pkg) || appPrefs.contains("icon_scale_" + pkg)
-                || appPrefs.contains("icon_scale_adjust_" + pkg) || appPrefs.contains("icon_scale_override_" + pkg)
-                || appPrefs.contains("background_" + pkg)) {
-            addSettingsMenuRow(rows, popup, "還原 APP 原始設定", () -> {
-                appPrefs.edit().remove("label_" + pkg).remove("hide_" + pkg).remove("icon_" + pkg)
-                        .remove("icon_scale_" + pkg).remove("icon_scale_adjust_" + pkg).remove("icon_scale_override_" + pkg)
-                        .remove("background_" + pkg).apply();
-                reloadApps(false);
-            });
-        }
         if (dockRow && position < adapter.movableCount()) {
             boolean inDock = position < COLUMNS;
             addSettingsMenuRow(rows, popup, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
