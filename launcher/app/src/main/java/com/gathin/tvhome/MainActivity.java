@@ -7401,24 +7401,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
 
         addSettingsMenuRow(rows, popup, "重新命名", () -> {
-            EditText edit = new EditText(this);
-            edit.setSingleLine(true);
-            edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-            edit.setText(prefs.getString("label_" + packageName, currentLabel));
-            edit.setSelection(edit.getText().length());
-            AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("儲存", (d, which) -> {
-                        String value = edit.getText().toString().trim();
-                        if (!value.isEmpty()) prefs.edit().putString("label_" + packageName, value).apply();
-                        reloadApps(false);
-                        folderDialog.dismiss();
-                        showFolderContents(folderName, systemFolder);
-                    }).create();
-            renameDialog.show();
-            styleRemoteDialogActions(renameDialog);
-            styleRemoteEditField(edit);
-            edit.post(edit::requestFocus);
+            showAppRenameDialog(packageName, currentLabel, prefs, folderName, systemFolder, folderDialog);
         });
 
         addSettingsMenuRow(rows, popup, "圖標設定", () ->
@@ -7495,6 +7478,165 @@ private GradientDrawable roundSurface(int color, float radius) {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
+
+    /**
+     * APP 重新命名視窗沿用「應用分類」視窗的尺寸、背景、圓角與置中排版。
+     */
+    private void showAppRenameDialog(String packageName, String currentLabel, SharedPreferences prefs,
+                                     String folderName, boolean systemFolder, Dialog folderDialog) {
+        EditText name = new EditText(this);
+        name.setId(View.generateViewId());
+        name.setSingleLine(true);
+        name.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        name.setFocusable(true);
+        name.setFocusableInTouchMode(true);
+        name.setSelectAllOnFocus(false);
+        name.setTextSize(18f);
+        name.setTextColor(0xFF202124);
+        name.setHintTextColor(0xFF68717D);
+        name.setPadding((int)(14*density), 0, (int)(14*density), 0);
+        name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+        name.setHint("輸入 APP 名稱");
+        name.setText(prefs.getString("label_" + packageName, currentLabel));
+        name.setSelection(name.getText().length());
+        name.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+
+        final Dialog renameDialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
+        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+        TextView title = new TextView(this);
+        title.setText("重新命名");
+        title.setTextColor(0xFFF5F6FA);
+        title.setTextSize(20);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+        outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+        LinearLayout fieldPanel = new LinearLayout(this);
+        fieldPanel.setOrientation(LinearLayout.VERTICAL);
+        fieldPanel.setGravity(Gravity.CENTER_VERTICAL);
+        fieldPanel.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
+        fieldPanel.setBackground(roundSurface(0xFF343A46, 18*density));
+        LinearLayout.LayoutParams fieldPanelLp = new LinearLayout.LayoutParams(-1, (int)(92*density));
+        fieldPanelLp.topMargin = (int)(4*density);
+        outer.addView(fieldPanel, fieldPanelLp);
+        fieldPanel.addView(name, new LinearLayout.LayoutParams(-1, (int)(52*density)));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, (int)(52*density));
+        actionsLp.topMargin = (int)(12*density);
+        outer.addView(actions, actionsLp);
+
+        Button cancelButton = new Button(this);
+        Button saveButton = new Button(this);
+        cancelButton.setId(View.generateViewId());
+        saveButton.setId(View.generateViewId());
+        cancelButton.setText("取消");
+        saveButton.setText("儲存");
+        for (Button button : new Button[]{cancelButton, saveButton}) {
+            button.setAllCaps(false);
+            button.setTextColor(Color.WHITE);
+            button.setTextSize(16);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setMinWidth((int)(104*density));
+            button.setMinHeight((int)(50*density));
+            button.setBackground(roundSurface(0xFF343A46, 14*density));
+            button.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                    (int)(112*density), (int)(50*density));
+            buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+            actions.addView(button, buttonLp);
+        }
+
+        Runnable saveName = () -> {
+            String value = name.getText().toString().trim();
+            if (value.isEmpty()) {
+                Toast.makeText(this, "請輸入 APP 名稱", Toast.LENGTH_SHORT).show();
+                name.requestFocus();
+                return;
+            }
+            prefs.edit().putString("label_" + packageName, value).apply();
+            renameDialog.dismiss();
+            reloadApps(false);
+            folderDialog.dismiss();
+            showFolderContents(folderName, systemFolder);
+        };
+        cancelButton.setOnClickListener(v -> renameDialog.dismiss());
+        saveButton.setOnClickListener(v -> saveName.run());
+        name.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                saveName.run();
+                return true;
+            }
+            return false;
+        });
+
+        renameDialog.setContentView(outer);
+        renameDialog.setCanceledOnTouchOutside(false);
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        renameDialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
+        renameDialog.show();
+        if (renameDialog.getWindow() != null) {
+            renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int fixedWidth = Math.min((int)(680*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            int compactHeight = Math.min((int)(226*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+            renameDialog.getWindow().setLayout(fixedWidth, compactHeight);
+            renameDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            renameDialog.getWindow().setDimAmount(0.6f);
+        }
+
+        name.setNextFocusDownId(cancelButton.getId());
+        cancelButton.setNextFocusUpId(name.getId());
+        saveButton.setNextFocusUpId(name.getId());
+        cancelButton.setNextFocusRightId(saveButton.getId());
+        saveButton.setNextFocusLeftId(cancelButton.getId());
+        name.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v == cancelButton) {
+                saveButton.requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v == saveButton) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                name.requestFocus();
+                return true;
+            }
+            return false;
+        };
+        cancelButton.setOnKeyListener(actionNavigation);
+        saveButton.setOnKeyListener(actionNavigation);
+        name.post(name::requestFocus);
+    }
 
     private void reopenPendingFolderAfterAppEdit() {
         if (pendingFolderNameAfterAppEdit == null) return;
