@@ -116,7 +116,8 @@ public class AdsBlockerActivity extends Activity {
     }
     private android.graphics.drawable.Drawable focusBg(int normal, int focused) {
         StateListDrawable states = new StateListDrawable();
-        states.addState(new int[]{android.R.attr.state_focused}, bg(focused, Color.rgb(255, 205, 120)));
+        states.addState(new int[]{android.R.attr.state_focused}, bg(focused, Color.rgb(0, 210, 205)));
+        states.addState(new int[]{android.R.attr.state_selected}, bg(Color.rgb(22, 75, 87), Color.rgb(0, 210, 205)));
         states.addState(new int[]{android.R.attr.state_pressed}, bg(focused, Color.WHITE));
         states.addState(new int[]{}, bg(normal, Color.TRANSPARENT));
         return states;
@@ -134,7 +135,7 @@ public class AdsBlockerActivity extends Activity {
     private Button button(String text, Runnable action) {
         Button b = new Button(this); b.setText(text); b.setTextColor(Color.WHITE); b.setTextSize(18);
         b.setAllCaps(false); b.setFocusable(true); b.setMinHeight(dp(54));
-        b.setBackground(focusBg(Color.rgb(48, 51, 60), Color.rgb(74, 79, 92)));
+        b.setBackground(focusBg(Color.rgb(38, 50, 68), Color.rgb(53, 69, 89)));
         b.setPadding(dp(18), dp(8), dp(18), dp(8));
         keepFocusedVisible(b);
         b.setOnClickListener(v -> action.run());
@@ -142,29 +143,20 @@ public class AdsBlockerActivity extends Activity {
     }
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(22, 24, 31));
+        scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(15, 24, 39));
         scroll.setFocusable(false);
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(60), dp(22), dp(60), dp(30));
+        content.setPadding(dp(84), dp(22), dp(84), dp(30));
         scroll.addView(content);
         setContentView(scroll);
-        TextView title = label("阻擋廣告", 30); title.setTypeface(null, Typeface.BOLD);
+        TextView title = label("阻擋廣告", 30); title.setTypeface(null, Typeface.BOLD); title.setGravity(Gravity.CENTER);
         content.addView(title, new LinearLayout.LayoutParams(-1, dp(58)));
         TextView desc = label("透過本機 DNS 過濾常見廣告網域。首次啟用時，Android 會詢問是否允許 VPN 連線。", 17);
-        desc.setTextColor(Color.LTGRAY); desc.setGravity(Gravity.TOP);
+        desc.setTextColor(Color.LTGRAY); desc.setGravity(Gravity.CENTER);
         content.addView(desc, new LinearLayout.LayoutParams(-1, dp(68)));
-        status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(39,42,50), 0));
+        status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(32, 43, 59), 0));
         content.addView(status, new LinearLayout.LayoutParams(-1, dp(58)));
-        TextView deviceInfo = label("裝置識別（請回傳此行）：\nMODEL=" + Build.MODEL
-                + " | BRAND=" + Build.BRAND + " | MANUFACTURER=" + Build.MANUFACTURER
-                + " | DEVICE=" + Build.DEVICE + " | PRODUCT=" + Build.PRODUCT, 13);
-        deviceInfo.setTextColor(Color.LTGRAY);
-        deviceInfo.setGravity(Gravity.TOP);
-        deviceInfo.setMaxLines(3);
-        LinearLayout.LayoutParams deviceInfoParams = new LinearLayout.LayoutParams(-1, dp(58));
-        deviceInfoParams.topMargin = dp(6);
-        content.addView(deviceInfo, deviceInfoParams);
         TextView networkModeTitle = label("網路連線模式", 19);
         networkModeTitle.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams modeTitleParams = new LinearLayout.LayoutParams(-1, dp(42));
@@ -185,6 +177,20 @@ public class AdsBlockerActivity extends Activity {
         toggle = button("", this::toggleFilter);
         toggle.setTextSize(21);
         toggle.setTypeface(null, Typeface.BOLD);
+        StateListDrawable primaryStates = new StateListDrawable();
+        GradientDrawable primaryFocused = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(0, 190, 190), Color.rgb(0, 145, 155)});
+        primaryFocused.setCornerRadius(dp(18));
+        primaryFocused.setStroke(dp(2), Color.rgb(100, 240, 230));
+        GradientDrawable primaryNormal = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(0, 150, 160), Color.rgb(0, 115, 130)});
+        primaryNormal.setCornerRadius(dp(18));
+        primaryNormal.setStroke(dp(1), Color.rgb(0, 190, 190));
+        primaryStates.addState(new int[]{android.R.attr.state_focused}, primaryFocused);
+        primaryStates.addState(new int[]{}, primaryNormal);
+        toggle.setBackground(primaryStates);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, dp(70)); tp.topMargin = dp(14);
         content.addView(toggle, tp);
         Button dnsHistory = button("查看 DNS 紀錄", this::showDnsLogs);
@@ -269,7 +275,7 @@ public class AdsBlockerActivity extends Activity {
             // keep filtering them, but never expose them in the editable rule list.
             if (isLockedRule(key, domain)) continue;
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(39,42,50), 0));
+            row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(32, 43, 59), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
             Button del = new Button(this); del.setText("刪除"); del.setTextSize(14); del.setAllCaps(false);
             del.setTextColor(Color.WHITE); del.setFocusable(true); del.setMinHeight(dp(48));
