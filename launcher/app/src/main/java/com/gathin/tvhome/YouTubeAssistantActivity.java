@@ -37,7 +37,7 @@ public class YouTubeAssistantActivity extends Activity {
         window.setDimAmount(0.6f);
         if (android.os.Build.VERSION.SDK_INT >= 31) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-            window.setBlurBehindRadius(dp(25));
+            window.setBackgroundBlurRadius(dp(25));
         }
         window.setGravity(android.view.Gravity.CENTER);
 
