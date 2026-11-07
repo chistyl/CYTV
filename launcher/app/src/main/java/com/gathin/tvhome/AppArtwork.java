@@ -11,6 +11,28 @@ import android.graphics.drawable.Drawable;
 final class AppArtwork {
     private AppArtwork() { }
 
+    static void drawFull(Canvas canvas, RectF tile, Drawable artwork, int backgroundColor) {
+        Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
+        background.setColor(backgroundColor);
+        canvas.drawRect(tile, background);
+        if (artwork == null) return;
+        Drawable mark = artwork.getConstantState() != null
+                ? artwork.getConstantState().newDrawable().mutate() : artwork.mutate();
+        float aspect = mark.getIntrinsicWidth() > 0 && mark.getIntrinsicHeight() > 0
+                ? (float) mark.getIntrinsicWidth() / mark.getIntrinsicHeight() : tile.width() / tile.height();
+        float width = tile.width();
+        float height = width / aspect;
+        if (height > tile.height()) {
+            height = tile.height();
+            width = height * aspect;
+        }
+        Rect oldBounds = new Rect(mark.getBounds());
+        mark.setBounds(Math.round(tile.centerX() - width / 2f), Math.round(tile.centerY() - height / 2f),
+                Math.round(tile.centerX() + width / 2f), Math.round(tile.centerY() + height / 2f));
+        mark.draw(canvas);
+        mark.setBounds(oldBounds);
+    }
+
     static void draw(Canvas canvas, RectF tile, Drawable artwork, int backgroundColor, float scale) {
         Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
         background.setColor(backgroundColor);
