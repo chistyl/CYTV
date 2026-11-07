@@ -1,15 +1,29 @@
 package com.gathin.tvhome;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
+import android.content.res.Resources;
 
 /** Shared aspect-preserving renderer for custom app artwork in every launcher surface. */
 final class AppArtwork {
     private AppArtwork() { }
+
+    /** Build a reusable 16:9 tile image with exactly the same renderer used by the desktop. */
+    static Drawable render(Resources resources, Drawable artwork, int backgroundColor, float scale, boolean fullTile) {
+        int width = 640, height = 360;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        RectF tile = new RectF(0, 0, width, height);
+        if (fullTile) drawFull(canvas, tile, artwork, backgroundColor);
+        else draw(canvas, tile, artwork, backgroundColor, scale);
+        return new BitmapDrawable(resources, bitmap);
+    }
 
     static void drawFull(Canvas canvas, RectF tile, Drawable artwork, int backgroundColor) {
         Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
