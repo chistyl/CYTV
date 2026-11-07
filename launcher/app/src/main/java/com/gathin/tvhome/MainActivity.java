@@ -5839,7 +5839,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
             catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
         });
-        TextView resetAction = addRoundedAction(panel, "還原預設", () -> {
+        TextView resetAction = addRoundedAction(panel, "恢復預設", () -> {
             wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
                     .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", false)
@@ -5856,7 +5856,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             actionLp.bottomMargin = (int)(4*density);
             action.setLayoutParams(actionLp);
         }
-        // 主題圖片下方保留 QR 傳圖、選擇圖片與還原預設三項功能；不再顯示取消／儲存。
+        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         thumbnailItems[3].setNextFocusDownId(qrAction.getId());
         thumbnailItems[4].setNextFocusDownId(qrAction.getId());
         thumbnailItems[5].setNextFocusDownId(qrAction.getId());
