@@ -480,32 +480,32 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         for (String pkg : previewPackages) {
             if (index >= 4) break;
             int x = positions[index][0], y = positions[index][1];
-            paint.setColor(custom.getInt("background_" + pkg, Color.WHITE));
-            canvas.drawRoundRect(x, y, x + cellW, y + cellH, 18, 18, paint);
             int save = canvas.save();
             android.graphics.Path rounded = new android.graphics.Path();
             rounded.addRoundRect(x, y, x + cellW, y + cellH, 18, 18, android.graphics.Path.Direction.CW);
             canvas.clipPath(rounded);
             try {
                 ResolveInfo ri = resolved.get(pkg);
-                Drawable banner = null;
-                boolean forceIcon = custom.getString("icon_" + pkg, null) != null || custom.getBoolean(
+                Drawable artwork = null;
+                String customUri = custom.getString("icon_" + pkg, null);
+                boolean forceIcon = customUri != null || custom.getBoolean(
                         "icon_scale_override_" + pkg, custom.contains("icon_scale_adjust_" + pkg));
-                if (ri != null && !forceIcon) banner = loadBanner(ctx.getPackageManager(), ri);
-                if (banner != null) {
-                    banner.setBounds(x, y, x + cellW, y + cellH); banner.draw(canvas);
+                if (ri != null && !forceIcon) artwork = loadBanner(previewPm, ri);
+                if (artwork == null && customUri != null) {
+                    try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customUri))) {
+                        if (in != null) artwork = Drawable.createFromStream(in, null);
+                    } catch (Exception ignored) { }
+                }
+                if (artwork == null) artwork = previewPm.getApplicationIcon(pkg);
+                int adjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
+                float scale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + adjustment / 100f)));
+                android.graphics.RectF tile = new android.graphics.RectF(x, y, x + cellW, y + cellH);
+                int tileColor = custom.getInt("background_" + pkg, Color.WHITE);
+                if (ri != null && !forceIcon && customUri == null && artwork != null
+                        && AppAdapter.isBannerShaped(artwork.getIntrinsicWidth(), artwork.getIntrinsicHeight())) {
+                    AppArtwork.drawFull(canvas, tile, artwork, tileColor);
                 } else {
-                    Drawable icon = null;
-                    String customUri = custom.getString("icon_" + pkg, null);
-                    if (customUri != null) {
-                        try (InputStream in = ctx.getContentResolver().openInputStream(Uri.parse(customUri))) {
-                            if (in != null) icon = Drawable.createFromStream(in, null);
-                        } catch (Exception ignored) { }
-                    }
-                    if (icon == null) icon = ctx.getPackageManager().getApplicationIcon(pkg);
-                    int side = 66;
-                    icon.setBounds(x + (cellW-side)/2, y + (cellH-side)/2, x + (cellW+side)/2, y + (cellH+side)/2);
-                    icon.draw(canvas);
+                    AppArtwork.draw(canvas, tile, artwork, tileColor, scale);
                 }
             } catch (Exception ignored) { }
             canvas.restoreToCount(save);
@@ -517,13 +517,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Apps without a TV banner: larger original icon centred on a solid, user-selectable colour. */
     private Drawable iconBanner(Drawable icon, int backgroundColor, float iconScale) {
         int w = 640, h = 360;
-        int side = Math.max(36, Math.min(640, Math.round(240 * Math.max(0.10f, Math.min(3.75f, iconScale)))));
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
-        canvas.drawColor(backgroundColor);
-        Drawable mark = icon.getConstantState() != null ? icon.getConstantState().newDrawable().mutate() : icon;
-        mark.setBounds((w - side) / 2, (h - side) / 2, (w + side) / 2, (h + side) / 2);
-        mark.draw(canvas);
+        AppArtwork.draw(canvas, new android.graphics.RectF(0, 0, w, h), icon, backgroundColor, iconScale);
         return new BitmapDrawable(ctx.getResources(), bmp);
     }
 

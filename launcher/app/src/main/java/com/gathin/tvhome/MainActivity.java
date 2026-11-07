@@ -5294,17 +5294,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         ImageView image = new ImageView(this);
                         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
                         if (isApp && appInfo != null) {
-                            Drawable banner = loadFolderTvBanner(appInfo, pkg, prefs);
-                            if (banner != null) {
-                                image.setImageDrawable(banner);
-                                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            } else {
-                                image.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-                                int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                                float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-                                int pad = Math.max((int)(3*density), (int)(10*density/scale));
-                                image.setPadding(pad, pad, pad, pad);
-                            }
+                            image.setImageDrawable(loadFolderTileArtwork(appInfo, pkg, prefs));
+                            image.setScaleType(ImageView.ScaleType.FIT_XY);
+                            image.setPadding(0, 0, 0, 0);
                         } else {
                             image.setImageResource(R.drawable.ic_folder_tv);
                             image.setPadding((int)(12*density), (int)(7*density),
@@ -5572,11 +5564,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String uri = prefs.getString("icon_" + pkg, null);
         if (uri != null) {
             try (java.io.InputStream in = getContentResolver().openInputStream(Uri.parse(uri))) {
-                if (in != null) return Drawable.createFromStream(in, null);
+                if (in != null) {
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(in);
+                    if (bitmap != null) return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
+                }
             } catch (Exception ignored) { }
         }
         try { return getPackageManager().getApplicationIcon(pkg); }
         catch (PackageManager.NameNotFoundException ignored) { return getDrawable(android.R.drawable.sym_def_app_icon); }
+    }
+
+    /** Resolve and render an APP tile through the exact same 16:9 artwork renderer as the desktop. */
+    private Drawable loadFolderTileArtwork(ResolveInfo ri, String pkg, SharedPreferences prefs) {
+        int background = prefs.getInt("background_" + pkg, Color.WHITE);
+        int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+        float scale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + adjustment / 100f)));
+        Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
+        if (banner != null) return AppArtwork.render(getResources(), banner, background, scale, true);
+        Drawable icon = loadFolderAppIcon(pkg, prefs);
+        return AppArtwork.render(getResources(), icon, background, scale, false);
     }
 
     /**
@@ -6294,18 +6300,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             artworkClip.setCornerRadius(20*density);
             artwork.setBackground(artworkClip);
             artwork.setClipToOutline(true);
-            Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
-            if (banner != null) {
-                artwork.setImageDrawable(banner);
-                artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            } else {
-                artwork.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-                artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                float scale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
-                int pad = Math.max((int)(3*density), (int)(10*density/scale));
-                artwork.setPadding(pad, pad, pad, pad);
-            }
+            artwork.setImageDrawable(loadFolderTileArtwork(ri, pkg, prefs));
+            artwork.setScaleType(ImageView.ScaleType.FIT_XY);
+            artwork.setPadding(0, 0, 0, 0);
             card.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
             tile.addView(card, new LinearLayout.LayoutParams(-1,
                     Math.round(tileWidthDp * 9f / 16f * density)));
@@ -6810,19 +6807,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                 artworkClip.setCornerRadius(20 * density);
                 artwork.setBackground(artworkClip);
                 artwork.setClipToOutline(true);
-                Drawable banner = loadFolderTvBanner(ri, packageName, prefs);
-                if (banner != null) {
-                    artwork.setImageDrawable(banner);
-                    artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                } else {
-                    artwork.setImageDrawable(loadFolderAppIcon(packageName, prefs));
-                    artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    int adjustment = prefs.getInt("icon_scale_adjust_" + packageName, 0);
-                    float relativeScale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
-                    // 放大資料夾內 APP 圖示：減少內距，讓圖示在卡片中更飽滿。
-                    int iconPadding = Math.max((int)(3*density), (int)(10*density/relativeScale));
-                    artwork.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-                }
+                // Render the complete tile bitmap with the same dimensions, scale math and background
+                // as the desktop. Do not independently approximate the desktop result with ImageView padding.
+                artwork.setImageDrawable(loadFolderTileArtwork(ri, packageName, prefs));
+                artwork.setScaleType(ImageView.ScaleType.FIT_XY);
+                artwork.setPadding(0, 0, 0, 0);
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
                 LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1,
                         Math.round(folderTileDp * 9f / 16f * density));
@@ -7250,21 +7239,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             int adjustment = sizeBar.getProgress() - 50;
             float iconScale = Math.max(0.10f, Math.min(3.75f,
                     1.25f * (1f + adjustment / 100f)));
-            // Match AppAdapter.iconBanner(): a 240px square mark on a 640px-wide 16:9 tile.
-            int cardWidth = preview.targetCard.getWidth() > 0
-                    ? preview.targetCard.getWidth()
-                    : preview.targetCard.getLayoutParams().width;
-            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
-            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
-            iconLp.width = iconSide;
-            iconLp.height = iconSide;
-            iconLp.gravity = Gravity.CENTER;
-            preview.targetIcon.setPadding(0, 0, 0, 0);
-            preview.targetIcon.setLayoutParams(iconLp);
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
-            bg.setCornerRadius(14 * density);
-            preview.targetCard.setBackground(bg);
+            int liveColor = Color.rgb(rgb[0], rgb[1], rgb[2]);
+            preview.targetIcon.setImageDrawable(AppArtwork.render(getResources(),
+                    preview.sourceArtwork, liveColor, iconScale, false));
+            preview.targetIcon.setScaleType(ImageView.ScaleType.FIT_XY);
+            GradientDrawable liveBackground = new GradientDrawable();
+            liveBackground.setColor(liveColor);
+            liveBackground.setCornerRadius(14 * density);
+            preview.targetCard.setBackground(liveBackground);
             for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -7900,6 +7882,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         final LinearLayout view;
         FrameLayout targetCard;
         ImageView targetIcon;
+        Drawable sourceArtwork;
         // Legacy preview helper still uses this baseline for its existing dialog.
         final int iconBaseDp = 36;
         AppIconPreviewStrip(LinearLayout view) { this.view = view; }
@@ -7925,20 +7908,38 @@ private GradientDrawable roundSurface(int color, float radius) {
         int cardWidth = (int)(160*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
-        icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
-        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        // Preview the actual native/custom APP icon (not a generic placeholder), using the
+        // same artwork renderer and scale/background rules that the desktop uses after Apply.
+        Drawable sourceArtwork = loadFolderAppIcon(targetPackage, prefs);
+        result.sourceArtwork = sourceArtwork;
+        icon.setImageDrawable(sourceArtwork);
+        icon.setScaleType(ImageView.ScaleType.FIT_XY);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
         float iconScale = Math.max(0.10f, Math.min(3.75f,
                 1.25f * (1f + adjust / 100f)));
-        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(-1, -1);
         card.addView(icon, iconLp);
+        updateAppArtworkPreview(card, icon, sourceArtwork, targetPackage, prefs, iconScale);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
 
         result.targetCard = card;
         result.targetIcon = icon;
         return result;
+    }
+
+    /** Redraw the settings preview with the same AppArtwork renderer as every APP tile. */
+    private void updateAppArtworkPreview(FrameLayout card, ImageView image, Drawable source,
+                                         String pkg, SharedPreferences prefs, float scale) {
+        if (card == null || image == null) return;
+        int background = prefs.getInt("background_" + pkg, Color.WHITE);
+        image.setImageDrawable(AppArtwork.render(getResources(), source, background, scale, false));
+        image.setScaleType(ImageView.ScaleType.FIT_XY);
+        image.setPadding(0, 0, 0, 0);
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(background);
+        surface.setCornerRadius(14 * density);
+        card.setBackground(surface);
     }
 
     /** Custom RGB picker for an app tile's background. */
@@ -7954,10 +7955,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         String[] channels = {"紅色", "綠色", "藍色"};
         SeekBar[] bars = new SeekBar[3];
         Runnable update = () -> {
-            if (livePreview.targetCard != null) {
+            if (livePreview.targetCard != null && livePreview.targetIcon != null) {
+                int liveColor = Color.rgb(rgb[0], rgb[1], rgb[2]);
+                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+                float iconScale = Math.max(0.10f, Math.min(3.75f,
+                        1.25f * (1f + adjustment / 100f)));
+                livePreview.targetIcon.setImageDrawable(AppArtwork.render(getResources(),
+                        livePreview.sourceArtwork, liveColor, iconScale, false));
+                livePreview.targetIcon.setScaleType(ImageView.ScaleType.FIT_XY);
                 GradientDrawable swatch = new GradientDrawable();
-                swatch.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
-                swatch.setCornerRadius(10*density);
+                swatch.setColor(liveColor);
+                swatch.setCornerRadius(14*density);
                 livePreview.targetCard.setBackground(swatch);
             }
         };
