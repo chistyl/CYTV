@@ -4658,16 +4658,53 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setDimAmount(0.6f);
         }
 
+        // 明確指定遙控器焦點路徑，避免 TV 韌體依畫面距離推算時跳過底部按鈕。
+        int firstLocationId = device.getId();
+        int cityTargetId = city.getVisibility() == View.VISIBLE ? city.getId() : cancel.getId();
         dayOption.setNextFocusRightId(weekOption.getId());
+        dayOption.setNextFocusDownId(firstLocationId);
+        dayOption.setNextFocusForwardId(firstLocationId);
         weekOption.setNextFocusLeftId(dayOption.getId());
-        enabledSwitch.setNextFocusDownId(device.getId());
+        weekOption.setNextFocusDownId(firstLocationId);
+        weekOption.setNextFocusForwardId(firstLocationId);
+        enabledSwitch.setNextFocusDownId(firstLocationId);
+        enabledSwitch.setNextFocusLeftId(weekOption.getId());
+        device.setNextFocusUpId(dayOption.getId());
         device.setNextFocusDownId(cityMode.getId());
-        cityMode.setNextFocusDownId(city.getVisibility() == View.VISIBLE ? city.getId() : cancel.getId());
+        cityMode.setNextFocusUpId(device.getId());
+        cityMode.setNextFocusDownId(cityTargetId);
+        cityMode.setNextFocusForwardId(cityTargetId);
+        city.setNextFocusUpId(cityMode.getId());
         city.setNextFocusDownId(cancel.getId());
-        cancel.setNextFocusRightId(save.getId());
-        save.setNextFocusLeftId(cancel.getId());
+        city.setNextFocusForwardId(cancel.getId());
         cancel.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
         save.setNextFocusUpId(cancel.getNextFocusUpId());
+        cancel.setNextFocusRightId(save.getId());
+        cancel.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusRightId(save.getId());
+        // 遙控器在輸入城市欄按向下，直接進入取消；再按向右即可到儲存。
+        city.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancel.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        cancel.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                save.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        save.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancel.requestFocus();
+                return true;
+            }
+            return false;
+        });
         dayOption.post(dayOption::requestFocus);
     }
 
