@@ -617,6 +617,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
+        // Use the launcher's existing moving GlassView as the weather card's focus indicator,
+        // so DPAD selection travels with the same spring motion used between app tiles.
+        weeklyWeatherView.setOnFocusChangeListener((v, focused) -> {
+            if (focused) showWeatherFocusGlass();
+        });
         weeklyWeatherView.setLongClickable(false);
         weeklyWeatherView.setForeground(null);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -2430,6 +2435,58 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             hero.setAlpha(0f);
             ambient.setAlpha(0f);
             heroArt.setAlpha(0f);
+        }
+    }
+
+    /** Move the same spring-animated app selection glass onto the single-day weather card. */
+    private void showWeatherFocusGlass() {
+        if (weeklyWeatherView == null || root == null || glass == null
+                || weeklyWeatherView.getVisibility() != View.VISIBLE
+                || weeklyWeatherView.getWidth() <= 0 || weeklyWeatherView.getHeight() <= 0) return;
+        Rect r = tileRect;
+        r.set(0, 0, weeklyWeatherView.getWidth(), weeklyWeatherView.getHeight());
+        root.offsetDescendantRectToMyCoords(weeklyWeatherView, r);
+        float pad = 6f * density;
+        float scale = adapter != null ? adapter.focusScale() : 1f;
+        float w = weeklyWeatherView.getWidth() * scale + 2 * pad;
+        float h = weeklyWeatherView.getHeight() * scale + 2 * pad;
+        float x = r.exactCenterX() - w / 2f;
+        float y = r.exactCenterY() - h / 2f;
+
+        ViewGroup.LayoutParams lp = glass.getLayoutParams();
+        if (lp.width != (int) w || lp.height != (int) h
+                || glassCardW != weeklyWeatherView.getWidth()) {
+            lp.width = (int) w;
+            lp.height = (int) h;
+            glass.setLayoutParams(lp);
+            glass.setRadius(AppAdapter.cornerRadius(weeklyWeatherView.getWidth(), density) * scale);
+        }
+        glassCardW = weeklyWeatherView.getWidth();
+        glassScrollShift = 0f;
+        glassScrollShiftX = 0f;
+        glassTargetX = x;
+        glassTargetY = y;
+        // Weather uses the same neutral glass rim as ordinary app selection.
+        if (glassAccent != 0) {
+            glassAccent = 0;
+            glass.setAccent(0);
+        }
+        if (!glassShown) {
+            springX.cancel();
+            springY.cancel();
+            glass.setTranslationX(x);
+            glass.setTranslationY(y);
+            if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
+            else glass.setAlpha(1f);
+            glassShown = true;
+        } else if (!animations || reducedMotion) {
+            springX.cancel();
+            springY.cancel();
+            glass.setTranslationX(x);
+            glass.setTranslationY(y);
+        } else {
+            springX.animateToFinalPosition(x);
+            springY.animateToFinalPosition(y);
         }
     }
 
