@@ -13,6 +13,7 @@ on:
       - fix/icon-appearance-dialog-match-folder-r1
       - fix/wallpaper-restore-default-label-r1
       - fix/adblock-settings-ui-center-layout-r1
+      - fix/youtube-assistant-folder-glass-dialog-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
       - fix/system-folder-app-category-entry-6f700f1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
