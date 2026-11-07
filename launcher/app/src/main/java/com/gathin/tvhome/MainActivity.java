@@ -5297,7 +5297,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                             Drawable banner = loadFolderTvBanner(appInfo, pkg, prefs);
                             if (banner != null) {
                                 image.setImageDrawable(banner);
-                                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                image.setScaleType(ImageView.ScaleType.FIT_CENTER);
                             } else {
                                 image.setImageDrawable(loadFolderAppIcon(pkg, prefs));
                                 int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
@@ -5553,9 +5553,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         content.post(() -> appTab.requestFocus());
     }
 
-    /** 取得 TV 橫幅；若使用者自訂圖示／尺寸，則依桌面設定改用圖示卡片。 */
+    /** 依使用者上傳圖片的原始尺寸自動分類：方形走 APP 圖示，橫幅走 TV Banner。 */
+    static boolean isTvBannerImage(int width, int height) {
+        return width > 0 && height > 0 && width >= height * 1.4f;
+    }
+
     private Drawable loadFolderTvBanner(ResolveInfo ri, String pkg, SharedPreferences prefs) {
-        if (prefs.getString("icon_" + pkg, null) != null || prefs.getBoolean("icon_scale_override_" + pkg,
+        String customUri = prefs.getString("icon_" + pkg, null);
+        if (customUri != null) {
+            // 先讀取圖片尺寸，不解碼整張圖片；寬幅圖保留為 Banner，方形圖交給圖示顯示流程。
+            try (java.io.InputStream bounds = getContentResolver().openInputStream(Uri.parse(customUri))) {
+                if (bounds != null) {
+                    android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    android.graphics.BitmapFactory.decodeStream(bounds, null, options);
+                    if (isTvBannerImage(options.outWidth, options.outHeight)) {
+                        try (java.io.InputStream artwork = getContentResolver().openInputStream(Uri.parse(customUri))) {
+                            if (artwork != null) return Drawable.createFromStream(artwork, null);
+                        }
+                    }
+                }
+            } catch (Exception ignored) { }
+            return null;
+        }
+        if (prefs.getBoolean("icon_scale_override_" + pkg,
                 prefs.contains("icon_scale_adjust_" + pkg))) return null;
         Drawable banner = null;
         try { banner = ri.activityInfo.loadBanner(getPackageManager()); } catch (RuntimeException ignored) { }
@@ -6312,7 +6333,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
             if (banner != null) {
                 artwork.setImageDrawable(banner);
-                artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
             } else {
                 artwork.setImageDrawable(loadFolderAppIcon(pkg, prefs));
                 artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -7940,14 +7961,26 @@ private GradientDrawable roundSurface(int color, float radius) {
         int cardWidth = (int)(160*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
-        icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
+        Drawable bannerPreview = null;
+        for (ResolveInfo candidate : getPackageManager().queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+            if (candidate.activityInfo.packageName.equals(targetPackage)) {
+                bannerPreview = loadFolderTvBanner(candidate, targetPackage, prefs);
+                break;
+            }
+        }
+        icon.setImageDrawable(bannerPreview != null ? bannerPreview : loadFolderAppIcon(targetPackage, prefs));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
-        float iconScale = Math.max(0.10f, Math.min(3.75f,
-                1.25f * (1f + adjust / 100f)));
-        int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
-        card.addView(icon, iconLp);
+        if (bannerPreview != null) {
+            card.addView(icon, new FrameLayout.LayoutParams(-1, -1));
+        } else {
+            int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
+            float iconScale = Math.max(0.10f, Math.min(3.75f,
+                    1.25f * (1f + adjust / 100f)));
+            int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+            card.addView(icon, iconLp);
+        }
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
 
