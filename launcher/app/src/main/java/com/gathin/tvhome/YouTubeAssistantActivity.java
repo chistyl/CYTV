@@ -18,10 +18,11 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
-    private static final int BG = Color.rgb(5, 18, 34);
-    private static final int PANEL = Color.rgb(18, 43, 65);
-    private static final int FOCUS = Color.rgb(18, 83, 100);
-    private static final int ACCENT = Color.rgb(0, 224, 211);
+    // Match the Ad Block settings palette: deep navy background, slate panels and teal focus.
+    private static final int BG = Color.rgb(16, 25, 40);
+    private static final int PANEL = Color.rgb(32, 44, 60);
+    private static final int FOCUS = Color.rgb(23, 79, 88);
+    private static final int ACCENT = Color.rgb(0, 207, 198);
     private static final int TEXT = Color.rgb(245, 246, 250);
     private static final int MUTED = Color.rgb(172, 184, 193);
 
@@ -56,10 +57,7 @@ public class YouTubeAssistantActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(android.view.Gravity.CENTER);
         root.setPadding(horizontalInset, verticalInset, horizontalInset, verticalInset);
-        GradientDrawable pageBackground = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(5, 17, 33), Color.rgb(8, 39, 61), Color.rgb(5, 23, 43)});
-        root.setBackground(pageBackground);
+        root.setBackgroundColor(BG);
         scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -1));
 
         LinearLayout content = new LinearLayout(this);
@@ -76,9 +74,7 @@ public class YouTubeAssistantActivity extends Activity {
         content.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         View accentLine = new View(this);
-        GradientDrawable accentDrawable = new GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{Color.rgb(0, 190, 190), ACCENT, Color.rgb(0, 190, 190)});
+        GradientDrawable accentDrawable = round(ACCENT, dp(4));
         accentDrawable.setCornerRadius(dp(4));
         accentLine.setBackground(accentDrawable);
         LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams(dp(88), dp(5));
@@ -152,7 +148,7 @@ public class YouTubeAssistantActivity extends Activity {
         TextView button = text(label, 16, true, TEXT);
         button.setGravity(android.view.Gravity.CENTER);
         button.setPadding(dp(18), dp(10), dp(18), dp(10));
-        GradientDrawable buttonBackground = round(Color.rgb(13, 72, 91), dp(18));
+        GradientDrawable buttonBackground = round(FOCUS, dp(18));
         buttonBackground.setStroke(dp(2), ACCENT);
         button.setBackground(buttonBackground);
         button.setId(View.generateViewId());
@@ -166,7 +162,7 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
-                hasFocus ? Color.rgb(12, 91, 104) : Color.rgb(13, 72, 91), dp(18));
+                hasFocus ? Color.rgb(18, 104, 108) : FOCUS, dp(18));
         background.setStroke(dp(2), ACCENT);
         view.setBackground(background);
         view.setElevation(hasFocus ? dp(5) : 0f);
@@ -510,11 +506,8 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(22), dp(20), dp(22), dp(20));
-        GradientDrawable surface = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{Color.rgb(27, 53, 79), Color.rgb(15, 43, 65), Color.rgb(13, 39, 60)});
-        surface.setCornerRadius(dp(24));
-        surface.setStroke(dp(1), 0x6678B8D8);
+        GradientDrawable surface = round(PANEL, dp(24));
+        surface.setStroke(dp(1), 0x553D526A);
         card.setBackground(surface);
         return card;
     }
