@@ -220,6 +220,25 @@ public class YouTubeAssistantActivity extends Activity {
     }
 
     private void showPairingDialog() {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(24), dp(20), dp(24), dp(20));
+        GradientDrawable panelBackground = round(Color.rgb(29, 33, 43), dp(22));
+        panelBackground.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(panelBackground);
+
+        TextView title = text("連接 YouTube TV", 20, true, TEXT);
+        title.setGravity(android.view.Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
+        help.setGravity(android.view.Gravity.CENTER);
+        LinearLayout.LayoutParams helpLp = new LinearLayout.LayoutParams(-1, -2);
+        helpLp.topMargin = dp(8);
+        panel.addView(help, helpLp);
+
         EditText input = new EditText(this);
         input.setId(View.generateViewId());
         input.setSingleLine(true);
@@ -229,157 +248,190 @@ public class YouTubeAssistantActivity extends Activity {
         input.setTextColor(Color.WHITE);
         input.setHintTextColor(MUTED);
         input.setTextSize(18);
+        input.setGravity(android.view.Gravity.CENTER_VERTICAL);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
                 | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setPadding(dp(14), dp(12), dp(14), dp(12));
         input.setBackground(round(PANEL, dp(10)));
+        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, dp(68));
+        inputLp.topMargin = dp(12);
+        panel.addView(input, inputLp);
 
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        // Give the help text and code field balanced left/right insets inside the fixed dialog.
-        // Balanced horizontal inset for both helper text and pairing code field.
-        // Keep these insets independent from the fixed outer dialog dimensions.
-        box.setPadding(dp(20), dp(6), dp(20), dp(8));
-        TextView help = text("請在 YouTube TV 設定中取得配對代碼。", 14, false, MUTED);
-        box.addView(help);
-        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(-1, -2);
-        inputLp.topMargin = dp(8);
-        inputLp.height = dp(68);
-        box.addView(input, inputLp);
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(android.view.Gravity.CENTER);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, dp(56));
+        actionsLp.topMargin = dp(16);
+        panel.addView(actions, actionsLp);
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("連接 YouTube TV")
-                .setView(box)
-                .setPositiveButton("連接", null)
-                .setNegativeButton("取消", (d, w) -> d.dismiss())
-                .create();
-        dialog.setOnShowListener(ignored -> {
-            styleDialog(dialog, false);
-            // The shared dialog style clips the decor to its rounded outline. For this fixed-size
-            // pairing dialog that outline clips the bottom of the action buttons. Keep the same
-            // layout coordinates and outer dimensions, but disable decor outline clipping.
-            android.view.Window window = dialog.getWindow();
-            if (window != null) {
-                window.getDecorView().setClipToOutline(false);
-            }
-            if (window != null) {
-                // Lock the already-measured outer dimensions. Subsequent inner spacing changes
-                // must not resize the dialog surface.
-                View decor = window.getDecorView();
-                int fixedWidth = decor.getWidth();
-                int fixedHeight = decor.getHeight();
-                if (fixedWidth > 0 && fixedHeight > 0) {
-                    window.setLayout(fixedWidth, fixedHeight);
-                }
-                window.setGravity(android.view.Gravity.CENTER);
-                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-            }
+        TextView cancel = text("取消", 16, true, TEXT);
+        TextView connect = text("連接", 16, true, TEXT);
+        TextView[] buttons = {cancel, connect};
+        for (TextView button : buttons) {
+            button.setGravity(android.view.Gravity.CENTER);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setClickable(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setBackground(round(PANEL, dp(16)));
+            button.setMinWidth(dp(112));
+            button.setId(View.generateViewId());
+            button.setOnFocusChangeListener((view, hasFocus) -> {
+                GradientDrawable state = round(hasFocus ? FOCUS : PANEL, dp(16));
+                if (hasFocus) state.setStroke(dp(2), ACCENT);
+                view.setBackground(state);
+                view.setElevation(hasFocus ? dp(4) : 0f);
+            });
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(dp(112), dp(52));
+            buttonLp.leftMargin = dp(10);
+            buttonLp.rightMargin = dp(10);
+            actions.addView(button, buttonLp);
+        }
 
-            android.widget.Button cancelButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            android.widget.Button connectButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            // Separate the action pills; AlertDialog otherwise places them edge-to-edge.
-            if (cancelButton != null && connectButton != null) {
-                View buttons = (View) cancelButton.getParent();
-                if (buttons instanceof LinearLayout) {
-                    LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-                    cancelLp.rightMargin = dp(14);
-                    cancelButton.setLayoutParams(cancelLp);
-                    LinearLayout.LayoutParams connectLp = (LinearLayout.LayoutParams) connectButton.getLayoutParams();
-                    connectLp.leftMargin = dp(14);
-                    connectButton.setLayoutParams(connectLp);
-                    // Preserve the current button positions and right-edge alignment.
-                    // Do not translate the action row: it must remain fully inside the fixed dialog.
-                    buttons.setPadding(buttons.getPaddingLeft(), buttons.getPaddingTop(),
-                            dp(20), 0);
-                    // Keep every existing coordinate; remove clipping from the action row
-                    // and its ancestor containers so the full button height can render.
-                    buttons.setTranslationY(dp(8));
-                    android.view.ViewParent parent = buttons.getParent();
-                    while (parent instanceof android.view.ViewGroup) {
-                        android.view.ViewGroup group = (android.view.ViewGroup) parent;
-                        group.setClipChildren(false);
-                        group.setClipToPadding(false);
-                        parent = group.getParent();
-                    }
-                    ((android.view.ViewGroup) buttons).setClipChildren(false);
-                    ((android.view.ViewGroup) buttons).setClipToPadding(false);
-                }
-                // Explicit D-pad graph: input -> Cancel -> Connect, with reverse navigation.
-                input.setNextFocusDownId(cancelButton.getId());
-                cancelButton.setNextFocusUpId(input.getId());
-                connectButton.setNextFocusUpId(input.getId());
-                cancelButton.setNextFocusRightId(connectButton.getId());
-                connectButton.setNextFocusLeftId(cancelButton.getId());
-                input.setOnKeyListener((view, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN
-                            && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                        cancelButton.requestFocus();
-                        return true;
-                    }
-                    return false;
-                });
-                cancelButton.setOnKeyListener((view, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN
-                            && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                        input.requestFocus();
-                        return true;
-                    }
-                    return false;
-                });
+        input.setNextFocusDownId(cancel.getId());
+        cancel.setNextFocusUpId(input.getId());
+        connect.setNextFocusUpId(input.getId());
+        cancel.setNextFocusRightId(connect.getId());
+        connect.setNextFocusLeftId(cancel.getId());
+        input.setOnKeyListener((view, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancel.requestFocus();
+                return true;
             }
-            // Keep both action labels white in normal and focused states.
-            android.widget.Button[] actionButtons = {cancelButton, connectButton};
-            for (android.widget.Button button : actionButtons) {
-                if (button == null) continue;
-                button.setTextColor(Color.WHITE);
-                button.setOnFocusChangeListener((view, hasFocus) -> {
-                    view.setBackground(round(hasFocus ? FOCUS : PANEL, dp(16)));
-                    android.graphics.drawable.Drawable bg = view.getBackground();
-                    if (hasFocus && bg instanceof GradientDrawable) {
-                        ((GradientDrawable) bg).setStroke(dp(2), 0xFF80C9C2);
-                    }
-                    ((android.widget.Button) view).setTextColor(Color.WHITE);
-                    view.setElevation(hasFocus ? dp(4) : 0f);
-                });
-            }
-            cancelButton.setOnKeyListener((view, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_DOWN
-                        && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    connectButton.requestFocus();
-                    return true;
-                }
-                return false;
-            });
-            connectButton.setOnKeyListener((view, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_DOWN
-                        && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    cancelButton.requestFocus();
-                    return true;
-                }
-                if (event.getAction() == KeyEvent.ACTION_DOWN
-                        && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                    input.requestFocus();
-                    return true;
-                }
-                return false;
-            });
-            connectButton.setOnClickListener(v -> {
-                String code = input.getText().toString().trim();
-                if (code.isEmpty()) {
-                    input.setError("請輸入配對代碼");
-                    input.requestFocus();
-                    return;
-                }
-                dialog.dismiss();
-                pair(code);
-            });
-            // Focus the editable field after the window and action row have completed layout.
-            input.post(() -> {
+            return false;
+        });
+        cancel.setOnKeyListener((view, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                 input.requestFocus();
-                input.setSelection(input.getText().length());
-            });
+                return true;
+            }
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                connect.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        connect.setOnKeyListener((view, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancel.requestFocus();
+                return true;
+            }
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                input.requestFocus();
+                return true;
+            }
+            return false;
+        });
+
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        connect.setOnClickListener(v -> {
+            String code = input.getText().toString().trim();
+            if (code.isEmpty()) {
+                input.setError("請輸入配對代碼");
+                input.requestFocus();
+                return;
+            }
+            dialog.dismiss();
+            pair(code);
+        });
+
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(false);
+        final android.widget.ImageView backdropBlur = installPairingBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur == null) return;
+            android.view.ViewParent parent = backdropBlur.getParent();
+            if (parent instanceof android.view.ViewGroup)
+                ((android.view.ViewGroup) parent).removeView(backdropBlur);
+            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                android.graphics.Bitmap bitmap =
+                        ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+            }
         });
         dialog.show();
+        android.view.Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            window.setDimAmount(0.6f);
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int maxWidth = Math.min(dp(680), screenWidth - dp(48));
+            window.setLayout(maxWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+            window.setGravity(android.view.Gravity.CENTER);
+            window.setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        }
+        input.post(() -> {
+            input.requestFocus();
+            input.setSelection(input.getText().length());
+        });
+    }
+
+    /**
+     * Matches the folder dialog backdrop: a 25px Gaussian blur of the launcher,
+     * with the dialog window applying the same 60% dark scrim. The dialog itself
+     * is drawn afterwards and remains crisp.
+     */
+    private android.widget.ImageView installPairingBackdropBlur() {
+        final View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (!(decor instanceof android.view.ViewGroup)
+                || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        android.graphics.Bitmap source = null;
+        android.graphics.Bitmap small = null;
+        android.graphics.Bitmap blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null;
+        android.renderscript.Allocation output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decor.getWidth();
+            int height = decor.getHeight();
+            source = android.graphics.Bitmap.createBitmap(
+                    width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            decor.draw(new android.graphics.Canvas(source));
+            int smallWidth = Math.max(1, width / 4);
+            int smallHeight = Math.max(1, height / 4);
+            small = android.graphics.Bitmap.createScaledBitmap(
+                    source, smallWidth, smallHeight, true);
+            source.recycle();
+            source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(
+                    rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(6.25f); // 6.25px at quarter scale = 25px on screen.
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = android.graphics.Bitmap.createScaledBitmap(small, width, height, true);
+            android.widget.ImageView overlay = new android.widget.ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((android.view.ViewGroup) decor).addView(
+                    overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
     }
 
     private void pair(String code) {
