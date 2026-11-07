@@ -7299,10 +7299,10 @@ private GradientDrawable roundSurface(int color, float radius) {
             TextView label = new TextView(this);
             label.setTextColor(0xFFE8EBF0);
             label.setTextSize(12);
-            // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
+            // 稍微縮小 RGB 各列垂直間距，讓三組顏色控制更緊湊。
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = i == 0 ? 0 : (int)(8*density);
-            labelLp.bottomMargin = (int)(4*density);
+            labelLp.topMargin = i == 0 ? 0 : (int)(4*density);
+            labelLp.bottomMargin = (int)(3*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
 
@@ -7313,7 +7313,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setFocusableInTouchMode(true);
             styleCytvAppearanceSeekBar(bar);
             LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(31*density));
-            barLp.bottomMargin = (int)(5*density);
+            barLp.bottomMargin = (int)(3*density);
             panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
