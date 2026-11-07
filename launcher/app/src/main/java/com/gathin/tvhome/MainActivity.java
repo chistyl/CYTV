@@ -7269,10 +7269,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             int cardWidth = preview.targetCard.getWidth() > 0
                     ? preview.targetCard.getWidth()
                     : preview.targetCard.getLayoutParams().width;
+            Drawable previewArtwork = preview.targetIcon.getDrawable();
+            boolean wideArtwork = previewArtwork != null && previewArtwork.getIntrinsicWidth() > 0
+                    && previewArtwork.getIntrinsicHeight() > 0
+                    && previewArtwork.getIntrinsicWidth() >= previewArtwork.getIntrinsicHeight() * 1.4f;
             int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
             FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
-            iconLp.width = iconSide;
-            iconLp.height = iconSide;
+            iconLp.width = wideArtwork ? cardWidth : iconSide;
+            iconLp.height = wideArtwork ? Math.round(cardWidth * 9f / 16f) : iconSide;
             iconLp.gravity = Gravity.CENTER;
             preview.targetIcon.setPadding(0, 0, 0, 0);
             preview.targetIcon.setLayoutParams(iconLp);
@@ -7945,8 +7949,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
         float iconScale = Math.max(0.10f, Math.min(3.75f,
                 1.25f * (1f + adjust / 100f)));
+        Drawable previewArtwork = icon.getDrawable();
+        boolean wideArtwork = previewArtwork != null && previewArtwork.getIntrinsicWidth() > 0
+                && previewArtwork.getIntrinsicHeight() > 0
+                && previewArtwork.getIntrinsicWidth() >= previewArtwork.getIntrinsicHeight() * 1.4f;
         int iconSide = Math.max(1, Math.round(cardWidth * (240f * iconScale / 640f)));
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
+        FrameLayout.LayoutParams iconLp = wideArtwork
+                ? new FrameLayout.LayoutParams(cardWidth, cardHeight, Gravity.CENTER)
+                : new FrameLayout.LayoutParams(iconSide, iconSide, Gravity.CENTER);
         card.addView(icon, iconLp);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
