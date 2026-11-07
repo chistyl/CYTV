@@ -4119,11 +4119,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            View separator = new View(this);
-            separator.setBackgroundColor(0x665C6068);
-            dailyContent.addView(separator, new LinearLayout.LayoutParams(
-                    Math.max(1, (int)(1*density)), (int)(132*density)));
-
             LinearLayout details = new LinearLayout(this);
             details.setOrientation(LinearLayout.VERTICAL);
             details.setGravity(Gravity.CENTER_VERTICAL);
