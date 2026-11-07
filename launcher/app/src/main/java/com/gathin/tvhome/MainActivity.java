@@ -4587,7 +4587,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, (int)(52*density));
-        actionsLp.topMargin = (int)(12*density);
+        actionsLp.topMargin = (int)(22*density);
         outer.addView(actions, actionsLp);
         Button cancel = new Button(this);
         Button save = new Button(this);
