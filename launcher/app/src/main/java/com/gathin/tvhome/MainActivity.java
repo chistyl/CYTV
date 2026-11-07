@@ -7927,30 +7927,37 @@ private GradientDrawable roundSurface(int color, float radius) {
         int cardWidth = (int)(160*density);
         int cardHeight = Math.round(cardWidth * 9f / 16f);
         ImageView icon = new ImageView(this);
-        icon.setImageDrawable(loadFolderAppIcon(targetPackage, prefs));
-        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        // Preview the actual native/custom APP icon (not a generic placeholder), using the
+        // same artwork renderer and scale/background rules that the desktop uses after Apply.
+        Drawable sourceArtwork = loadFolderAppIcon(targetPackage, prefs);
+        icon.setImageDrawable(sourceArtwork);
+        icon.setScaleType(ImageView.ScaleType.FIT_XY);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
         float iconScale = Math.max(0.10f, Math.min(3.75f,
                 1.25f * (1f + adjust / 100f)));
-        Drawable artwork = icon.getDrawable();
-        float aspect = artwork == null || artwork.getIntrinsicWidth() <= 0 || artwork.getIntrinsicHeight() <= 0
-                ? 1f : (float) artwork.getIntrinsicWidth() / artwork.getIntrinsicHeight();
-        float iconWidth = cardWidth * 0.375f * iconScale;
-        float iconHeight = iconWidth / aspect;
-        float maxHeight = cardHeight * (2f / 3f) * iconScale;
-        if (iconHeight > maxHeight) {
-            iconHeight = maxHeight;
-            iconWidth = iconHeight * aspect;
-        }
-        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(
-                Math.max(1, Math.round(iconWidth)), Math.max(1, Math.round(iconHeight)), Gravity.CENTER);
+        FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(-1, -1);
         card.addView(icon, iconLp);
+        updateAppArtworkPreview(card, icon, sourceArtwork, targetPackage, prefs, iconScale);
         previewArea.addView(card, new LinearLayout.LayoutParams(cardWidth, cardHeight));
 
 
         result.targetCard = card;
         result.targetIcon = icon;
         return result;
+    }
+
+    /** Redraw the settings preview with the same AppArtwork renderer as every APP tile. */
+    private void updateAppArtworkPreview(FrameLayout card, ImageView image, Drawable source,
+                                         String pkg, SharedPreferences prefs, float scale) {
+        if (card == null || image == null) return;
+        int background = prefs.getInt("background_" + pkg, Color.WHITE);
+        image.setImageDrawable(AppArtwork.render(getResources(), source, background, scale, false));
+        image.setScaleType(ImageView.ScaleType.FIT_XY);
+        image.setPadding(0, 0, 0, 0);
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(background);
+        surface.setCornerRadius(14 * density);
+        card.setBackground(surface);
     }
 
     /** Custom RGB picker for an app tile's background. */
