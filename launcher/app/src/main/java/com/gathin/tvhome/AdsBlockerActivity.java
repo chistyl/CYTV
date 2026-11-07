@@ -348,10 +348,21 @@ public class AdsBlockerActivity extends Activity {
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        // Keep the EditText well inside the rounded dialog; its focus stroke must not
-        // touch or be clipped by the dialog's left/right edges.
+        // Match the folder window: navy-gray rounded surface with a subtle light border.
         panel.setPadding(dp(18), dp(12), dp(18), dp(8));
-        panel.setBackground(bg(Color.rgb(29, 33, 43), 0));
+        GradientDrawable panelSurface = new GradientDrawable();
+        panelSurface.setColor(Color.rgb(29, 33, 43));
+        panelSurface.setCornerRadius(dp(22));
+        panelSurface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(panelSurface);
+
+        TextView heading = label(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域", 22);
+        heading.setTextColor(Color.WHITE);
+        heading.setTypeface(null, Typeface.BOLD);
+        heading.setGravity(Gravity.CENTER);
+        heading.setPadding(dp(8), dp(2), dp(8), dp(14));
+        panel.addView(heading, new LinearLayout.LayoutParams(-1, dp(58)));
+
         LinearLayout.LayoutParams inputParams =
                 new LinearLayout.LayoutParams(-1, dp(58));
         inputParams.leftMargin = dp(4);
@@ -360,7 +371,7 @@ public class AdsBlockerActivity extends Activity {
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams actionsParams =
                 new LinearLayout.LayoutParams(-1, dp(64));
         actionsParams.topMargin = dp(8);
@@ -385,14 +396,13 @@ public class AdsBlockerActivity extends Activity {
             button.setBackground(focusBg(Color.rgb(29, 33, 43), Color.rgb(54, 64, 77)));
         }
         LinearLayout.LayoutParams cancelParams =
-                new LinearLayout.LayoutParams(-2, dp(54));
-        cancelParams.rightMargin = dp(8);
+                new LinearLayout.LayoutParams(dp(112), dp(54));
+        cancelParams.rightMargin = dp(10);
         actions.addView(cancel, cancelParams);
-        actions.addView(add, new LinearLayout.LayoutParams(-2, dp(54)));
+        actions.addView(add, new LinearLayout.LayoutParams(dp(112), dp(54)));
 
         AlertDialog dialog = new AlertDialog.Builder(this,
                 android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
                 .setView(panel)
                 .create();
 
@@ -451,25 +461,26 @@ public class AdsBlockerActivity extends Activity {
             return false;
         });
 
+        final android.widget.ImageView backdropBlur = installDnsBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.setOnShowListener(ignored -> {
             Window window = dialog.getWindow();
             if (window != null) {
-                GradientDrawable panelBackground = new GradientDrawable();
-                panelBackground.setColor(Color.rgb(29, 33, 43));
-                panelBackground.setCornerRadius(dp(22));
-                panelBackground.setStroke(dp(1), Color.rgb(66, 73, 86));
-                window.setBackgroundDrawable(panelBackground);
-                window.setDimAmount(0.68f);
+                window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.60f);
                 window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                 window.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.88f),
                         WindowManager.LayoutParams.WRAP_CONTENT);
-            }
-            TextView title = dialog.findViewById(
-                    getResources().getIdentifier("alertTitle", "id", "android"));
-            if (title != null) {
-                title.setTextColor(Color.WHITE);
-                title.setTextSize(21);
-                title.setTypeface(null, Typeface.BOLD);
             }
             input.post(input::requestFocus);
         });
