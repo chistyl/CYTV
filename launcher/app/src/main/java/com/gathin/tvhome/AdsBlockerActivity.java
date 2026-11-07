@@ -581,7 +581,8 @@ public class AdsBlockerActivity extends Activity {
             int width = decor.getWidth();
             int height = decor.getHeight();
             source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
-            new android.graphics.Canvas(source).draw(decor);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(source);
+            decor.draw(canvas);
             int smallWidth = Math.max(1, width / 4);
             int smallHeight = Math.max(1, height / 4);
             small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
