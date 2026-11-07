@@ -18,9 +18,10 @@ import android.widget.TextView;
  * Diagnostic controls are intentionally kept out of the normal UI.
  */
 public class YouTubeAssistantActivity extends Activity {
-    private static final int BG = Color.rgb(29, 33, 43);
-    private static final int PANEL = Color.rgb(52, 58, 70);
-    private static final int FOCUS = Color.rgb(70, 83, 102);
+    private static final int BG = Color.rgb(5, 18, 34);
+    private static final int PANEL = Color.rgb(18, 43, 65);
+    private static final int FOCUS = Color.rgb(18, 83, 100);
+    private static final int ACCENT = Color.rgb(0, 224, 211);
     private static final int TEXT = Color.rgb(245, 246, 250);
     private static final int MUTED = Color.rgb(172, 184, 193);
 
@@ -49,16 +50,21 @@ public class YouTubeAssistantActivity extends Activity {
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
-        scroll.setBackgroundColor(BG);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         root.setPadding(horizontalInset, verticalInset, horizontalInset, verticalInset);
+        GradientDrawable pageBackground = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(5, 17, 33), Color.rgb(8, 39, 61), Color.rgb(5, 23, 43)});
+        root.setBackground(pageBackground);
         scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -2));
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
@@ -66,11 +72,24 @@ public class YouTubeAssistantActivity extends Activity {
         title.setTextColor(TEXT);
         title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(android.view.Gravity.CENTER);
         content.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
+        View accentLine = new View(this);
+        GradientDrawable accentDrawable = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(0, 190, 190), ACCENT, Color.rgb(0, 190, 190)});
+        accentDrawable.setCornerRadius(dp(4));
+        accentLine.setBackground(accentDrawable);
+        LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams(dp(88), dp(5));
+        accentLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
+        accentLp.topMargin = dp(10);
+        content.addView(accentLine, accentLp);
+
         TextView subtitle = text("連接 YouTube TV，即可管理自動略過功能", 16, false, MUTED);
+        subtitle.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
-        subtitleLp.topMargin = dp(8);
+        subtitleLp.topMargin = dp(12);
         subtitleLp.bottomMargin = dp(22);
         content.addView(subtitle, subtitleLp);
 
@@ -97,6 +116,13 @@ public class YouTubeAssistantActivity extends Activity {
         featureStatus.setPadding(dp(2), dp(8), dp(2), dp(8));
         featureCard.addView(featureStatus);
         featureAction = actionButton("");
+        featureAction.setBackgroundColor(Color.TRANSPARENT);
+        featureAction.setOnFocusChangeListener((v, hasFocus) -> {
+            GradientDrawable state = round(hasFocus ? FOCUS : Color.TRANSPARENT, dp(12));
+            if (hasFocus) state.setStroke(dp(2), ACCENT);
+            v.setBackground(state);
+            v.setElevation(hasFocus ? dp(5) : 0f);
+        });
         featureAction.setOnClickListener(v -> {
             if (!YouTubePairingClient.hasSavedCredentials(this)) {
                 showMessageDialog("尚未連接電視", "請先連接 YouTube TV，再開啟自動略過。");
@@ -110,6 +136,7 @@ public class YouTubeAssistantActivity extends Activity {
         content.addView(featureCard, fullWidth());
 
         TextView footer = text("配對資料會使用 Android Keystore 加密保存在本機。", 13, false, MUTED);
+        footer.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams footerLp = new LinearLayout.LayoutParams(-1, -2);
         footerLp.topMargin = dp(8);
         content.addView(footer, footerLp);
@@ -125,7 +152,9 @@ public class YouTubeAssistantActivity extends Activity {
         TextView button = text(label, 16, true, TEXT);
         button.setGravity(android.view.Gravity.CENTER);
         button.setPadding(dp(18), dp(10), dp(18), dp(10));
-        button.setBackground(round(PANEL, dp(12)));
+        GradientDrawable buttonBackground = round(Color.rgb(13, 72, 91), dp(18));
+        buttonBackground.setStroke(dp(2), ACCENT);
+        button.setBackground(buttonBackground);
         button.setId(View.generateViewId());
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
@@ -137,8 +166,8 @@ public class YouTubeAssistantActivity extends Activity {
 
     private void applyFocusState(View view, boolean hasFocus) {
         GradientDrawable background = round(
-                hasFocus ? FOCUS : PANEL, dp(12));
-        if (hasFocus) background.setStroke(dp(2), 0xFF80C9C2);
+                hasFocus ? Color.rgb(12, 91, 104) : Color.rgb(13, 72, 91), dp(18));
+        background.setStroke(dp(2), ACCENT);
         view.setBackground(background);
         view.setElevation(hasFocus ? dp(5) : 0f);
     }
@@ -481,7 +510,12 @@ public class YouTubeAssistantActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(22), dp(20), dp(22), dp(20));
-        card.setBackground(round(PANEL, dp(16)));
+        GradientDrawable surface = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(27, 53, 79), Color.rgb(15, 43, 65), Color.rgb(13, 39, 60)});
+        surface.setCornerRadius(dp(24));
+        surface.setStroke(dp(1), 0x6678B8D8);
+        card.setBackground(surface);
         return card;
     }
 
