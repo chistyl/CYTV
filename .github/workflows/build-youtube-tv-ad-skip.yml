@@ -10,6 +10,7 @@ on:
       - fix/youtube-assistant-centered-teal-gradient-r2
       - fix/youtube-pairing-dialog-folder-backdrop-r1
       - fix/youtube-not-paired-dialog-folder-style-r1
+      - fix/youtube-dialog-centering-backdrop-r2
       - fix/wallpaper-restore-default-label-r1
       - feature/weekly-forecast-dialog-match-card-r1
       - fix/system-folder-remote-long-press-screen-jump-30f3f92
