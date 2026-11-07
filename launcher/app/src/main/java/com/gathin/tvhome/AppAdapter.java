@@ -547,17 +547,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private Drawable iconBanner(Drawable icon, int backgroundColor, float iconScale) {
         int w = 640, h = 360;
         int side = Math.max(36, Math.min(640, Math.round(240 * Math.max(0.10f, Math.min(3.75f, iconScale)))));
-        int sourceW = Math.max(1, icon.getIntrinsicWidth());
-        int sourceH = Math.max(1, icon.getIntrinsicHeight());
-        float fit = Math.min(1f, (float) side / Math.max(sourceW, sourceH));
-        int drawW = Math.max(1, Math.round(sourceW * fit));
-        int drawH = Math.max(1, Math.round(sourceH * fit));
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         canvas.drawColor(backgroundColor);
         Drawable mark = icon.getConstantState() != null ? icon.getConstantState().newDrawable().mutate() : icon;
-        int left = (w - drawW) / 2, top = (h - drawH) / 2;
-        mark.setBounds(left, top, left + drawW, top + drawH);
+        mark.setBounds((w - side) / 2, (h - side) / 2, (w + side) / 2, (h + side) / 2);
         mark.draw(canvas);
         return new BitmapDrawable(ctx.getResources(), bmp);
     }
