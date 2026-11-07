@@ -4357,7 +4357,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
                 TextView temperature = new TextView(this);
-                temperature.setText(Math.round(highs.optDouble(i)) + " / " + Math.round(lows.optDouble(i)));
+                int highTemp = (int) Math.round(highs.optDouble(i));
+                int lowTemp = (int) Math.round(lows.optDouble(i));
+                String temperatureText = highTemp + " / " + lowTemp;
+                SpannableString coloredTemperature = new SpannableString(temperatureText);
+                int separator = temperatureText.indexOf(" / ");
+                int warmColor = Color.rgb(255, 242, 166); // same soft warm yellow as daily card
+                int coolColor = Color.rgb(157, 231, 239); // same soft cool aqua as daily card
+                if (highTemp >= 25) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(warmColor),
+                            0, separator, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (highTemp <= 22) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(coolColor),
+                            0, separator, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                int lowStart = separator + 3;
+                if (lowTemp >= 25) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(warmColor),
+                            lowStart, temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (lowTemp <= 22) {
+                    coloredTemperature.setSpan(new ForegroundColorSpan(coolColor),
+                            lowStart, temperatureText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                temperature.setText(coloredTemperature);
                 temperature.setTextColor(Color.WHITE);
                 temperature.setTextSize(14);
                 temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,

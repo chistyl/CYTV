@@ -30,6 +30,7 @@ on:
       - feature/weather-forecast-dialog-day-week
       - fix/weather-card-dpad-glass-focus-r2
       - fix/daily-weather-card-size-position-r1
+      - feature/weekly-weather-temperature-colors-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
