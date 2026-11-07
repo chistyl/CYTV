@@ -7955,10 +7955,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         String[] channels = {"紅色", "綠色", "藍色"};
         SeekBar[] bars = new SeekBar[3];
         Runnable update = () -> {
-            if (livePreview.targetCard != null) {
+            if (livePreview.targetCard != null && livePreview.targetIcon != null) {
+                int liveColor = Color.rgb(rgb[0], rgb[1], rgb[2]);
+                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
+                float iconScale = Math.max(0.10f, Math.min(3.75f,
+                        1.25f * (1f + adjustment / 100f)));
+                livePreview.targetIcon.setImageDrawable(AppArtwork.render(getResources(),
+                        livePreview.sourceArtwork, liveColor, iconScale, false));
+                livePreview.targetIcon.setScaleType(ImageView.ScaleType.FIT_XY);
                 GradientDrawable swatch = new GradientDrawable();
-                swatch.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
-                swatch.setCornerRadius(10*density);
+                swatch.setColor(liveColor);
+                swatch.setCornerRadius(14*density);
                 livePreview.targetCard.setBackground(swatch);
             }
         };
