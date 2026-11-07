@@ -5294,17 +5294,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         ImageView image = new ImageView(this);
                         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
                         if (isApp && appInfo != null) {
-                            Drawable banner = loadFolderTvBanner(appInfo, pkg, prefs);
-                            if (banner != null) {
-                                image.setImageDrawable(banner);
-                                image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            } else {
-                                image.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-                                int adjust = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                                float scale = Math.max(0.5f, Math.min(3f, 1f + adjust / 100f));
-                                int pad = Math.max((int)(3*density), (int)(10*density/scale));
-                                image.setPadding(pad, pad, pad, pad);
-                            }
+                            image.setImageDrawable(loadFolderTileArtwork(appInfo, pkg, prefs));
+                            image.setScaleType(ImageView.ScaleType.FIT_XY);
+                            image.setPadding(0, 0, 0, 0);
                         } else {
                             image.setImageResource(R.drawable.ic_folder_tv);
                             image.setPadding((int)(12*density), (int)(7*density),
@@ -6308,18 +6300,9 @@ private GradientDrawable roundSurface(int color, float radius) {
             artworkClip.setCornerRadius(20*density);
             artwork.setBackground(artworkClip);
             artwork.setClipToOutline(true);
-            Drawable banner = loadFolderTvBanner(ri, pkg, prefs);
-            if (banner != null) {
-                artwork.setImageDrawable(banner);
-                artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            } else {
-                artwork.setImageDrawable(loadFolderAppIcon(pkg, prefs));
-                artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                int adjustment = prefs.getInt("icon_scale_adjust_" + pkg, 0);
-                float scale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
-                int pad = Math.max((int)(3*density), (int)(10*density/scale));
-                artwork.setPadding(pad, pad, pad, pad);
-            }
+            artwork.setImageDrawable(loadFolderTileArtwork(ri, pkg, prefs));
+            artwork.setScaleType(ImageView.ScaleType.FIT_XY);
+            artwork.setPadding(0, 0, 0, 0);
             card.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
             tile.addView(card, new LinearLayout.LayoutParams(-1,
                     Math.round(tileWidthDp * 9f / 16f * density)));
