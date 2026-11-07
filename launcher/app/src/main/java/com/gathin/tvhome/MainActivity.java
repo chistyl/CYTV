@@ -4617,9 +4617,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
         }
+        daySwitch.setId(View.generateViewId()); weekSwitch.setId(View.generateViewId());
         daySwitch.setNextFocusRightId(weekSwitch.getId());
         weekSwitch.setNextFocusLeftId(daySwitch.getId());
-        daySwitch.setId(View.generateViewId()); weekSwitch.setId(View.generateViewId());
         device.setNextFocusDownId(cityMode.getId());
         cityMode.setNextFocusDownId(city.getVisibility() == View.VISIBLE ? city.getId() : cancel.getId());
         city.setNextFocusDownId(cancel.getId());
