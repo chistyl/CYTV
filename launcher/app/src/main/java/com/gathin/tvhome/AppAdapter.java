@@ -499,8 +499,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 if (artwork == null) artwork = previewPm.getApplicationIcon(pkg);
                 int adjustment = custom.getInt("icon_scale_adjust_" + pkg, 0);
                 float scale = Math.max(0.10f, Math.min(3.75f, 1.25f * (1f + adjustment / 100f)));
-                AppArtwork.draw(canvas, new android.graphics.RectF(x, y, x + cellW, y + cellH),
-                        artwork, custom.getInt("background_" + pkg, Color.WHITE), scale);
+                android.graphics.RectF tile = new android.graphics.RectF(x, y, x + cellW, y + cellH);
+                int tileColor = custom.getInt("background_" + pkg, Color.WHITE);
+                if (ri != null && !forceIcon && customUri == null && artwork != null
+                        && AppAdapter.isBannerShaped(artwork.getIntrinsicWidth(), artwork.getIntrinsicHeight())) {
+                    AppArtwork.drawFull(canvas, tile, artwork, tileColor);
+                } else {
+                    AppArtwork.draw(canvas, tile, artwork, tileColor, scale);
+                }
             } catch (Exception ignored) { }
             canvas.restoreToCount(save);
             index++;
