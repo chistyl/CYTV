@@ -7239,34 +7239,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             int adjustment = sizeBar.getProgress() - 50;
             float iconScale = Math.max(0.10f, Math.min(3.75f,
                     1.25f * (1f + adjustment / 100f)));
-            // Keep the source image's own aspect ratio while applying the same scale range as the tile renderer.
-            int cardWidth = preview.targetCard.getWidth() > 0
-                    ? preview.targetCard.getWidth()
-                    : preview.targetCard.getLayoutParams().width;
-            int cardHeight = preview.targetCard.getHeight() > 0
-                    ? preview.targetCard.getHeight()
-                    : Math.round(cardWidth * 9f / 16f);
-            Drawable artwork = preview.targetIcon.getDrawable();
-            float aspect = artwork == null || artwork.getIntrinsicWidth() <= 0 || artwork.getIntrinsicHeight() <= 0
-                    ? 1f : (float) artwork.getIntrinsicWidth() / artwork.getIntrinsicHeight();
-            float maxWidth = cardWidth * 0.375f * iconScale;
-            float maxHeight = cardHeight * (2f / 3f) * iconScale;
-            float iconWidth = maxWidth;
-            float iconHeight = iconWidth / aspect;
-            if (iconHeight > maxHeight) {
-                iconHeight = maxHeight;
-                iconWidth = iconHeight * aspect;
-            }
-            FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) preview.targetIcon.getLayoutParams();
-            iconLp.width = Math.max(1, Math.round(iconWidth));
-            iconLp.height = Math.max(1, Math.round(iconHeight));
-            iconLp.gravity = Gravity.CENTER;
-            preview.targetIcon.setPadding(0, 0, 0, 0);
-            preview.targetIcon.setLayoutParams(iconLp);
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(Color.rgb(rgb[0], rgb[1], rgb[2]));
-            bg.setCornerRadius(14 * density);
-            preview.targetCard.setBackground(bg);
+            int liveColor = Color.rgb(rgb[0], rgb[1], rgb[2]);
+            preview.targetIcon.setImageDrawable(AppArtwork.render(getResources(),
+                    preview.sourceArtwork, liveColor, iconScale, false));
+            preview.targetIcon.setScaleType(ImageView.ScaleType.FIT_XY);
+            GradientDrawable liveBackground = new GradientDrawable();
+            liveBackground.setColor(liveColor);
+            liveBackground.setCornerRadius(14 * density);
+            preview.targetCard.setBackground(liveBackground);
             for (int i = 0; i < 3; i++) channelLabels[i].setText(channelNames[i] + "：" + rgb[i]);
         };
         sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -7902,6 +7882,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         final LinearLayout view;
         FrameLayout targetCard;
         ImageView targetIcon;
+        Drawable sourceArtwork;
         // Legacy preview helper still uses this baseline for its existing dialog.
         final int iconBaseDp = 36;
         AppIconPreviewStrip(LinearLayout view) { this.view = view; }
@@ -7930,6 +7911,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         // Preview the actual native/custom APP icon (not a generic placeholder), using the
         // same artwork renderer and scale/background rules that the desktop uses after Apply.
         Drawable sourceArtwork = loadFolderAppIcon(targetPackage, prefs);
+        result.sourceArtwork = sourceArtwork;
         icon.setImageDrawable(sourceArtwork);
         icon.setScaleType(ImageView.ScaleType.FIT_XY);
         int adjust = prefs.getInt("icon_scale_adjust_" + targetPackage, 0);
