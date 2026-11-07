@@ -480,7 +480,16 @@ public class AdsBlockerActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(14), dp(18), dp(12));
-        panel.setBackgroundColor(Color.rgb(22, 24, 31));
+        GradientDrawable panelSurface = new GradientDrawable();
+        panelSurface.setColor(Color.rgb(29, 33, 43));
+        panelSurface.setCornerRadius(dp(22));
+        panelSurface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(panelSurface);
+
+        TextView title = label("DNS 紀錄", 26);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(-1, dp(52)));
 
         TextView summary = label("", 17);
         summary.setTypeface(null, Typeface.BOLD);
@@ -501,7 +510,12 @@ public class AdsBlockerActivity extends Activity {
         String[] filterNames = {"全部紀錄", "只看阻擋", "只看允許"};
         for (int i = 0; i < filterNames.length; i++) {
             final int index = i;
-            Button b = button(filterNames[i], () -> { selected[0] = index; updateDnsLogRows(summary, rows, selected[0]); });
+            Button b = button(filterNames[i], () -> {
+                selected[0] = index;
+                for (int j = 0; j < filterButtons.length; j++) filterButtons[j].setSelected(j == index);
+                updateDnsLogRows(summary, rows, selected[0]);
+            });
+            b.setSelected(i == 0);
             filterButtons[i] = b;
             LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(0, dp(48), 1f);
             fp.rightMargin = dp(5);
@@ -526,15 +540,81 @@ public class AdsBlockerActivity extends Activity {
         cp.leftMargin = dp(6); actions.addView(close, cp);
         panel.addView(actions, new LinearLayout.LayoutParams(-1, dp(54)));
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("DNS 紀錄").setView(panel).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
         close.setOnClickListener(v -> dialog.dismiss());
         updateDnsLogRows(summary, rows, selected[0]);
+
+        final android.widget.ImageView backdropBlur = installDnsBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.show();
         if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setLayout((int)(getResources().getDisplayMetrics().widthPixels * 0.88), dp(560));
-            dialog.getWindow().setBackgroundDrawable(bg(Color.rgb(22, 24, 31), 0));
         }
         filterButtons[0].requestFocus();
+    }
+
+    /** Same blurred desktop backdrop and 60% dim layer used by the folder window. */
+    private android.widget.ImageView installDnsBackdropBlur() {
+        final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (!(decor instanceof ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        android.graphics.Bitmap source = null;
+        android.graphics.Bitmap small = null;
+        android.graphics.Bitmap blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null;
+        android.renderscript.Allocation output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decor.getWidth();
+            int height = decor.getHeight();
+            source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            new android.graphics.Canvas(source).draw(decor);
+            int smallWidth = Math.max(1, width / 4);
+            int smallHeight = Math.max(1, height / 4);
+            small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
+            source.recycle(); source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(6.25f);
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = android.graphics.Bitmap.createScaledBitmap(small, width, height, true);
+            android.widget.ImageView overlay = new android.widget.ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setFocusableInTouchMode(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((ViewGroup) decor).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
     }
 
     private void updateDnsLogRows(TextView summary, LinearLayout rows, int filter) {
