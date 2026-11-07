@@ -116,7 +116,8 @@ public class AdsBlockerActivity extends Activity {
     }
     private android.graphics.drawable.Drawable focusBg(int normal, int focused) {
         StateListDrawable states = new StateListDrawable();
-        states.addState(new int[]{android.R.attr.state_focused}, bg(focused, Color.rgb(255, 205, 120)));
+        states.addState(new int[]{android.R.attr.state_focused}, bg(focused, Color.rgb(0, 210, 205)));
+        states.addState(new int[]{android.R.attr.state_selected}, bg(Color.rgb(22, 75, 87), Color.rgb(0, 210, 205)));
         states.addState(new int[]{android.R.attr.state_pressed}, bg(focused, Color.WHITE));
         states.addState(new int[]{}, bg(normal, Color.TRANSPARENT));
         return states;
@@ -134,7 +135,7 @@ public class AdsBlockerActivity extends Activity {
     private Button button(String text, Runnable action) {
         Button b = new Button(this); b.setText(text); b.setTextColor(Color.WHITE); b.setTextSize(18);
         b.setAllCaps(false); b.setFocusable(true); b.setMinHeight(dp(54));
-        b.setBackground(focusBg(Color.rgb(48, 51, 60), Color.rgb(74, 79, 92)));
+        b.setBackground(focusBg(Color.rgb(38, 50, 68), Color.rgb(53, 69, 89)));
         b.setPadding(dp(18), dp(8), dp(18), dp(8));
         keepFocusedVisible(b);
         b.setOnClickListener(v -> action.run());
@@ -142,29 +143,20 @@ public class AdsBlockerActivity extends Activity {
     }
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(22, 24, 31));
+        scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(15, 24, 39));
         scroll.setFocusable(false);
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(60), dp(22), dp(60), dp(30));
+        content.setPadding(dp(84), dp(22), dp(84), dp(30));
         scroll.addView(content);
         setContentView(scroll);
-        TextView title = label("阻擋廣告", 30); title.setTypeface(null, Typeface.BOLD);
+        TextView title = label("阻擋廣告", 30); title.setTypeface(null, Typeface.BOLD); title.setGravity(Gravity.CENTER);
         content.addView(title, new LinearLayout.LayoutParams(-1, dp(58)));
         TextView desc = label("透過本機 DNS 過濾常見廣告網域。首次啟用時，Android 會詢問是否允許 VPN 連線。", 17);
-        desc.setTextColor(Color.LTGRAY); desc.setGravity(Gravity.TOP);
+        desc.setTextColor(Color.LTGRAY); desc.setGravity(Gravity.CENTER);
         content.addView(desc, new LinearLayout.LayoutParams(-1, dp(68)));
-        status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(39,42,50), 0));
+        status = label("", 19); status.setPadding(dp(16), 0, dp(16), 0); status.setBackground(bg(Color.rgb(32, 43, 59), 0));
         content.addView(status, new LinearLayout.LayoutParams(-1, dp(58)));
-        TextView deviceInfo = label("裝置識別（請回傳此行）：\nMODEL=" + Build.MODEL
-                + " | BRAND=" + Build.BRAND + " | MANUFACTURER=" + Build.MANUFACTURER
-                + " | DEVICE=" + Build.DEVICE + " | PRODUCT=" + Build.PRODUCT, 13);
-        deviceInfo.setTextColor(Color.LTGRAY);
-        deviceInfo.setGravity(Gravity.TOP);
-        deviceInfo.setMaxLines(3);
-        LinearLayout.LayoutParams deviceInfoParams = new LinearLayout.LayoutParams(-1, dp(58));
-        deviceInfoParams.topMargin = dp(6);
-        content.addView(deviceInfo, deviceInfoParams);
         TextView networkModeTitle = label("網路連線模式", 19);
         networkModeTitle.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams modeTitleParams = new LinearLayout.LayoutParams(-1, dp(42));
@@ -185,6 +177,20 @@ public class AdsBlockerActivity extends Activity {
         toggle = button("", this::toggleFilter);
         toggle.setTextSize(21);
         toggle.setTypeface(null, Typeface.BOLD);
+        StateListDrawable primaryStates = new StateListDrawable();
+        GradientDrawable primaryFocused = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(0, 190, 190), Color.rgb(0, 145, 155)});
+        primaryFocused.setCornerRadius(dp(18));
+        primaryFocused.setStroke(dp(2), Color.rgb(100, 240, 230));
+        GradientDrawable primaryNormal = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{Color.rgb(0, 150, 160), Color.rgb(0, 115, 130)});
+        primaryNormal.setCornerRadius(dp(18));
+        primaryNormal.setStroke(dp(1), Color.rgb(0, 190, 190));
+        primaryStates.addState(new int[]{android.R.attr.state_focused}, primaryFocused);
+        primaryStates.addState(new int[]{}, primaryNormal);
+        toggle.setBackground(primaryStates);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, dp(70)); tp.topMargin = dp(14);
         content.addView(toggle, tp);
         Button dnsHistory = button("查看 DNS 紀錄", this::showDnsLogs);
@@ -269,7 +275,7 @@ public class AdsBlockerActivity extends Activity {
             // keep filtering them, but never expose them in the editable rule list.
             if (isLockedRule(key, domain)) continue;
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(39,42,50), 0));
+            row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(32, 43, 59), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
             Button del = new Button(this); del.setText("刪除"); del.setTextSize(14); del.setAllCaps(false);
             del.setTextColor(Color.WHITE); del.setFocusable(true); del.setMinHeight(dp(48));
@@ -342,10 +348,21 @@ public class AdsBlockerActivity extends Activity {
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        // Keep the EditText well inside the rounded dialog; its focus stroke must not
-        // touch or be clipped by the dialog's left/right edges.
+        // Match the folder window: navy-gray rounded surface with a subtle light border.
         panel.setPadding(dp(18), dp(12), dp(18), dp(8));
-        panel.setBackground(bg(Color.rgb(29, 33, 43), 0));
+        GradientDrawable panelSurface = new GradientDrawable();
+        panelSurface.setColor(Color.rgb(29, 33, 43));
+        panelSurface.setCornerRadius(dp(22));
+        panelSurface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(panelSurface);
+
+        TextView heading = label(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域", 22);
+        heading.setTextColor(Color.WHITE);
+        heading.setTypeface(null, Typeface.BOLD);
+        heading.setGravity(Gravity.CENTER);
+        heading.setPadding(dp(8), dp(2), dp(8), dp(14));
+        panel.addView(heading, new LinearLayout.LayoutParams(-1, dp(58)));
+
         LinearLayout.LayoutParams inputParams =
                 new LinearLayout.LayoutParams(-1, dp(58));
         inputParams.leftMargin = dp(4);
@@ -354,7 +371,7 @@ public class AdsBlockerActivity extends Activity {
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams actionsParams =
                 new LinearLayout.LayoutParams(-1, dp(64));
         actionsParams.topMargin = dp(8);
@@ -379,14 +396,13 @@ public class AdsBlockerActivity extends Activity {
             button.setBackground(focusBg(Color.rgb(29, 33, 43), Color.rgb(54, 64, 77)));
         }
         LinearLayout.LayoutParams cancelParams =
-                new LinearLayout.LayoutParams(-2, dp(54));
-        cancelParams.rightMargin = dp(8);
+                new LinearLayout.LayoutParams(dp(112), dp(54));
+        cancelParams.rightMargin = dp(10);
         actions.addView(cancel, cancelParams);
-        actions.addView(add, new LinearLayout.LayoutParams(-2, dp(54)));
+        actions.addView(add, new LinearLayout.LayoutParams(dp(112), dp(54)));
 
         AlertDialog dialog = new AlertDialog.Builder(this,
                 android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(key.equals(BLOCK) ? "新增封鎖網域" : "新增允許網域")
                 .setView(panel)
                 .create();
 
@@ -445,25 +461,26 @@ public class AdsBlockerActivity extends Activity {
             return false;
         });
 
+        final android.widget.ImageView backdropBlur = installDnsBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.setOnShowListener(ignored -> {
             Window window = dialog.getWindow();
             if (window != null) {
-                GradientDrawable panelBackground = new GradientDrawable();
-                panelBackground.setColor(Color.rgb(29, 33, 43));
-                panelBackground.setCornerRadius(dp(22));
-                panelBackground.setStroke(dp(1), Color.rgb(66, 73, 86));
-                window.setBackgroundDrawable(panelBackground);
-                window.setDimAmount(0.68f);
+                window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+                window.setDimAmount(0.60f);
                 window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                 window.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.88f),
                         WindowManager.LayoutParams.WRAP_CONTENT);
-            }
-            TextView title = dialog.findViewById(
-                    getResources().getIdentifier("alertTitle", "id", "android"));
-            if (title != null) {
-                title.setTextColor(Color.WHITE);
-                title.setTextSize(21);
-                title.setTypeface(null, Typeface.BOLD);
             }
             input.post(input::requestFocus);
         });
@@ -474,7 +491,16 @@ public class AdsBlockerActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(14), dp(18), dp(12));
-        panel.setBackgroundColor(Color.rgb(22, 24, 31));
+        GradientDrawable panelSurface = new GradientDrawable();
+        panelSurface.setColor(Color.rgb(29, 33, 43));
+        panelSurface.setCornerRadius(dp(22));
+        panelSurface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
+        panel.setBackground(panelSurface);
+
+        TextView title = label("DNS 紀錄", 26);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(-1, dp(52)));
 
         TextView summary = label("", 17);
         summary.setTypeface(null, Typeface.BOLD);
@@ -495,7 +521,12 @@ public class AdsBlockerActivity extends Activity {
         String[] filterNames = {"全部紀錄", "只看阻擋", "只看允許"};
         for (int i = 0; i < filterNames.length; i++) {
             final int index = i;
-            Button b = button(filterNames[i], () -> { selected[0] = index; updateDnsLogRows(summary, rows, selected[0]); });
+            Button b = button(filterNames[i], () -> {
+                selected[0] = index;
+                for (int j = 0; j < filterButtons.length; j++) filterButtons[j].setSelected(j == index);
+                updateDnsLogRows(summary, rows, selected[0]);
+            });
+            b.setSelected(i == 0);
             filterButtons[i] = b;
             LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(0, dp(48), 1f);
             fp.rightMargin = dp(5);
@@ -520,15 +551,82 @@ public class AdsBlockerActivity extends Activity {
         cp.leftMargin = dp(6); actions.addView(close, cp);
         panel.addView(actions, new LinearLayout.LayoutParams(-1, dp(54)));
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("DNS 紀錄").setView(panel).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
         close.setOnClickListener(v -> dialog.dismiss());
         updateDnsLogRows(summary, rows, selected[0]);
+
+        final android.widget.ImageView backdropBlur = installDnsBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                android.view.ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
+        });
         dialog.show();
         if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setLayout((int)(getResources().getDisplayMetrics().widthPixels * 0.88), dp(560));
-            dialog.getWindow().setBackgroundDrawable(bg(Color.rgb(22, 24, 31), 0));
         }
         filterButtons[0].requestFocus();
+    }
+
+    /** Same blurred desktop backdrop and 60% dim layer used by the folder window. */
+    private android.widget.ImageView installDnsBackdropBlur() {
+        final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (!(decor instanceof ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        android.graphics.Bitmap source = null;
+        android.graphics.Bitmap small = null;
+        android.graphics.Bitmap blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null;
+        android.renderscript.Allocation output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decor.getWidth();
+            int height = decor.getHeight();
+            source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(source);
+            decor.draw(canvas);
+            int smallWidth = Math.max(1, width / 4);
+            int smallHeight = Math.max(1, height / 4);
+            small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
+            source.recycle(); source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(6.25f);
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = android.graphics.Bitmap.createScaledBitmap(small, width, height, true);
+            android.widget.ImageView overlay = new android.widget.ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setFocusableInTouchMode(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((ViewGroup) decor).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
     }
 
     private void updateDnsLogRows(TextView summary, LinearLayout rows, int filter) {
