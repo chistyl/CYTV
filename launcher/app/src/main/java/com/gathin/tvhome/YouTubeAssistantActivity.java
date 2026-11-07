@@ -31,34 +31,41 @@ public class YouTubeAssistantActivity extends Activity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        getWindow().setStatusBarColor(BG);
-        getWindow().setNavigationBarColor(BG);
+        android.view.Window window = getWindow();
+        window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        window.setDimAmount(0.6f);
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+            window.setBlurBehindRadius(dp(25));
+        }
+        window.setGravity(android.view.Gravity.CENTER);
 
         int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels
                 / getResources().getDisplayMetrics().density);
         int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels
                 / getResources().getDisplayMetrics().density);
-        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
-        int verticalInset = Math.max(18, Math.min(42, Math.round(screenHeightDp * 0.035f)));
-        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
+        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - 112));
         int headingSize = Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f)));
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
-        scroll.setFillViewport(true);
+        scroll.setFillViewport(false);
         scroll.setClipToPadding(false);
-        scroll.setBackgroundColor(BG);
+        scroll.setBackgroundColor(Color.TRANSPARENT);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        root.setPadding(horizontalInset, verticalInset, horizontalInset, verticalInset);
+        root.setPadding(dp(32), dp(26), dp(32), dp(26));
+        GradientDrawable glassSurface = round(BG, dp(28));
+        glassSurface.setStroke(dp(1), 0x28FFFFFF);
+        root.setBackground(glassSurface);
         scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -2));
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         root.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
@@ -66,9 +73,11 @@ public class YouTubeAssistantActivity extends Activity {
         title.setTextColor(TEXT);
         title.setTextSize(headingSize);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setGravity(android.view.Gravity.CENTER);
         content.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView subtitle = text("連接 YouTube TV，即可管理自動略過功能", 16, false, MUTED);
+        subtitle.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
         subtitleLp.topMargin = dp(8);
         subtitleLp.bottomMargin = dp(22);
@@ -117,6 +126,9 @@ public class YouTubeAssistantActivity extends Activity {
         pairingAction.setNextFocusDownId(featureAction.getId());
         featureAction.setNextFocusUpId(pairingAction.getId());
         setContentView(scroll);
+        int dialogWidth = Math.min(dp(1120),
+                (int) (getResources().getDisplayMetrics().widthPixels * 0.90f));
+        window.setLayout(dialogWidth, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         refreshUi();
         pairingAction.requestFocus();
     }
