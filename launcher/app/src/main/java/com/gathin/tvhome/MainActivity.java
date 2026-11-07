@@ -6320,7 +6320,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             name.setMaxLines(2);
             name.setEllipsize(android.text.TextUtils.TruncateAt.END);
             name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
-            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
+            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(32*density));
             nameLp.topMargin = (int)(3*density);
             tile.addView(name, nameLp);
 
@@ -7196,7 +7196,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setFocusableInTouchMode(true);
         styleCytvAppearanceSeekBar(sizeBar);
         LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
-        sizeBarLp.bottomMargin = (int)(2*density);
+        sizeBarLp.bottomMargin = (int)(5*density);
         panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
@@ -7206,7 +7206,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         colorTitle.setPadding(0, (int)(3*density), 0, 0);
         LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
         // 將「背景色自訂」標題與第一行「紅色：數值」明確拉開。
-        colorTitleLp.bottomMargin = (int)(5*density);
+        colorTitleLp.bottomMargin = (int)(8*density);
         panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -7220,8 +7220,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             label.setTextSize(12);
             // RGB 每一列標籤與滑桿之間，以及列與列之間增加留白，方便電視遠距閱讀。
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = i == 0 ? 0 : (int)(2*density);
-            labelLp.bottomMargin = (int)(1*density);
+            labelLp.topMargin = i == 0 ? 0 : (int)(4*density);
+            labelLp.bottomMargin = (int)(2*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
 
@@ -7231,8 +7231,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
             styleCytvAppearanceSeekBar(bar);
-            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(27*density));
-            barLp.bottomMargin = (int)(1*density);
+            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(29*density));
+            barLp.bottomMargin = (int)(2*density);
             panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
