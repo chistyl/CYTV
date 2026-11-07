@@ -4140,9 +4140,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             temperature.setText(Math.round(highs.optDouble(0)) + "° / "
                     + Math.round(lows.optDouble(0)) + "°");
             temperature.setTextColor(Color.WHITE);
-            temperature.setTextSize(28);
+            temperature.setTextSize(32);
             temperature.setMaxLines(1);
-            temperature.setAutoSizeTextTypeUniformWithConfiguration(20, 28, 1,
+            temperature.setAutoSizeTextTypeUniformWithConfiguration(22, 32, 1,
                     android.util.TypedValue.COMPLEX_UNIT_SP);
             LinearLayout.LayoutParams temperatureLp = new LinearLayout.LayoutParams(-1, -2);
             temperatureLp.topMargin = (int)(2*density);
