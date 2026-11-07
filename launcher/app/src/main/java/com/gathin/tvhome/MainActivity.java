@@ -4122,8 +4122,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
                     0, (int)(80*density), 4f);
-            iconFrameLp.leftMargin = (int)(-20*density);
+            iconFrameLp.leftMargin = 0;
             dailyContent.addView(iconFrame, iconFrameLp);
+            // Move the rendered weather icon itself; weighted LinearLayout margins can be absorbed.
+            iconFrame.setTranslationX(-56 * density);
             WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
             iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
