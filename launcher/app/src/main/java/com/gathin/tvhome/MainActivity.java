@@ -576,8 +576,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // across almost the entire TV screen. Use a proportion of the available content width.
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * 0.60f);
+            SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
+            boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
+            lp.width = Math.round(availableWidth * (dailyMode ? 0.50f : 0.60f));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
+            weeklyWeatherView.setMinimumHeight((int)(112 * density));
             weeklyWeatherView.setLayoutParams(lp);
         };
         clockBlock.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
@@ -4089,10 +4092,96 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
         // Keep the city heading in its own permanent card row, separate from forecast content.
         // This prevents any forecast refresh/scroll container update from replacing or clipping it.
+        boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                .getString("display_mode", "week"));
+        weeklyWeatherView.setBackgroundResource(dailyMode ? android.R.color.transparent : R.drawable.v17_weather_card);
         if (weeklyWeatherHeading != null) {
             weeklyWeatherHeading.setText(TraditionalText.toTraditional(
-                    "一週天氣・" + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
+                    (dailyMode ? "天氣預報・" : "一週天氣・")
+                    + (place == null || place.trim().isEmpty() ? "未知城市" : place)));
             weeklyWeatherHeading.setVisibility(View.VISIBLE);
+        }
+
+        // 單日模式採用橫向資訊卡：不顯示日期，放大天氣圖示與文字層級。
+        if (dailyMode && dates.length() > 0) {
+            int code = codes.optInt(0, -1);
+            LinearLayout dailyContent = new LinearLayout(this);
+            dailyContent.setOrientation(LinearLayout.HORIZONTAL);
+            dailyContent.setGravity(Gravity.CENTER_VERTICAL);
+            dailyContent.setPadding((int)(2*density), (int)(4*density),
+                    (int)(2*density), (int)(4*density));
+
+            // 單日模式採透明無邊框呈現：圖示在左，文字資訊在右。
+            FrameLayout iconFrame = new FrameLayout(this);
+            LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
+                    0, (int)(80*density), 4f);
+            iconFrameLp.rightMargin = (int)(8*density);
+            dailyContent.addView(iconFrame, iconFrameLp);
+            iconFrame.setTranslationX(0f);
+            WeeklyWeatherIconView largeIcon = new WeeklyWeatherIconView(this, code);
+            iconFrame.addView(largeIcon, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            LinearLayout details = new LinearLayout(this);
+            details.setOrientation(LinearLayout.VERTICAL);
+            details.setGravity(Gravity.CENTER_VERTICAL);
+            details.setPadding((int)(8*density), 0, (int)(2*density), 0);
+            LinearLayout.LayoutParams detailsLp = new LinearLayout.LayoutParams(0, -2, 6f);
+            dailyContent.addView(details, detailsLp);
+
+            TextView condition = new TextView(this);
+            condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
+            condition.setTextColor(0xFFF5F6FA);
+            condition.setTextSize(22);
+            condition.setMaxLines(1);
+            details.addView(condition, new LinearLayout.LayoutParams(-1, -2));
+
+            TextView temperature = new TextView(this);
+            temperature.setText(Math.round(highs.optDouble(0)) + "° / "
+                    + Math.round(lows.optDouble(0)) + "°");
+            temperature.setTextColor(Color.WHITE);
+            temperature.setTextSize(32);
+            temperature.setMaxLines(1);
+            temperature.setAutoSizeTextTypeUniformWithConfiguration(22, 32, 1,
+                    android.util.TypedValue.COMPLEX_UNIT_SP);
+            LinearLayout.LayoutParams temperatureLp = new LinearLayout.LayoutParams(-1, -2);
+            temperatureLp.topMargin = (int)(2*density);
+            details.addView(temperature, temperatureLp);
+
+            TextView precipitation = new TextView(this);
+            precipitation.setText(TraditionalText.toTraditional("降雨 "
+                    + (rain != null && !rain.isNull(0) ? rain.optInt(0) + "%" : "--")));
+            precipitation.setTextColor(0xFFD5D9E0);
+            precipitation.setTextSize(16);
+            precipitation.setMaxLines(1);
+            LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
+            precipitationLp.topMargin = (int)(2*density);
+            details.addView(precipitation, precipitationLp);
+
+            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));
+            weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
+            if (!weatherHiddenByScroll) {
+                final android.view.ViewTreeObserver observer = weeklyWeatherView.getViewTreeObserver();
+                observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override public boolean onPreDraw() {
+                        if (weeklyWeatherView == null || root == null) {
+                            if (weeklyWeatherView != null && weeklyWeatherView.getViewTreeObserver().isAlive())
+                                weeklyWeatherView.getViewTreeObserver().removeOnPreDrawListener(this);
+                            return true;
+                        }
+                        if (weeklyWeatherView.getWidth() > 0 && weeklyWeatherView.getHeight() > 0
+                                && clockBlock.getWidth() > 0 && clockBlock.getHeight() > 0) {
+                            weeklyWeatherView.getViewTreeObserver().removeOnPreDrawListener(this);
+                            if (placeWeatherOverlay != null) placeWeatherOverlay.run();
+                            weeklyWeatherView.invalidate();
+                            root.invalidate();
+                        }
+                        return true;
+                    }
+                });
+                weeklyWeatherView.requestLayout();
+            }
+            return;
         }
 
         LinearLayout forecast = new LinearLayout(this);
@@ -4449,290 +4538,257 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void showWeeklyWeatherSettings() {
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (12 * density);
-        // Keep the dialog's outer dimensions fixed; shift the content slightly upward internally.
-        content.setPadding(pad, (int) (8 * density), pad, pad);
-        android.widget.Switch toggle = new android.widget.Switch(this);
-        toggle.setText("顯示一週天氣"); toggle.setTextColor(Color.WHITE);
-        toggle.setFocusable(true); toggle.setFocusableInTouchMode(true);
-        toggle.setDefaultFocusHighlightEnabled(false);
-        toggle.setPadding((int)(10*density), (int)(8*density), (int)(10*density), (int)(8*density));
-        toggle.setMinHeight((int)(48*density));
-        toggle.setMinWidth((int)(150*density));
-        toggle.setSwitchMinWidth((int)(76*density));
-        // 開關只保留滑鈕與軌道，不顯示「開啟／關閉」文字，避免文字重疊。 
-        toggle.setShowText(false);
-        toggle.setTextOn(""); toggle.setTextOff("");
-        toggle.setBackground(remoteWeatherFocusBackground(false));
-        toggle.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(remoteWeatherFocusBackground(focused));
-            toggle.setTextColor(0xFFF5F6FA);
-            v.setScaleX(1f); v.setScaleY(1f);
+        final Dialog dialog = new Dialog(this);
+
+        // 外框固定沿用原本 680dp 寬度；只縮短高度，內部重新排版。
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(12*density),
+                (int)(18*density), (int)(12*density));
+        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+        TextView title = new TextView(this);
+        title.setText("天氣預報");
+        title.setTextColor(0xFFF5F6FA);
+        title.setTextSize(20);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+        outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+        // 顯示模式採用參考圖的圓形單選鈕，右側獨立保留天氣總開關。
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        modeRow.setGravity(Gravity.CENTER_VERTICAL);
+        android.widget.RadioGroup displayModes = new android.widget.RadioGroup(this);
+        displayModes.setOrientation(LinearLayout.HORIZONTAL);
+        android.widget.RadioButton dayOption = new android.widget.RadioButton(this);
+        android.widget.RadioButton weekOption = new android.widget.RadioButton(this);
+        dayOption.setId(View.generateViewId());
+        weekOption.setId(View.generateViewId());
+        dayOption.setText("顯示一天");
+        weekOption.setText("顯示一週");
+        int[][] checkedStates = {new int[]{android.R.attr.state_checked}, new int[]{}};
+        android.content.res.ColorStateList optionTint = new android.content.res.ColorStateList(
+                checkedStates, new int[]{0xFF80C9C2, 0xFFACB8C1});
+        for (android.widget.RadioButton option : new android.widget.RadioButton[]{dayOption, weekOption}) {
+            option.setTextColor(0xFFF5F6FA);
+            option.setTextSize(16);
+            option.setButtonTintList(optionTint);
+            option.setFocusable(true);
+            option.setFocusableInTouchMode(true);
+            option.setDefaultFocusHighlightEnabled(false);
+            option.setMinHeight((int)(42*density));
+            option.setPadding((int)(4*density), 0, (int)(18*density), 0);
+            option.setBackground(remoteWeatherFocusBackground(false));
+            option.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(remoteWeatherFocusBackground(focused)));
+            displayModes.addView(option, new android.widget.RadioGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, (int)(42*density)));
+        }
+        String displayMode = prefs.getString("display_mode", "week");
+        displayModes.check("day".equals(displayMode) ? dayOption.getId() : weekOption.getId());
+        LinearLayout.LayoutParams displayLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        modeRow.addView(displayModes, displayLp);
+
+        android.widget.Switch enabledSwitch = new android.widget.Switch(this);
+        enabledSwitch.setFocusable(true);
+        enabledSwitch.setFocusableInTouchMode(true);
+        enabledSwitch.setDefaultFocusHighlightEnabled(false);
+        enabledSwitch.setShowText(false);
+        enabledSwitch.setTextOn("");
+        enabledSwitch.setTextOff("");
+        enabledSwitch.setChecked(prefs.getBoolean("enabled", false));
+        enabledSwitch.setThumbTintList(new android.content.res.ColorStateList(
+                checkedStates, new int[]{0xFF80C9C2, 0xFFACB8C1}));
+        enabledSwitch.setTrackTintList(new android.content.res.ColorStateList(
+                checkedStates, new int[]{0xFF465366, 0xFF343A46}));
+        enabledSwitch.setContentDescription("啟用天氣預報");
+        modeRow.addView(enabledSwitch, new LinearLayout.LayoutParams(
+                (int)(58*density), (int)(42*density)));
+        outer.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
+
+        // 地點設定獨立放入深灰色圓角區塊，位置與比例比照參考圖。
+        LinearLayout locationPanel = new LinearLayout(this);
+        locationPanel.setOrientation(LinearLayout.VERTICAL);
+        locationPanel.setPadding((int)(18*density), (int)(10*density),
+                (int)(18*density), (int)(10*density));
+        locationPanel.setBackground(roundSurface(0xFF343A46, 18*density));
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(186*density));
+        panelLp.topMargin = (int)(7*density);
+        outer.addView(locationPanel, panelLp);
+
+        android.widget.RadioGroup locations = new android.widget.RadioGroup(this);
+        locations.setOrientation(LinearLayout.VERTICAL);
+        android.widget.RadioButton device = new android.widget.RadioButton(this);
+        android.widget.RadioButton cityMode = new android.widget.RadioButton(this);
+        device.setId(View.generateViewId());
+        cityMode.setId(View.generateViewId());
+        device.setText("使用電視裝置目前位置（預設）");
+        cityMode.setText("固定指定城市");
+        for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode}) {
+            option.setTextColor(Color.WHITE);
+            option.setTextSize(15);
+            option.setButtonTintList(optionTint);
+            option.setFocusable(true);
+            option.setFocusableInTouchMode(true);
+            option.setDefaultFocusHighlightEnabled(false);
+            option.setMinHeight((int)(40*density));
+            option.setPadding((int)(4*density), 0, (int)(8*density), 0);
+            option.setBackground(remoteWeatherFocusBackground(false));
+            option.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(remoteWeatherFocusBackground(focused)));
+            locations.addView(option, new android.widget.RadioGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, (int)(40*density)));
+        }
+        boolean fixed = "city".equals(prefs.getString("location_mode", "device"));
+        locations.check(fixed ? cityMode.getId() : device.getId());
+        locationPanel.addView(locations, new LinearLayout.LayoutParams(-1, (int)(80*density)));
+
+        EditText city = new EditText(this);
+        city.setId(View.generateViewId());
+        city.setSingleLine(true);
+        city.setFocusable(true);
+        city.setFocusableInTouchMode(true);
+        city.setDefaultFocusHighlightEnabled(false);
+        city.setHint("輸入城市，例如：桃園市");
+        city.setText(prefs.getString("city", "桃園市"));
+        city.setTextColor(0xFF202124);
+        city.setHintTextColor(0xFF68717D);
+        city.setTextSize(17);
+        city.setPadding((int)(14*density), 0, (int)(14*density), 0);
+        city.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+        LinearLayout.LayoutParams cityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        cityLp.topMargin = (int)(3*density);
+        locationPanel.addView(city, cityLp);
+        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
+        locations.setOnCheckedChangeListener((g, checked) ->
+                city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, (int)(52*density));
+        actionsLp.topMargin = (int)(22*density);
+        outer.addView(actions, actionsLp);
+        Button cancel = new Button(this);
+        Button save = new Button(this);
+        cancel.setText("取消");
+        save.setText("儲存");
+        for (Button button : new Button[]{cancel, save}) {
+            button.setAllCaps(false);
+            button.setTextColor(Color.WHITE);
+            button.setTextSize(16);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setMinWidth((int)(104*density));
+            button.setMinHeight((int)(50*density));
+            button.setBackground(roundSurface(0xFF343A46, 14*density));
+            button.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                    (int)(112*density), (int)(50*density));
+            buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+            actions.addView(button, buttonLp);
+        }
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        save.setOnClickListener(v -> {
+            boolean useCity = locations.getCheckedRadioButtonId() == cityMode.getId();
+            String value = city.getText().toString().trim();
+            prefs.edit()
+                    .putBoolean("enabled", enabledSwitch.isChecked())
+                    .putString("display_mode",
+                            displayModes.getCheckedRadioButtonId() == dayOption.getId() ? "day" : "week")
+                    .putString("location_mode", useCity ? "city" : "device")
+                    .putString("city", value.isEmpty() ? "桃園市" : value)
+                    .apply();
+            dialog.dismiss();
+            refreshWeeklyWeatherVisibility();
+            if (placeWeatherOverlay != null) placeWeatherOverlay.run();
         });
-        // 開關沿用青綠色選取狀態與藍灰色未選取狀態。
-        int[][] switchStates = new int[][] {
-                new int[] { android.R.attr.state_checked }, new int[] {}
-        };
-        toggle.setThumbTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFF80C9C2, 0xFFACB8C1 }));
-        toggle.setTrackTintList(new android.content.res.ColorStateList(switchStates,
-                new int[] { 0xFF465366, 0xFF343A46 }));
-        toggle.setChecked(prefs.getBoolean("enabled", false));
-        toggle.setClickable(true);
-        toggle.setOnKeyListener((v, keyCode, event) -> {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                if (event.getAction() == KeyEvent.ACTION_UP) {
-                    toggle.setChecked(!toggle.isChecked());
-                    v.playSoundEffect(android.view.SoundEffectConstants.CLICK);
+
+        dialog.setContentView(outer);
+        dialog.setOnShowListener(ignored -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                dialog.getWindow().setDimAmount(0.6f);
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
+        });
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                 }
+            }
+        });
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int fixedWidth = Math.min((int)(680*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            int reducedHeight = Math.min((int)(382*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+            dialog.getWindow().setLayout(fixedWidth, reducedHeight);
+            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setDimAmount(0.6f);
+        }
+
+        // 明確指定遙控器焦點路徑，避免 TV 韌體依畫面距離推算時跳過底部按鈕。
+        int firstLocationId = device.getId();
+        int cityTargetId = city.getVisibility() == View.VISIBLE ? city.getId() : cancel.getId();
+        dayOption.setNextFocusRightId(weekOption.getId());
+        dayOption.setNextFocusDownId(firstLocationId);
+        dayOption.setNextFocusForwardId(firstLocationId);
+        weekOption.setNextFocusLeftId(dayOption.getId());
+        weekOption.setNextFocusDownId(firstLocationId);
+        weekOption.setNextFocusForwardId(firstLocationId);
+        enabledSwitch.setNextFocusDownId(firstLocationId);
+        enabledSwitch.setNextFocusLeftId(weekOption.getId());
+        device.setNextFocusUpId(dayOption.getId());
+        device.setNextFocusDownId(cityMode.getId());
+        cityMode.setNextFocusUpId(device.getId());
+        cityMode.setNextFocusDownId(cityTargetId);
+        cityMode.setNextFocusForwardId(cityTargetId);
+        city.setNextFocusUpId(cityMode.getId());
+        city.setNextFocusDownId(cancel.getId());
+        city.setNextFocusForwardId(cancel.getId());
+        cancel.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
+        save.setNextFocusUpId(cancel.getNextFocusUpId());
+        cancel.setNextFocusRightId(save.getId());
+        cancel.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusLeftId(cancel.getId());
+        save.setNextFocusRightId(save.getId());
+        // 遙控器在輸入城市欄按向下，直接進入取消；再按向右即可到儲存。
+        city.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancel.requestFocus();
                 return true;
             }
             return false;
         });
-        content.addView(toggle);
-        android.widget.RadioGroup modes = new android.widget.RadioGroup(this);
-        modes.setOrientation(LinearLayout.VERTICAL);
-        android.widget.RadioButton device = new android.widget.RadioButton(this);
-        device.setText("使用電視裝置目前位置（預設）"); device.setTextColor(Color.WHITE); device.setId(View.generateViewId());
-        android.widget.RadioButton cityMode = new android.widget.RadioButton(this);
-        cityMode.setText("固定指定城市"); cityMode.setTextColor(Color.WHITE); cityMode.setId(View.generateViewId());
-        for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode}) {
-            option.setFocusable(true); option.setFocusableInTouchMode(true);
-            option.setDefaultFocusHighlightEnabled(false);
-            option.setMinHeight((int)(42*density));
-            option.setPadding((int)(10*density), (int)(5*density), (int)(10*density), (int)(5*density));
-            option.setBackground(remoteWeatherFocusBackground(false));
-            option.setOnFocusChangeListener((v, focused) -> {
-                android.widget.RadioButton radio = (android.widget.RadioButton) v;
-                v.setBackground(remoteWeatherFocusBackground(focused));
-                radio.setTextColor(0xFFF5F6FA);
-                // Radio checked state uses grayscale, matching the neutral dialog palette.
-                v.setScaleX(1f); v.setScaleY(1f);
-            });
-        }
-        modes.addView(device); modes.addView(cityMode);
-        int[][] radioStates = new int[][] {
-                new int[] { android.R.attr.state_checked }, new int[] {}
-        };
-        android.content.res.ColorStateList radioTint = new android.content.res.ColorStateList(
-                radioStates, new int[] { 0xFF80C9C2, 0xFFACB8C1 });
-        device.setButtonTintList(radioTint);
-        cityMode.setButtonTintList(radioTint);
-        boolean fixed = "city".equals(prefs.getString("location_mode", "device"));
-        modes.check(fixed ? cityMode.getId() : device.getId()); content.addView(modes);
-        EditText city = new EditText(this);
-        city.setSingleLine(true); city.setFocusable(true); city.setFocusableInTouchMode(true);
-        city.setDefaultFocusHighlightEnabled(false);
-        city.setHint("輸入城市，例如：桃園市"); city.setText(prefs.getString("city", "桃園市"));
-        // 輸入欄平時就維持淺色底與深色文字，不必等到取得焦點才看得清楚。
-        city.setTextColor(0xFF202124); city.setHintTextColor(0xFF68717D); city.setTextSize(20);
-        city.setPadding((int)(14*density), (int)(8*density), (int)(14*density), (int)(8*density));
-        city.setBackgroundColor(Color.TRANSPARENT);
-        FrameLayout cityField = new FrameLayout(this);
-        GradientDrawable cityNormal = new GradientDrawable();
-        cityNormal.setColor(0xFFE5E8EC); cityNormal.setCornerRadius(14*density);
-        cityNormal.setStroke(Math.max(1,(int)(1*density)), 0xFF9AA3AD);
-        GradientDrawable cityFocused = new GradientDrawable();
-        cityFocused.setColor(0xFFF8F9FA); cityFocused.setCornerRadius(14*density);
-        cityFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
-        cityField.setBackground(cityNormal);
-        cityField.setPadding((int)(3*density), (int)(3*density), (int)(3*density), (int)(3*density));
-        cityField.addView(city, new FrameLayout.LayoutParams(-1, -1));
-        city.setOnFocusChangeListener((v, hasFocus) -> {
-            cityField.setBackground(hasFocus ? cityFocused : cityNormal);
-            city.setTextColor(0xFF202124);
-            v.setScaleX(1f); v.setScaleY(1f);
-        });
-        content.addView(cityField, new LinearLayout.LayoutParams(-1, (int)(52*density)));
-        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
-        final String initialCity = city.getText().toString().trim();
-        final boolean[] cityEditedByUser = {false};
-        city.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!s.toString().trim().equals(initialCity)) cityEditedByUser[0] = true;
+        cancel.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                save.requestFocus();
+                return true;
             }
-            @Override public void afterTextChanged(android.text.Editable s) { }
+            return false;
         });
-        final boolean[] lookupStarted = {false};
-        modes.setOnCheckedChangeListener((g, checked) -> {
-            boolean showCity = checked == cityMode.getId();
-            city.setVisibility(showCity ? View.VISIBLE : View.GONE);
-            // Only auto-fill the untouched default city. A previously saved custom city is preserved.
-            if (showCity && !lookupStarted[0]
-                    && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
-                lookupStarted[0] = true;
-                weatherExecutor.execute(() -> {
-                    String detected = detectWeatherCityFromNetwork();
-                    if (detected == null) return;
-                    weatherHandler.post(() -> {
-                        if (!cityEditedByUser[0]
-                                && initialCity.equals(city.getText().toString().trim())) {
-                            city.setText(detected);
-                            city.setSelection(city.length());
-                        }
-                    });
-                });
+        save.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancel.requestFocus();
+                return true;
             }
+            return false;
         });
-        if (fixed && (initialCity.isEmpty() || "桃園市".equals(initialCity))) {
-            // Detect the suggested city without toggling the RadioButton or disturbing the saved selection.
-            lookupStarted[0] = true;
-            weatherExecutor.execute(() -> {
-                String detected = detectWeatherCityFromNetwork();
-                if (detected == null) return;
-                weatherHandler.post(() -> {
-                    if (!cityEditedByUser[0]
-                            && initialCity.equals(city.getText().toString().trim())) {
-                        city.setText(detected);
-                        city.setSelection(city.length());
-                    }
-                });
-            });
-        }
-        AlertDialog weatherDialog = new AlertDialog.Builder(this).setTitle("一週天氣").setView(content).setNegativeButton("取消", null)
-                .setPositiveButton("儲存", (dialog, which) -> {
-                    boolean useCity = modes.getCheckedRadioButtonId() == cityMode.getId();
-                    String value = city.getText().toString().trim();
-                    prefs.edit().putBoolean("enabled", toggle.isChecked()).putString("location_mode", useCity ? "city" : "device")
-                            .putString("city", value.isEmpty() ? "桃園市" : value).apply();
-                    refreshWeeklyWeatherVisibility();
-                }).create();
-        weatherDialog.setOnShowListener(ignored -> {
-            android.graphics.drawable.GradientDrawable rounded = new android.graphics.drawable.GradientDrawable();
-            rounded.setColor(Color.rgb(29, 33, 43));
-            rounded.setCornerRadius(22 * density);
-            rounded.setStroke(Math.max(1, (int) density), 0x30FFFFFF);
-            if (weatherDialog.getWindow() != null) weatherDialog.getWindow().setBackgroundDrawable(rounded);
-        });
-        weatherDialog.show();
-        // Lock the dialog to its measured width and height; only its inner content is repositioned.
-        if (weatherDialog.getWindow() != null) {
-            final android.view.Window weatherWindow = weatherDialog.getWindow();
-            weatherWindow.getDecorView().post(() -> {
-                View decor = weatherWindow.getDecorView();
-                int measuredWidth = decor.getWidth();
-                int measuredHeight = decor.getHeight();
-                if (measuredWidth > 0 && measuredHeight > 0) {
-                    weatherWindow.setLayout(measuredWidth, measuredHeight);
-                }
-            });
-        }
-        Button cancelWeather = weatherDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button saveWeather = weatherDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (cancelWeather != null && saveWeather != null) {
-            cancelWeather.setAllCaps(false); saveWeather.setAllCaps(false);
-            // The action labels remain white in both focused and unfocused states.
-            cancelWeather.setTextColor(Color.WHITE); saveWeather.setTextColor(Color.WHITE);
-            cancelWeather.setFocusable(true); saveWeather.setFocusable(true);
-            cancelWeather.setFocusableInTouchMode(true); saveWeather.setFocusableInTouchMode(true);
-            cancelWeather.setDefaultFocusHighlightEnabled(false); saveWeather.setDefaultFocusHighlightEnabled(false);
-            cancelWeather.setMinWidth((int)(104*density)); saveWeather.setMinWidth((int)(112*density));
-            cancelWeather.setMinHeight((int)(52*density)); saveWeather.setMinHeight((int)(52*density));
-            // Move both actions slightly lower while keeping the full button bounds visible.
-            cancelWeather.setTranslationY(8 * density);
-            saveWeather.setTranslationY(8 * density);
-            LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelWeather.getLayoutParams();
-            cancelLp.rightMargin = (int)(22*density); cancelWeather.setLayoutParams(cancelLp);
-            LinearLayout.LayoutParams saveLp = (LinearLayout.LayoutParams) saveWeather.getLayoutParams();
-            saveLp.leftMargin = (int)(6*density); saveWeather.setLayoutParams(saveLp);
-            // Keep the original button position. Disable clipping on every ViewGroup ancestor,
-            // because the dialog's outer content containers can otherwise crop the button edges.
-            ViewParent weatherButtonParent = cancelWeather.getParent();
-            while (weatherButtonParent instanceof ViewGroup) {
-                ViewGroup weatherButtonContainer = (ViewGroup) weatherButtonParent;
-                weatherButtonContainer.setClipChildren(false);
-                weatherButtonContainer.setClipToPadding(false);
-                weatherButtonParent = weatherButtonContainer.getParent();
-            }
-            GradientDrawable normal = new GradientDrawable(); normal.setColor(0xFF343A46); normal.setCornerRadius(14*density);
-            GradientDrawable focused = new GradientDrawable(); focused.setColor(0xFF465366); focused.setCornerRadius(14*density);
-            focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
-            View.OnFocusChangeListener focus = (v, hasFocus) -> {
-                v.setBackground(hasFocus ? focused : normal);
-                ((Button) v).setTextColor(0xFFF5F6FA);
-                v.setScaleX(1f); v.setScaleY(1f);
-            };
-            cancelWeather.setBackground(normal); saveWeather.setBackground(normal);
-            cancelWeather.setOnFocusChangeListener(focus); saveWeather.setOnFocusChangeListener(focus);
-            cancelWeather.setId(View.generateViewId()); saveWeather.setId(View.generateViewId());
-            cancelWeather.setNextFocusRightId(saveWeather.getId()); saveWeather.setNextFocusLeftId(cancelWeather.getId());
-            city.setId(View.generateViewId());
-            city.setNextFocusUpId(cityMode.getId());
-            city.setNextFocusDownId(cancelWeather.getId());
-            cityMode.setNextFocusDownId(city.getVisibility() == View.VISIBLE ? city.getId() : cancelWeather.getId());
-            cityMode.setNextFocusRightId(city.getVisibility() == View.VISIBLE ? city.getId() : saveWeather.getId());
-            modes.setOnCheckedChangeListener((g, checked) -> {
-                boolean showCity = checked == cityMode.getId();
-                city.setVisibility(showCity ? View.VISIBLE : View.GONE);
-                cityMode.setNextFocusDownId(showCity ? city.getId() : cancelWeather.getId());
-                cityMode.setNextFocusRightId(showCity ? city.getId() : saveWeather.getId());
-            });
-            city.setNextFocusLeftId(cityMode.getId());
-            device.setNextFocusDownId(cityMode.getId());
-            toggle.setNextFocusDownId(device.getId());
-            device.setNextFocusUpId(toggle.getId());
-            device.setNextFocusDownId(cityMode.getId());
-            cityMode.setNextFocusUpId(device.getId());
-            cityMode.setNextFocusDownId(city.getVisibility() == View.VISIBLE ? city.getId() : cancelWeather.getId());
-            cityMode.setNextFocusRightId(city.getVisibility() == View.VISIBLE ? city.getId() : saveWeather.getId());
-            cancelWeather.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
-            saveWeather.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
-            cancelWeather.setNextFocusDownId(toggle.getId());
-            saveWeather.setNextFocusDownId(toggle.getId());
-            toggle.setNextFocusUpId(saveWeather.getId());
-            toggle.setOnFocusChangeListener((v, hasFocus) -> {
-                v.setBackground(remoteWeatherFocusBackground(hasFocus));
-                toggle.setTextColor(0xFFF5F6FA);
-                v.setAlpha(1f);
-                v.setElevation(0f);
-            });
-            // Explicit DPAD routing prevents Android's layout-based focus search from skipping rows.
-            View.OnKeyListener weatherDpad = (v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    if (v == toggle) device.requestFocus();
-                    else if (v == device) cityMode.requestFocus();
-                    else if (v == cityMode) {
-                        if (city.getVisibility() == View.VISIBLE) city.requestFocus();
-                        else cancelWeather.requestFocus();
-                    } else if (v == city) cancelWeather.requestFocus();
-                    else if (v == cancelWeather) toggle.requestFocus();
-                    else if (v == saveWeather) toggle.requestFocus();
-                    else return false;
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                    if (v == device) toggle.requestFocus();
-                    else if (v == cityMode) device.requestFocus();
-                    else if (v == city) cityMode.requestFocus();
-                    else if (v == cancelWeather || v == saveWeather) {
-                        if (city.getVisibility() == View.VISIBLE) city.requestFocus();
-                        else cityMode.requestFocus();
-                    } else return false;
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v == cancelWeather) {
-                    saveWeather.requestFocus(); return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v == saveWeather) {
-                    cancelWeather.requestFocus(); return true;
-                }
-                return false;
-            };
-            toggle.setOnKeyListener(weatherDpad);
-            device.setOnKeyListener(weatherDpad);
-            cityMode.setOnKeyListener(weatherDpad);
-            city.setOnKeyListener(weatherDpad);
-            cancelWeather.setOnKeyListener(weatherDpad);
-            saveWeather.setOnKeyListener(weatherDpad);
-            device.setNextFocusRightId(cityMode.getId()); cityMode.setNextFocusLeftId(device.getId());
-            toggle.post(toggle::requestFocus);
-        }
+        dayOption.post(dayOption::requestFocus);
     }
+
 
     /** 選擇隱藏：與資料夾視窗共用尺寸、玻璃背景、桌面模糊及右側分頁。 */
     private void showHomeAppVisibilityDialog() {
@@ -5693,181 +5749,156 @@ private GradientDrawable roundSurface(int color, float radius) {
     /** 從設定選單直接新增一般資料夾。 */
     private void showCreateFolderDialog() {
         EditText name = new EditText(this);
+        name.setId(View.generateViewId());
         name.setSingleLine(true);
         name.setFocusable(true);
         name.setFocusableInTouchMode(true);
         name.setSelectAllOnFocus(false);
-        name.setTextSize(20f); name.setTextColor(0xFFF5F6FA); name.setHintTextColor(0xFFACB8C1);
-        name.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
+        name.setTextSize(18f);
+        name.setTextColor(0xFF202124);
+        name.setHintTextColor(0xFF68717D);
+        name.setPadding((int)(14*density), 0, (int)(14*density), 0);
         name.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         name.setHint("輸入分類名稱");
-        LinearLayout nameWrap = new LinearLayout(this);
-        nameWrap.setOrientation(LinearLayout.VERTICAL);
-        // 只調整視窗內部留白；外層 AlertDialog 寬度維持系統原設定。
-        nameWrap.setPadding((int) (24 * density), (int) (8 * density),
-                (int) (24 * density), (int) (4 * density));
-        nameWrap.setClipChildren(false); nameWrap.setClipToPadding(false);
-        GradientDrawable fieldNormal = new GradientDrawable();
-        fieldNormal.setColor(0xFF343A46); fieldNormal.setCornerRadius(12*density);
-        fieldNormal.setStroke(Math.max(1,(int)density), 0x6680C9C2);
-        GradientDrawable fieldFocused = new GradientDrawable();
-        fieldFocused.setColor(0xFF465366); fieldFocused.setCornerRadius(12*density);
-        fieldFocused.setStroke(Math.max(2,(int)(2*density)), 0xFF80C9C2);
-        name.setBackground(fieldNormal);
-        name.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(focused ? fieldFocused : fieldNormal);
-            v.setElevation(focused ? 4*density : 0f);
+        name.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+
+        final Dialog createDialog = new Dialog(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setPadding((int)(18*density), (int)(12*density),
+                (int)(18*density), (int)(12*density));
+        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+        TextView title = new TextView(this);
+        title.setText("應用分類");
+        title.setTextColor(0xFFF5F6FA);
+        title.setTextSize(20);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+        outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+        LinearLayout fieldPanel = new LinearLayout(this);
+        fieldPanel.setOrientation(LinearLayout.VERTICAL);
+        fieldPanel.setGravity(Gravity.CENTER_VERTICAL);
+        fieldPanel.setPadding((int)(18*density), (int)(12*density),
+                (int)(18*density), (int)(12*density));
+        fieldPanel.setBackground(roundSurface(0xFF343A46, 18*density));
+        LinearLayout.LayoutParams fieldPanelLp = new LinearLayout.LayoutParams(-1, (int)(92*density));
+        fieldPanelLp.topMargin = (int)(4*density);
+        outer.addView(fieldPanel, fieldPanelLp);
+        fieldPanel.addView(name, new LinearLayout.LayoutParams(-1, (int)(52*density)));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, (int)(52*density));
+        actionsLp.topMargin = (int)(12*density);
+        outer.addView(actions, actionsLp);
+
+        Button cancelButton = new Button(this);
+        Button createButton = new Button(this);
+        cancelButton.setText("取消");
+        createButton.setText("建立");
+        for (Button button : new Button[]{cancelButton, createButton}) {
+            button.setAllCaps(false);
+            button.setTextColor(Color.WHITE);
+            button.setTextSize(16);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setMinWidth((int)(104*density));
+            button.setMinHeight((int)(50*density));
+            button.setBackground(roundSurface(0xFF343A46, 14*density));
+            button.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                    (int)(112*density), (int)(50*density));
+            buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+            actions.addView(button, buttonLp);
+        }
+
+        Runnable createFolder = () -> {
+            String value = name.getText().toString().trim();
+            if (value.isEmpty() || value.equals("系統")) {
+                Toast.makeText(this, "請輸入其他資料夾名稱", Toast.LENGTH_SHORT).show();
+                name.requestFocus();
+                return;
+            }
+            java.util.LinkedHashSet<String> updated = new java.util.LinkedHashSet<>(
+                    getSharedPreferences("tv_app_customizations", MODE_PRIVATE)
+                            .getStringSet("home_folders", new java.util.LinkedHashSet<>()));
+            if (!updated.add(value)) {
+                Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
+                name.requestFocus();
+                return;
+            }
+            getSharedPreferences("tv_app_customizations", MODE_PRIVATE).edit()
+                    .putStringSet("home_folders", updated).apply();
+            createDialog.dismiss();
+            reloadApps(false);
+            Toast.makeText(this, "已建立資料夾：" + value, Toast.LENGTH_SHORT).show();
+        };
+        cancelButton.setOnClickListener(v -> createDialog.dismiss());
+        createButton.setOnClickListener(v -> createFolder.run());
+
+        createDialog.setContentView(outer);
+        createDialog.setCanceledOnTouchOutside(false);
+        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+        createDialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
+                ViewParent parent = backdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+            }
         });
-        nameWrap.addView(name, new LinearLayout.LayoutParams(-1, (int)(58*density)));
-        AlertDialog createDialog = new AlertDialog.Builder(this).setTitle("應用分類").setView(nameWrap)
-                .setNegativeButton("取消", null).setPositiveButton("建立", (x, y) -> {
-                    String value = name.getText().toString().trim();
-                    if (value.isEmpty() || value.equals("系統")) {
-                        Toast.makeText(this, "請輸入其他資料夾名稱", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    java.util.LinkedHashSet<String> updated = new java.util.LinkedHashSet<>(
-                            getSharedPreferences("tv_app_customizations", MODE_PRIVATE)
-                                    .getStringSet("home_folders", new java.util.LinkedHashSet<>()));
-                    if (!updated.add(value)) {
-                        Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    getSharedPreferences("tv_app_customizations", MODE_PRIVATE).edit()
-                            .putStringSet("home_folders", updated).apply();
-                    reloadApps(false);
-                    Toast.makeText(this, "已建立資料夾：" + value, Toast.LENGTH_SHORT).show();
-                }).create();
         createDialog.show();
         if (createDialog.getWindow() != null) {
-            GradientDrawable rounded = new GradientDrawable(); rounded.setColor(Color.rgb(29,33,43));
-            rounded.setCornerRadius(22*density); rounded.setStroke(Math.max(1,(int)density),0x2880C9C2);
-            createDialog.getWindow().setBackgroundDrawable(rounded);
+            createDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int fixedWidth = Math.min((int)(680*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            int compactHeight = Math.min((int)(226*density),
+                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+            createDialog.getWindow().setLayout(fixedWidth, compactHeight);
+            createDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            createDialog.getWindow().setDimAmount(0.6f);
         }
-        // TV remote focus order: name field -> Cancel -> Create. Avoid relying on
-        // theme-dependent AlertDialog focus defaults, which vary across TV devices.
-        Button cancelButton = createDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-        Button createButton = createDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        if (cancelButton != null && createButton != null) {
-            cancelButton.setAllCaps(false); createButton.setAllCaps(false);
-            cancelButton.setMinWidth((int)(104*density)); createButton.setMinWidth((int)(104*density));
-            cancelButton.setMinHeight((int)(50*density)); createButton.setMinHeight((int)(50*density));
-            LinearLayout.LayoutParams cancelLp = (LinearLayout.LayoutParams) cancelButton.getLayoutParams();
-            cancelLp.width = (int)(112*density);
-            cancelLp.height = (int)(54*density);
-            cancelLp.rightMargin = (int)(12*density);
-            cancelButton.setLayoutParams(cancelLp);
-            LinearLayout.LayoutParams createLp = (LinearLayout.LayoutParams) createButton.getLayoutParams();
-            createLp.width = (int)(112*density);
-            createLp.height = (int)(54*density);
-            createLp.leftMargin = 0;
-            createButton.setLayoutParams(createLp);
-            // 將兩顆等寬操作按鈕整組靠右，保留一致的右側內距與較緊湊間距。
-            ViewParent buttonParent = cancelButton.getParent();
-            if (buttonParent instanceof LinearLayout) {
-                LinearLayout buttonRow = (LinearLayout) buttonParent;
-                buttonRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-                // 增加按鈕列上方留白，讓操作按鈕往下移；外層視窗寬度不變。
-                buttonRow.setPadding(buttonRow.getPaddingLeft(), (int)(10*density),
-                        (int)(24*density), 0);
-                buttonRow.setClipChildren(false);
-                buttonRow.setClipToPadding(false);
-            }
-            cancelButton.setId(View.generateViewId());
-            createButton.setId(View.generateViewId());
-            name.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusRightId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            for (Button button : new Button[]{cancelButton, createButton}) {
-                button.setFocusable(true);
-                button.setFocusableInTouchMode(true);
-                button.setDefaultFocusHighlightEnabled(false);
-                button.setTextColor(0xFFF1F2F4);
-                button.setElevation(0f);
-                GradientDrawable normal = new GradientDrawable();
-                normal.setColor(0xFF343A46);
-                normal.setCornerRadius(14*density);
-                GradientDrawable focused = new GradientDrawable();
-                focused.setColor(0xFF465366);
-                focused.setCornerRadius(14*density);
-                focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
-                button.setBackground(normal);
-                button.setOnFocusChangeListener((v, hasFocus) -> {
-                    v.setBackground(hasFocus ? focused : normal);
-                    ((Button) v).setTextColor(0xFFF5F6FA);
-                    v.setElevation(hasFocus ? 2f*density : 0f);
-                    v.setScaleX(1f);
-                    v.setScaleY(1f);
-                });
-                button.setMinHeight((int)(54*density));
-                button.setMinWidth((int)(112*density));
-            }
-            // Use the shared teal focus outline for TV remote actions.
-            cancelButton.setNextFocusRightId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            name.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusRightId(createButton.getId());
-            cancelButton.setNextFocusDownId(createButton.getId());
-            createButton.setNextFocusLeftId(cancelButton.getId());
-            createButton.setNextFocusDownId(cancelButton.getId());
-            cancelButton.setNextFocusUpId(name.getId());
-            createButton.setNextFocusUpId(name.getId());
 
-            // Explicit TV remote routing: UP from either action returns to the name field;
-            // DOWN from the field enters Cancel; horizontal navigation switches the actions.
-            name.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    cancelButton.requestFocus();
-                    return true;
-                }
-                return false;
-            });
-            View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                    name.requestFocus();
-                    name.setSelection(name.getText().length());
-                    return true;
-                }
-                if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    createButton.requestFocus();
-                    return true;
-                }
-                if (v == createButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    cancelButton.requestFocus();
-                    return true;
-                }
-                return false;
-            };
-            cancelButton.setOnKeyListener(actionNavigation);
-            createButton.setOnKeyListener(actionNavigation);
-        }
-        // 外層視窗只增加高度，寬度沿用 AlertDialog 原本實際寬度。
-        if (createDialog.getWindow() != null) {
-            createDialog.getWindow().getDecorView().post(() -> {
-                android.view.Window window = createDialog.getWindow();
-                if (window == null) return;
-                View decor = window.getDecorView();
-                int originalWidth = decor.getWidth();
-                int originalHeight = decor.getHeight();
-                if (originalWidth <= 0 || originalHeight <= 0) return;
-                int screenHeight = getResources().getDisplayMetrics().heightPixels;
-                int targetHeight = Math.min(originalHeight + (int)(20*density),
-                        screenHeight - (int)(48*density));
-                window.setLayout(originalWidth, targetHeight);
-            });
-        }
-        name.setId(View.generateViewId());
-        name.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
-        if (cancelButton != null) {
-            cancelButton.setNextFocusUpId(name.getId());
-            cancelButton.setNextFocusDownId(createButton != null ? createButton.getId() : View.NO_ID);
-        }
-        if (createButton != null) {
-            createButton.setNextFocusUpId(name.getId());
-            createButton.setNextFocusDownId(cancelButton != null ? cancelButton.getId() : View.NO_ID);
-        }
+        // 遙控器焦點順序：輸入分類名稱 → 取消 → 建立。
+        name.setNextFocusDownId(cancelButton.getId());
+        cancelButton.setNextFocusUpId(name.getId());
+        createButton.setNextFocusUpId(name.getId());
+        cancelButton.setNextFocusRightId(createButton.getId());
+        createButton.setNextFocusLeftId(cancelButton.getId());
+        name.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            return false;
+        });
+        View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                createButton.requestFocus();
+                return true;
+            }
+            if (v == createButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                cancelButton.requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                name.requestFocus();
+                name.setSelection(name.getText().length());
+                return true;
+            }
+            return false;
+        };
+        cancelButton.setOnKeyListener(actionNavigation);
+        createButton.setOnKeyListener(actionNavigation);
         name.post(() -> { name.requestFocus(); name.setSelection(name.getText().length()); });
     }
 
