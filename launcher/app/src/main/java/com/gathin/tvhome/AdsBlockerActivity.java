@@ -572,7 +572,10 @@ public class AdsBlockerActivity extends Activity {
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
-            dialog.getWindow().setLayout((int)(getResources().getDisplayMetrics().widthPixels * 0.88), dp(560));
+            // 與資料夾視窗共用相同高度：最多 520dp，並保留上下各 24dp 螢幕安全邊界。
+            int folderDialogHeight = Math.min(dp(520), getResources().getDisplayMetrics().heightPixels - dp(48));
+            dialog.getWindow().setLayout((int)(getResources().getDisplayMetrics().widthPixels * 0.88),
+                    Math.max(dp(320), folderDialogHeight));
         }
         filterButtons[0].requestFocus();
     }
