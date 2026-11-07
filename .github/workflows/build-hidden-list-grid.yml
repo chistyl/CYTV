@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/hidden-selection-dialog-folder-style-2x5
+      - fix/hidden-dialog-list-height-folder-match
     paths:
       - 'launcher/**'
       - '.github/workflows/build-hidden-list-grid.yml'
