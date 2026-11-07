@@ -6813,14 +6813,16 @@ private GradientDrawable roundSurface(int color, float radius) {
                 Drawable banner = loadFolderTvBanner(ri, packageName, prefs);
                 if (banner != null) {
                     artwork.setImageDrawable(banner);
-                    artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    // Fit the complete source artwork; never crop a custom or native banner to fill the card.
+                    artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 } else {
                     artwork.setImageDrawable(loadFolderAppIcon(packageName, prefs));
                     artwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
                     int adjustment = prefs.getInt("icon_scale_adjust_" + packageName, 0);
-                    float relativeScale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
-                    // 放大資料夾內 APP 圖示：減少內距，讓圖示在卡片中更飽滿。
-                    int iconPadding = Math.max((int)(3*density), (int)(10*density/relativeScale));
+                    float relativeScale = Math.max(0.10f, Math.min(3.75f,
+                            1.25f * (1f + adjustment / 100f)));
+                    // Keep the same size range as the desktop renderer while preserving the source ratio.
+                    int iconPadding = Math.max((int)(1*density), (int)(10*density/relativeScale));
                     artwork.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
                 }
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
