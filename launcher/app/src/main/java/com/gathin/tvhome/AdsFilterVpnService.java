@@ -49,6 +49,10 @@ public class AdsFilterVpnService extends VpnService {
     static final String ACTION_REFRESH_NETWORK = "com.gathin.tvhome.action.REFRESH_NETWORK";
     static final String ACTION_STOP = "com.gathin.tvhome.action.STOP_AD_FILTER";
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private static volatile boolean tunnelActive = false;
+
+    /** True only after the local DNS TUN has been successfully established. */
+    public static boolean isTunnelActive() { return tunnelActive; }
     // Prevent duplicate teardown from the UI action, worker thread and Service lifecycle callbacks.
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private final AtomicInteger consecutiveDnsFailures = new AtomicInteger(0);
@@ -64,8 +68,8 @@ public class AdsFilterVpnService extends VpnService {
     private int startupAttempts = 0;
     // Android 9 TV firmware can report a short-lived onLost/ActiveNetwork=null
     // while Ethernet is still recovering. Allow a longer non-blocking recovery window.
-    private static final int STARTUP_MAX_ATTEMPTS = 30;
-    private static final long STARTUP_RETRY_MS = 500L;
+    private static final int STARTUP_MAX_ATTEMPTS = 60;
+    private static final long STARTUP_RETRY_MS = 1000L;
     private static final long NETWORK_LOSS_GRACE_MS = 3000L;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -309,6 +313,7 @@ public class AdsFilterVpnService extends VpnService {
             running.set(true);
             worker = new Thread(this::runDnsLoop, "CleanYourTV-DNS");
             worker.start();
+            tunnelActive = true;
             appendDnsLog("-", "診斷", "DNS 工作執行緒已啟動");
         } catch (Exception e) {
             Log.e(TAG, "Unable to establish DNS tunnel", e);
@@ -686,6 +691,7 @@ public class AdsFilterVpnService extends VpnService {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
+        tunnelActive = false;
 
         // Do not mutate VPN underlay state here; Android 9 TV firmware has shown
         // that setUnderlyingNetworks() can disrupt Ethernet restoration.
