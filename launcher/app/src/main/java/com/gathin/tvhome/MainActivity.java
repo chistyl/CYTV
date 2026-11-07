@@ -7321,7 +7321,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
-        panel.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        // 操作列固定在視窗底部，避免內容超出固定視窗高度時被裁切。
 
         // 使用與資料夾視窗相同的自訂 Dialog 外框、標題列、背景遮罩及尺寸。
         Dialog dialog = new Dialog(this);
@@ -7340,7 +7340,13 @@ private GradientDrawable roundSurface(int color, float radius) {
         heading.setGravity(Gravity.CENTER);
         heading.setPadding((int)(8*density),(int)(4*density),0,(int)(12*density));
         outer.addView(heading,new LinearLayout.LayoutParams(-1,-2));
-        outer.addView(panel,new LinearLayout.LayoutParams(-1,-2));
+        android.widget.ScrollView contentScroll = new android.widget.ScrollView(this);
+        contentScroll.setFillViewport(false);
+        contentScroll.setClipToPadding(false);
+        contentScroll.setVerticalScrollBarEnabled(false);
+        contentScroll.addView(panel,new android.widget.ScrollView.LayoutParams(-1,-2));
+        outer.addView(contentScroll,new LinearLayout.LayoutParams(-1,0,1f));
+        outer.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
         dialog.setContentView(outer);
         resetButton.setOnClickListener(v -> {
             prefs.edit().remove("icon_scale_adjust_"+packageName)
