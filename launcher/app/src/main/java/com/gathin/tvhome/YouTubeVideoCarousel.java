@@ -294,6 +294,9 @@ final class YouTubeVideoCarousel {
         for(int i=1;i<row.getChildCount();i++){
             View v=row.getChildAt(i);
             if(v.getId()==View.NO_ID) v.setId(View.generateViewId());
+        }
+        for(int i=1;i<row.getChildCount();i++){
+            View v=row.getChildAt(i);
             if(i>1) v.setNextFocusLeftId(row.getChildAt(i-1).getId());
             if(i+1<row.getChildCount()) v.setNextFocusRightId(row.getChildAt(i+1).getId());
         }
