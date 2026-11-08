@@ -6268,6 +6268,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         int contentWidthDp = Math.max(1, dialogWidthDp - 36);
         int columns = 3;
         int tileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 48) / columns));
+        int tileCardWidthDp = Math.max(1, Math.round(tileWidthDp * 0.94f));
         java.util.ArrayList<LinearLayout> pages = new java.util.ArrayList<>();
         java.util.ArrayList<View> focusTiles = new java.util.ArrayList<>();
         java.util.ArrayList<View> pageDots = new java.util.ArrayList<>();
@@ -6322,7 +6323,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             artwork.setPadding(0, 0, 0, 0);
             card.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
             tile.addView(card, new LinearLayout.LayoutParams(-1,
-                    Math.round(tileWidthDp * 9f / 16f * density)));
+                    Math.round(tileCardWidthDp * 9f / 16f * density)));
 
             TextView name = new TextView(this);
             String customName = prefs.getString("label_" + pkg, null);
@@ -6370,7 +6371,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 page.setOrientation(LinearLayout.VERTICAL);
                 page.setGravity(Gravity.CENTER);
                 grid.addView(page, new LinearLayout.LayoutParams(
-                        Math.round((tileWidthDp + 4f) * columns * density), -2));
+                        Math.round((tileCardWidthDp + 2f) * columns * density), -2));
                 pages.add(page);
             }
             LinearLayout page = pages.get(pageIndex);
@@ -6382,9 +6383,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                 page.addView(row, new LinearLayout.LayoutParams(-1, -2));
             }
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
-                    Math.round(tileWidthDp*density),
-                    Math.round((tileWidthDp*9f/16f + 33f)*density));
-            tileLp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+                    Math.round(tileCardWidthDp*density),
+                    Math.round((tileCardWidthDp*9f/16f + 33f)*density));
+            tileLp.setMargins(Math.round(1f * density), Math.round(1f * density), Math.round(1f * density), Math.round(1f * density));
             ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
             focusTiles.add(tile);
         }
@@ -6834,6 +6835,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
         int folderColumns = 3;
         int folderTileDp = Math.max(72, Math.min(176, (folderContentWidthDp - 48) / folderColumns));
+        int folderCardWidthDp = Math.max(1, Math.round(folderTileDp * 0.94f));
         java.util.ArrayList<LinearLayout> folderPages = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderPageDots = new java.util.ArrayList<>();
@@ -6906,7 +6908,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 artwork.setPadding(0, 0, 0, 0);
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
                 // APP 卡片尺寸與外觀維持原樣；僅縮小卡片列與列之間的垂直外距。
-                int folderCardDp = folderTileDp;
+                int folderCardDp = folderCardWidthDp;
                 FrameLayout cardSlot = new FrameLayout(this);
                 FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(
                         Math.round(folderCardDp * density),
@@ -6914,7 +6916,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                         Gravity.CENTER);
                 cardSlot.addView(tvCard, cardLp);
                 tile.addView(cardSlot, new LinearLayout.LayoutParams(-1,
-                        Math.round(folderTileDp * 9f / 16f * density)));
+                        Math.round(folderCardWidthDp * 9f / 16f * density)));
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
@@ -6986,7 +6988,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     page.setOrientation(LinearLayout.VERTICAL);
                     page.setGravity(Gravity.CENTER);
                     grid.addView(page, new LinearLayout.LayoutParams(
-                            Math.round((folderTileDp + 4f) * folderColumns * density), -2));
+                            Math.round((folderCardWidthDp + 2f) * folderColumns * density), -2));
                     folderPages.add(page);
                 }
                 LinearLayout page = folderPages.get(pageIndex);
@@ -6998,9 +7000,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                     page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 33f)*density));
-                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+                        Math.round(folderCardWidthDp * density),
+                        Math.round((folderCardWidthDp * 9f / 16f + 33f)*density));
+                lp.setMargins(Math.round(1f * density), Math.round(1f * density), Math.round(1f * density), Math.round(1f * density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
@@ -7031,7 +7033,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 plus.setTextSize(38); plus.setGravity(Gravity.CENTER);
                 addCard.addView(plus, new FrameLayout.LayoutParams(-1, -1));
                 add.addView(addCard, new LinearLayout.LayoutParams(-1,
-                        Math.round(folderTileDp * 9f / 16f * density)));
+                        Math.round(folderCardWidthDp * 9f / 16f * density)));
                 TextView addLabelSpacer = new TextView(this);
                 addLabelSpacer.setVisibility(View.INVISIBLE);
                 LinearLayout.LayoutParams addLabelLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
@@ -7066,7 +7068,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     page.setOrientation(LinearLayout.VERTICAL);
                     page.setGravity(Gravity.CENTER);
                     grid.addView(page, new LinearLayout.LayoutParams(
-                            Math.round((folderTileDp + 4f) * folderColumns * density), -2));
+                            Math.round((folderCardWidthDp + 2f) * folderColumns * density), -2));
                     folderPages.add(page);
                 }
                 LinearLayout page = folderPages.get(pageIndex);
@@ -7078,9 +7080,9 @@ private GradientDrawable roundSurface(int color, float radius) {
                     page.addView(row, new LinearLayout.LayoutParams(-1, -2));
                 }
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                        Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
-                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+                        Math.round(folderCardWidthDp * density),
+                        Math.round((folderCardWidthDp * 9f / 16f + 34f)*density));
+                lp.setMargins(Math.round(1f * density), Math.round(1f * density), Math.round(1f * density), Math.round(1f * density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(add, lp);
                 add.setId(View.generateViewId());
                 folderFocusTiles.add(add);
