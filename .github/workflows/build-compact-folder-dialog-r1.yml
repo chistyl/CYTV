@@ -1,0 +1,62 @@
+name: Build CYTV Compact Folder Dialog R1
+
+on:
+  push:
+    branches:
+      - feature/folder-dialog-compact-cards-r1
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-compact-folder-dialog-r1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout compact folder dialog branch
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 11076708
+          accept-android-sdk-licenses: true
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Run launcher unit tests
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+      - name: Build debug APK
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Compact-Folder-Dialog-R1-APK
+          path: launcher/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Package complete source archive
+        run: |
+          zip -qr CYTV-Compact-Folder-Dialog-R1-Complete-Source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './CYTV-Compact-Folder-Dialog-R1-Complete-Source.zip'
+      - name: Upload complete source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-Compact-Folder-Dialog-R1-Complete-Source
+          path: CYTV-Compact-Folder-Dialog-R1-Complete-Source.zip
+          if-no-files-found: error
+          retention-days: 30
