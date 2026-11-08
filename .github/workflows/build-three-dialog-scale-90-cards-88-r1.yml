@@ -22,6 +22,7 @@ on:
       - fix/youtube-carousel-video-scale-100-r14
       - fix/youtube-carousel-vignette-top25-others10-r15
       - fix/youtube-carousel-vignette-top-bottom25-sides10-r16
+      - feature/youtube-carousel-playback-controls-r17
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
