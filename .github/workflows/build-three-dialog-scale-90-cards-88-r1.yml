@@ -9,6 +9,7 @@ on:
       - fix/desktop-layout-page-clear-items-r1
       - fix/desktop-layout-title-center-content-vertical-center-r1
       - feature/all-ui-translucent-dark-panels-r1
+      - feature/youtube-video-carousel-background-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'

@@ -175,6 +175,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
+    private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
     private View ambient;
     private TextView heroName;
@@ -535,6 +536,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .getBoolean("left_color_effect_enabled", true);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
+        videoCarousel = new YouTubeVideoCarousel(this, root);
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
@@ -1273,6 +1275,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         sky.update();
         wallpaperPlayer.start();
+        videoCarousel.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
             lamp.start();
@@ -1473,6 +1476,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        videoCarousel.pause();
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -1543,6 +1547,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        videoCarousel.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -3988,6 +3993,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
     }
 
+    private void showVideoCarouselSettings() { videoCarousel.showSettingsDialog(); }
+
     /** 右上角「介面設定」子選單：集中桌面顯示、桌布、資料夾與一週天氣設定。 */
     private void showInterfaceSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
@@ -3999,6 +4006,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "應用顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
+        addSettingsMenuRow(rows, popup, "視頻輪播", this::showVideoCarouselSettings);
         addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
