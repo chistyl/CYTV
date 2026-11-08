@@ -6297,7 +6297,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
             tile.setDefaultFocusHighlightEnabled(false);
-            tile.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
+            tile.setPadding(Math.round(3f * 0.88f * density), Math.round(5f * 0.88f * density), Math.round(3f * 0.88f * density), Math.round(4f * 0.88f * density));
 
             FrameLayout card = new FrameLayout(this);
             GradientDrawable cardSurface = new GradientDrawable();
@@ -6384,7 +6384,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
                     Math.round(tileWidthDp*density),
                     Math.round((tileWidthDp*9f/16f + 34f)*density));
-            tileLp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+            tileLp.setMargins(Math.round(6f * 0.88f * density), Math.round(6f * 0.88f * density), Math.round(6f * 0.88f * density), Math.round(6f * 0.88f * density));
             ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
             focusTiles.add(tile);
         }
@@ -6876,7 +6876,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.setId(View.generateViewId());
                 tile.setFocusable(true); tile.setClickable(true);
                 tile.setDefaultFocusHighlightEnabled(false);
-                tile.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
+                tile.setPadding(Math.round(3f * 0.88f * density), Math.round(5f * 0.88f * density), Math.round(3f * 0.88f * density), Math.round(4f * 0.88f * density));
                 tile.setFocusableInTouchMode(true);
 
                 int savedBackground = prefs.getInt("background_" + packageName, Color.WHITE);
