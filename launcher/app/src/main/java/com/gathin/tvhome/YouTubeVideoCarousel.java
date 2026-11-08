@@ -242,11 +242,17 @@ final class YouTubeVideoCarousel {
             up.setClickable(true);
             up.setDefaultFocusHighlightEnabled(false);
             up.setBackground(roundSurface(0xFF2D323B, 8));
-            up.setEnabled(index > 0);
+            up.setEnabled(true);
+            up.setAlpha(index == 0 ? 0.48f : 1f);
             up.setOnClickListener(v -> {
+                if (index == 0) {
+                    Toast.makeText(context, "已經是第一筆影片", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 syncDraftFields(fields, draftUrls);
                 Collections.swap(draftUrls, index, index - 1);
                 for (int n = 0; n < fields.size(); n++) fields.get(n).setText(draftUrls.get(n));
+                upButtons[index].requestFocus();
             });
             row.addView(up, new LinearLayout.LayoutParams(dp(78), dp(48)));
 
@@ -259,14 +265,20 @@ final class YouTubeVideoCarousel {
             down.setClickable(true);
             down.setDefaultFocusHighlightEnabled(false);
             down.setBackground(roundSurface(0xFF55575B, 8));
-            down.setEnabled(index < 4);
+            down.setEnabled(true);
+            down.setAlpha(index == 4 ? 0.48f : 1f);
             LinearLayout.LayoutParams downLp = new LinearLayout.LayoutParams(dp(78), dp(48));
             downLp.leftMargin = dp(8);
             downLp.rightMargin = dp(2);
             down.setOnClickListener(v -> {
+                if (index == 4) {
+                    Toast.makeText(context, "已經是最後一筆影片", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 syncDraftFields(fields, draftUrls);
                 Collections.swap(draftUrls, index, index + 1);
                 for (int n = 0; n < fields.size(); n++) fields.get(n).setText(draftUrls.get(n));
+                downButtons[index].requestFocus();
             });
             row.addView(down, downLp);
             LinearLayout.LayoutParams rowLp = matchWrap();
@@ -308,63 +320,82 @@ final class YouTubeVideoCarousel {
         footer.addView(apply, applyLp);
         outer.addView(footer, new LinearLayout.LayoutParams(-1, dp(53)));
 
-        // Complete DPAD focus graph for every interactive control.
-        // Row 1: playback modes -> enable switch.
+        // Deterministic Android TV DPAD map: every visible control is focusable
+        // and every direction has an explicit destination.
         for (int i = 0; i < 3; i++) {
+            final int index = i;
             android.widget.RadioButton radio = modeRadios[i];
             radio.setFocusable(true);
             radio.setFocusableInTouchMode(true);
-            radio.setBackgroundColor(Color.TRANSPARENT);
-            radio.setDefaultFocusHighlightEnabled(false);
             radio.setNextFocusLeftId(i == 0 ? modeIds[0] : modeIds[i - 1]);
             radio.setNextFocusRightId(i == 2 ? enabled.getId() : modeIds[i + 1]);
-            radio.setNextFocusDownId(timingIds[i]);
             radio.setNextFocusUpId(apply.getId());
+            radio.setNextFocusDownId(timingIds[Math.min(i, 2)]);
+            radio.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT && index < 2) {
+                    modeRadios[index + 1].requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT && index > 0) {
+                    modeRadios[index - 1].requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                    timingButtons[index].requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                    apply.requestFocus(); return true;
+                }
+                return false;
+            });
         }
         enabled.setFocusable(true);
         enabled.setFocusableInTouchMode(true);
         enabled.setNextFocusLeftId(modeIds[2]);
         enabled.setNextFocusRightId(enabled.getId());
-        enabled.setNextFocusDownId(timingIds[3]);
         enabled.setNextFocusUpId(apply.getId());
-        enabled.setBackgroundColor(Color.TRANSPARENT);
-        enabled.setDefaultFocusHighlightEnabled(false);
+        enabled.setNextFocusDownId(timingIds[3]);
 
-        // Row 2: all four timing choices.
         for (int i = 0; i < 4; i++) {
+            final int index = i;
             Button button = timingButtons[i];
             button.setFocusable(true);
             button.setFocusableInTouchMode(true);
-            button.setNextFocusLeftId(i == 0 ? timingIds[0] : timingIds[i - 1]);
-            button.setNextFocusRightId(i == 3 ? timingIds[3] : timingIds[i + 1]);
-            button.setNextFocusUpId(i == 3 ? enabled.getId() : modeIds[i]);
+            button.setNextFocusLeftId(timingIds[Math.max(0, i - 1)]);
+            button.setNextFocusRightId(timingIds[Math.min(3, i + 1)]);
+            button.setNextFocusUpId(i == 3 ? enabled.getId() : modeIds[Math.min(i, 2)]);
             button.setNextFocusDownId(urlFields[0].getId());
+            button.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT && index > 0) {
+                    timingButtons[index - 1].requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT && index < 3) {
+                    timingButtons[index + 1].requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                    if (index == 3) enabled.requestFocus();
+                    else modeRadios[Math.min(index, 2)].requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                    urlFields[0].requestFocus(); return true;
+                }
+                return false;
+            });
         }
 
-        // URL rows form a predictable three-column DPAD grid: URL, move-up, move-down.
         for (int i = 0; i < 5; i++) {
             final int rowIndex = i;
             EditText field = urlFields[i];
             Button up = upButtons[i];
             Button down = downButtons[i];
-
             field.setFocusable(true);
             field.setFocusableInTouchMode(true);
-            // Keep URL rows in the normal DPAD path. Open the TV keyboard only after OK,
-            // so merely moving across URL rows never traps focus inside the text editor.
             field.setShowSoftInputOnFocus(false);
-            field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-                    | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
             field.setNextFocusLeftId(field.getId());
-            field.setNextFocusRightId(up.isEnabled() ? up.getId() : down.getId());
+            field.setNextFocusRightId(up.getId());
             field.setNextFocusUpId(i == 0 ? timingIds[0] : urlFields[i - 1].getId());
             field.setNextFocusDownId(i == 4 ? reset.getId() : urlFields[i + 1].getId());
-            field.setOnFocusChangeListener((view, focused) -> {
-                GradientDrawable bg = roundSurface(0xFFE4E7EC, 12);
-                if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
-                field.setBackground(bg);
-                if (!focused) field.setShowSoftInputOnFocus(false);
-            });
             field.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
                 if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
@@ -386,69 +417,82 @@ final class YouTubeVideoCarousel {
                     return true;
                 }
                 if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    up.requestFocus();
-                    return true;
+                    up.requestFocus(); return true;
                 }
                 return false;
             });
-            field.setOnEditorActionListener((textView, actionId, event) -> {
-                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-                        || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
-                    InputMethodManager imm = (InputMethodManager)
-                            context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null) imm.hideSoftInputFromWindow(field.getWindowToken(), 0);
-                    field.setShowSoftInputOnFocus(false);
-                    return true;
-                }
-                return false;
+            field.setOnFocusChangeListener((view, focused) -> {
+                GradientDrawable bg = roundSurface(0xFFE4E7EC, 12);
+                if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+                field.setBackground(bg);
+                if (!focused) field.setShowSoftInputOnFocus(false);
             });
-
             up.setFocusable(true);
             up.setFocusableInTouchMode(true);
             up.setNextFocusLeftId(field.getId());
-            up.setNextFocusRightId(down.isEnabled() ? down.getId() : field.getId());
-            up.setNextFocusUpId(i == 0 ? timingIds[0]
-                    : (upButtons[i - 1].isEnabled() ? upButtons[i - 1].getId() : urlFields[i - 1].getId()));
-            up.setNextFocusDownId(i == 4 ? reset.getId()
-                    : (upButtons[i + 1].isEnabled() ? upButtons[i + 1].getId() : urlFields[i + 1].getId()));
+            up.setNextFocusRightId(down.getId());
+            up.setNextFocusUpId(i == 0 ? timingIds[0] : upButtons[i - 1].getId());
+            up.setNextFocusDownId(i == 4 ? reset.getId() : upButtons[i + 1].getId());
+            up.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                    up.performClick(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                    field.requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    down.requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                    (rowIndex == 0 ? timingButtons[0] : upButtons[rowIndex - 1]).requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                    (rowIndex == 4 ? reset : upButtons[rowIndex + 1]).requestFocus();
+                    return true;
+                }
+                return false;
+            });
+            down.setFocusable(true);
+            down.setFocusableInTouchMode(true);
+            down.setNextFocusLeftId(up.getId());
+            down.setNextFocusRightId(down.getId());
+            down.setNextFocusUpId(i == 0 ? timingIds[3] : downButtons[i - 1].getId());
+            down.setNextFocusDownId(i == 4 ? apply.getId() : downButtons[i + 1].getId());
+            down.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                    down.performClick(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT) {
+                    up.requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    field.requestFocus(); return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                    (rowIndex == 0 ? timingButtons[3] : downButtons[rowIndex - 1]).requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                    (rowIndex == 4 ? apply : downButtons[rowIndex + 1]).requestFocus();
+                    return true;
+                }
+                return false;
+            });
             up.setOnFocusChangeListener((v, focused) -> {
                 v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF2D323B, 8));
                 ((Button) v).setTextColor(Color.WHITE);
             });
-            up.setOnKeyListener((view, keyCode, event) -> {
-                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
-                        && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
-                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
-                    if (up.isEnabled()) up.performClick();
-                    return true;
-                }
-                return false;
-            });
-
-            down.setFocusable(true);
-            down.setFocusableInTouchMode(true);
-            down.setNextFocusLeftId(up.isEnabled() ? up.getId() : field.getId());
-            down.setNextFocusRightId(down.getId());
-            down.setNextFocusUpId(i == 0 ? timingIds[3]
-                    : (downButtons[i - 1].isEnabled() ? downButtons[i - 1].getId() : urlFields[i - 1].getId()));
-            down.setNextFocusDownId(i == 4 ? apply.getId()
-                    : (downButtons[i + 1].isEnabled() ? downButtons[i + 1].getId() : urlFields[i + 1].getId()));
             down.setOnFocusChangeListener((v, focused) -> {
                 v.setBackground(roundSurface(focused ? 0xFF68717D : 0xFF55575B, 8));
                 ((Button) v).setTextColor(Color.WHITE);
             });
-            down.setOnKeyListener((view, keyCode, event) -> {
-                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
-                        && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
-                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
-                    if (down.isEnabled()) down.performClick();
-                    return true;
-                }
-                return false;
-            });
         }
 
-        // Footer actions are always reachable from the last URL row and return to the first row.
         reset.setFocusable(true);
         cancel.setFocusable(true);
         apply.setFocusable(true);
