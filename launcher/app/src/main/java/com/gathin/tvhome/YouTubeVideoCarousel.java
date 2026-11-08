@@ -125,6 +125,7 @@ final class YouTubeVideoCarousel {
         int startDelay = prefs.getInt("start_delay_seconds", 15);
         int stopBefore = prefs.getInt("stop_before_end_seconds", 15);
         String playbackMode = prefs.getString("playback_mode", "sequential");
+        Dialog dialog = new Dialog(context);
         panel.addView(optionRow("開始後播放", new String[]{"5秒","10秒","15秒","30秒"},
                 new int[]{5,10,15,30}, startDelay, "start_delay_seconds"), matchWrap());
         panel.addView(optionRow("結束前停止", new String[]{"5秒","10秒","15秒","30秒"},
@@ -197,7 +198,6 @@ final class YouTubeVideoCarousel {
         actions.addView(add);
         panel.addView(actions, matchWrap());
 
-        Dialog dialog = new Dialog(context);
         LinearLayout.LayoutParams buttonsParams = matchWrap();
         LinearLayout footer = new LinearLayout(context);
         footer.setGravity(Gravity.END);
