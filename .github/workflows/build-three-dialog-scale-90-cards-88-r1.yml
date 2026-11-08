@@ -14,6 +14,7 @@ on:
       - fix/youtube-carousel-fullbleed-vignette-r5
       - fix/youtube-carousel-fullscreen-corners-r6
       - fix/youtube-carousel-remove-duplicate-corner-r7
+      - fix/youtube-carousel-video-scale-120-r8
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
