@@ -297,7 +297,7 @@ final class YouTubeVideoCarousel {
                 + "events:{onReady:function(e){e.target.mute();e.target.setVolume(0);e.target.playVideo();},onStateChange:function(e){if(e.data===0)nextVideo();},onError:function(){nextVideo();}}});}"
                 + "function nextVideo(){if(!items.length)return;var random=" + prefs.getBoolean("random", false) + ";"
                 + "var next=idx;if(random&&items.length>1){while(next===idx)next=Math.floor(Math.random()*items.length);}else next=(idx+1)%items.length;"
-                + "idx=next;var id=videoId(items[idx]);if(id&&ytPlayer)ytPlayer.loadVideoById(id);}"
+                + "idx=next;var id=items[idx];if(id&&ytPlayer){ytPlayer.mute();ytPlayer.setVolume(0);ytPlayer.loadVideoById(id);}}"
                 + "</script></body></html>";
         webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null);
     }
