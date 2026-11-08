@@ -705,10 +705,18 @@ final class YouTubeVideoCarousel {
 
     private void styleChoice(Button button, boolean selected) {
         button.setTextColor(Color.WHITE);
-        button.setBackground(roundSurface(selected?0xFF28645F:0xFF343A46,10));
         button.setFocusable(true);
-        button.setOnFocusChangeListener((v,focused)->v.setBackground(
-                roundSurface((focused||selected)?0xFF28645F:0xFF343A46,10)));
+        button.setDefaultFocusHighlightEnabled(false);
+        // Selection and DPAD focus are separate visual states:
+        // selected = teal fill; focused = teal outline without changing the fill.
+        Runnable render = () -> {
+            boolean focused = button.hasFocus();
+            GradientDrawable bg = roundSurface(selected ? 0xFF28645F : 0xFF343A46, 10);
+            if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+            button.setBackground(bg);
+        };
+        render.run();
+        button.setOnFocusChangeListener((v, focused) -> render.run());
     }
 
     private void loadUrls() {
