@@ -175,6 +175,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
+    private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
     private View ambient;
     private TextView heroName;
@@ -543,6 +544,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroMeta = findViewById(R.id.heroMeta);
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
+        videoCarousel = new YouTubeVideoCarousel(this, root);
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
         heroDotsShown = cfg.cinematicDots;
@@ -1273,6 +1275,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         sky.update();
         wallpaperPlayer.start();
+        videoCarousel.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
             lamp.start();
@@ -1473,6 +1476,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        videoCarousel.pause();
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -1543,6 +1547,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        videoCarousel.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -3957,6 +3962,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
+    private void showVideoCarouselSettings() { videoCarousel.showSettingsDialog(); }
+
     private void showSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
@@ -3965,6 +3972,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
         addSettingsMenuRow(rows, popup, "介面設定", this::showInterfaceSettingsMenu);
+        addSettingsMenuRow(rows, popup, "視頻輪播", this::showVideoCarouselSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
         addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
             TraditionalText.setEnabled(this, !traditionalDisplay);
