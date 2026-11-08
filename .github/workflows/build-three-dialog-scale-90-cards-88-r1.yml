@@ -15,6 +15,7 @@ on:
       - fix/youtube-carousel-fullscreen-corners-r6
       - fix/youtube-carousel-remove-duplicate-corner-r7
       - fix/youtube-carousel-video-scale-120-r8
+      - fix/youtube-carousel-gradle-ci-recovery-r9
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
@@ -39,8 +40,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle cache
+      - name: Set up Gradle 8.9 directly
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -54,13 +57,11 @@ jobs:
 
       - name: Run launcher unit tests
         working-directory: launcher
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest
 
       - name: Build debug APK
         working-directory: launcher
-        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -72,8 +73,8 @@ jobs:
 
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . \
-            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+          zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . \\
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \\
                './launcher/app/build/*' './CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip'
 
       - name: Upload complete source archive
