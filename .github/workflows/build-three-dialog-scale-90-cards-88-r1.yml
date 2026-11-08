@@ -72,10 +72,7 @@ jobs:
           retention-days: 30
 
       - name: Package complete source archive
-        run: |
-          zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . \\
-            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \\
-               './launcher/app/build/*' './CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip'
+        run: zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' './launcher/app/build/*' './CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
