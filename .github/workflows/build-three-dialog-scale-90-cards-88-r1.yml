@@ -40,10 +40,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 8.9 directly
-        uses: gradle/actions/setup-gradle@v4
+      - name: Cache Gradle 8.9 distribution
+        uses: actions/cache@v4
         with:
-          gradle-version: '8.9'
+          path: ${{ runner.temp }}/gradle-8.9
+          key: gradle-8.9-bin-linux-x64-v1
+
+      - name: Install Gradle 8.9 from Huawei mirror (checksum verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_ROOT="${RUNNER_TEMP}/gradle-8.9"
+          if [ ! -x "${GRADLE_ROOT}/gradle-8.9/bin/gradle" ]; then
+            mkdir -p "${GRADLE_ROOT}"
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 5 \
+              "https://mirrors.huaweicloud.com/gradle/gradle-8.9-bin.zip" \
+              --output "${RUNNER_TEMP}/gradle-8.9-bin.zip"
+            echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  ${RUNNER_TEMP}/gradle-8.9-bin.zip" | sha256sum --check
+            unzip -q "${RUNNER_TEMP}/gradle-8.9-bin.zip" -d "${GRADLE_ROOT}"
+          fi
+          echo "${GRADLE_ROOT}/gradle-8.9/bin" >> "${GITHUB_PATH}"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
