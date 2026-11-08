@@ -15,6 +15,7 @@ on:
       - fix/youtube-carousel-fullscreen-corners-r6
       - fix/youtube-carousel-remove-duplicate-corner-r7
       - fix/youtube-carousel-video-scale-120-r8
+      - fix/youtube-carousel-gradle-ci-recovery-r9
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
@@ -39,8 +40,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@v4
+      - name: Cache Gradle 8.9 distribution
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/gradle-8.9
+          key: gradle-8.9-bin-linux-x64-v1
+
+      - name: Install Gradle 8.9 from Huawei mirror (checksum verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_ROOT="${RUNNER_TEMP}/gradle-8.9"
+          if [ ! -x "${GRADLE_ROOT}/gradle-8.9/bin/gradle" ]; then
+            mkdir -p "${GRADLE_ROOT}"
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 5 \
+              "https://mirrors.huaweicloud.com/gradle/gradle-8.9-bin.zip" \
+              --output "${RUNNER_TEMP}/gradle-8.9-bin.zip"
+            echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  ${RUNNER_TEMP}/gradle-8.9-bin.zip" | sha256sum --check
+            unzip -q "${RUNNER_TEMP}/gradle-8.9-bin.zip" -d "${GRADLE_ROOT}"
+          fi
+          echo "${GRADLE_ROOT}/gradle-8.9/bin" >> "${GITHUB_PATH}"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -54,13 +73,11 @@ jobs:
 
       - name: Run launcher unit tests
         working-directory: launcher
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest
 
       - name: Build debug APK
         working-directory: launcher
-        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -71,10 +88,7 @@ jobs:
           retention-days: 30
 
       - name: Package complete source archive
-        run: |
-          zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . \
-            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip'
+        run: zip -qr CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip . -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' './launcher/app/build/*' './CYTV-Three-Dialog-Scale-90-Cards-88-R1-Complete-Source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
