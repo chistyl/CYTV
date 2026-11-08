@@ -6384,7 +6384,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
                     Math.round(tileWidthDp*density),
                     Math.round((tileWidthDp*9f/16f + 34f)*density));
-            tileLp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+            tileLp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
             ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
             focusTiles.add(tile);
         }
@@ -6905,8 +6905,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 artwork.setScaleType(ImageView.ScaleType.FIT_XY);
                 artwork.setPadding(0, 0, 0, 0);
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
-                // APP 卡片本體縮小 12%，維持原 16:9 比例；外層卡片槽位不變，
-                // 因此 APP 名稱、欄列間距與遙控器焦點導覽位置都維持原樣。
+                // APP 卡片尺寸與外觀維持原樣；僅縮小卡片列與列之間的垂直外距。
                 int folderCardDp = folderTileDp;
                 FrameLayout cardSlot = new FrameLayout(this);
                 FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(
@@ -7001,7 +7000,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
                         Math.round((folderTileDp * 9f / 16f + 34f)*density));
-                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+                lp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
@@ -7081,7 +7080,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
                         Math.round((folderTileDp * 9f / 16f + 34f)*density));
-                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
+                lp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(add, lp);
                 add.setId(View.generateViewId());
                 folderFocusTiles.add(add);
