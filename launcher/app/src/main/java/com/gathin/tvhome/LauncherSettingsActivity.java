@@ -132,10 +132,6 @@ public final class LauncherSettingsActivity extends Activity {
             openOnStartChoice.setOnClickListener(v -> showOpenOnStartPicker());
         }
         refresh();
-        });
-        findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
-                open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
-        refresh();
         connectSettingsVertical(reorderChoice, config.launcherSettingsButton, columnChoices[0]);
         if (openOnStartChoice.getVisibility() == View.VISIBLE) {
             clockChoices[clockChoices.length - 1].setNextFocusDownId(openOnStartChoice.getId());
