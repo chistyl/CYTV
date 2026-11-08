@@ -4845,7 +4845,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(12*density),
                 (int)(18*density), (int)(12*density));
-        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        outer.setBackground(translucentPanelSurface(22*density));
 
         TextView title = new TextView(this);
         title.setText("天氣預報");
@@ -5135,7 +5135,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         GradientDrawable outerSurface = new GradientDrawable();
-        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setColor(0xB32F333C);
         outerSurface.setCornerRadius(22*density);
         outerSurface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -5627,7 +5627,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        panel.setBackground(translucentPanelSurface(22*density));
         TextView title = new TextView(this);
         title.setText("桌布設定");
         title.setTextColor(0xFFF5F6FA);
@@ -5926,7 +5926,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         preview.setForeground(border);
     }
 
-private GradientDrawable roundSurface(int color, float radius) {
+/** Shared dark-grey translucent surface for CYTV dialogs and floating interfaces (desktop excluded). */
+    private GradientDrawable translucentPanelSurface(float radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(0xB32F333C); // 70% opacity
+        drawable.setCornerRadius(radius);
+        drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
+        return drawable;
+    }
+
+    private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);        drawable.setCornerRadius(radius);
         drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
@@ -5939,7 +5948,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding((int)(22*density), (int)(18*density), (int)(22*density), (int)(16*density));
         // 與資料夾視窗共用完全相同的外框背景、圓角與描邊。
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        panel.setBackground(translucentPanelSurface(22*density));
 
         TextView title = new TextView(this); title.setText("QR Code 掃碼傳圖");
         title.setTextColor(Color.WHITE); title.setTextSize(20); title.setGravity(Gravity.CENTER);
@@ -6090,7 +6099,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(12*density),
                 (int)(18*density), (int)(12*density));
-        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        outer.setBackground(translucentPanelSurface(22*density));
 
         TextView title = new TextView(this);
         title.setText("應用分類");
@@ -6237,7 +6246,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         GradientDrawable outerSurface = new GradientDrawable();
-        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setColor(0xB32F333C);
         outerSurface.setCornerRadius(22*density);
         outerSurface.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -6800,7 +6809,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         android.graphics.drawable.GradientDrawable outerSurface = new android.graphics.drawable.GradientDrawable();
-        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setColor(0xB32F333C);
         outerSurface.setCornerRadius(22 * density);
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -7407,7 +7416,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
         GradientDrawable outerSurface = new GradientDrawable();
-        outerSurface.setColor(Color.rgb(29, 33, 43));
+        outerSurface.setColor(0xB32F333C);
         outerSurface.setCornerRadius(22*density);
         outerSurface.setStroke(Math.max(1,(int)density),0x28FFFFFF);
         outer.setBackground(outerSurface);
@@ -7597,7 +7606,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding((int)(18*density), (int)(12*density), (int)(18*density), (int)(12*density));
-        outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        outer.setBackground(translucentPanelSurface(22*density));
 
         TextView title = new TextView(this);
         title.setText("重新命名");
@@ -8108,7 +8117,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         colorDialog.show();
         if (colorDialog.getWindow() != null) {
             GradientDrawable dialogSurface = new GradientDrawable();
-            dialogSurface.setColor(0xFF3B3B3B);
+            dialogSurface.setColor(0xB33B3B3B);
             dialogSurface.setCornerRadius(22 * density);
             dialogSurface.setStroke(Math.max(1, (int)density), 0x24FFFFFF);
             colorDialog.getWindow().setBackgroundDrawable(dialogSurface);
@@ -8264,7 +8273,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeDialog.show();
         if (sizeDialog.getWindow() != null) {
             GradientDrawable dialogSurface = new GradientDrawable();
-            dialogSurface.setColor(0xFF3B3B3B);
+            dialogSurface.setColor(0xB33B3B3B);
             dialogSurface.setCornerRadius(22 * density);
             dialogSurface.setStroke(Math.max(1, (int)density), 0x24FFFFFF);
             sizeDialog.getWindow().setBackgroundDrawable(dialogSurface);
