@@ -5,6 +5,7 @@ on:
     branches:
       - fix/three-dialog-scale-90-cards-88-spacing-r1
       - feature/interface-desktop-settings-menu-r1
+      - fix/interface-settings-menu-labels-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
