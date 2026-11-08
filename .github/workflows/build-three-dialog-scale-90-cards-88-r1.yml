@@ -11,6 +11,7 @@ on:
       - fix/youtube-video-carousel-pr124-r2
       - fix/youtube-carousel-referer-identity-r3
       - feature/youtube-carousel-vignette-r4
+      - fix/youtube-carousel-fullbleed-vignette-r5
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
