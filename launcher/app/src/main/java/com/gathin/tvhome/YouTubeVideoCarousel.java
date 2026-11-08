@@ -295,49 +295,111 @@ final class YouTubeVideoCarousel {
         footer.addView(apply, applyLp);
         outer.addView(footer, new LinearLayout.LayoutParams(-1, dp(53)));
 
-        // Explicit DPAD focus graph: avoid Android geometric focus guessing.
+        // Complete DPAD focus graph for every interactive control.
+        // Row 1: playback modes -> enable switch.
         for (int i = 0; i < 3; i++) {
-            android.view.View v = modeRadios[i];
-            v.setNextFocusLeftId(i == 0 ? modeIds[0] : modeIds[i - 1]);
-            v.setNextFocusRightId(i == 2 ? enabled.getId() : modeIds[i + 1]);
-            v.setNextFocusDownId(timingIds[Math.min(i, 3)]);
-            v.setNextFocusUpId(apply.getId());
+            android.widget.RadioButton radio = modeRadios[i];
+            radio.setFocusable(true);
+            radio.setFocusableInTouchMode(true);
+            radio.setBackground(roundSurface(0x001D212B, 10));
+            radio.setOnFocusChangeListener((v, focused) -> {
+                v.setBackground(roundSurface(focused ? 0x334FC3B8 : 0x001D212B, 10));
+            });
+            radio.setNextFocusLeftId(i == 0 ? modeIds[0] : modeIds[i - 1]);
+            radio.setNextFocusRightId(i == 2 ? enabled.getId() : modeIds[i + 1]);
+            radio.setNextFocusDownId(timingIds[i]);
+            radio.setNextFocusUpId(apply.getId());
         }
+        enabled.setFocusable(true);
+        enabled.setFocusableInTouchMode(true);
         enabled.setNextFocusLeftId(modeIds[2]);
         enabled.setNextFocusRightId(enabled.getId());
         enabled.setNextFocusDownId(timingIds[3]);
         enabled.setNextFocusUpId(apply.getId());
+        enabled.setOnFocusChangeListener((v, focused) -> {
+            v.setBackground(roundSurface(focused ? 0x334FC3B8 : 0x001D212B, 10));
+        });
+
+        // Row 2: all four timing choices.
         for (int i = 0; i < 4; i++) {
-            timingButtons[i].setNextFocusLeftId(i == 0 ? timingIds[0] : timingIds[i - 1]);
-            timingButtons[i].setNextFocusRightId(i == 3 ? timingIds[3] : timingIds[i + 1]);
-            timingButtons[i].setNextFocusUpId(i < 3 ? modeIds[i] : enabled.getId());
-            timingButtons[i].setNextFocusDownId(urlFields[0].getId());
+            Button button = timingButtons[i];
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setNextFocusLeftId(i == 0 ? timingIds[0] : timingIds[i - 1]);
+            button.setNextFocusRightId(i == 3 ? timingIds[3] : timingIds[i + 1]);
+            button.setNextFocusUpId(i == 3 ? enabled.getId() : modeIds[i]);
+            button.setNextFocusDownId(urlFields[0].getId());
         }
+
+        // URL rows form a predictable three-column DPAD grid: URL, move-up, move-down.
         for (int i = 0; i < 5; i++) {
-            int previous = i == 0 ? timingIds[0] : urlFields[i - 1].getId();
-            int next = i == 4 ? reset.getId() : urlFields[i + 1].getId();
-            urlFields[i].setNextFocusLeftId(urlFields[i].getId());
-            urlFields[i].setNextFocusRightId(upButtons[i].getId());
-            urlFields[i].setNextFocusUpId(previous);
-            urlFields[i].setNextFocusDownId(next);
-            upButtons[i].setNextFocusLeftId(urlFields[i].getId());
-            upButtons[i].setNextFocusRightId(downButtons[i].getId());
-            upButtons[i].setNextFocusUpId(i == 0 ? timingIds[0] : upButtons[i - 1].getId());
-            upButtons[i].setNextFocusDownId(i == 4 ? reset.getId() : upButtons[i + 1].getId());
-            downButtons[i].setNextFocusLeftId(upButtons[i].getId());
-            downButtons[i].setNextFocusRightId(downButtons[i].getId());
-            downButtons[i].setNextFocusUpId(i == 0 ? timingIds[3] : downButtons[i - 1].getId());
-            downButtons[i].setNextFocusDownId(i == 4 ? reset.getId() : downButtons[i + 1].getId());
+            final int rowIndex = i;
+            EditText field = urlFields[i];
+            Button up = upButtons[i];
+            Button down = downButtons[i];
+
+            field.setFocusable(true);
+            field.setFocusableInTouchMode(true);
+            field.setNextFocusLeftId(field.getId());
+            field.setNextFocusRightId(up.getId());
+            field.setNextFocusUpId(i == 0 ? timingIds[0] : urlFields[i - 1].getId());
+            field.setNextFocusDownId(i == 4 ? reset.getId() : urlFields[i + 1].getId());
+            field.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                int length = field.length();
+                int selectionStart = Math.max(0, field.getSelectionStart());
+                int selectionEnd = Math.max(0, field.getSelectionEnd());
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+                        && selectionEnd >= length) {
+                    up.requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                        && selectionStart <= 0) {
+                    field.requestFocus();
+                    return true;
+                }
+                return false;
+            });
+
+            up.setFocusable(true);
+            up.setFocusableInTouchMode(true);
+            up.setNextFocusLeftId(field.getId());
+            up.setNextFocusRightId(down.getId());
+            up.setNextFocusUpId(i == 0 ? timingIds[0] : upButtons[i - 1].getId());
+            up.setNextFocusDownId(i == 4 ? reset.getId() : upButtons[i + 1].getId());
+            up.setOnFocusChangeListener((v, focused) -> {
+                v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF2D323B, 8));
+                ((Button) v).setTextColor(Color.WHITE);
+            });
+
+            down.setFocusable(true);
+            down.setFocusableInTouchMode(true);
+            down.setNextFocusLeftId(up.getId());
+            down.setNextFocusRightId(down.getId());
+            down.setNextFocusUpId(i == 0 ? timingIds[3] : downButtons[i - 1].getId());
+            down.setNextFocusDownId(i == 4 ? apply.getId() : downButtons[i + 1].getId());
+            down.setOnFocusChangeListener((v, focused) -> {
+                v.setBackground(roundSurface(focused ? 0xFF68717D : 0xFF55575B, 8));
+                ((Button) v).setTextColor(Color.WHITE);
+            });
         }
+
+        // Footer actions are always reachable from the last URL row and return to the first row.
+        reset.setFocusable(true);
+        cancel.setFocusable(true);
+        apply.setFocusable(true);
         reset.setNextFocusLeftId(reset.getId());
         reset.setNextFocusRightId(cancel.getId());
         reset.setNextFocusUpId(urlFields[4].getId());
+        reset.setNextFocusDownId(modeIds[selectedMode]);
         cancel.setNextFocusLeftId(reset.getId());
         cancel.setNextFocusRightId(apply.getId());
         cancel.setNextFocusUpId(urlFields[4].getId());
+        cancel.setNextFocusDownId(modeIds[selectedMode]);
         apply.setNextFocusLeftId(cancel.getId());
         apply.setNextFocusRightId(apply.getId());
-        apply.setNextFocusUpId(urlFields[4].getId());
+        apply.setNextFocusUpId(downButtons[4].getId());
         apply.setNextFocusDownId(modeIds[selectedMode]);
 
         Dialog dialog = new Dialog(context);
