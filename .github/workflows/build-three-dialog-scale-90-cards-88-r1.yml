@@ -10,6 +10,7 @@ on:
       - fix/desktop-layout-title-center-content-vertical-center-r1
       - fix/youtube-video-carousel-pr124-r2
       - fix/youtube-carousel-referer-identity-r3
+      - feature/youtube-carousel-vignette-r4
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'

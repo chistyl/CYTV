@@ -289,8 +289,8 @@ final class YouTubeVideoCarousel {
         if (urls.isEmpty()) return;
         pageReady = false;
         String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>"
-                + "<style>html,body,#player{margin:0;width:100%;height:100%;overflow:hidden;background:#000}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>"
-                + "</head><body><div id='player'></div><script src='https://www.youtube.com/iframe_api'></script><script>"
+                + "<style>html,body,#player{margin:0;width:100%;height:100%;overflow:hidden;background:#000}#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.vignette{position:fixed;inset:0;pointer-events:none;z-index:10;background:"+ "radial-gradient(ellipse at 100% 0%,rgba(0,0,0,.62) 0%,transparent 34%),"+ "radial-gradient(ellipse at 0% 100%,rgba(0,0,0,.72) 0%,transparent 38%),"+ "radial-gradient(ellipse at 100% 100%,rgba(0,0,0,.72) 0%,transparent 38%),"+ "linear-gradient(to bottom,rgba(0,0,0,.76) 0%,rgba(0,0,0,.38) 7%,transparent 22%),"+ "linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.42) 9%,transparent 26%),"+ "linear-gradient(to right,rgba(0,0,0,.72) 0%,rgba(0,0,0,.32) 7%,transparent 19%),"+ "linear-gradient(to left,rgba(0,0,0,.72) 0%,rgba(0,0,0,.32) 7%,transparent 19%);}"+ ".vignette:before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.66) 100%);mask-image:linear-gradient(to right,transparent 0%,transparent 76%,#000 94%);}"+ "</style>"
+                + "</head><body><div id='player'></div><div class='vignette' aria-hidden='true'></div><script src='https://www.youtube.com/iframe_api'></script><script>"
                 + "var items=" + jsonVideoIds() + ";var idx=0;var ytPlayer;"
                 + "function onYouTubeIframeAPIReady(){ytPlayer=new YT.Player('player',{width:'100%',height:'100%',"
                 + "videoId:items[0],playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,modestbranding:1,rel:0,playsinline:1,iv_load_policy:3,origin:location.origin},"
