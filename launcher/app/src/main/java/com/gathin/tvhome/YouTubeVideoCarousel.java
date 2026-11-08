@@ -129,6 +129,7 @@ final class YouTubeVideoCarousel {
         String[] modeLabels = {"單一播放", "依順序播放", "隨機播放"};
         String[] modeValues = {"single", "sequential", "random"};
         android.widget.RadioButton[] modeRadios = new android.widget.RadioButton[3];
+        int[] modeIds = new int[3];
         for (int i = 0; i < modeLabels.length; i++) {
             final String value = modeValues[i];
             android.widget.RadioButton radio = new android.widget.RadioButton(context);
@@ -143,6 +144,7 @@ final class YouTubeVideoCarousel {
             radio.setFocusableInTouchMode(true);
             radio.setId(View.generateViewId());
             modeRadios[i] = radio;
+            modeIds[i] = radio.getId();
             modes.addView(radio, new android.widget.RadioGroup.LayoutParams(-2, dp(48)));
             radio.setOnClickListener(v -> draftMode[0] = value);
         }
@@ -155,6 +157,9 @@ final class YouTubeVideoCarousel {
         enabled.setText("啟用視頻輪播");
         enabled.setTextColor(Color.WHITE);
         enabled.setTextSize(14);
+        enabled.setId(View.generateViewId());
+        enabled.setFocusable(true);
+        enabled.setFocusableInTouchMode(true);
         enabled.setChecked(isEnabled());
         enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
         topRow.addView(enabled, new LinearLayout.LayoutParams(-2, dp(52)));
@@ -167,6 +172,7 @@ final class YouTubeVideoCarousel {
         String[] timingLabels = {"5秒", "10秒", "15秒", "30秒"};
         int[] timingValues = {5, 10, 15, 30};
         Button[] timingButtons = new Button[timingLabels.length];
+        int[] timingIds = new int[timingLabels.length];
         Runnable refreshTiming = () -> {
             for (int i = 0; i < timingButtons.length; i++)
                 styleChoice(timingButtons[i], timingValues[i] == draftTiming[0]);
@@ -175,6 +181,7 @@ final class YouTubeVideoCarousel {
             final int value = timingValues[i];
             Button choice = smallButton(timingLabels[i]);
             timingButtons[i] = choice;
+            timingIds[i] = choice.getId();
             choice.setOnClickListener(v -> { draftTiming[0] = value; refreshTiming.run(); });
             timingRow.addView(choice, new LinearLayout.LayoutParams(0, dp(44), 1f));
         }
@@ -188,6 +195,9 @@ final class YouTubeVideoCarousel {
         LinearLayout list = new LinearLayout(context);
         list.setOrientation(LinearLayout.VERTICAL);
         List<EditText> fields = new ArrayList<>();
+        EditText[] urlFields = new EditText[5];
+        Button[] upButtons = new Button[5];
+        Button[] downButtons = new Button[5];
         for (int i = 0; i < 5; i++) {
             final int index = i;
             LinearLayout row = new LinearLayout(context);
@@ -209,8 +219,17 @@ final class YouTubeVideoCarousel {
             editLp.rightMargin = dp(12);
             row.addView(edit, editLp);
             fields.add(edit);
+            urlFields[index] = edit;
+            edit.setId(View.generateViewId());
+            edit.setOnFocusChangeListener((view, focused) -> {
+                GradientDrawable bg = roundSurface(0xFFE4E7EC, 12);
+                if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+                view.setBackground(bg);
+            });
 
             Button up = smallButton("↑");
+            up.setId(View.generateViewId());
+            upButtons[index] = up;
             up.setTextSize(19);
             up.setBackground(roundSurface(0xFF2D323B, 8));
             up.setEnabled(index > 0);
@@ -222,6 +241,8 @@ final class YouTubeVideoCarousel {
             row.addView(up, new LinearLayout.LayoutParams(dp(78), dp(48)));
 
             Button down = smallButton("↓");
+            down.setId(View.generateViewId());
+            downButtons[index] = down;
             down.setTextSize(19);
             down.setBackground(roundSurface(0xFF55575B, 8));
             down.setEnabled(index < 4);
@@ -272,6 +293,51 @@ final class YouTubeVideoCarousel {
         applyLp.leftMargin = dp(4);
         footer.addView(apply, applyLp);
         outer.addView(footer, new LinearLayout.LayoutParams(-1, dp(53)));
+
+        // Explicit DPAD focus graph: avoid Android geometric focus guessing.
+        for (int i = 0; i < 3; i++) {
+            android.view.View v = modeRadios[i];
+            v.setNextFocusLeftId(i == 0 ? modeIds[0] : modeIds[i - 1]);
+            v.setNextFocusRightId(i == 2 ? enabled.getId() : modeIds[i + 1]);
+            v.setNextFocusDownId(timingIds[Math.min(i, 3)]);
+            v.setNextFocusUpId(apply.getId());
+        }
+        enabled.setNextFocusLeftId(modeIds[2]);
+        enabled.setNextFocusRightId(enabled.getId());
+        enabled.setNextFocusDownId(timingIds[3]);
+        enabled.setNextFocusUpId(apply.getId());
+        for (int i = 0; i < 4; i++) {
+            timingButtons[i].setNextFocusLeftId(i == 0 ? timingIds[0] : timingIds[i - 1]);
+            timingButtons[i].setNextFocusRightId(i == 3 ? timingIds[3] : timingIds[i + 1]);
+            timingButtons[i].setNextFocusUpId(i < 3 ? modeIds[i] : enabled.getId());
+            timingButtons[i].setNextFocusDownId(urlFields[0].getId());
+        }
+        for (int i = 0; i < 5; i++) {
+            int previous = i == 0 ? timingIds[0] : urlFields[i - 1].getId();
+            int next = i == 4 ? reset.getId() : urlFields[i + 1].getId();
+            urlFields[i].setNextFocusLeftId(urlFields[i].getId());
+            urlFields[i].setNextFocusRightId(upButtons[i].getId());
+            urlFields[i].setNextFocusUpId(previous);
+            urlFields[i].setNextFocusDownId(next);
+            upButtons[i].setNextFocusLeftId(urlFields[i].getId());
+            upButtons[i].setNextFocusRightId(downButtons[i].getId());
+            upButtons[i].setNextFocusUpId(i == 0 ? timingIds[0] : upButtons[i - 1].getId());
+            upButtons[i].setNextFocusDownId(i == 4 ? reset.getId() : upButtons[i + 1].getId());
+            downButtons[i].setNextFocusLeftId(upButtons[i].getId());
+            downButtons[i].setNextFocusRightId(downButtons[i].getId());
+            downButtons[i].setNextFocusUpId(i == 0 ? timingIds[3] : downButtons[i - 1].getId());
+            downButtons[i].setNextFocusDownId(i == 4 ? reset.getId() : downButtons[i + 1].getId());
+        }
+        reset.setNextFocusLeftId(reset.getId());
+        reset.setNextFocusRightId(cancel.getId());
+        reset.setNextFocusUpId(urlFields[4].getId());
+        cancel.setNextFocusLeftId(reset.getId());
+        cancel.setNextFocusRightId(apply.getId());
+        cancel.setNextFocusUpId(urlFields[4].getId());
+        apply.setNextFocusLeftId(cancel.getId());
+        apply.setNextFocusRightId(apply.getId());
+        apply.setNextFocusUpId(urlFields[4].getId());
+        apply.setNextFocusDownId(modeIds[selectedMode]);
 
         Dialog dialog = new Dialog(context);
         dialog.setContentView(outer);
@@ -338,7 +404,7 @@ final class YouTubeVideoCarousel {
                     Math.min(dp(680), context.getResources().getDisplayMetrics().widthPixels - dp(48)),
                     Math.min(dp(520), context.getResources().getDisplayMetrics().heightPixels - dp(48)));
         }
-        apply.requestFocus();
+        modeRadios[selectedMode].requestFocus();
     }
 
     private LinearLayout optionRow(String label, String[] labels, int[] values, int selected, String key) {
