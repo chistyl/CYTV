@@ -6297,7 +6297,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
             tile.setDefaultFocusHighlightEnabled(false);
-            tile.setPadding((int)(3f*density), (int)(5f*density), (int)(3f*density), (int)(4f*density));
+            tile.setPadding(0, 0, 0, 0);
 
             FrameLayout card = new FrameLayout(this);
             GradientDrawable cardSurface = new GradientDrawable();
@@ -6334,7 +6334,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             name.setMaxLines(2);
             name.setEllipsize(android.text.TextUtils.TruncateAt.END);
             name.setVisibility(prefs.getBoolean("hide_all_names", true) ? View.GONE : View.VISIBLE);
-            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(32*density));
+            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
             nameLp.topMargin = (int)(3*density);
             tile.addView(name, nameLp);
 
@@ -6383,8 +6383,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
             LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(
                     Math.round(tileWidthDp*density),
-                    Math.round((tileWidthDp*9f/16f + 34f)*density));
-            tileLp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
+                    Math.round((tileWidthDp*9f/16f + 33f)*density));
+            tileLp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
             ((LinearLayout)page.getChildAt(rowIndex)).addView(tile, tileLp);
             focusTiles.add(tile);
         }
@@ -6876,7 +6876,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 tile.setId(View.generateViewId());
                 tile.setFocusable(true); tile.setClickable(true);
                 tile.setDefaultFocusHighlightEnabled(false);
-                tile.setPadding((int)(3f*density), (int)(5f*density), (int)(3f*density), (int)(4f*density));
+                tile.setPadding(0, 0, 0, 0);
                 tile.setFocusableInTouchMode(true);
 
                 int savedBackground = prefs.getInt("background_" + packageName, Color.WHITE);
@@ -6999,8 +6999,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 34f)*density));
-                lp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
+                        Math.round((folderTileDp * 9f / 16f + 33f)*density));
+                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
@@ -7010,7 +7010,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setFocusable(true); add.setClickable(true);
                 add.setFocusableInTouchMode(true);
                 add.setDefaultFocusHighlightEnabled(false);
-                add.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
+                add.setPadding(0, 0, 0, 0);
                 FrameLayout addCard = new FrameLayout(this);
                 GradientDrawable addSurface = new GradientDrawable();
                 addSurface.setColor(0xFF343A46); addSurface.setCornerRadius(20*density);
@@ -7080,7 +7080,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
                         Math.round((folderTileDp * 9f / 16f + 34f)*density));
-                lp.setMargins(Math.round(2f * density), 0, Math.round(2f * density), 0);
+                lp.setMargins(Math.round(2f * density), Math.round(2f * density), Math.round(2f * density), Math.round(2f * density));
                 ((LinearLayout) page.getChildAt(rowIndex)).addView(add, lp);
                 add.setId(View.generateViewId());
                 folderFocusTiles.add(add);
