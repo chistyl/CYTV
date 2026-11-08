@@ -35,6 +35,7 @@ on:
       - fix/youtube-carousel-radio-switch-dpad-r27
       - fix/youtube-carousel-focus-selected-state-r28
       - fix/youtube-carousel-row-height-reset-action-r29
+      - fix/youtube-carousel-reset-default-urls-r30
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
