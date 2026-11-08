@@ -190,7 +190,7 @@ final class YouTubeVideoCarousel {
         wireChoiceFocus(timingRow);
         LinearLayout.LayoutParams timingLp = matchWrap();
         timingLp.topMargin = dp(2);
-        timingLp.bottomMargin = dp(18);
+        timingLp.bottomMargin = dp(6);
         content.addView(timingRow, timingLp);
 
         LinearLayout list = new LinearLayout(context);
@@ -257,7 +257,7 @@ final class YouTubeVideoCarousel {
             });
             row.addView(down, downLp);
             LinearLayout.LayoutParams rowLp = matchWrap();
-            rowLp.bottomMargin = dp(10);
+            rowLp.bottomMargin = dp(3);
             list.addView(row, rowLp);
         }
         content.addView(list, new LinearLayout.LayoutParams(-1, 0, 1f));
