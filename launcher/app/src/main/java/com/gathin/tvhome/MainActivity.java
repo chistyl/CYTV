@@ -3994,6 +3994,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
+        addSettingsMenuRow(rows, popup, "桌面設定", () ->
+                startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         addSettingsMenuRow(rows, popup, "桌面顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);

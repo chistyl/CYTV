@@ -9,4 +9,9 @@
     <color name="cytv_accent">#FF80C9C2</color>
     <color name="cytv_text_primary">#FFF5F6FA</color>
     <color name="cytv_text_secondary">#FFACB8C1</color>
+    <!-- YouTube Assistant navy / slate / teal palette for Desktop Settings. -->
+    <color name="youtube_settings_bg">#FF101928</color>
+    <color name="youtube_settings_panel">#FF202C3C</color>
+    <color name="youtube_settings_focus">#FF174F58</color>
+    <color name="youtube_settings_accent">#FF00CFC6</color>
 </resources>
