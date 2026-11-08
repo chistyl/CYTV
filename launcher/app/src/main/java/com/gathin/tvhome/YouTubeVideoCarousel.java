@@ -267,7 +267,7 @@ final class YouTubeVideoCarousel {
             edit.setBackground(roundSurface(0xFFE4E7EC, 12));
             edit.setFocusable(true);
             edit.setFocusableInTouchMode(true);
-            LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
+            LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
             editLp.rightMargin = dp(12);
             row.addView(edit, editLp);
             fields.add(edit);
@@ -300,7 +300,7 @@ final class YouTubeVideoCarousel {
                 for (int n = 0; n < fields.size(); n++) fields.get(n).setText(draftUrls.get(n));
                 upButtons[index].requestFocus();
             });
-            row.addView(up, new LinearLayout.LayoutParams(dp(78), dp(48)));
+            row.addView(up, new LinearLayout.LayoutParams(dp(78), dp(44)));
 
             Button down = smallButton("↓");
             down.setId(View.generateViewId());
@@ -313,7 +313,7 @@ final class YouTubeVideoCarousel {
             down.setBackground(roundSurface(0xFF55575B, 8));
             down.setEnabled(true);
             down.setAlpha(index == 4 ? 0.48f : 1f);
-            LinearLayout.LayoutParams downLp = new LinearLayout.LayoutParams(dp(78), dp(48));
+            LinearLayout.LayoutParams downLp = new LinearLayout.LayoutParams(dp(78), dp(44));
             downLp.leftMargin = dp(8);
             downLp.rightMargin = dp(2);
             down.setOnClickListener(v -> {
@@ -328,7 +328,7 @@ final class YouTubeVideoCarousel {
             });
             row.addView(down, downLp);
             LinearLayout.LayoutParams rowLp = matchWrap();
-            rowLp.bottomMargin = dp(3);
+            rowLp.bottomMargin = dp(2);
             list.addView(row, rowLp);
         }
         content.addView(list, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -563,7 +563,11 @@ final class YouTubeVideoCarousel {
             draftMode[0] = "sequential";
             modeRadios[1].setChecked(true);
             refreshTiming.run();
+            Toast.makeText(context, "已恢復預設設定", Toast.LENGTH_SHORT).show();
         });
+        wireRemoteClick(reset);
+        wireRemoteClick(cancel);
+        wireRemoteClick(apply);
         cancel.setOnClickListener(v -> dialog.dismiss());
         apply.setOnClickListener(v -> {
             syncDraftFields(fields, draftUrls);
@@ -627,6 +631,19 @@ final class YouTubeVideoCarousel {
     private void syncDraftFields(List<EditText> fields, List<String> target) {
         for (int i = 0; i < fields.size() && i < target.size(); i++)
             target.set(i, fields.get(i).getText().toString());
+    }
+
+    private void wireRemoteClick(Button button) {
+        button.setOnKeyListener((view, keyCode, event) -> {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                    && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                    || keyCode == android.view.KeyEvent.KEYCODE_ENTER
+                    || keyCode == android.view.KeyEvent.KEYCODE_SPACE)) {
+                button.performClick();
+                return true;
+            }
+            return false;
+        });
     }
 
     private Button dialogActionButton(String label) {
