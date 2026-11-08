@@ -314,10 +314,8 @@ final class YouTubeVideoCarousel {
             android.widget.RadioButton radio = modeRadios[i];
             radio.setFocusable(true);
             radio.setFocusableInTouchMode(true);
-            radio.setBackground(roundSurface(0x001D212B, 10));
-            radio.setOnFocusChangeListener((v, focused) -> {
-                v.setBackground(roundSurface(focused ? 0x334FC3B8 : 0x001D212B, 10));
-            });
+            radio.setBackgroundColor(Color.TRANSPARENT);
+            radio.setDefaultFocusHighlightEnabled(false);
             radio.setNextFocusLeftId(i == 0 ? modeIds[0] : modeIds[i - 1]);
             radio.setNextFocusRightId(i == 2 ? enabled.getId() : modeIds[i + 1]);
             radio.setNextFocusDownId(timingIds[i]);
@@ -329,9 +327,8 @@ final class YouTubeVideoCarousel {
         enabled.setNextFocusRightId(enabled.getId());
         enabled.setNextFocusDownId(timingIds[3]);
         enabled.setNextFocusUpId(apply.getId());
-        enabled.setOnFocusChangeListener((v, focused) -> {
-            v.setBackground(roundSurface(focused ? 0x334FC3B8 : 0x001D212B, 10));
-        });
+        enabled.setBackgroundColor(Color.TRANSPARENT);
+        enabled.setDefaultFocusHighlightEnabled(false);
 
         // Row 2: all four timing choices.
         for (int i = 0; i < 4; i++) {
