@@ -5539,8 +5539,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                    Math.min((int)(612*density), (int)((getResources().getDisplayMetrics().widthPixels - (int)(48*density))*0.90f)),
-                    Math.min((int)(468*density), (int)((getResources().getDisplayMetrics().heightPixels - (int)(48*density))*0.90f)));
+                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         content.post(() -> appTab.requestFocus());
     }
@@ -6476,8 +6476,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    Math.min((int)(612*density), (int)((getResources().getDisplayMetrics().widthPixels - (int)(48*density))*0.90f)),
+                    Math.min((int)(468*density), (int)((getResources().getDisplayMetrics().heightPixels - (int)(48*density))*0.90f)));
         }
         grid.post(() -> {
             if (!focusTiles.isEmpty()) showPage.accept(0, 0);
