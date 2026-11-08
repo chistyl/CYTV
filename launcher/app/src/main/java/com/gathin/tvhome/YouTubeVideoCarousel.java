@@ -197,6 +197,7 @@ final class YouTubeVideoCarousel {
                     .putBoolean("random", randomPlay.isChecked()).apply();
             urls.clear(); urls.addAll(valid);
             dialog.dismiss();
+            pageReady = false; // Rebuild the iframe page so edited links and random mode take effect immediately.
             if (isEnabled()) start();
             else { pause(); restoreBackgroundLayers(); if (webView != null) webView.setVisibility(View.GONE); }
         });
