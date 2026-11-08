@@ -6688,7 +6688,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      * reasonable on Android TV devices; the foreground dialog remains untouched.
      * If capture or blur is unavailable, the normal dimmed dialog remains usable.
      */
-    private android.widget.ImageView installFolderBackdropBlur() {
+    android.widget.ImageView installFolderBackdropBlur() {
         final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
         if (!(decor instanceof android.view.ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
         android.graphics.Bitmap source = null;
