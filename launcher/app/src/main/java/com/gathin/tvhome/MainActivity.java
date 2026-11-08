@@ -6905,9 +6905,17 @@ private GradientDrawable roundSurface(int color, float radius) {
                 artwork.setScaleType(ImageView.ScaleType.FIT_XY);
                 artwork.setPadding(0, 0, 0, 0);
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
-                LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1,
-                        Math.round(folderTileDp * 9f / 16f * density));
-                tile.addView(tvCard, cardLp);
+                // APP 卡片本體縮小 12%，維持原 16:9 比例；外層卡片槽位不變，
+                // 因此 APP 名稱、欄列間距與遙控器焦點導覽位置都維持原樣。
+                int folderCardDp = Math.max(1, Math.round(folderTileDp * 0.88f));
+                FrameLayout cardSlot = new FrameLayout(this);
+                FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(
+                        Math.round(folderCardDp * density),
+                        Math.round(folderCardDp * 9f / 16f * density),
+                        Gravity.CENTER);
+                cardSlot.addView(tvCard, cardLp);
+                tile.addView(cardSlot, new LinearLayout.LayoutParams(-1,
+                        Math.round(folderTileDp * 9f / 16f * density)));
                 // 焦點只保留遙控器導覽，不改變 TV 卡片外型、比例、邊框或大小。
                 tile.setOnFocusChangeListener((v, focused) -> {
                     // Focus frame belongs to the icon card only; app name text stays outside the frame.
