@@ -6264,7 +6264,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         grid.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
         int screenWidthDp = (int)(getResources().getDisplayMetrics().widthPixels / density);
-        int dialogWidthDp = Math.min(680, screenWidthDp - 48);
+        int dialogWidthDp = Math.min(612, screenWidthDp - 43);
         int contentWidthDp = Math.max(1, dialogWidthDp - 36);
         int columns = 3;
         int tileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 48) / columns));
@@ -6475,8 +6475,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    Math.min((int)(612*density), getResources().getDisplayMetrics().widthPixels - (int)(43.2f*density)),
+                    Math.min((int)(468*density), getResources().getDisplayMetrics().heightPixels - (int)(43.2f*density)));
         }
         grid.post(() -> {
             if (!focusTiles.isEmpty()) showPage.accept(0, 0);
@@ -6830,7 +6830,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         // sized four cards for a wider area than the dialog's padded content, clipping the
         // rightmost card on wide screens. Include the outer padding and each slot's side margins.
         int screenWidthDp = (int) (getResources().getDisplayMetrics().widthPixels / density);
-        int folderDialogWidthDp = Math.min(680, screenWidthDp - 48);
+        int folderDialogWidthDp = Math.min(612, screenWidthDp - 43);
         int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
         int folderColumns = 3;
         int folderTileDp = Math.max(72, Math.min(176, (folderContentWidthDp - 48) / folderColumns));
@@ -7170,8 +7170,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             // 疊在資料夾內容後方，產生截圖中不應存在的整片底色。
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                Math.min((int)(612*density), getResources().getDisplayMetrics().widthPixels - (int)(43.2f*density)),
+                Math.min((int)(468*density), getResources().getDisplayMetrics().heightPixels - (int)(43.2f*density)));
         }
         grid.post(() -> {
             if (!folderFocusTiles.isEmpty()) showFolderPage.accept(0, 0);
