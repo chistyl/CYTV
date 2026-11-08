@@ -33,6 +33,7 @@ on:
       - fix/youtube-carousel-arrow-remote-actions-remove-borders-r25
       - fix/youtube-carousel-all-controls-dpad-r26
       - fix/youtube-carousel-radio-switch-dpad-r27
+      - fix/youtube-carousel-focus-selected-state-r28
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
