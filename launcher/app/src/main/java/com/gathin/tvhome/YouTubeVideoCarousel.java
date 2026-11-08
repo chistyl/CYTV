@@ -559,11 +559,21 @@ final class YouTubeVideoCarousel {
         dialog.setContentView(outer);
         dialog.setCanceledOnTouchOutside(false);
         reset.setOnClickListener(v -> {
+            // Reset the editable draft fields as well as playback options.
+            // Do not persist until the user presses Apply.
             draftTiming[0] = 15;
             draftMode[0] = "sequential";
             modeRadios[1].setChecked(true);
+            syncDraftFields(fields, draftUrls);
+            draftUrls.set(0, DEFAULT_ONE);
+            draftUrls.set(1, DEFAULT_TWO);
+            for (int i = 2; i < 5; i++) draftUrls.set(i, "");
+            for (int i = 0; i < fields.size(); i++) {
+                fields.get(i).setText(draftUrls.get(i));
+                fields.get(i).setSelection(fields.get(i).length());
+            }
             refreshTiming.run();
-            Toast.makeText(context, "已恢復預設設定", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "已恢復預設設定（含影片網址）", Toast.LENGTH_SHORT).show();
         });
         wireRemoteClick(reset);
         wireRemoteClick(cancel);
