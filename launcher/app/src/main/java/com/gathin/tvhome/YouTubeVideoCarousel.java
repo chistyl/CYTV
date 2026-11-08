@@ -143,6 +143,8 @@ final class YouTubeVideoCarousel {
             radio.setPadding(0, 0, dp(3), 0);
             radio.setFocusable(true);
             radio.setFocusableInTouchMode(true);
+            radio.setBackgroundColor(Color.TRANSPARENT);
+            radio.setDefaultFocusHighlightEnabled(false);
             radio.setId(View.generateViewId());
             modeRadios[i] = radio;
             modeIds[i] = radio.getId();
@@ -162,6 +164,8 @@ final class YouTubeVideoCarousel {
         enabled.setFocusable(true);
         enabled.setFocusableInTouchMode(true);
         enabled.setChecked(isEnabled());
+        enabled.setBackgroundColor(Color.TRANSPARENT);
+        enabled.setDefaultFocusHighlightEnabled(false);
         enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
         topRow.addView(enabled, new LinearLayout.LayoutParams(-2, dp(52)));
         content.addView(topRow, matchWrap());
@@ -233,6 +237,10 @@ final class YouTubeVideoCarousel {
             up.setId(View.generateViewId());
             upButtons[index] = up;
             up.setTextSize(19);
+            up.setFocusable(true);
+            up.setFocusableInTouchMode(true);
+            up.setClickable(true);
+            up.setDefaultFocusHighlightEnabled(false);
             up.setBackground(roundSurface(0xFF2D323B, 8));
             up.setEnabled(index > 0);
             up.setOnClickListener(v -> {
@@ -246,6 +254,10 @@ final class YouTubeVideoCarousel {
             down.setId(View.generateViewId());
             downButtons[index] = down;
             down.setTextSize(19);
+            down.setFocusable(true);
+            down.setFocusableInTouchMode(true);
+            down.setClickable(true);
+            down.setDefaultFocusHighlightEnabled(false);
             down.setBackground(roundSurface(0xFF55575B, 8));
             down.setEnabled(index < 4);
             LinearLayout.LayoutParams downLp = new LinearLayout.LayoutParams(dp(78), dp(48));
@@ -347,7 +359,7 @@ final class YouTubeVideoCarousel {
             field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE
                     | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
             field.setNextFocusLeftId(field.getId());
-            field.setNextFocusRightId(up.getId());
+            field.setNextFocusRightId(up.isEnabled() ? up.getId() : down.getId());
             field.setNextFocusUpId(i == 0 ? timingIds[0] : urlFields[i - 1].getId());
             field.setNextFocusDownId(i == 4 ? reset.getId() : urlFields[i + 1].getId());
             field.setOnFocusChangeListener((view, focused) -> {
@@ -397,23 +409,45 @@ final class YouTubeVideoCarousel {
             up.setFocusable(true);
             up.setFocusableInTouchMode(true);
             up.setNextFocusLeftId(field.getId());
-            up.setNextFocusRightId(down.getId());
-            up.setNextFocusUpId(i == 0 ? timingIds[0] : upButtons[i - 1].getId());
-            up.setNextFocusDownId(i == 4 ? reset.getId() : upButtons[i + 1].getId());
+            up.setNextFocusRightId(down.isEnabled() ? down.getId() : field.getId());
+            up.setNextFocusUpId(i == 0 ? timingIds[0]
+                    : (upButtons[i - 1].isEnabled() ? upButtons[i - 1].getId() : urlFields[i - 1].getId()));
+            up.setNextFocusDownId(i == 4 ? reset.getId()
+                    : (upButtons[i + 1].isEnabled() ? upButtons[i + 1].getId() : urlFields[i + 1].getId()));
             up.setOnFocusChangeListener((v, focused) -> {
                 v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF2D323B, 8));
                 ((Button) v).setTextColor(Color.WHITE);
             });
+            up.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                        && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+                    if (up.isEnabled()) up.performClick();
+                    return true;
+                }
+                return false;
+            });
 
             down.setFocusable(true);
             down.setFocusableInTouchMode(true);
-            down.setNextFocusLeftId(up.getId());
+            down.setNextFocusLeftId(up.isEnabled() ? up.getId() : field.getId());
             down.setNextFocusRightId(down.getId());
-            down.setNextFocusUpId(i == 0 ? timingIds[3] : downButtons[i - 1].getId());
-            down.setNextFocusDownId(i == 4 ? apply.getId() : downButtons[i + 1].getId());
+            down.setNextFocusUpId(i == 0 ? timingIds[3]
+                    : (downButtons[i - 1].isEnabled() ? downButtons[i - 1].getId() : urlFields[i - 1].getId()));
+            down.setNextFocusDownId(i == 4 ? apply.getId()
+                    : (downButtons[i + 1].isEnabled() ? downButtons[i + 1].getId() : urlFields[i + 1].getId()));
             down.setOnFocusChangeListener((v, focused) -> {
                 v.setBackground(roundSurface(focused ? 0xFF68717D : 0xFF55575B, 8));
                 ((Button) v).setTextColor(Color.WHITE);
+            });
+            down.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                        && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+                    if (down.isEnabled()) down.performClick();
+                    return true;
+                }
+                return false;
             });
         }
 
