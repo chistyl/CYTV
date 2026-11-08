@@ -6034,18 +6034,18 @@ private GradientDrawable roundSurface(int color, float radius) {
         Dialog dialog = new Dialog(this);
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
-        outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        outer.setPadding((int)(16*density), (int)(12*density), (int)(16*density), (int)(12*density));
         android.graphics.drawable.GradientDrawable outerSurface = new android.graphics.drawable.GradientDrawable();
         outerSurface.setColor(Color.rgb(28, 32, 40));
-        outerSurface.setCornerRadius(22 * density);
+        outerSurface.setCornerRadius(20 * density);
         outerSurface.setStroke(Math.max(1, (int) density), 0x28FFFFFF);
         outer.setBackground(outerSurface);
         TextView heading = new TextView(this);
         heading.setText(folderName);
         heading.setTextColor(Color.WHITE);
-        heading.setTextSize(20);
+        heading.setTextSize(18);
         heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.setPadding((int)(8*density), (int)(4*density), 0, (int)(12*density));
+        heading.setPadding((int)(8*density), (int)(3*density), 0, (int)(9*density));
         outer.addView(heading, new LinearLayout.LayoutParams(-1, -2));
 
         ScrollView scroll = new ScrollView(this);
@@ -6069,10 +6069,10 @@ private GradientDrawable roundSurface(int color, float radius) {
         // sized four cards for a wider area than the dialog's padded content, clipping the
         // rightmost card on wide screens. Include the outer padding and each slot's side margins.
         int screenWidthDp = (int) (getResources().getDisplayMetrics().widthPixels / density);
-        int folderDialogWidthDp = Math.min(760, screenWidthDp - 48);
-        int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
+        int folderDialogWidthDp = Math.min(684, screenWidthDp - 48);
+        int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 32); // outer left/right padding: 16dp each
         int folderColumns = 4;
-        int folderTileDp = Math.max(72, Math.min(184, (folderContentWidthDp - 48) / folderColumns));
+        int folderTileDp = Math.max(64, Math.min(162, Math.round((folderContentWidthDp - 40) / (float) folderColumns * 0.94f)));
         java.util.ArrayList<LinearLayout> folderRows = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         android.graphics.drawable.GradientDrawable scrollClip = new android.graphics.drawable.GradientDrawable();
@@ -6106,21 +6106,21 @@ private GradientDrawable roundSurface(int color, float radius) {
                 int savedBackground = prefs.getInt("background_" + packageName, Color.WHITE);
                 FrameLayout tvCard = new FrameLayout(this);
                 GradientDrawable cardSurface = new GradientDrawable();
-                cardSurface.setColor(savedBackground); cardSurface.setCornerRadius(20*density);
+                cardSurface.setColor(savedBackground); cardSurface.setCornerRadius(18*density);
                 tvCard.setBackground(cardSurface);
                 // Draw the border as a foreground overlay, separate from the card fill and
                 // artwork clipping. This keeps the yellow focus stroke at one consistent
                 // physical-pixel width on every row and for both folder types.
                 GradientDrawable cardBorder = new GradientDrawable();
                 cardBorder.setColor(Color.TRANSPARENT);
-                cardBorder.setCornerRadius(20 * density);
+                cardBorder.setCornerRadius(18 * density);
                 cardBorder.setStroke(0, Color.TRANSPARENT);
                 tvCard.setForeground(cardBorder);
                 tvCard.setClipToOutline(false);
                 ImageView artwork = new ImageView(this);
                 GradientDrawable artworkClip = new GradientDrawable();
                 artworkClip.setColor(Color.TRANSPARENT);
-                artworkClip.setCornerRadius(20 * density);
+                artworkClip.setCornerRadius(18 * density);
                 artwork.setBackground(artworkClip);
                 artwork.setClipToOutline(true);
                 Drawable banner = loadFolderTvBanner(ri, packageName, prefs);
@@ -6133,7 +6133,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     int adjustment = prefs.getInt("icon_scale_adjust_" + packageName, 0);
                     float relativeScale = Math.max(0.5f, Math.min(3f, 1f + adjustment / 100f));
                     // 放大資料夾內 APP 圖示：減少內距，讓圖示在卡片中更飽滿。
-                    int iconPadding = Math.max((int)(3*density), (int)(10*density/relativeScale));
+                    int iconPadding = Math.max((int)(3*density), (int)(9*density/relativeScale));
                     artwork.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
                 }
                 tvCard.addView(artwork, new FrameLayout.LayoutParams(-1, -1));
@@ -6195,8 +6195,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 // equal outer spacing and never stretch the remaining cards.
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         Math.round(folderTileDp * density),
-                        Math.round((folderTileDp * 9f / 16f + 42f)*density));
-                lp.setMargins((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+                        Math.round((folderTileDp * 9f / 16f + 36f)*density));
+                lp.setMargins((int)(5*density), (int)(5*density), (int)(5*density), (int)(5*density));
                 folderRows.get(rowIndex).addView(tile, lp);
                 folderFocusTiles.add(tile);
             }
@@ -6209,11 +6209,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                 add.setPadding((int)(3*density), (int)(5*density), (int)(3*density), (int)(4*density));
                 FrameLayout addCard = new FrameLayout(this);
                 GradientDrawable addSurface = new GradientDrawable();
-                addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(20*density);
+                addSurface.setColor(0xFF343B47); addSurface.setCornerRadius(18*density);
                 addCard.setBackground(addSurface);
                 GradientDrawable addBorder = new GradientDrawable();
                 addBorder.setColor(Color.TRANSPARENT);
-                addBorder.setCornerRadius(20 * density);
+                addBorder.setCornerRadius(18 * density);
                 addBorder.setStroke(0, Color.TRANSPARENT);
                 addCard.setForeground(addBorder);
                 // Match APP cards: keep the border in a separate foreground layer.
@@ -6221,17 +6221,17 @@ private GradientDrawable roundSurface(int color, float radius) {
                 TextView plus = new TextView(this); plus.setText("+"); plus.setTextColor(Color.WHITE);
                 GradientDrawable plusClip = new GradientDrawable();
                 plusClip.setColor(Color.TRANSPARENT);
-                plusClip.setCornerRadius(20 * density);
+                plusClip.setCornerRadius(18 * density);
                 plus.setBackground(plusClip);
                 plus.setClipToOutline(true);
-                plus.setTextSize(38); plus.setGravity(Gravity.CENTER);
+                plus.setTextSize(34); plus.setGravity(Gravity.CENTER);
                 addCard.addView(plus, new FrameLayout.LayoutParams(-1, -1));
                 add.addView(addCard, new LinearLayout.LayoutParams(-1,
                         Math.round(folderTileDp * 9f / 16f * density)));
                 TextView addLabelSpacer = new TextView(this);
                 addLabelSpacer.setVisibility(View.INVISIBLE);
                 LinearLayout.LayoutParams addLabelLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
-                addLabelLp.topMargin = (int)(3*density);
+                addLabelLp.topMargin = (int)(2*density);
                 add.addView(addLabelSpacer, addLabelLp);
                 add.setOnFocusChangeListener((v, focused) -> {
                     // The add tile uses the same icon-card-only focus outline.
@@ -6289,7 +6289,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.setText("關閉"); close.setAllCaps(false);
         close.setFocusable(true); close.setFocusableInTouchMode(true);
         close.setDefaultFocusHighlightEnabled(false);
-        close.setMinHeight((int)(52*density));
+        close.setMinHeight((int)(46*density));
         close.setId(View.generateViewId());
         GradientDrawable closeNormal = new GradientDrawable();
         closeNormal.setColor(0xFF343B47); closeNormal.setCornerRadius(14*density);
@@ -6302,7 +6302,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.setOnFocusChangeListener((v, focused) -> v.setBackground(focused ? closeFocused : closeNormal));
         close.setOnClickListener(v -> dialog.dismiss());
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-1, -2);
-        closeLp.topMargin = (int)(10*density);
+        closeLp.topMargin = (int)(8*density);
         outer.addView(close, closeLp);
         if (!folderFocusTiles.isEmpty()) {
             View firstTile = folderFocusTiles.get(0);
@@ -6370,8 +6370,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             // 疊在資料夾內容後方，產生截圖中不應存在的整片底色。
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().setLayout(
-                Math.min((int)(760*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                Math.min((int)(620*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                Math.min((int)(684*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
+                Math.min((int)(558*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
         }
         grid.post(() -> {
             View first = folderFocusTiles.isEmpty() ? null : folderFocusTiles.get(0);
