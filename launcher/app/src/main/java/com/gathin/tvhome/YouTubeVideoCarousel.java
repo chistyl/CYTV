@@ -11,6 +11,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -340,23 +341,54 @@ final class YouTubeVideoCarousel {
 
             field.setFocusable(true);
             field.setFocusableInTouchMode(true);
+            // Keep URL rows in the normal DPAD path. Open the TV keyboard only after OK,
+            // so merely moving across URL rows never traps focus inside the text editor.
+            field.setShowSoftInputOnFocus(false);
+            field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                    | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
             field.setNextFocusLeftId(field.getId());
             field.setNextFocusRightId(up.getId());
             field.setNextFocusUpId(i == 0 ? timingIds[0] : urlFields[i - 1].getId());
             field.setNextFocusDownId(i == 4 ? reset.getId() : urlFields[i + 1].getId());
+            field.setOnFocusChangeListener((view, focused) -> {
+                GradientDrawable bg = roundSurface(0xFFE4E7EC, 12);
+                if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+                field.setBackground(bg);
+                if (!focused) field.setShowSoftInputOnFocus(false);
+            });
             field.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
-                int length = field.length();
-                int selectionStart = Math.max(0, field.getSelectionStart());
-                int selectionEnd = Math.max(0, field.getSelectionEnd());
-                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT
-                        && selectionEnd >= length) {
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                    field.setShowSoftInputOnFocus(true);
+                    field.requestFocus();
+                    field.setSelection(field.length());
+                    InputMethodManager imm = (InputMethodManager)
+                            context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) imm.showSoftInput(field, InputMethodManager.SHOW_IMPLICIT);
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                    (rowIndex == 0 ? timingButtons[0] : urlFields[rowIndex - 1]).requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                    (rowIndex == 4 ? reset : urlFields[rowIndex + 1]).requestFocus();
+                    return true;
+                }
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) {
                     up.requestFocus();
                     return true;
                 }
-                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
-                        && selectionStart <= 0) {
-                    field.requestFocus();
+                return false;
+            });
+            field.setOnEditorActionListener((textView, actionId, event) -> {
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                        || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) {
+                    InputMethodManager imm = (InputMethodManager)
+                            context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) imm.hideSoftInputFromWindow(field.getWindowToken(), 0);
+                    field.setShowSoftInputOnFocus(false);
                     return true;
                 }
                 return false;
