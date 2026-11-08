@@ -153,15 +153,15 @@ final class YouTubeVideoCarousel {
                 row.addView(up);
                 Button down = smallButton("↓");
                 down.setEnabled(i < urls.size() - 1);
-                down.setOnClickListener(v -> { syncFields(fields); Collections.swap(urls, index, index + 1); rebuild.run(); });
+                down.setOnClickListener(v -> { syncFields(fields); Collections.swap(urls, index, index + 1); rebuild[0].run(); });
                 row.addView(down);
                 Button remove = smallButton("×");
-                remove.setOnClickListener(v -> { syncFields(fields); urls.remove(index); rebuild.run(); });
+                remove.setOnClickListener(v -> { syncFields(fields); urls.remove(index); rebuild[0].run(); });
                 row.addView(remove);
                 list.addView(row);
             }
         };
-        rebuild.run();
+        rebuild[0].run();
 
         LinearLayout actions = new LinearLayout(context);
         actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
@@ -170,7 +170,7 @@ final class YouTubeVideoCarousel {
         add.setOnClickListener(v -> {
             syncFields(fields);
             if (urls.size() < 5) urls.add("");
-            rebuild.run();
+            rebuild[0].run();
         });
         actions.addView(add);
         panel.addView(actions, matchWrap());
