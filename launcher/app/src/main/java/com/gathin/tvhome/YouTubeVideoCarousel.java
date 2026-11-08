@@ -110,22 +110,55 @@ final class YouTubeVideoCarousel {
     void showSettingsDialog() {
         loadUrls();
         final List<String> draftUrls = new ArrayList<>(urls);
+        while (draftUrls.size() < 5) draftUrls.add("");
         final int[] draftTiming = {prefs.getInt("timing_seconds", 15)};
         final String[] draftMode = {prefs.getString("playback_mode", "sequential")};
 
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(10), dp(2), dp(10), dp(3));
-        content.setGravity(Gravity.CENTER_HORIZONTAL);
         content.setClipChildren(false);
         content.setClipToPadding(false);
 
-        CheckBox enabled = new CheckBox(context);
+        // First row: three radio playback modes on the left and enable switch on the right.
+        LinearLayout topRow = new LinearLayout(context);
+        topRow.setGravity(Gravity.CENTER_VERTICAL);
+        android.widget.RadioGroup modes = new android.widget.RadioGroup(context);
+        modes.setOrientation(android.widget.RadioGroup.HORIZONTAL);
+        modes.setGravity(Gravity.CENTER_VERTICAL);
+        String[] modeLabels = {"單一播放", "依順序播放", "隨機播放"};
+        String[] modeValues = {"single", "sequential", "random"};
+        android.widget.RadioButton[] modeRadios = new android.widget.RadioButton[3];
+        for (int i = 0; i < modeLabels.length; i++) {
+            final String value = modeValues[i];
+            android.widget.RadioButton radio = new android.widget.RadioButton(context);
+            radio.setText(modeLabels[i]);
+            radio.setTextColor(Color.WHITE);
+            radio.setTextSize(14);
+            radio.setButtonTintList(new android.content.res.ColorStateList(
+                    new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                    new int[]{0xFF80C9C2, 0xFFACB8C1}));
+            radio.setPadding(0, 0, dp(3), 0);
+            radio.setFocusable(true);
+            radio.setFocusableInTouchMode(true);
+            radio.setId(View.generateViewId());
+            modeRadios[i] = radio;
+            modes.addView(radio, new android.widget.RadioGroup.LayoutParams(-2, dp(48)));
+            radio.setOnClickListener(v -> draftMode[0] = value);
+        }
+        int selectedMode = "single".equals(draftMode[0]) ? 0
+                : "random".equals(draftMode[0]) ? 2 : 1;
+        modeRadios[selectedMode].setChecked(true);
+        topRow.addView(modes, new LinearLayout.LayoutParams(0, dp(52), 1f));
+
+        android.widget.Switch enabled = new android.widget.Switch(context);
         enabled.setText("啟用視頻輪播");
         enabled.setTextColor(Color.WHITE);
-        enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
+        enabled.setTextSize(14);
         enabled.setChecked(isEnabled());
-        content.addView(enabled, matchWrap());
+        enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
+        topRow.addView(enabled, new LinearLayout.LayoutParams(-2, dp(52)));
+        content.addView(topRow, matchWrap());
 
         LinearLayout timingRow = new LinearLayout(context);
         timingRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -147,91 +180,65 @@ final class YouTubeVideoCarousel {
         }
         refreshTiming.run();
         wireChoiceFocus(timingRow);
-        content.addView(timingRow, matchWrap());
-
-        LinearLayout modeRow = new LinearLayout(context);
-        modeRow.setGravity(Gravity.CENTER_VERTICAL);
-        modeRow.addView(text("影片播放方式", 14, Color.WHITE),
-                new LinearLayout.LayoutParams(dp(112), dp(48)));
-        String[] modeLabels = {"單一播放", "依順序播放", "隨機播放"};
-        String[] modeValues = {"single", "sequential", "random"};
-        Button[] modeButtons = new Button[modeLabels.length];
-        Runnable refreshMode = () -> {
-            for (int i = 0; i < modeButtons.length; i++)
-                styleChoice(modeButtons[i], modeValues[i].equals(draftMode[0]));
-        };
-        for (int i = 0; i < modeLabels.length; i++) {
-            final String value = modeValues[i];
-            Button choice = smallButton(modeLabels[i]);
-            modeButtons[i] = choice;
-            choice.setOnClickListener(v -> { draftMode[0] = value; refreshMode.run(); });
-            modeRow.addView(choice, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        }
-        refreshMode.run();
-        wireChoiceFocus(modeRow);
-        content.addView(modeRow, matchWrap());
-
-        TextView hint = text("最多 5 筆 YouTube 影片連結，可修改並調整播放順序", 13, 0xFFCBD2DC);
-        hint.setPadding(0, dp(8), 0, dp(8));
-        content.addView(hint, matchWrap());
+        LinearLayout.LayoutParams timingLp = matchWrap();
+        timingLp.topMargin = dp(2);
+        timingLp.bottomMargin = dp(18);
+        content.addView(timingRow, timingLp);
 
         LinearLayout list = new LinearLayout(context);
         list.setOrientation(LinearLayout.VERTICAL);
-        ScrollView scroll = new ScrollView(context);
-        scroll.setFillViewport(false);
-        scroll.setVerticalScrollBarEnabled(false);
-        scroll.addView(list);
-        content.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
         List<EditText> fields = new ArrayList<>();
-        final Runnable[] rebuild = new Runnable[1];
-        rebuild[0] = () -> {
-            list.removeAllViews();
-            fields.clear();
-            for (int i = 0; i < draftUrls.size(); i++) {
-                final int index = i;
-                LinearLayout row = new LinearLayout(context);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                EditText edit = new EditText(context);
-                edit.setSingleLine(true);
-                edit.setText(draftUrls.get(i));
-                edit.setTextColor(Color.WHITE);
-                edit.setHintTextColor(0xFF9BA6B5);
-                edit.setHint("https://youtu.be/...");
-                edit.setTextSize(13);
-                edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-                edit.setSelectAllOnFocus(true);
-                row.addView(edit, new LinearLayout.LayoutParams(0, dp(48), 1f));
-                fields.add(edit);
+        for (int i = 0; i < 5; i++) {
+            final int index = i;
+            LinearLayout row = new LinearLayout(context);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            EditText edit = new EditText(context);
+            edit.setSingleLine(true);
+            edit.setText(draftUrls.get(i));
+            edit.setTextColor(Color.BLACK);
+            edit.setHintTextColor(0xFF6F7782);
+            edit.setHint("YouTube 影片連結");
+            edit.setTextSize(14);
+            edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+            edit.setSelectAllOnFocus(true);
+            edit.setPadding(dp(14), 0, dp(12), 0);
+            edit.setBackground(roundSurface(0xFFE4E7EC, 12));
+            edit.setFocusable(true);
+            edit.setFocusableInTouchMode(true);
+            LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
+            editLp.rightMargin = dp(12);
+            row.addView(edit, editLp);
+            fields.add(edit);
 
-                Button up = smallButton("↑");
-                up.setEnabled(i > 0);
-                up.setOnClickListener(v -> {
-                    syncDraftFields(fields, draftUrls);
-                    Collections.swap(draftUrls, index, index - 1);
-                    rebuild[0].run();
-                });
-                row.addView(up);
-                Button down = smallButton("↓");
-                down.setEnabled(i < draftUrls.size() - 1);
-                down.setOnClickListener(v -> {
-                    syncDraftFields(fields, draftUrls);
-                    Collections.swap(draftUrls, index, index + 1);
-                    rebuild[0].run();
-                });
-                row.addView(down);
-                Button remove = smallButton("×");
-                remove.setOnClickListener(v -> {
-                    syncDraftFields(fields, draftUrls);
-                    draftUrls.remove(index);
-                    rebuild[0].run();
-                });
-                row.addView(remove);
-                list.addView(row);
-            }
-        };
-        rebuild[0].run();
+            Button up = smallButton("↑");
+            up.setTextSize(19);
+            up.setBackground(roundSurface(0xFF2D323B, 8));
+            up.setEnabled(index > 0);
+            up.setOnClickListener(v -> {
+                syncDraftFields(fields, draftUrls);
+                Collections.swap(draftUrls, index, index - 1);
+                for (int n = 0; n < fields.size(); n++) fields.get(n).setText(draftUrls.get(n));
+            });
+            row.addView(up, new LinearLayout.LayoutParams(dp(78), dp(48)));
+
+            Button down = smallButton("↓");
+            down.setTextSize(19);
+            down.setBackground(roundSurface(0xFF55575B, 8));
+            down.setEnabled(index < 4);
+            LinearLayout.LayoutParams downLp = new LinearLayout.LayoutParams(dp(78), dp(48));
+            downLp.leftMargin = dp(8);
+            downLp.rightMargin = dp(2);
+            down.setOnClickListener(v -> {
+                syncDraftFields(fields, draftUrls);
+                Collections.swap(draftUrls, index, index + 1);
+                for (int n = 0; n < fields.size(); n++) fields.get(n).setText(draftUrls.get(n));
+            });
+            row.addView(down, downLp);
+            LinearLayout.LayoutParams rowLp = matchWrap();
+            rowLp.bottomMargin = dp(10);
+            list.addView(row, rowLp);
+        }
+        content.addView(list, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         LinearLayout outer = new LinearLayout(context);
         outer.setOrientation(LinearLayout.VERTICAL);
@@ -272,8 +279,8 @@ final class YouTubeVideoCarousel {
         reset.setOnClickListener(v -> {
             draftTiming[0] = 15;
             draftMode[0] = "sequential";
+            modeRadios[1].setChecked(true);
             refreshTiming.run();
-            refreshMode.run();
         });
         cancel.setOnClickListener(v -> dialog.dismiss());
         apply.setOnClickListener(v -> {
@@ -331,35 +338,7 @@ final class YouTubeVideoCarousel {
                     Math.min(dp(680), context.getResources().getDisplayMetrics().widthPixels - dp(48)),
                     Math.min(dp(520), context.getResources().getDisplayMetrics().heightPixels - dp(48)));
         }
-        cancel.requestFocus();
-    }
-
-    private void syncDraftFields(List<EditText> fields, List<String> target) {
-        for (int i = 0; i < fields.size() && i < target.size(); i++)
-            target.set(i, fields.get(i).getText().toString());
-    }
-
-    private Button dialogActionButton(String label) {
-        Button button = new Button(context);
-        button.setText(label);
-        button.setAllCaps(false);
-        button.setTextSize(14);
-        button.setMinWidth(0);
-        button.setMinimumWidth(0);
-        button.setPadding(dp(10), 0, dp(10), 0);
-        button.setFocusable(true);
-        button.setFocusableInTouchMode(true);
-        button.setDefaultFocusHighlightEnabled(false);
-        button.setTextColor(0xFFE8EBF0);
-        button.setBackground(roundSurface(0xFF343A46, 12));
-        button.setId(View.generateViewId());
-        button.setOnFocusChangeListener((v, focused) -> {
-            GradientDrawable bg = roundSurface(focused ? 0xFF465366 : 0xFF343A46, 12);
-            if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
-            v.setBackground(bg);
-            ((Button) v).setTextColor(focused ? Color.WHITE : 0xFFE8EBF0);
-        });
-        return button;
+        apply.requestFocus();
     }
 
     private LinearLayout optionRow(String label, String[] labels, int[] values, int selected, String key) {
