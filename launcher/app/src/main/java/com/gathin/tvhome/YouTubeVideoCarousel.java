@@ -149,7 +149,26 @@ final class YouTubeVideoCarousel {
             modeRadios[i] = radio;
             modeIds[i] = radio.getId();
             modes.addView(radio, new android.widget.RadioGroup.LayoutParams(-2, dp(48)));
-            radio.setOnClickListener(v -> draftMode[0] = value);
+            radio.setOnClickListener(v -> {
+                draftMode[0] = value;
+                radio.setChecked(true);
+            });
+            radio.setOnFocusChangeListener((v, focused) -> {
+                GradientDrawable focusBg = new GradientDrawable();
+                focusBg.setColor(Color.TRANSPARENT);
+                focusBg.setCornerRadius(dp(10));
+                if (focused) focusBg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+                v.setBackground(focusBg);
+            });
+            radio.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                    radio.performClick();
+                    return true;
+                }
+                return false;
+            });
         }
         int selectedMode = "single".equals(draftMode[0]) ? 0
                 : "random".equals(draftMode[0]) ? 2 : 1;
@@ -167,6 +186,23 @@ final class YouTubeVideoCarousel {
         enabled.setBackgroundColor(Color.TRANSPARENT);
         enabled.setDefaultFocusHighlightEnabled(false);
         enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
+        enabled.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(Color.TRANSPARENT);
+            focusBg.setCornerRadius(dp(10));
+            if (focused) focusBg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+            v.setBackground(focusBg);
+        });
+        enabled.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                    && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                    || keyCode == android.view.KeyEvent.KEYCODE_ENTER
+                    || keyCode == android.view.KeyEvent.KEYCODE_SPACE)) {
+                enabled.performClick();
+                return true;
+            }
+            return false;
+        });
         topRow.addView(enabled, new LinearLayout.LayoutParams(-2, dp(52)));
         content.addView(topRow, matchWrap());
 
@@ -189,6 +225,16 @@ final class YouTubeVideoCarousel {
             timingButtons[i] = choice;
             timingIds[i] = choice.getId();
             choice.setOnClickListener(v -> { draftTiming[0] = value; refreshTiming.run(); });
+            choice.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                        && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_ENTER
+                        || keyCode == android.view.KeyEvent.KEYCODE_SPACE)) {
+                    choice.performClick();
+                    return true;
+                }
+                return false;
+            });
             timingRow.addView(choice, new LinearLayout.LayoutParams(0, dp(44), 1f));
         }
         refreshTiming.run();
