@@ -408,6 +408,7 @@ final class YouTubeVideoCarousel {
         modeRadios[selectedMode].requestFocus();
     }
 
+    // Keep draft URL edits synchronized before applying reorder operations.
     private void syncDraftFields(List<EditText> fields, List<String> target) {
         for (int i = 0; i < fields.size() && i < target.size(); i++)
             target.set(i, fields.get(i).getText().toString());
