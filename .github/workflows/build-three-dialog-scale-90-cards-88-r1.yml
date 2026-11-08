@@ -16,6 +16,7 @@ on:
       - fix/youtube-carousel-remove-duplicate-corner-r7
       - fix/youtube-carousel-video-scale-120-r8
       - fix/youtube-carousel-gradle-ci-recovery-r9
+      - fix/youtube-carousel-video-scale-140-r10
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
