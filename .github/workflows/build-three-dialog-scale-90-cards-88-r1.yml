@@ -27,6 +27,7 @@ on:
       - fix/youtube-carousel-dialog-match-icon-appearance-r19
       - fix/youtube-carousel-dialog-controls-layout-r20
       - fix/youtube-carousel-dialog-remote-focus-r21
+      - fix/youtube-carousel-dialog-show-all-rows-r22
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
