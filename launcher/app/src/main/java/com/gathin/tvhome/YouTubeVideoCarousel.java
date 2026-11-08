@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -49,6 +50,7 @@ final class YouTubeVideoCarousel {
     private WebView webView;
     private boolean active;
     private boolean pageReady;
+    private boolean backgroundHidden;
     private int currentIndex;
 
     YouTubeVideoCarousel(Context context, FrameLayout root) {
@@ -126,7 +128,8 @@ final class YouTubeVideoCarousel {
         panel.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(250)));
 
         List<EditText> fields = new ArrayList<>();
-        Runnable rebuild = () -> {
+        final Runnable[] rebuild = new Runnable[1];
+        rebuild[0] = () -> {
             list.removeAllViews();
             fields.clear();
             for (int i = 0; i < urls.size(); i++) {
@@ -146,7 +149,7 @@ final class YouTubeVideoCarousel {
                 fields.add(edit);
                 Button up = smallButton("↑");
                 up.setEnabled(i > 0);
-                up.setOnClickListener(v -> { syncFields(fields); Collections.swap(urls, index, index - 1); rebuild.run(); });
+                up.setOnClickListener(v -> { syncFields(fields); Collections.swap(urls, index, index - 1); rebuild[0].run(); });
                 row.addView(up);
                 Button down = smallButton("↓");
                 down.setEnabled(i < urls.size() - 1);
@@ -250,7 +253,12 @@ final class YouTubeVideoCarousel {
         webView.setFocusable(false);
         webView.setFocusableInTouchMode(false);
         webView.setWebChromeClient(new WebChromeClient());
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                if (active) playAt(currentIndex);
+            }
+        });
         // WallpaperPlayer's image is child 0 when present; index 1 places video above it and below launcher UI.
         root.addView(webView, Math.min(1, root.getChildCount()), new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -272,7 +280,6 @@ final class YouTubeVideoCarousel {
                 + "idx=next;var id=videoId(items[idx]);if(id&&ytPlayer)ytPlayer.loadVideoById(id);}"
                 + "</script></body></html>";
         webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null);
-        pageReady = true;
     }
 
     private String jsonUrls() {
@@ -290,6 +297,7 @@ final class YouTubeVideoCarousel {
     }
 
     private void hideBackgroundLayers() {
+        if (backgroundHidden) return;
         for (int i = 0; i < backgroundLayers.length; i++) {
             View view = backgroundLayers[i];
             if (view != null) {
@@ -297,12 +305,15 @@ final class YouTubeVideoCarousel {
                 view.setVisibility(View.GONE);
             }
         }
+        backgroundHidden = true;
     }
 
     private void restoreBackgroundLayers() {
+        if (!backgroundHidden) return;
         for (int i = 0; i < backgroundLayers.length; i++) {
             if (backgroundLayers[i] != null) backgroundLayers[i].setVisibility(oldVisibility[i]);
         }
+        backgroundHidden = false;
     }
 
     private void syncFields(List<EditText> fields) {
