@@ -1,9 +1,9 @@
-name: Build CYTV Folder Dialog Scale 90% R1
+name: Build CYTV Folder Dialog Card Scale 94% R1
 
 on:
   push:
     branches:
-      - fix/folder-dialog-scale-90-r1
+      - fix/folder-dialog-card-scale-94-spacing-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-folder-dialog-scale-90-r1.yml'
@@ -16,7 +16,7 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout folder dialog scale branch
+      - name: Checkout folder dialog card scale 94 branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -54,7 +54,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-Folder-Dialog-Scale-90-R1-APK
+          name: CYTV-Folder-Dialog-Card-Scale-94-R1-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
