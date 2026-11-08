@@ -122,19 +122,15 @@ final class YouTubeVideoCarousel {
         enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
         enabled.setChecked(isEnabled());
         panel.addView(enabled, matchWrap());
-        int startDelay = prefs.getInt("start_delay_seconds", 15);
-        int stopBefore = prefs.getInt("stop_before_end_seconds", 15);
+        int timingSeconds = prefs.getInt("timing_seconds", 15);
         String playbackMode = prefs.getString("playback_mode", "sequential");
         Dialog dialog = new Dialog(context);
-        panel.addView(optionRow("開始後播放", new String[]{"5秒","10秒","15秒","30秒"},
-                new int[]{5,10,15,30}, startDelay, "start_delay_seconds"), matchWrap());
-        panel.addView(optionRow("結束前停止", new String[]{"5秒","10秒","15秒","30秒"},
-                new int[]{5,10,15,30}, stopBefore, "stop_before_end_seconds"), matchWrap());
+        panel.addView(optionRow("開始後／結束前", new String[]{"5秒","10秒","15秒","30秒"},
+                new int[]{5,10,15,30}, timingSeconds, "timing_seconds"), matchWrap());
         panel.addView(modeOptionRow(playbackMode), matchWrap());
         Button resetDefaults = smallButton("恢復預設");
         resetDefaults.setOnClickListener(v -> {
-            prefs.edit().putInt("start_delay_seconds",15)
-                    .putInt("stop_before_end_seconds",15)
+            prefs.edit().putInt("timing_seconds",15)
                     .putString("playback_mode","sequential").apply();
             dialog.dismiss();
             showSettingsDialog();
@@ -361,7 +357,7 @@ final class YouTubeVideoCarousel {
         String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>"
                 + "<style>html,body,#player{position:absolute;inset:0;margin:0;width:100%;height:100%;overflow:hidden;background:#000}#player iframe{position:absolute!important;left:50%!important;top:50%!important;width:max(100vw,177.78vh)!important;height:max(100vh,56.25vw)!important;transform:translate(-50%,-50%) scale(1.0)!important;border:0}.vignette{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:10}.edge{position:absolute}.edge-top{top:0;left:0;right:0;height:34%;background:linear-gradient(to bottom,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 29%,rgba(0,0,0,.38) 41%,transparent 100%)}.edge-bottom{bottom:0;left:0;right:0;height:38%;background:linear-gradient(to top,rgba(0,0,0,.98) 0%,rgba(0,0,0,.84) 29%,rgba(0,0,0,.4) 41%,transparent 100%)}.edge-left{left:0;top:0;bottom:0;width:45%;background:linear-gradient(to right,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 15%,rgba(0,0,0,.38) 28%,transparent 100%)}.edge-right{right:0;top:0;bottom:0;width:45%;background:linear-gradient(to left,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 20%,rgba(0,0,0,.38) 33%,transparent 100%)}.corner-tl{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 82% 82% at 0% 0%,rgba(0,0,0,.96) 0%,rgba(0,0,0,.68) 53%,rgba(0,0,0,.24) 77%,transparent 101%)}.corner-tr{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 82% 82% at 100% 0%,rgba(0,0,0,.96) 0%,rgba(0,0,0,.68) 43%,rgba(0,0,0,.24) 67%,transparent 91%)}.corner-bl{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 86% 86% at 0% 100%,rgba(0,0,0,.99) 0%,rgba(0,0,0,.76) 55%,rgba(0,0,0,.28) 79%,transparent 103%)}.corner-br{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 86% 86% at 100% 100%,rgba(0,0,0,.99) 0%,rgba(0,0,0,.76) 60%,rgba(0,0,0,.28) 84%,transparent 108%)}</style>"
                 + "</head><body><div id='player'></div><div class='vignette' aria-hidden='true'><div class='edge edge-top'></div><div class='edge edge-bottom'></div><div class='edge edge-left'></div><div class='edge edge-right'></div><div class='edge corner-tl'></div><div class='edge corner-bl'></div><div class='edge corner-br'></div><div class='edge corner-tr'></div></div><script src='https://www.youtube.com/iframe_api'></script><script>"
-                + "var items=" + jsonVideoIds() + ";var idx=0;var ytPlayer;var startDelay=" + (prefs.getInt("start_delay_seconds",15)*1000) + ";var stopBefore=" + prefs.getInt("stop_before_end_seconds",15) + ";var mode=" + JSONObject.quote(prefs.getString("playback_mode","sequential")) + ";var stopTimer=null;"
+                + "var items=" + jsonVideoIds() + ";var idx=0;var ytPlayer;var timingSeconds=" + prefs.getInt("timing_seconds",15) + ";var startDelay=timingSeconds*1000;var stopBefore=timingSeconds;var mode=" + JSONObject.quote(prefs.getString("playback_mode","sequential")) + ";var stopTimer=null;"
                 + "function onYouTubeIframeAPIReady(){ytPlayer=new YT.Player('player',{width:'100%',height:'100%',"
                 + "videoId:items[0],playerVars:{autoplay:0,mute:1,controls:0,disablekb:1,fs:0,modestbranding:1,rel:0,playsinline:1,iv_load_policy:3,origin:location.origin},"
                 + "events:{onReady:function(e){e.target.mute();e.target.setVolume(0);setTimeout(function(){if(ytPlayer){ytPlayer.playVideo();startStopMonitor();}},startDelay);},onStateChange:function(e){if(e.data===0)nextVideo();},onError:function(){nextVideo();}}});}"
