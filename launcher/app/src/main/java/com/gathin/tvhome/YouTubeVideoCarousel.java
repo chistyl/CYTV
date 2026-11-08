@@ -408,6 +408,34 @@ final class YouTubeVideoCarousel {
         modeRadios[selectedMode].requestFocus();
     }
 
+    private void syncDraftFields(List<EditText> fields, List<String> target) {
+        for (int i = 0; i < fields.size() && i < target.size(); i++)
+            target.set(i, fields.get(i).getText().toString());
+    }
+
+    private Button dialogActionButton(String label) {
+        Button button = new Button(context);
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(14);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setPadding(dp(10), 0, dp(10), 0);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        button.setDefaultFocusHighlightEnabled(false);
+        button.setTextColor(0xFFE8EBF0);
+        button.setBackground(roundSurface(0xFF343A46, 12));
+        button.setId(View.generateViewId());
+        button.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable bg = roundSurface(focused ? 0xFF465366 : 0xFF343A46, 12);
+            if (focused) bg.setStroke(Math.max(2, dp(2)), 0xFF80C9C2);
+            v.setBackground(bg);
+            ((Button) v).setTextColor(focused ? Color.WHITE : 0xFFE8EBF0);
+        });
+        return button;
+    }
+
     private LinearLayout optionRow(String label, String[] labels, int[] values, int selected, String key) {
         LinearLayout row = new LinearLayout(context);
         row.setGravity(Gravity.CENTER_VERTICAL);
