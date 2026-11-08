@@ -24,6 +24,7 @@ on:
       - fix/youtube-carousel-vignette-top-bottom25-sides10-r16
       - feature/youtube-carousel-timing-playback-modes-r17
       - fix/youtube-carousel-shared-timing-setting-r18
+      - fix/youtube-carousel-dialog-match-icon-appearance-r19
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
