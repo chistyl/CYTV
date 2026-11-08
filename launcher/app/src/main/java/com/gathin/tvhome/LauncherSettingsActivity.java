@@ -37,10 +37,6 @@ public final class LauncherSettingsActivity extends Activity {
     private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
     private final TextView[] clockChoices = new TextView[CLOCK_FORMATS.length];
-    private TextView wallpaperChoice;
-    private TextView animationsChoice;
-    private TextView advancedChoice;
-    private TextView followThemeChoice;
     private TextView openOnStartChoice;
     private int columns;
     private int rowsBelowDock;
@@ -130,66 +126,17 @@ public final class LauncherSettingsActivity extends Activity {
         connectChoiceRows(columnChoices, rowChoices);
         connectChoiceRows(rowChoices, dockChoices);
         connectChoiceRows(dockChoices, clockChoices);
-        wallpaperChoice = findViewById(R.id.wallpaperChoice);
-        wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
-        animationsChoice = findViewById(R.id.animationsChoice);
-        animationsChoice.setOnClickListener(v -> {
-            animations = !animations;
-            if (!animations) advancedEffects = false;
-            choices.edit().putBoolean("animations", animations)
-                    .putBoolean("advanced_effects", advancedEffects).apply();
-            changed();
-            refresh();
-        });
-        advancedChoice = findViewById(R.id.advancedChoice);
-        advancedChoice.setOnClickListener(v -> {
-            if (advancedEffects) {
-                setAdvanced(false);
-            } else {
-                AlertDialog dialog = new AlertDialog.Builder(this)
-                        .setTitle(R.string.advanced_effects)
-                        .setMessage(R.string.advanced_effects_warning)
-                        .setPositiveButton(R.string.enable, (d, which) -> setAdvanced(true))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .create();
-                dialog.show();
-                styleSettingsDialog(dialog);
-            }
-        });
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
             openOnStartChoice.setOnClickListener(v -> showOpenOnStartPicker());
         }
-        followThemeChoice = findViewById(R.id.followThemeChoice);
-        followThemeChoice.setOnClickListener(v -> {
-            if (!hasOnTvChoices()) return;
-            choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
-                    .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.CLOCK_FORMAT_KEY).remove(OpenOnStart.KEY).commit();
-            Config current = Config.load(this);
-            columns = current.columns;
-            rowsBelowDock = current.rowsBelowDock;
-            dockOpacity = current.dockOpacity;
-            clockFormat = current.clockFormat;
-            animations = current.animations;
-            advancedEffects = current.animations && current.advancedEffects;
-            changed();
-            refresh();
-        });
-        findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
-            Toast.makeText(this, R.string.home_settings_help, Toast.LENGTH_LONG).show();
-            open(new Intent(Settings.ACTION_HOME_SETTINGS));
-        });
-        findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
-                open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
-        for (TextView clock : clockChoices) clock.setNextFocusDownId(wallpaperChoice.getId());
-        wallpaperChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
-        connectSettingsVertical(reorderChoice, config.launcherSettingsButton,
-                wallpaperChoice, animationsChoice, advancedChoice, openOnStartChoice,
-                followThemeChoice, findViewById(R.id.defaultHomeChoice),
-                findViewById(R.id.tvSettingsChoice));
+        connectSettingsVertical(reorderChoice, config.launcherSettingsButton, columnChoices[0]);
+        if (openOnStartChoice.getVisibility() == View.VISIBLE) {
+            clockChoices[clockChoices.length - 1].setNextFocusDownId(openOnStartChoice.getId());
+            openOnStartChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+        }
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
     }
@@ -445,13 +392,6 @@ public final class LauncherSettingsActivity extends Activity {
                 choices.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1).apply();
     }
 
-    private void setAdvanced(boolean enabled) {
-        advancedEffects = enabled;
-        choices.edit().putBoolean("advanced_effects", enabled).apply();
-        changed();
-        refresh();
-    }
-
     private void refresh() {
         for (int i = 0; i < columnChoices.length; i++) {
             columnChoices[i].setSelected(columns == i + 4);
@@ -465,26 +405,7 @@ public final class LauncherSettingsActivity extends Activity {
         for (int i = 0; i < clockChoices.length; i++) {
             clockChoices[i].setSelected(CLOCK_FORMATS[i].equals(clockFormat));
         }
-        animationsChoice.setText(getString(R.string.animations_state,
-                getString(animations ? R.string.on : R.string.off)));
-        advancedChoice.setText(getString(R.string.advanced_effects_state,
-                getString(advancedEffects ? R.string.on : R.string.off)));
-        advancedChoice.setEnabled(animations);
-        advancedChoice.setAlpha(animations ? 1f : 0.5f);
-        String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
-        wallpaperChoice.setText(getString(R.string.wallpaper_state,
-                "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
-                        : wallpaperCurrent != null ? wallpaperCurrent
-                        : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
-        followThemeChoice.setSelected(!hasOnTvChoices());
-    }
-
-    private boolean hasOnTvChoices() {
-        return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
-                || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(Config.CLOCK_FORMAT_KEY) || choices.contains(OpenOnStart.KEY);
     }
 
     private void open(Intent intent) {

@@ -108,66 +108,10 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/wallpaperChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="28dp" />
-
-        <TextView
-            android:id="@+id/animationsChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="28dp" />
-
-        <TextView
-            android:id="@+id/advancedChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="10dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/advanced_effects_warning"
-            android:textColor="@color/cytv_text_secondary"
-            android:textSize="14sp" />
-
-        <TextView
             android:id="@+id/openOnStartChoice"
             style="@style/DesktopSettingsRow"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="18dp"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/followThemeChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="18dp"
-            android:text="@string/follow_theme" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:text="@string/follow_theme_hint"
-            android:textColor="@color/cytv_text_secondary"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/defaultHomeChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="28dp"
-            android:text="@string/home_settings" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:text="@string/home_settings_help"
-            android:textColor="@color/cytv_text_secondary"
-            android:textSize="14sp" />
-
-        <TextView
-            android:id="@+id/tvSettingsChoice"
-            style="@style/DesktopSettingsRow"
-            android:layout_marginTop="18dp"
-            android:text="@string/tv_settings" />
     </LinearLayout>
 </ScrollView>
