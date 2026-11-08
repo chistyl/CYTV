@@ -122,12 +122,39 @@ final class YouTubeVideoCarousel {
         enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
         enabled.setChecked(isEnabled());
         panel.addView(enabled, matchWrap());
-        CheckBox randomPlay = new CheckBox(context);
-        randomPlay.setText("隨機播放");
-        randomPlay.setTextColor(Color.WHITE);
-        randomPlay.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
-        randomPlay.setChecked(prefs.getBoolean("random", false));
-        panel.addView(randomPlay, matchWrap());
+        TextView timingTitle = text("播放時間設定（秒）", 15, Color.WHITE);
+        timingTitle.setPadding(0, dp(10), 0, dp(4));
+        panel.addView(timingTitle, matchWrap());
+        LinearLayout timingRow = new LinearLayout(context);
+        timingRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView startLabel = text("開始後", 14, 0xFFCBD2DC);
+        timingRow.addView(startLabel);
+        EditText startOffset = numberField(prefs.getInt("start_offset", 15));
+        timingRow.addView(startOffset, new LinearLayout.LayoutParams(dp(76), dp(48)));
+        TextView seconds1 = text("秒播放    結束前", 14, 0xFFCBD2DC);
+        timingRow.addView(seconds1);
+        EditText endOffset = numberField(prefs.getInt("end_offset", 15));
+        timingRow.addView(endOffset, new LinearLayout.LayoutParams(dp(76), dp(48)));
+        timingRow.addView(text("秒停止", 14, 0xFFCBD2DC));
+        panel.addView(timingRow, matchWrap());
+
+        TextView modeTitle = text("影片播放方式", 15, Color.WHITE);
+        modeTitle.setPadding(0, dp(10), 0, dp(4));
+        panel.addView(modeTitle, matchWrap());
+        android.widget.RadioGroup playMode = new android.widget.RadioGroup(context);
+        playMode.setOrientation(android.widget.RadioGroup.VERTICAL);
+        String[] modeLabels = {"單一播放", "依順序播放", "隨機播放"};
+        int selectedMode = Math.max(0, Math.min(2, prefs.getInt("play_mode", 1)));
+        for (int i = 0; i < modeLabels.length; i++) {
+            android.widget.RadioButton option = new android.widget.RadioButton(context);
+            option.setId(100 + i);
+            option.setText(modeLabels[i]);
+            option.setTextColor(Color.WHITE);
+            option.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF80C9C2));
+            playMode.addView(option, matchWrap());
+        }
+        playMode.check(100 + selectedMode);
+        panel.addView(playMode, matchWrap());
 
         TextView hint = text("最多 5 筆 YouTube 影片連結，可修改並調整播放順序", 13, 0xFFCBD2DC);
         hint.setPadding(0, dp(8), 0, dp(8));
@@ -190,6 +217,20 @@ final class YouTubeVideoCarousel {
         LinearLayout.LayoutParams buttonsParams = matchWrap();
         LinearLayout footer = new LinearLayout(context);
         footer.setGravity(Gravity.END);
+        Button restore = smallButton("恢復預設");
+        restore.setOnClickListener(v -> {
+            JSONArray defaults = new JSONArray();
+            defaults.put(DEFAULT_ONE); defaults.put(DEFAULT_TWO);
+            prefs.edit().putString("urls", defaults.toString()).putBoolean("enabled", false)
+                    .putInt("start_offset", 15).putInt("end_offset", 15)
+                    .putInt("play_mode", 1).apply();
+            dialog.dismiss();
+            urls.clear(); urls.add(DEFAULT_ONE); urls.add(DEFAULT_TWO);
+            pause(); restoreBackgroundLayers();
+            if (webView != null) webView.setVisibility(View.GONE);
+            showSettingsDialog();
+        });
+        footer.addView(restore);
         Button cancel = smallButton("取消");
         cancel.setOnClickListener(v -> dialog.dismiss());
         Button save = smallButton("儲存");
@@ -210,11 +251,20 @@ final class YouTubeVideoCarousel {
                 Toast.makeText(context, "啟用視頻輪播前，請至少新增一部有效影片", Toast.LENGTH_SHORT).show();
                 return;
             }
+            int startSeconds = parseSeconds(startOffset, 15);
+            int endSeconds = parseSeconds(endOffset, 15);
+            if (startSeconds < 0 || endSeconds < 0 || startSeconds > 3600 || endSeconds > 3600) {
+                Toast.makeText(context, "秒數請設定為 0 至 3600", Toast.LENGTH_SHORT).show();
+                return;
+            }
             JSONArray array = new JSONArray();
             for (String url : valid) array.put(url);
+            int selected = Math.max(0, playMode.getCheckedRadioButtonId() - 100);
             prefs.edit().putString("urls", array.toString())
                     .putBoolean("enabled", enabled.isChecked())
-                    .putBoolean("random", randomPlay.isChecked()).apply();
+                    .putInt("start_offset", startSeconds)
+                    .putInt("end_offset", endSeconds)
+                    .putInt("play_mode", selected).apply();
             urls.clear(); urls.addAll(valid);
             dialog.dismiss();
             pageReady = false; // Rebuild the iframe page so edited links and random mode take effect immediately.
@@ -291,13 +341,13 @@ final class YouTubeVideoCarousel {
         String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>"
                 + "<style>html,body,#player{position:absolute;inset:0;margin:0;width:100%;height:100%;overflow:hidden;background:#000}#player iframe{position:absolute!important;left:50%!important;top:50%!important;width:max(100vw,177.78vh)!important;height:max(100vh,56.25vw)!important;transform:translate(-50%,-50%) scale(1.0)!important;border:0}.vignette{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:10}.edge{position:absolute}.edge-top{top:0;left:0;right:0;height:34%;background:linear-gradient(to bottom,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 29%,rgba(0,0,0,.38) 41%,transparent 100%)}.edge-bottom{bottom:0;left:0;right:0;height:38%;background:linear-gradient(to top,rgba(0,0,0,.98) 0%,rgba(0,0,0,.84) 29%,rgba(0,0,0,.4) 41%,transparent 100%)}.edge-left{left:0;top:0;bottom:0;width:45%;background:linear-gradient(to right,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 15%,rgba(0,0,0,.38) 28%,transparent 100%)}.edge-right{right:0;top:0;bottom:0;width:45%;background:linear-gradient(to left,rgba(0,0,0,.97) 0%,rgba(0,0,0,.82) 20%,rgba(0,0,0,.38) 33%,transparent 100%)}.corner-tl{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 82% 82% at 0% 0%,rgba(0,0,0,.96) 0%,rgba(0,0,0,.68) 53%,rgba(0,0,0,.24) 77%,transparent 101%)}.corner-tr{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 82% 82% at 100% 0%,rgba(0,0,0,.96) 0%,rgba(0,0,0,.68) 43%,rgba(0,0,0,.24) 67%,transparent 91%)}.corner-bl{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 86% 86% at 0% 100%,rgba(0,0,0,.99) 0%,rgba(0,0,0,.76) 55%,rgba(0,0,0,.28) 79%,transparent 103%)}.corner-br{inset:0;width:100%;height:100%;background:radial-gradient(ellipse 86% 86% at 100% 100%,rgba(0,0,0,.99) 0%,rgba(0,0,0,.76) 60%,rgba(0,0,0,.28) 84%,transparent 108%)}</style>"
                 + "</head><body><div id='player'></div><div class='vignette' aria-hidden='true'><div class='edge edge-top'></div><div class='edge edge-bottom'></div><div class='edge edge-left'></div><div class='edge edge-right'></div><div class='edge corner-tl'></div><div class='edge corner-bl'></div><div class='edge corner-br'></div><div class='edge corner-tr'></div></div><script src='https://www.youtube.com/iframe_api'></script><script>"
-                + "var items=" + jsonVideoIds() + ";var idx=0;var ytPlayer;"
+                + "var items=" + jsonVideoIds() + ";var idx=0;var ytPlayer;var startOffset=" + prefs.getInt("start_offset", 15) + ";var endOffset=" + prefs.getInt("end_offset", 15) + ";var playMode=" + prefs.getInt("play_mode", 1) + ";var stopTimer=null;var stopped=false;"
                 + "function onYouTubeIframeAPIReady(){ytPlayer=new YT.Player('player',{width:'100%',height:'100%',"
-                + "videoId:items[0],playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,modestbranding:1,rel:0,playsinline:1,iv_load_policy:3,origin:location.origin},"
-                + "events:{onReady:function(e){e.target.mute();e.target.setVolume(0);e.target.playVideo();},onStateChange:function(e){if(e.data===0)nextVideo();},onError:function(){nextVideo();}}});}"
-                + "function nextVideo(){if(!items.length)return;var random=" + prefs.getBoolean("random", false) + ";"
-                + "var next=idx;if(random&&items.length>1){while(next===idx)next=Math.floor(Math.random()*items.length);}else next=(idx+1)%items.length;"
-                + "idx=next;var id=items[idx];if(id&&ytPlayer){ytPlayer.mute();ytPlayer.setVolume(0);ytPlayer.loadVideoById(id);}}"
+                + "videoId:items[0],playerVars:{autoplay:0,mute:1,controls:0,disablekb:1,fs:0,modestbranding:1,rel:0,playsinline:1,iv_load_policy:3,origin:location.origin},"
+                + "events:{onReady:function(e){e.target.mute();e.target.setVolume(0);startCurrent();},onStateChange:function(e){if(e.data===1)scheduleStop();if(e.data===0)nextVideo();},onError:function(){nextVideo();}}});}"
+                + "function startCurrent(){if(!ytPlayer||!items.length)return;stopped=false;if(stopTimer)clearTimeout(stopTimer);ytPlayer.mute();ytPlayer.setVolume(0);ytPlayer.loadVideoById({videoId:items[idx],startSeconds:startOffset});}"
+                + "function scheduleStop(){if(stopTimer)clearTimeout(stopTimer);var remain=Math.max(0,ytPlayer.getDuration()-ytPlayer.getCurrentTime()-endOffset);stopTimer=setTimeout(function(){if(playMode===0){stopped=true;ytPlayer.pauseVideo();}else{ytPlayer.pauseVideo();nextVideo();}},remain*1000);}"
+                + "function nextVideo(){if(!items.length||stopped)return;if(playMode===0){stopped=true;return;}var next=idx;if(playMode===2&&items.length>1){while(next===idx)next=Math.floor(Math.random()*items.length);}else next=(idx+1)%items.length;idx=next;startCurrent();}"
                 + "</script></body></html>";
         // YouTube requires an HTTP Referer identifying the embedding app. For Android WebView,
         // loadDataWithBaseURL sets that Referer; its host must be the installed application ID,
@@ -371,6 +421,23 @@ final class YouTubeVideoCarousel {
             if (backgroundLayers[i] != null) backgroundLayers[i].setVisibility(oldVisibility[i]);
         }
         backgroundHidden = false;
+    }
+
+    private EditText numberField(int value) {
+        EditText field = new EditText(context);
+        field.setSingleLine(true);
+        field.setText(String.valueOf(value));
+        field.setTextColor(Color.WHITE);
+        field.setTextSize(16);
+        field.setGravity(Gravity.CENTER);
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setSelectAllOnFocus(true);
+        return field;
+    }
+
+    private int parseSeconds(EditText field, int fallback) {
+        try { return Integer.parseInt(field.getText().toString().trim()); }
+        catch (Exception ignored) { return fallback; }
     }
 
     private void syncFields(List<EditText> fields) {
