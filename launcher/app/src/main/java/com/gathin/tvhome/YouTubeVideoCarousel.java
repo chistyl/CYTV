@@ -180,6 +180,7 @@ final class YouTubeVideoCarousel {
         for (int i = 0; i < timingLabels.length; i++) {
             final int value = timingValues[i];
             Button choice = smallButton(timingLabels[i]);
+            choice.setId(View.generateViewId());
             timingButtons[i] = choice;
             timingIds[i] = choice.getId();
             choice.setOnClickListener(v -> { draftTiming[0] = value; refreshTiming.run(); });
