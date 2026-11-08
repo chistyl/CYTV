@@ -30,6 +30,7 @@ on:
       - fix/youtube-carousel-dialog-show-all-rows-r22
       - fix/youtube-carousel-complete-remote-navigation-r23
       - fix/youtube-carousel-url-field-remote-focus-r24
+      - fix/youtube-carousel-arrow-remote-actions-remove-borders-r25
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
