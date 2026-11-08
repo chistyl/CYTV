@@ -299,7 +299,12 @@ final class YouTubeVideoCarousel {
                 + "var next=idx;if(random&&items.length>1){while(next===idx)next=Math.floor(Math.random()*items.length);}else next=(idx+1)%items.length;"
                 + "idx=next;var id=items[idx];if(id&&ytPlayer){ytPlayer.mute();ytPlayer.setVolume(0);ytPlayer.loadVideoById(id);}}"
                 + "</script></body></html>";
-        webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null);
+        // YouTube requires an HTTP Referer identifying the embedding app. For Android WebView,
+        // loadDataWithBaseURL sets that Referer; its host must be the installed application ID,
+        // not youtube.com (otherwise the IFrame API can reject playback with error 153).
+        String appId = context.getPackageName().toLowerCase(java.util.Locale.ROOT);
+        String appReferrer = "https://" + appId;
+        webView.loadDataWithBaseURL(appReferrer, html, "text/html", "UTF-8", null);
     }
 
     private String jsonVideoIds() {
