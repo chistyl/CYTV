@@ -329,6 +329,21 @@ public class AdsBlockerActivity extends Activity {
             list.addView(empty, new LinearLayout.LayoutParams(-1, dp(40)));
         }
     }
+    private boolean isBundledDomain(String domain) {
+        return matchesBundledDomain(DEFAULT_BLOCK, domain)
+                || matchesBundledDomain(DEFAULT_ALLOW, domain);
+    }
+
+    private boolean matchesBundledDomain(String defaults, String domain) {
+        for (String item : defaults.split("\\\\s+")) {
+            String rule = normalize(item);
+            if (rule.isEmpty()) continue;
+            if (rule.startsWith("*.") && domain.endsWith(rule.substring(1))) return true;
+            if (rule.equals(domain)) return true;
+        }
+        return false;
+    }
+
     private boolean isBundledRule(String key, String domain) {
         String defaults = BLOCK.equals(key) ? DEFAULT_BLOCK : DEFAULT_ALLOW;
         for (String item : defaults.split("\\s+")) {
@@ -716,7 +731,7 @@ public class AdsBlockerActivity extends Activity {
             TextView domain = label(domainValue.isEmpty() ? "未知網域" : domainValue, 17);
             domain.setTypeface(null, Typeface.BOLD);
             domainRow.addView(domain, new LinearLayout.LayoutParams(0, dp(42), 1f));
-            if (!domainValue.isEmpty()) {
+            if (!domainValue.isEmpty() && !isBundledDomain(domainValue)) {
                 boolean blockedRule = rules(BLOCK).contains(domainValue);
                 boolean allowedRule = rules(ALLOW).contains(domainValue);
 
