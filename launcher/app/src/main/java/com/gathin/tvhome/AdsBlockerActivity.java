@@ -238,11 +238,11 @@ public class AdsBlockerActivity extends Activity {
         content.addView(h, hp);
         TextView sub = label(hint, 15); sub.setTextColor(Color.LTGRAY);
         content.addView(sub, new LinearLayout.LayoutParams(-1, dp(32)));
-        // 封鎖規則只隱藏既有清單，不顯示任何已設定網域；保留新增入口。
-        if (!BLOCK.equals(key)) {
-            LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
-            list.setTag("list_" + key); content.addView(list);
-        }
+        // Both block and allow rules use the same live list, backed by persisted SharedPreferences.
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setTag("list_" + key);
+        content.addView(list);
         Button add = button("＋ 新增網域", () -> promptDomain(key));
         LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, dp(52)); ap.topMargin = dp(8);
         content.addView(add, ap);
@@ -308,9 +308,7 @@ public class AdsBlockerActivity extends Activity {
         if (list == null) return;
         list.removeAllViews();
         for (String domain : rules(key)) {
-            // These six bundled playback/ad-control domains are fixed internally:
-            // keep filtering them, but never expose them in the editable rule list.
-            if (isLockedRule(key, domain)) continue;
+
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(32, 43, 59), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
