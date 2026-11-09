@@ -546,6 +546,9 @@ public class AdsBlockerActivity extends Activity {
         panel.addView(filters, new LinearLayout.LayoutParams(-1, dp(54)));
 
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(true);
+        scroll.setPadding(0, 0, 0, dp(8));
         LinearLayout rows = new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(rows);
@@ -603,6 +606,10 @@ public class AdsBlockerActivity extends Activity {
             }
         });
         dialog.show();
+        // Make the custom panel occupy the full fixed dialog height so the weighted
+        // DNS list scrolls independently and the action row remains at the bottom.
+        panel.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -673,6 +680,7 @@ public class AdsBlockerActivity extends Activity {
         try { logs = new JSONArray(prefs.getString("dns_logs", "[]")); }
         catch (Exception e) { logs = new JSONArray(); }
         // 僅顯示最新 50 筆；較早紀錄仍保留在本機儲存中。
+        // 先取最新 50 筆，再依所選類型篩選，避免篩選模式意外回溯舊紀錄。
         int startIndex = Math.max(0, logs.length() - 50);
         int visibleCount = logs.length() - startIndex;
         int blocked = 0, allowed = 0, failed = 0;
