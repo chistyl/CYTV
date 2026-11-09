@@ -286,8 +286,12 @@ public class AdsFilterVpnService extends VpnService {
                 if (startupAttempts < STARTUP_MAX_ATTEMPTS) {
                     startupHandler.postDelayed(this, STARTUP_RETRY_MS);
                 } else {
-                    appendDnsLog("-", "啟動失敗", "等待 15 秒仍找不到 Wi-Fi／Ethernet；服務已安全停止");
-                    stopFilter();
+                    // Keep the user's enabled request alive through slow TV boot/network
+                    // initialization. Retry every 10 seconds instead of stopping the
+                    // service and leaving the filter permanently inactive after reboot.
+                    appendDnsLog("-", "診斷", "等待實體網路超過 60 秒；保留廣告過濾啟用狀態，每 10 秒持續重試");
+                    startupAttempts = 0;
+                    startupHandler.postDelayed(this, 10000L);
                 }
             }
         }, STARTUP_RETRY_MS);
