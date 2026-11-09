@@ -331,7 +331,7 @@ public class AdsBlockerActivity extends Activity {
     }
     private boolean isBundledRule(String key, String domain) {
         String defaults = BLOCK.equals(key) ? DEFAULT_BLOCK : DEFAULT_ALLOW;
-        for (String item : defaults.split("\\\\s+")) {
+        for (String item : defaults.split("\\s+")) {
             String bundled = normalize(item);
             if (!bundled.isEmpty() && bundled.equals(domain)) return true;
         }
