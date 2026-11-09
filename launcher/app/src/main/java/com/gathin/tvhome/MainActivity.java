@@ -213,6 +213,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View clockBlock;
     private View weeklyWeatherView;
+    private boolean hasWeeklyWeatherData;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
     private TextView weeklyWeatherHeading;
@@ -1275,7 +1276,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         sky.update();
         wallpaperPlayer.start();
-        videoCarousel.start();
+        videoCarousel.resumeAfterWake();
+        // Let the first Home frame render before touching network-bound services after standby.
+        handler.postDelayed(() -> {
+            if (resumed) refreshStandbyNetworkServices();
+        }, 1200L);
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
             lamp.start();
@@ -1284,6 +1289,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 lastPetalShower = today;
                 handler.postDelayed(this::playPetalShower, 450);
             }
+        }
+    }
+
+    /** Reacquire network-bound services after TV standby without changing saved feature settings. */
+    private void refreshStandbyNetworkServices() {
+        SharedPreferences filterPrefs = getSharedPreferences("ad_filter", MODE_PRIVATE);
+        if (filterPrefs.getBoolean("enabled", false)) {
+            try {
+                Intent refresh = new Intent(this, AdsFilterVpnService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(refresh);
+                else startService(refresh);
+            } catch (Exception e) {
+                android.util.Log.w("MainActivity", "Unable to refresh DNS filter after standby", e);
+            }
+        }
+        SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
+        if (weatherPrefs.getBoolean("enabled", false)) {
+            // Keep the last successful forecast visible while the background executor fetches fresh data.
+            loadWeeklyWeather();
         }
     }
 
@@ -4080,11 +4104,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             weeklyWeatherView.setVisibility(View.GONE);
             return;
         }
-        // Keep the overlay out of the first desktop frame while the forecast is loading.
-        // It becomes visible only after the final content has been laid out.
-        weeklyWeatherView.setVisibility(View.INVISIBLE);
-        showWeeklyWeatherStatus("一週天氣  ·  正在取得預報…");
-        weeklyWeatherView.setVisibility(View.INVISIBLE);
+        // Keep the last successful forecast visible while refreshing after a resume or settings change.
+        if (hasWeeklyWeatherData) {
+            weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
+        } else {
+            weeklyWeatherView.setVisibility(View.INVISIBLE);
+            showWeeklyWeatherStatus("一週天氣  ·  正在取得預報…");
+        }
         loadWeeklyWeather();
     }
 
@@ -4201,7 +4227,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showWeeklyWeatherStatus(String message) {
-        if (weeklyWeatherDays == null) return;
+        // Never replace a valid forecast with a transient offline/loading message.
+        if (hasWeeklyWeatherData || weeklyWeatherDays == null) return;
         weeklyWeatherDays.removeAllViews();
         TextView status = new TextView(this);
         status.setText(TraditionalText.toTraditional(message));
@@ -4211,7 +4238,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.addView(status, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {        if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
+    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
+        if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
+        hasWeeklyWeatherData = true;
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
@@ -4604,8 +4633,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showWeatherError(String message) {
         weatherHandler.post(() -> {
             if (weeklyWeatherView == null) return;
-            showWeeklyWeatherStatus("一週天氣：" + message);
-            weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
+            // Keep the last known-good forecast on screen; only show an error before the first success.
+            if (!hasWeeklyWeatherData) {
+                showWeeklyWeatherStatus("一週天氣：" + message);
+                weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
+            }
         });
     }
 

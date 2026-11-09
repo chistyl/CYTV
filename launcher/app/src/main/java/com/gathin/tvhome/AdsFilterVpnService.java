@@ -66,6 +66,8 @@ public class AdsFilterVpnService extends VpnService {
     private final Handler networkHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingNetworkLossCheck;
     private int startupAttempts = 0;
+    private int networkRecoveryAttempts = 0;
+    private long lastNoNetworkDnsLogAt;
     // Android 9 TV firmware can report a short-lived onLost/ActiveNetwork=null
     // while Ethernet is still recovering. Allow a longer non-blocking recovery window.
     private static final int STARTUP_MAX_ATTEMPTS = 60;
@@ -86,7 +88,13 @@ public class AdsFilterVpnService extends VpnService {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
                 if (cm != null) {
                     Network current = findPhysicalNetwork(cm);
-                    if (current != null) updateUnderlyingNetwork(current);
+                    if (current != null) {
+                        cancelPendingNetworkLossCheck();
+                        updateUnderlyingNetwork(current);
+                        appendDnsLog("-", "診斷", "待機喚醒後重新取得實體網路：" + current);
+                    } else {
+                        schedulePhysicalNetworkRecovery(cm, underlyingNetwork, "待機喚醒後尚未取得 Wi-Fi／Ethernet");
+                    }
                 }
             }
             return START_STICKY;
@@ -97,7 +105,19 @@ public class AdsFilterVpnService extends VpnService {
             stopSelf(startId);
             return START_NOT_STICKY;
         }
-        if (running.get()) return START_STICKY;
+        if (running.get()) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (cm != null) {
+                Network current = findPhysicalNetwork(cm);
+                if (current != null) {
+                    cancelPendingNetworkLossCheck();
+                    updateUnderlyingNetwork(current);
+                } else {
+                    schedulePhysicalNetworkRecovery(cm, underlyingNetwork, "服務重複啟動時尚未取得實體網路");
+                }
+            }
+            return START_STICKY;
+        }
         stopping.set(false);
         appendDnsLog("-", "診斷", "收到啟動請求；Android API " + Build.VERSION.SDK_INT);
         try {
@@ -206,26 +226,37 @@ public class AdsFilterVpnService extends VpnService {
         }
     }
 
-    // Do not tear down the VPN on the first transient onLost/capability callback.
-    // Android TV may briefly publish no default/physical Network during Ethernet recovery.
+    // Standby can make Android TV temporarily withdraw every physical Network.
+    // Keep the DNS TUN and saved enabled state while waiting; a missing Network is not proof
+    // that Ethernet has failed permanently. Rebind each DNS socket after onAvailable.
     private void schedulePhysicalNetworkRecovery(ConnectivityManager cm, Network lostNetwork, String reason) {
         cancelPendingNetworkLossCheck();
+        networkRecoveryAttempts = 0;
         appendDnsLog("-", "診斷", "偵測到實體網路中斷，等待 "
-                + (NETWORK_LOSS_GRACE_MS / 1000) + " 秒確認並重新搜尋：" + lostNetwork);
-        pendingNetworkLossCheck = () -> {
-            pendingNetworkLossCheck = null;
-            if (stopping.get()) return;
-            Network replacement = findPhysicalNetwork(cm);
-            if (replacement != null) {
-                updateUnderlyingNetwork(replacement);
-                appendDnsLog("-", "診斷", "網路中斷後重新取得實體網路：" + replacement);
-                Log.i(TAG, "Physical network recovery completed: " + replacement);
-            } else {
-                appendNetworkSnapshot(cm);
-                failOpen(reason + "；等待恢復後仍找不到可用的 Wi-Fi／Ethernet");
-            }
-        };
+                + (NETWORK_LOSS_GRACE_MS / 1000) + " 秒後重新搜尋；保留 DNS VPN：" + lostNetwork);
+        pendingNetworkLossCheck = () -> retryPhysicalNetworkRecovery(cm, lostNetwork, reason);
         networkHandler.postDelayed(pendingNetworkLossCheck, NETWORK_LOSS_GRACE_MS);
+    }
+
+    private void retryPhysicalNetworkRecovery(ConnectivityManager cm, Network lostNetwork, String reason) {
+        pendingNetworkLossCheck = null;
+        if (stopping.get()) return;
+        Network replacement = findPhysicalNetwork(cm);
+        if (replacement != null) {
+            networkRecoveryAttempts = 0;
+            updateUnderlyingNetwork(replacement);
+            appendDnsLog("-", "診斷", "網路中斷後重新取得實體網路：" + replacement);
+            Log.i(TAG, "Physical network recovery completed: " + replacement);
+            return;
+        }
+        networkRecoveryAttempts++;
+        if (networkRecoveryAttempts == 1 || networkRecoveryAttempts % 6 == 0) {
+            appendDnsLog("-", "診斷", "實體網路仍未恢復（第 " + networkRecoveryAttempts
+                    + " 次等待）；保留 VPN 與廣告過濾設定，持續等待：" + reason);
+            appendNetworkSnapshot(cm);
+        }
+        pendingNetworkLossCheck = () -> retryPhysicalNetworkRecovery(cm, lostNetwork, reason);
+        networkHandler.postDelayed(pendingNetworkLossCheck, 10000L);
     }
 
     private Network findPhysicalNetwork(ConnectivityManager cm) {
@@ -570,6 +601,17 @@ public class AdsFilterVpnService extends VpnService {
     }
 
     private void noteDnsFailure(String reason) {
+        // During standby the physical route may be absent for minutes. Do not disable the
+        // user's filter after three packets sent into a network that Android has withdrawn.
+        if (resolvePhysicalNetwork() == null) {
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (now - lastNoNetworkDnsLogAt > 30000L) {
+                lastNoNetworkDnsLogAt = now;
+                appendDnsLog("-", "診斷", "暫無實體網路；DNS VPN 保持待命，網路恢復後自動續接");
+            }
+            consecutiveDnsFailures.set(0);
+            return;
+        }
         int failures = consecutiveDnsFailures.incrementAndGet();
         Log.w(TAG, "DNS forwarding failure " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + ": " + reason);
         appendDnsLog("-", "診斷", "DNS 轉送失敗 " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + "：" + reason);
