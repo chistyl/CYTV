@@ -606,10 +606,8 @@ public class AdsBlockerActivity extends Activity {
             }
         });
         dialog.show();
-        // Make the custom panel occupy the full fixed dialog height so the weighted
-        // DNS list scrolls independently and the action row remains at the bottom.
-        panel.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Do not replace the dialog parent's specialized LayoutParams here.
+        // The window is sized below; the custom panel keeps AlertController's valid params.
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
