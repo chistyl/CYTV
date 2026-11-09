@@ -288,7 +288,6 @@ public class AdsFilterVpnService extends VpnService {
                     startupHandler.postDelayed(this, STARTUP_RETRY_MS);
                 } else {
                     appendDnsLog("-", "啟動失敗", "等待 15 秒仍找不到 Wi-Fi／Ethernet；服務已安全停止");
-                    getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
                     stopFilter();
                 }
             }
@@ -730,7 +729,8 @@ public class AdsFilterVpnService extends VpnService {
         if (!stopping.compareAndSet(false, true)) return;
         startupHandler.removeCallbacksAndMessages(null);
         cancelPendingNetworkLossCheck();
-        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+        // Preserve the user requested state across service teardown and reboot.
+        // Explicit user stop actions clear this preference before calling stopFilter().
         appendDnsLog("-", "診斷", "開始停止 VPN／DNS 過濾服務");
         running.set(false);
         tunnelActive = false;
