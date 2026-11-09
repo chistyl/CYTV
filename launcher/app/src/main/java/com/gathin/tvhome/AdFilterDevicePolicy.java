@@ -9,14 +9,8 @@ final class AdFilterDevicePolicy {
     private AdFilterDevicePolicy() {}
 
     static boolean isToshiba65U7000Vs() {
-        String model = normalize(Build.MODEL);
-        String manufacturer = normalize(Build.MANUFACTURER);
-        String brand = normalize(Build.BRAND);
-        boolean targetModel = model.contains("65U7000VS");
-        boolean toshibaBrand = manufacturer.contains("TOSHIBA")
-                || brand.contains("TOSHIBA")
-                || model.startsWith("TOSHIBA");
-        return targetModel && toshibaBrand;
+        // R39: no model-specific DNS VPN disable policy; the reported issue is firmware-side.
+        return false;
     }
 
     private static String normalize(String value) {
