@@ -225,8 +225,8 @@ public class AdsBlockerActivity extends Activity {
         note.setTextColor(Color.rgb(255, 205, 120)); note.setGravity(Gravity.TOP);
         LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, dp(58)); np.topMargin = dp(10);
         content.addView(note, np);
-        addSection("封鎖規則", "目前封鎖規則不顯示；仍可新增網域。", BLOCK);
-        addSection("允許規則", "允許清單優先於封鎖清單，可用來解除誤擋。", ALLOW);
+        addSection("封鎖規則", "", BLOCK);
+        addSection("允許規則", "", ALLOW);
         Button back = button("返回", this::finish);
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(58)); bp.topMargin = dp(20);
         content.addView(back, bp);
@@ -236,8 +236,10 @@ public class AdsBlockerActivity extends Activity {
         TextView h = label(heading, 22); h.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, dp(46)); hp.topMargin = dp(20);
         content.addView(h, hp);
-        TextView sub = label(hint, 15); sub.setTextColor(Color.LTGRAY);
-        content.addView(sub, new LinearLayout.LayoutParams(-1, dp(32)));
+        if (hint != null && !hint.trim().isEmpty()) {
+            TextView sub = label(hint, 15); sub.setTextColor(Color.LTGRAY);
+            content.addView(sub, new LinearLayout.LayoutParams(-1, dp(32)));
+        }
         // Both block and allow rules use the same live list, backed by persisted SharedPreferences.
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
