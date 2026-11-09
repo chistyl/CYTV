@@ -335,7 +335,7 @@ public class AdsBlockerActivity extends Activity {
     }
 
     private boolean matchesBundledDomain(String defaults, String domain) {
-        for (String item : defaults.split("\\\\s+")) {
+        for (String item : defaults.split("\\s+")) {
             String rule = normalize(item);
             if (rule.isEmpty()) continue;
             if (rule.startsWith("*.") && domain.endsWith(rule.substring(1))) return true;
