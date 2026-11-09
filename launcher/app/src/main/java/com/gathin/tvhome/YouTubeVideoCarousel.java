@@ -103,10 +103,23 @@ final class YouTubeVideoCarousel {
         hideBackgroundLayers();
         webView.onResume();
         webView.resumeTimers();
-        // Recreate the IFrame API session: an old JS player can remain "ready" while its
-        // network connection died during standby, so playAt() alone is not sufficient.
-        pageReady = false;
-        loadPlayer();
+        // Read the live JS playlist index before rebuilding; nextVideo() advances inside
+        // the page, so the Java-side index may otherwise lag behind the currently playing item.
+        try {
+            webView.evaluateJavascript("(typeof idx === 'number' ? idx : 0)", value -> {
+                try {
+                    int liveIndex = Integer.parseInt(value == null ? "0" : value.replace("\\"", ""));
+                    currentIndex = Math.max(0, Math.min(liveIndex, Math.max(0, urls.size() - 1)));
+                } catch (Exception ignored) { }
+                if (active) {
+                    pageReady = false;
+                    loadPlayer();
+                }
+            });
+        } catch (Exception e) {
+            pageReady = false;
+            loadPlayer();
+        }
     }
 
     void pause() {
