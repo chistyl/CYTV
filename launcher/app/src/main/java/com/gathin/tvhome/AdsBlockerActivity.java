@@ -69,7 +69,7 @@ public class AdsBlockerActivity extends Activity {
             "*.svc.litv.tv\n";
     private static final String DEFAULT_ALLOW =
             "vid.dbokutv.com\nfirebaselogging-pa.googleapis.com\npic.dbokutv.com\nevents.ads.vungle.com\np-cdnstatic.svc.litv.tv\n";
-    private static final String DEFAULT_RULES_VERSION = "5";
+    private static final String DEFAULT_RULES_VERSION = "6";
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
