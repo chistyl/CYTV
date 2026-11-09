@@ -1275,7 +1275,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         sky.update();
         wallpaperPlayer.start();
-        videoCarousel.start();
+        videoCarousel.resumeAfterWake();
+        // Let the first Home frame render before touching network-bound services after standby.
+        handler.postDelayed(() -> {
+            if (resumed) refreshStandbyNetworkServices();
+        }, 1200L);
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
             lamp.start();
@@ -1284,6 +1288,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 lastPetalShower = today;
                 handler.postDelayed(this::playPetalShower, 450);
             }
+        }
+    }
+
+    /** Reacquire network-bound services after TV standby without changing saved feature settings. */
+    private void refreshStandbyNetworkServices() {
+        SharedPreferences filterPrefs = getSharedPreferences("ad_filter", MODE_PRIVATE);
+        if (filterPrefs.getBoolean("enabled", false)) {
+            try {
+                Intent refresh = new Intent(this, AdsFilterVpnService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(refresh);
+                else startService(refresh);
+            } catch (Exception e) {
+                android.util.Log.w("MainActivity", "Unable to refresh DNS filter after standby", e);
+            }
+        }
+        SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
+        if (weatherPrefs.getBoolean("enabled", false)) {
+            // Keep the last successful forecast visible while the background executor fetches fresh data.
+            loadWeeklyWeather();
         }
     }
 
