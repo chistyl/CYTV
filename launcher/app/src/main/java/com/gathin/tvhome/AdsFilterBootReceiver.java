@@ -18,18 +18,10 @@ public final class AdsFilterBootReceiver extends BroadcastReceiver {
         SharedPreferences prefs = context.getSharedPreferences("ad_filter", Context.MODE_PRIVATE);
         if (!prefs.getBoolean("enabled", false)) return;
 
-        // Preserve the device-specific Ethernet safety policy.
-        if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
-            prefs.edit().putBoolean("enabled", false).apply();
-            Log.i(TAG, "DNS VPN auto-start skipped by Toshiba Ethernet safety policy");
-            return;
-        }
-
-        // VPN consent is normally retained across reboot. If Android revoked it, do not
-        // leave the UI claiming the filter is enabled when no VPN can be established.
+        // Keep the user's enabled preference as the source of truth.
+        // A boot-time consent/network condition must not silently clear that preference.
         if (VpnService.prepare(context) != null) {
-            prefs.edit().putBoolean("enabled", false).apply();
-            Log.w(TAG, "DNS VPN auto-start skipped: Android VPN consent is not available");
+            Log.w(TAG, "DNS VPN restore deferred: Android VPN consent is not available");
             return;
         }
 
@@ -39,8 +31,7 @@ public final class AdsFilterBootReceiver extends BroadcastReceiver {
             else context.startService(service);
             Log.i(TAG, "Restoring previously enabled DNS VPN after boot");
         } catch (RuntimeException error) {
-            prefs.edit().putBoolean("enabled", false).apply();
-            Log.e(TAG, "Unable to restore DNS VPN after boot", error);
+            Log.e(TAG, "Unable to restore DNS VPN after boot; preserving user preference", error);
         }
     }
 }
