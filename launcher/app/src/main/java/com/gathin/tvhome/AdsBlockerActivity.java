@@ -310,7 +310,8 @@ public class AdsBlockerActivity extends Activity {
         if (list == null) return;
         list.removeAllViews();
         for (String domain : rules(key)) {
-
+            // Bundled defaults are active internally but intentionally hidden from this editable page.
+            if (isBundledRule(key, domain)) continue;
             LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(dp(12), 0, dp(8), 0); row.setBackground(bg(Color.rgb(32, 43, 59), 0));
             TextView name = label(domain, 17); row.addView(name, new LinearLayout.LayoutParams(0, dp(48), 1));
@@ -328,6 +329,15 @@ public class AdsBlockerActivity extends Activity {
             list.addView(empty, new LinearLayout.LayoutParams(-1, dp(40)));
         }
     }
+    private boolean isBundledRule(String key, String domain) {
+        String defaults = BLOCK.equals(key) ? DEFAULT_BLOCK : DEFAULT_ALLOW;
+        for (String item : defaults.split("\\\\s+")) {
+            String bundled = normalize(item);
+            if (!bundled.isEmpty() && bundled.equals(domain)) return true;
+        }
+        return false;
+    }
+
     private boolean isLockedRule(String key, String domain) {
         if (BLOCK.equals(key)) {
             return "googleads.g.doubleclick.net".equals(domain)
