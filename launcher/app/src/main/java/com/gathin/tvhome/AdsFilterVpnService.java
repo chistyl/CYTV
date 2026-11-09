@@ -208,7 +208,6 @@ public class AdsFilterVpnService extends VpnService {
         } catch (Exception e) {
             Log.e(TAG, "Unable to start DNS filter", e);
             appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             stopFilter();
         }
         return START_STICKY;
@@ -348,7 +347,6 @@ public class AdsFilterVpnService extends VpnService {
         } catch (Exception e) {
             Log.e(TAG, "Unable to establish DNS tunnel", e);
             appendDnsLog("-", "啟動失敗", e.getClass().getSimpleName() + "：" + String.valueOf(e.getMessage()));
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             stopFilter();
         }
     }
@@ -594,8 +592,7 @@ public class AdsFilterVpnService extends VpnService {
 
     private void failOpen(String reason) {
         Log.e(TAG, "Fail-open: " + reason);
-        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-        appendDnsLog("-", "查詢失敗", reason + "；已自動關閉過濾並交還 Android 網路管理");
+        appendDnsLog("-", "查詢失敗", reason + "；本次服務已安全停止，保留使用者啟用意願");
         stopFilter();
     }
 
@@ -615,8 +612,7 @@ public class AdsFilterVpnService extends VpnService {
         Log.w(TAG, "DNS forwarding failure " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + ": " + reason);
         appendDnsLog("-", "診斷", "DNS 轉送失敗 " + failures + "/" + DNS_FAILURES_BEFORE_FAIL_OPEN + "：" + reason);
         if (failures >= DNS_FAILURES_BEFORE_FAIL_OPEN && running.compareAndSet(true, false)) {
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
-            appendDnsLog("-", "查詢失敗", "DNS 連續異常，已自動關閉過濾並交還 Android 原始網路");
+            appendDnsLog("-", "查詢失敗", "DNS 連續異常，服務已安全停止並保留使用者啟用意願");
             Log.e(TAG, "Fail-open: stopping local DNS VPN after repeated upstream failures");
             stopFilter();
         }
