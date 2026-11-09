@@ -108,7 +108,7 @@ final class YouTubeVideoCarousel {
         try {
             webView.evaluateJavascript("(typeof idx === 'number' ? idx : 0)", value -> {
                 try {
-                    int liveIndex = Integer.parseInt(value == null ? "0" : value.replace("\\"", ""));
+                    int liveIndex = Integer.parseInt(value == null ? "0" : value);
                     currentIndex = Math.max(0, Math.min(liveIndex, Math.max(0, urls.size() - 1)));
                 } catch (Exception ignored) { }
                 if (active) {
