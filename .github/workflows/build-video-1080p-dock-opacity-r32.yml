@@ -6,13 +6,13 @@ on:
       - fix/video-1080p-dock-opacity-70-r32
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-standby-network-auto-recovery-r32.yml'
+      - '.github/workflows/build-video-1080p-dock-opacity-r32.yml'
   pull_request:
     branches:
-      - fix/youtube-carousel-reset-default-urls-r30
+      - fix/standby-network-auto-recovery-r31
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-standby-network-auto-recovery-r32.yml'
+      - '.github/workflows/build-video-1080p-dock-opacity-r32.yml'
   workflow_dispatch:
 
 permissions:
