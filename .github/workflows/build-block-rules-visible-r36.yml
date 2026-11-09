@@ -1,18 +1,18 @@
-name: Build CYTV R37 Block Rules Visible
+name: Build CYTV R38 Block Rules Visible
 
 on:
   push:
     branches:
-      - feat/block-rules-visible-r37
+      - feat/block-rules-visible-r38
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-block-rules-visible-r37.yml'
+      - '.github/workflows/build-block-rules-visible-r38.yml'
   pull_request:
     branches:
       - feat/dns-log-full-page-layout-r35
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-block-rules-visible-r37.yml'
+      - '.github/workflows/build-block-rules-visible-r38.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R37 branch
+      - name: Checkout R38 branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -53,19 +53,19 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R37-Block-Rules-Visible-APK
+          name: CYTV-R38-Block-Rules-Visible-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R37-Block-Rules-Visible-source.zip . \
+          zip -qr CYTV-R38-Block-Rules-Visible-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R37-Block-Rules-Visible-source.zip'
+               './launcher/app/build/*' './CYTV-R38-Block-Rules-Visible-source.zip'
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R37-Block-Rules-Visible-Complete-Source
-          path: CYTV-R37-Block-Rules-Visible-source.zip
+          name: CYTV-R38-Block-Rules-Visible-Complete-Source
+          path: CYTV-R38-Block-Rules-Visible-source.zip
           if-no-files-found: error
           retention-days: 30
