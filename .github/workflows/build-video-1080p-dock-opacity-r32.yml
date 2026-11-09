@@ -1,4 +1,4 @@
-name: Build CYTV R32 Standby Network Auto Recovery
+name: Build CYTV R32 Video 1080p and Dock Opacity
 
 on:
   push:
@@ -60,21 +60,21 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R32-Standby-Network-Auto-Recovery-APK
+          name: CYTV-R32-Video-1080p-Dock-Opacity-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R32-Standby-Network-Auto-Recovery-source.zip . \
+          zip -qr CYTV-R32-Video-1080p-Dock-Opacity-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R32-Standby-Network-Auto-Recovery-source.zip'
+               './launcher/app/build/*' './CYTV-R32-Video-1080p-Dock-Opacity-source.zip'
 
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R32-Standby-Network-Auto-Recovery-Complete-Source
-          path: CYTV-R32-Standby-Network-Auto-Recovery-source.zip
+          name: CYTV-R32-Video-1080p-Dock-Opacity-Complete-Source
+          path: CYTV-R32-Video-1080p-Dock-Opacity-source.zip
           if-no-files-found: error
           retention-days: 30
