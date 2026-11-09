@@ -8,6 +8,7 @@ on:
       - fix/interface-settings-menu-labels-r1
       - fix/desktop-layout-page-clear-items-r1
       - fix/desktop-layout-title-center-content-vertical-center-r1
+      - fix/desktop-app-section-lower-r1
     paths:
       - 'launcher/**'
       - '.github/workflows/build-three-dialog-scale-90-cards-88-r1.yml'
