@@ -43,6 +43,7 @@ public class AdsBlockerActivity extends Activity {
     private static final String ALLOW = "allow_domains";
     private SharedPreferences prefs;
     private LinearLayout content;
+    private boolean showingDnsLogs = false;
     private TextView status;
     private Button toggle;
     private Button autoDnsChoice;
@@ -164,6 +165,7 @@ public class AdsBlockerActivity extends Activity {
         return b;
     }
     private void buildUi() {
+        showingDnsLogs = false;
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(15, 24, 39));
         scroll.setFocusable(false);
@@ -523,36 +525,41 @@ public class AdsBlockerActivity extends Activity {
     }
 
     private void showDnsLogs() {
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(18), dp(14), dp(18), dp(12));
-        GradientDrawable panelSurface = new GradientDrawable();
-        panelSurface.setColor(Color.rgb(29, 33, 43));
-        panelSurface.setCornerRadius(dp(22));
-        panelSurface.setStroke(Math.max(1, dp(1)), 0x28FFFFFF);
-        panel.setBackground(panelSurface);
+        // DNS 紀錄改為同一 Activity 的完整頁面，不再建立外層 AlertDialog。
+        showingDnsLogs = true;
+        ScrollView pageScroll = new ScrollView(this);
+        pageScroll.setFillViewport(false);
+        pageScroll.setBackgroundColor(Color.rgb(15, 24, 39));
+        pageScroll.setFocusable(false);
+        pageScroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
-        TextView title = label("DNS 紀錄", 26);
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(84), dp(22), dp(84), dp(30));
+        pageScroll.addView(page);
+        setContentView(pageScroll);
+
+        TextView title = label("DNS 紀錄", 30);
         title.setTypeface(null, Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
-        panel.addView(title, new LinearLayout.LayoutParams(-1, dp(52)));
+        page.addView(title, new LinearLayout.LayoutParams(-1, dp(58)));
 
-        TextView summary = label("", 17);
+        TextView summary = label("", 19);
         summary.setTypeface(null, Typeface.BOLD);
-        panel.addView(summary, new LinearLayout.LayoutParams(-1, dp(42)));
+        LinearLayout.LayoutParams summaryParams = new LinearLayout.LayoutParams(-1, dp(46));
+        summaryParams.topMargin = dp(8);
+        page.addView(summary, summaryParams);
 
         LinearLayout filters = new LinearLayout(this);
         filters.setOrientation(LinearLayout.HORIZONTAL);
-        panel.addView(filters, new LinearLayout.LayoutParams(-1, dp(54)));
+        LinearLayout.LayoutParams filterParams = new LinearLayout.LayoutParams(-1, dp(60));
+        filterParams.bottomMargin = dp(10);
+        page.addView(filters, filterParams);
 
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setClipToPadding(true);
-        scroll.setPadding(0, 0, 0, dp(8));
         LinearLayout rows = new LinearLayout(this);
         rows.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(rows);
-        panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+        rows.setTag("dns_log_rows");
+        page.addView(rows, new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         final int[] selected = {0}; // 0 all, 1 blocked, 2 allowed
         Button[] filterButtons = new Button[3];
@@ -566,13 +573,16 @@ public class AdsBlockerActivity extends Activity {
             });
             b.setSelected(i == 0);
             filterButtons[i] = b;
-            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(0, dp(60), 1f);
             fp.rightMargin = dp(5);
             filters.addView(b, fp);
         }
 
+        // 操作列放在紀錄清單之後，隨整頁內容自然往下排列，不固定、不遮擋紀錄。
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(62));
+        actionsParams.topMargin = dp(12);
         Button clear = button("清除紀錄", () -> new AlertDialog.Builder(this)
                 .setTitle("清除 DNS 紀錄")
                 .setMessage("確定要清除所有 DNS 紀錄嗎？")
@@ -581,42 +591,16 @@ public class AdsBlockerActivity extends Activity {
                     prefs.edit().remove("dns_logs").apply();
                     updateDnsLogRows(summary, rows, selected[0]);
                 }).show());
-        Button close = button("關閉", null);
-        close.setOnClickListener(v -> {});
-        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, dp(50), 1f);
-        ap.rightMargin = dp(6); actions.addView(clear, ap);
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, dp(50), 1f);
-        cp.leftMargin = dp(6); actions.addView(close, cp);
-        panel.addView(actions, new LinearLayout.LayoutParams(-1, dp(54)));
+        Button close = button("關閉", this::buildUi);
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, dp(58), 1f);
+        ap.rightMargin = dp(8);
+        actions.addView(clear, ap);
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, dp(58), 1f);
+        cp.leftMargin = dp(8);
+        actions.addView(close, cp);
+        page.addView(actions, actionsParams);
 
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).create();
-        close.setOnClickListener(v -> dialog.dismiss());
         updateDnsLogRows(summary, rows, selected[0]);
-
-        final android.widget.ImageView backdropBlur = installDnsBackdropBlur();
-        dialog.setOnDismissListener(ignored -> {
-            if (backdropBlur != null) {
-                android.view.ViewParent parent = backdropBlur.getParent();
-                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
-                android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
-                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
-                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
-                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                }
-            }
-        });
-        dialog.show();
-        // Do not replace the dialog parent's specialized LayoutParams here.
-        // The window is sized below; the custom panel keeps AlertController's valid params.
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            dialog.getWindow().setDimAmount(0.6f);
-            // 與資料夾視窗共用相同高度：最多 520dp，並保留上下各 24dp 螢幕安全邊界。
-            int folderDialogHeight = Math.min(dp(520), getResources().getDisplayMetrics().heightPixels - dp(48));
-            dialog.getWindow().setLayout((int)(getResources().getDisplayMetrics().widthPixels * 0.88),
-                    Math.max(dp(320), folderDialogHeight));
-        }
         filterButtons[0].requestFocus();
     }
 
@@ -761,7 +745,7 @@ public class AdsBlockerActivity extends Activity {
             TextView response = label("DNS 回應：" + item.optString("response", "無資料"), 14);
             response.setTextColor(Color.LTGRAY);
             card.addView(response, new LinearLayout.LayoutParams(-1, dp(28)));
-            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, dp(112));
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
             rp.topMargin = dp(7);
             rows.addView(card, rp);
         }
@@ -829,6 +813,14 @@ public class AdsBlockerActivity extends Activity {
         if (prepare != null) startActivityForResult(prepare, VPN_REQUEST);
         else startFilter();
     }
+    @Override public void onBackPressed() {
+        if (showingDnsLogs) {
+            buildUi();
+            return;
+        }
+        super.onBackPressed();
+    }
+
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if (request == VPN_REQUEST && result == RESULT_OK) startFilter();
