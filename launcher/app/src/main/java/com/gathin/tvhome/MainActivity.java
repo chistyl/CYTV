@@ -4963,7 +4963,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locationPanel.setPadding((int)(18*density), (int)(10*density),
                 (int)(18*density), (int)(10*density));
         locationPanel.setBackground(roundSurface(0xFF343A46, 18*density));
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(252*density));
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(186*density));
         panelLp.topMargin = (int)(7*density);
         outer.addView(locationPanel, panelLp);
 
