@@ -686,22 +686,27 @@ public class AdsBlockerActivity extends Activity {
         JSONArray logs;
         try { logs = new JSONArray(prefs.getString("dns_logs", "[]")); }
         catch (Exception e) { logs = new JSONArray(); }
-        // 僅顯示最新 50 筆；較早紀錄仍保留在本機儲存中。
-        // 先取最新 50 筆，再依所選類型篩選，避免篩選模式意外回溯舊紀錄。
+        // 僅檢查最新 50 筆原始紀錄；內建封鎖／允許規則及其萬用字元匹配網域不顯示於列表。
         int startIndex = Math.max(0, logs.length() - 50);
-        int visibleCount = logs.length() - startIndex;
+        int visibleCount = 0;
         int blocked = 0, allowed = 0, failed = 0;
         for (int i = startIndex; i < logs.length(); i++) {
             JSONObject item = logs.optJSONObject(i);
             if (item == null) continue;
+            String domain = normalize(item.optString("domain", ""));
+            if (!domain.isEmpty() && isBundledDomain(domain)) continue;
+            visibleCount++;
             String result = item.optString("result", "");
             if ("已阻擋".equals(result)) blocked++;
             else if ("允許".equals(result)) allowed++;
             else if ("查詢失敗".equals(result)) failed++;
         }
-        summary.setText("顯示最新 " + visibleCount + " / " + logs.length() + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed);
-        if (logs.length() == 0) {
-            TextView empty = label("目前沒有 DNS 紀錄。啟用廣告阻擋並讓 APP 產生網路請求後，紀錄會顯示在這裡。", 17);
+        summary.setText("顯示最新 50 筆中的 " + visibleCount + " 筆　允許 " + allowed + "　阻擋 " + blocked + "　異常 " + failed);
+        if (visibleCount == 0) {
+            TextView empty = label(logs.length() == 0
+                    ? "目前沒有 DNS 紀錄。啟用廣告阻擋並讓 APP 產生網路請求後，紀錄會顯示在這裡。"
+                    : "最新 DNS 紀錄皆為內建過濾規則，已依設定隱藏。",
+                    17);
             empty.setTextColor(Color.LTGRAY);
             empty.setGravity(Gravity.CENTER);
             rows.addView(empty, new LinearLayout.LayoutParams(-1, dp(130)));
@@ -711,6 +716,8 @@ public class AdsBlockerActivity extends Activity {
         for (int i = logs.length() - 1; i >= startIndex; i--) {
             JSONObject item = logs.optJSONObject(i);
             if (item == null) continue;
+            String domainValue = normalize(item.optString("domain", ""));
+            if (!domainValue.isEmpty() && isBundledDomain(domainValue)) continue;
             String result = item.optString("result", "一般通過");
             if (filter == 1 && !"已阻擋".equals(result)) continue;
             if (filter == 2 && !"允許".equals(result)) continue;
@@ -725,13 +732,12 @@ public class AdsBlockerActivity extends Activity {
             TextView head = label((time > 0 ? format.format(new Date(time)) : "--") + "    " + result, 16);
             head.setTypeface(null, Typeface.BOLD); head.setTextColor(color);
             card.addView(head, new LinearLayout.LayoutParams(-1, dp(30)));
-            String domainValue = normalize(item.optString("domain", ""));
             LinearLayout domainRow = new LinearLayout(this);
             domainRow.setGravity(Gravity.CENTER_VERTICAL);
             TextView domain = label(domainValue.isEmpty() ? "未知網域" : domainValue, 17);
             domain.setTypeface(null, Typeface.BOLD);
             domainRow.addView(domain, new LinearLayout.LayoutParams(0, dp(42), 1f));
-            if (!domainValue.isEmpty() && !isBundledDomain(domainValue)) {
+            if (!domainValue.isEmpty()) {
                 boolean blockedRule = rules(BLOCK).contains(domainValue);
                 boolean allowedRule = rules(ALLOW).contains(domainValue);
 
@@ -773,6 +779,12 @@ public class AdsBlockerActivity extends Activity {
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
             rp.topMargin = dp(7);
             rows.addView(card, rp);
+        }
+        if (rows.getChildCount() == 0) {
+            TextView empty = label("目前篩選條件下沒有可顯示的 DNS 紀錄。", 17);
+            empty.setTextColor(Color.LTGRAY);
+            empty.setGravity(Gravity.CENTER);
+            rows.addView(empty, new LinearLayout.LayoutParams(-1, dp(100)));
         }
     }
 
