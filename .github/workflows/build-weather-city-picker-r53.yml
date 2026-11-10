@@ -2,16 +2,16 @@ name: Build CYTV R53 Weather City Picker and Custom Input
 on:
   push:
     branches:
-      - feature/taiwan-county-weather-selector-r53
+      - fix/weather-city-picker-dpad-custom-input-r53
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-taiwan-weather-selector-r53.yml'
+      - '.github/workflows/build-weather-city-picker-r53.yml'
   pull_request:
     branches:
       - fix/rename-wallpaper-settings-dialog-title-r51
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-taiwan-weather-selector-r53.yml'
+      - '.github/workflows/build-weather-city-picker-r53.yml'
   workflow_dispatch:
 permissions:
   contents: read
