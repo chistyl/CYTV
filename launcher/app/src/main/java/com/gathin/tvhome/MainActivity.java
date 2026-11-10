@@ -5024,6 +5024,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .setTitle("選擇縣市")
                     .setSingleChoiceItems(taiwanCities, selected, (d, which) -> {
                         selectedCity[0] = taiwanCities[which].replace("（馬祖）", "");
+                        customCity.setText("");
                         city.setText(selectedCity[0] + "　⌄");
                         d.dismiss();
                         city.requestFocus();
