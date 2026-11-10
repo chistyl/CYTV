@@ -4960,7 +4960,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locationPanel.setPadding((int)(18*density), (int)(10*density),
                 (int)(18*density), (int)(10*density));
         locationPanel.setBackground(roundSurface(0xFF343A46, 18*density));
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(186*density));
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(246*density));
         panelLp.topMargin = (int)(7*density);
         outer.addView(locationPanel, panelLp);
 
@@ -4991,26 +4991,85 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locations.check(fixed ? cityMode.getId() : device.getId());
         locationPanel.addView(locations, new LinearLayout.LayoutParams(-1, (int)(80*density)));
 
-        EditText city = new EditText(this);
+        // Taiwan's complete 22-county/city list, including Penghu, Kinmen and Lienchiang. R53 supports D-pad selection and custom geocoding input.
+        final String[] taiwanCities = {
+                "台北市", "新北市", "桃園市", "台中市", "台南市", "高雄市",
+                "基隆市", "新竹市", "嘉義市", "宜蘭縣", "新竹縣", "苗栗縣",
+                "彰化縣", "南投縣", "雲林縣", "嘉義縣", "屏東縣", "台東縣",
+                "花蓮縣", "澎湖縣", "金門縣", "連江縣（馬祖）"
+        };
+        final String[] selectedCity = {prefs.getString("city", "桃園市").replace("臺", "台")};
+        final EditText customCity = new EditText(this);
+        TextView city = new TextView(this);
         city.setId(View.generateViewId());
-        city.setSingleLine(true);
+        city.setText(selectedCity[0] + "　⌄");
+        city.setTextColor(0xFFF5F6FA);
+        city.setTextSize(16);
+        city.setGravity(Gravity.CENTER_VERTICAL);
+        city.setPadding((int)(16*density), 0, (int)(14*density), 0);
         city.setFocusable(true);
         city.setFocusableInTouchMode(true);
-        city.setDefaultFocusHighlightEnabled(false);
-        city.setHint("輸入城市，例如：桃園市");
-        city.setText(prefs.getString("city", "桃園市"));
-        city.setTextColor(0xFF202124);
-        city.setHintTextColor(0xFF68717D);
-        city.setTextSize(17);
-        city.setPadding((int)(14*density), 0, (int)(14*density), 0);
-        city.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+        city.setClickable(true);
+        city.setBackground(remoteWeatherFocusBackground(false));
+        city.setOnFocusChangeListener((v, focused) -> {
+            v.setBackground(remoteWeatherFocusBackground(focused));
+            city.setTextColor(focused ? 0xFF80C9C2 : 0xFFF5F6FA);
+        });
+        city.setContentDescription("選擇台灣縣市，包含離島");
+        city.setOnClickListener(v -> {
+            int selected = 0;
+            for (int i = 0; i < taiwanCities.length; i++) {
+                if (taiwanCities[i].replace("（馬祖）", "").equals(selectedCity[0])) { selected = i; break; }
+            }
+            AlertDialog picker = new AlertDialog.Builder(this)
+                    .setTitle("選擇縣市")
+                    .setSingleChoiceItems(taiwanCities, selected, (d, which) -> {
+                        selectedCity[0] = taiwanCities[which].replace("（馬祖）", "");
+                        customCity.setText("");
+                        city.setText(selectedCity[0] + "　⌄");
+                        d.dismiss();
+                        city.requestFocus();
+                    })
+                    .setNegativeButton("取消", (d, which) -> { d.dismiss(); city.requestFocus(); })
+                    .create();
+            picker.show();
+            Window pw = picker.getWindow();
+            if (pw != null) pw.setBackgroundDrawable(roundSurface(0xFF252B36, 18*density));
+            android.widget.ListView list = picker.getListView();
+            list.setBackgroundColor(0xFF252B36);
+            list.setSelector(roundSurface(0xFF356F70, 10*density));
+            list.setDivider(new ColorDrawable(0xFF414A58));
+            list.setDividerHeight((int)(1*density));
+            list.setChoiceMode(android.widget.ListView.CHOICE_MODE_SINGLE);
+            list.setItemChecked(selected, true);
+            list.requestFocus();
+        });
         LinearLayout.LayoutParams cityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         cityLp.topMargin = (int)(3*density);
         locationPanel.addView(city, cityLp);
-        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
-        locations.setOnCheckedChangeListener((g, checked) ->
-                city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
 
+        customCity.setId(View.generateViewId());
+        customCity.setSingleLine(true);
+        customCity.setTextSize(16);
+        customCity.setTextColor(0xFFF5F6FA);
+        customCity.setHintTextColor(0xFFADB7C4);
+        customCity.setHint("自行輸入城市／行政區，例如：台灣台北市");
+        customCity.setInputType(InputType.TYPE_CLASS_TEXT);
+        customCity.setPadding((int)(14*density), 0, (int)(14*density), 0);
+        customCity.setBackground(roundSurface(0xFF252B36, 12*density));
+        customCity.setFocusable(true);
+        customCity.setFocusableInTouchMode(true);
+        customCity.setText(prefs.getString("custom_city", ""));
+        LinearLayout.LayoutParams customCityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        customCityLp.topMargin = (int)(7*density);
+        locationPanel.addView(customCity, customCityLp);
+        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
+        customCity.setVisibility(fixed ? View.VISIBLE : View.GONE);
+        locations.setOnCheckedChangeListener((g, checked) -> {
+            boolean showCity = checked == cityMode.getId();
+            city.setVisibility(showCity ? View.VISIBLE : View.GONE);
+            customCity.setVisibility(showCity ? View.VISIBLE : View.GONE);
+        });
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
@@ -5041,13 +5100,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setOnClickListener(v -> dialog.dismiss());
         save.setOnClickListener(v -> {
             boolean useCity = locations.getCheckedRadioButtonId() == cityMode.getId();
-            String value = city.getText().toString().trim();
             prefs.edit()
                     .putBoolean("enabled", enabledSwitch.isChecked())
                     .putString("display_mode",
                             displayModes.getCheckedRadioButtonId() == dayOption.getId() ? "day" : "week")
                     .putString("location_mode", useCity ? "city" : "device")
-                    .putString("city", value.isEmpty() ? "桃園市" : value)
+                    .putString("city", customCity.getText().toString().trim().isEmpty() ? selectedCity[0] : customCity.getText().toString().trim())
+                    .putString("custom_city", customCity.getText().toString().trim())
                     .apply();
             dialog.dismiss();
             refreshWeeklyWeatherVisibility();
@@ -5079,7 +5138,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int reducedHeight = Math.min((int)(382*density),
+            int reducedHeight = Math.min((int)(448*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(48*density));
             dialog.getWindow().setLayout(fixedWidth, reducedHeight);
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -5103,9 +5162,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cityMode.setNextFocusDownId(cityTargetId);
         cityMode.setNextFocusForwardId(cityTargetId);
         city.setNextFocusUpId(cityMode.getId());
-        city.setNextFocusDownId(cancel.getId());
-        city.setNextFocusForwardId(cancel.getId());
-        cancel.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
+        city.setNextFocusDownId(customCity.getId());
+        city.setNextFocusForwardId(customCity.getId());
+        customCity.setNextFocusUpId(city.getId());
+        customCity.setNextFocusDownId(cancel.getId());
+        customCity.setNextFocusForwardId(cancel.getId());
+        cancel.setNextFocusUpId(customCity.getVisibility() == View.VISIBLE ? customCity.getId() : city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
         save.setNextFocusUpId(cancel.getNextFocusUpId());
         cancel.setNextFocusRightId(save.getId());
         cancel.setNextFocusLeftId(cancel.getId());
@@ -5114,7 +5176,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 遙控器在輸入城市欄按向下，直接進入取消；再按向右即可到儲存。
         city.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                cancel.requestFocus();
+                customCity.requestFocus();
                 return true;
             }
             return false;
