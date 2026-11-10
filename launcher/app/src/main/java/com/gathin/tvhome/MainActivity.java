@@ -380,6 +380,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
+    private final Runnable refreshWifiStatusAfterFocus = () -> {
+        if (!isDestroyed() && resumed && hasWindowFocus()) updateWifiLabel();
+    };
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
@@ -1554,7 +1558,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        handler.removeCallbacks(refreshWifiStatusAfterFocus);
         if (hasFocus) {
+            // Some TV firmwares keep Home resumed across standby and do not emit a fresh network callback.
+            // Re-read the current network after focus returns; this only refreshes the pill and never reconnects Wi-Fi.
+            handler.postDelayed(refreshWifiStatusAfterFocus, 400L);
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
@@ -1565,6 +1573,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(refreshWifiStatusAfterFocus);
         super.onDestroy();
         RemoteKeys.release(this);
         cancelHoldOk();
