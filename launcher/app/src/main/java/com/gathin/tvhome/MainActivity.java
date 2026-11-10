@@ -4005,6 +4005,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "桌面設定", this::showInterfaceSettingsMenu);
         addSettingsMenuRow(rows, popup, "視頻輪播", this::showVideoCarouselSettings);
+        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
+        addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
