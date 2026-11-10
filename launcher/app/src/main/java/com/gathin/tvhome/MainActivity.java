@@ -5075,7 +5075,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancel.setOnClickListener(v -> dialog.dismiss());
         save.setOnClickListener(v -> {
             boolean useCity = locations.getCheckedRadioButtonId() == cityMode.getId();
-            String value = city.getText().toString().trim();
             prefs.edit()
                     .putBoolean("enabled", enabledSwitch.isChecked())
                     .putString("display_mode",
