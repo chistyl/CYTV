@@ -1,4 +1,4 @@
-name: Build CYTV R42 Litv Fino Allow Rule
+name: Build CYTV R42 Hide Bundled DNS Log
 
 on:
   push:
