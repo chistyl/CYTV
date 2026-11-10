@@ -4003,7 +4003,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout rows = panel.findViewById(R.id.rows);
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
-        addSettingsMenuRow(rows, popup, "系統設定", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
         addSettingsMenuRow(rows, popup, "介面設定", this::showInterfaceSettingsMenu);
         addSettingsMenuRow(rows, popup, "視頻輪播", this::showVideoCarouselSettings);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
@@ -4041,6 +4040,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
         addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
+        boolean traditionalDisplay = TraditionalText.isEnabled(this);
+        addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
+            TraditionalText.setEnabled(this, !traditionalDisplay);
+            popup.dismiss();
+            recreate();
+        });
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
