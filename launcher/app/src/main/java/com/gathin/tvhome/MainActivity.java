@@ -4991,7 +4991,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locations.check(fixed ? cityMode.getId() : device.getId());
         locationPanel.addView(locations, new LinearLayout.LayoutParams(-1, (int)(80*density)));
 
-        // Taiwan's complete 22-county/city list, including Penghu, Kinmen and Lienchiang.
+        // Taiwan's complete 22-county/city list, including Penghu, Kinmen and Lienchiang. R53 supports D-pad selection and custom geocoding input.
         final String[] taiwanCities = {
                 "台北市", "新北市", "桃園市", "台中市", "台南市", "高雄市",
                 "基隆市", "新竹市", "嘉義市", "宜蘭縣", "新竹縣", "苗栗縣",
