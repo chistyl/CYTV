@@ -5676,7 +5676,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
-        title.setText("桌布設定");
+        title.setText("影像設定");
         title.setTextColor(0xFFF5F6FA);
         title.setTextSize(20);
         title.setGravity(Gravity.CENTER);
