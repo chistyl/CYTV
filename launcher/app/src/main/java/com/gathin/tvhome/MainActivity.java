@@ -4999,6 +4999,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 "花蓮縣", "澎湖縣", "金門縣", "連江縣（馬祖）"
         };
         final String[] selectedCity = {prefs.getString("city", "桃園市").replace("臺", "台")};
+        final EditText customCity = new EditText(this);
         TextView city = new TextView(this);
         city.setId(View.generateViewId());
         city.setText(selectedCity[0] + "　⌄");
@@ -5047,7 +5048,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cityLp.topMargin = (int)(3*density);
         locationPanel.addView(city, cityLp);
 
-        EditText customCity = new EditText(this);
         customCity.setId(View.generateViewId());
         customCity.setSingleLine(true);
         customCity.setTextSize(16);
