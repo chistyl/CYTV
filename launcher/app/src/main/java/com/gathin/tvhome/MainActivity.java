@@ -4029,11 +4029,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
-        addSettingsMenuRow(rows, popup, "桌面佈局", () ->
+        addSettingsMenuRow(rows, popup, "介面佈局", () ->
                 startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         addSettingsMenuRow(rows, popup, "應用顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
-        addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
         addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
             TraditionalText.setEnabled(this, !traditionalDisplay);
