@@ -5,13 +5,13 @@ on:
       - feature/taiwan-county-weather-selector-r52
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-image-settings-title-r51.yml'
+      - '.github/workflows/build-taiwan-weather-selector-r52.yml'
   pull_request:
     branches:
-      - feature/taiwan-county-weather-selector-r52
+      - fix/rename-wallpaper-settings-dialog-title-r51
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-image-settings-title-r51.yml'
+      - '.github/workflows/build-taiwan-weather-selector-r52.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R51 source
+      - name: Checkout R52 source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
