@@ -4960,7 +4960,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locationPanel.setPadding((int)(18*density), (int)(10*density),
                 (int)(18*density), (int)(10*density));
         locationPanel.setBackground(roundSurface(0xFF343A46, 18*density));
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(186*density));
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(-1, (int)(246*density));
         panelLp.topMargin = (int)(7*density);
         outer.addView(locationPanel, panelLp);
 
@@ -4998,53 +4998,77 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 "彰化縣", "南投縣", "雲林縣", "嘉義縣", "屏東縣", "台東縣",
                 "花蓮縣", "澎湖縣", "金門縣", "連江縣（馬祖）"
         };
-        android.widget.Spinner city = new android.widget.Spinner(this);
+        final String[] selectedCity = {prefs.getString("city", "桃園市").replace("臺", "台")};
+        TextView city = new TextView(this);
         city.setId(View.generateViewId());
+        city.setText(selectedCity[0] + "　⌄");
+        city.setTextColor(0xFFF5F6FA);
+        city.setTextSize(16);
+        city.setGravity(Gravity.CENTER_VERTICAL);
+        city.setPadding((int)(16*density), 0, (int)(14*density), 0);
         city.setFocusable(true);
         city.setFocusableInTouchMode(true);
-        city.setDefaultFocusHighlightEnabled(false);
-        city.setPadding((int)(12*density), 0, (int)(12*density), 0);
-        city.setBackground(roundSurface(0xFFE5E8EC, 14*density));
-        android.widget.ArrayAdapter<String> cityAdapter = new android.widget.ArrayAdapter<String>(
-                this, android.R.layout.simple_spinner_item, taiwanCities) {
-            @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
-                TextView item = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
-                item.setText(getItem(position));
-                item.setTextColor(0xFF202124);
-                item.setTextSize(16);
-                item.setGravity(Gravity.CENTER_VERTICAL);
-                item.setPadding((int)(4*density), 0, (int)(4*density), 0);
-                return item;
-            }
-            @Override public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
-                TextView item = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
-                item.setText(getItem(position));
-                item.setTextColor(0xFF202124);
-                item.setTextSize(16);
-                item.setGravity(Gravity.CENTER_VERTICAL);
-                item.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
-                item.setBackgroundColor(0xFFE5E8EC);
-                return item;
-            }
-        };
-        cityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        city.setAdapter(cityAdapter);
-        city.setPopupBackgroundDrawable(roundSurface(0xFFE5E8EC, 12*density));
-        String savedCity = prefs.getString("city", "桃園市").replace("臺", "台");
-        if ("連江縣".equals(savedCity)) savedCity = "連江縣（馬祖）";
-        int savedCityIndex = 2;
-        for (int i = 0; i < taiwanCities.length; i++) {
-            if (taiwanCities[i].equals(savedCity)) { savedCityIndex = i; break; }
-        }
-        city.setSelection(savedCityIndex);
+        city.setClickable(true);
+        city.setBackground(remoteWeatherFocusBackground(false));
+        city.setOnFocusChangeListener((v, focused) -> {
+            v.setBackground(remoteWeatherFocusBackground(focused));
+            city.setTextColor(focused ? 0xFF80C9C2 : 0xFFF5F6FA);
+        });
         city.setContentDescription("選擇台灣縣市，包含離島");
+        city.setOnClickListener(v -> {
+            int selected = 0;
+            for (int i = 0; i < taiwanCities.length; i++) {
+                if (taiwanCities[i].replace("（馬祖）", "").equals(selectedCity[0])) { selected = i; break; }
+            }
+            AlertDialog picker = new AlertDialog.Builder(this)
+                    .setTitle("選擇縣市")
+                    .setSingleChoiceItems(taiwanCities, selected, (d, which) -> {
+                        selectedCity[0] = taiwanCities[which].replace("（馬祖）", "");
+                        city.setText(selectedCity[0] + "　⌄");
+                        d.dismiss();
+                        city.requestFocus();
+                    })
+                    .setNegativeButton("取消", (d, which) -> { d.dismiss(); city.requestFocus(); })
+                    .create();
+            picker.show();
+            Window pw = picker.getWindow();
+            if (pw != null) pw.setBackgroundDrawable(roundSurface(0xFF252B36, 18*density));
+            android.widget.ListView list = picker.getListView();
+            list.setBackgroundColor(0xFF252B36);
+            list.setSelector(roundSurface(0xFF356F70, 10*density));
+            list.setDivider(new ColorDrawable(0xFF414A58));
+            list.setDividerHeight((int)(1*density));
+            list.setChoiceMode(android.widget.ListView.CHOICE_MODE_SINGLE);
+            list.setItemChecked(selected, true);
+            list.requestFocus();
+        });
         LinearLayout.LayoutParams cityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         cityLp.topMargin = (int)(3*density);
         locationPanel.addView(city, cityLp);
-        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
-        locations.setOnCheckedChangeListener((g, checked) ->
-                city.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE));
 
+        EditText customCity = new EditText(this);
+        customCity.setId(View.generateViewId());
+        customCity.setSingleLine(true);
+        customCity.setTextSize(16);
+        customCity.setTextColor(0xFFF5F6FA);
+        customCity.setHintTextColor(0xFFADB7C4);
+        customCity.setHint("自行輸入城市／行政區，例如：台灣台北市");
+        customCity.setInputType(InputType.TYPE_CLASS_TEXT);
+        customCity.setPadding((int)(14*density), 0, (int)(14*density), 0);
+        customCity.setBackground(roundSurface(0xFF252B36, 12*density));
+        customCity.setFocusable(true);
+        customCity.setFocusableInTouchMode(true);
+        customCity.setText(prefs.getString("custom_city", ""));
+        LinearLayout.LayoutParams customCityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        customCityLp.topMargin = (int)(7*density);
+        locationPanel.addView(customCity, customCityLp);
+        city.setVisibility(fixed ? View.VISIBLE : View.GONE);
+        customCity.setVisibility(fixed ? View.VISIBLE : View.GONE);
+        locations.setOnCheckedChangeListener((g, checked) -> {
+            boolean showCity = checked == cityMode.getId();
+            city.setVisibility(showCity ? View.VISIBLE : View.GONE);
+            customCity.setVisibility(showCity ? View.VISIBLE : View.GONE);
+        });
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER);
@@ -5080,7 +5104,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .putString("display_mode",
                             displayModes.getCheckedRadioButtonId() == dayOption.getId() ? "day" : "week")
                     .putString("location_mode", useCity ? "city" : "device")
-                    .putString("city", String.valueOf(city.getSelectedItem()).replace("（馬祖）", ""))
+                    .putString("city", customCity.getText().toString().trim().isEmpty() ? selectedCity[0] : customCity.getText().toString().trim())
+                    .putString("custom_city", customCity.getText().toString().trim())
                     .apply();
             dialog.dismiss();
             refreshWeeklyWeatherVisibility();
@@ -5112,7 +5137,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int reducedHeight = Math.min((int)(382*density),
+            int reducedHeight = Math.min((int)(448*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(48*density));
             dialog.getWindow().setLayout(fixedWidth, reducedHeight);
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -5136,9 +5161,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cityMode.setNextFocusDownId(cityTargetId);
         cityMode.setNextFocusForwardId(cityTargetId);
         city.setNextFocusUpId(cityMode.getId());
-        city.setNextFocusDownId(cancel.getId());
-        city.setNextFocusForwardId(cancel.getId());
-        cancel.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
+        city.setNextFocusDownId(customCity.getId());
+        city.setNextFocusForwardId(customCity.getId());
+        customCity.setNextFocusUpId(city.getId());
+        customCity.setNextFocusDownId(cancel.getId());
+        customCity.setNextFocusForwardId(cancel.getId());
+        cancel.setNextFocusUpId(customCity.getVisibility() == View.VISIBLE ? customCity.getId() : city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
         save.setNextFocusUpId(cancel.getNextFocusUpId());
         cancel.setNextFocusRightId(save.getId());
         cancel.setNextFocusLeftId(cancel.getId());
@@ -5147,7 +5175,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 遙控器在輸入城市欄按向下，直接進入取消；再按向右即可到儲存。
         city.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                cancel.requestFocus();
+                customCity.requestFocus();
                 return true;
             }
             return false;
