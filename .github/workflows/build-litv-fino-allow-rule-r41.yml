@@ -1,4 +1,4 @@
-name: Build CYTV R41 Wi-Fi Status Refresh
+name: Build CYTV R41 Litv Fino Allow Rule
 
 on:
   push:
@@ -53,19 +53,19 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R41-Wi-Fi-Status-Refresh-APK
+          name: CYTV-R41-Litv-Fino-Allow-Rule-APK
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Package complete source archive
         run: |
-          zip -qr CYTV-R41-Wi-Fi-Status-Refresh-source.zip . \
+          zip -qr CYTV-R41-Litv-Fino-Allow-Rule-source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './CYTV-R41-Wi-Fi-Status-Refresh-source.zip'
+               './launcher/app/build/*' './CYTV-R41-Litv-Fino-Allow-Rule-source.zip'
       - name: Upload complete source archive
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R41-Wi-Fi-Status-Refresh-Complete-Source
-          path: CYTV-R41-Wi-Fi-Status-Refresh-source.zip
+          name: CYTV-R41-Litv-Fino-Allow-Rule-Complete-Source
+          path: CYTV-R41-Litv-Fino-Allow-Rule-source.zip
           if-no-files-found: error
           retention-days: 30
