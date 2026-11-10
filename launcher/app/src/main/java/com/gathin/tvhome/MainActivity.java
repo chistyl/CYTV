@@ -4033,7 +4033,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "桌面佈局", () ->
                 startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         addSettingsMenuRow(rows, popup, "應用顯示", this::showHomeAppVisibilityDialog);
-        addSettingsMenuRow(rows, popup, "桌布設定", this::showWallpaperPicker);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
         addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         boolean traditionalDisplay = TraditionalText.isEnabled(this);
