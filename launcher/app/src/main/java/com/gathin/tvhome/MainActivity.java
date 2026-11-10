@@ -4991,19 +4991,53 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locations.check(fixed ? cityMode.getId() : device.getId());
         locationPanel.addView(locations, new LinearLayout.LayoutParams(-1, (int)(80*density)));
 
-        EditText city = new EditText(this);
+        // Taiwan's complete 22-county/city list, including Penghu, Kinmen and Lienchiang.
+        final String[] taiwanCities = {
+                "台北市", "新北市", "桃園市", "台中市", "台南市", "高雄市",
+                "基隆市", "新竹市", "嘉義市", "宜蘭縣", "新竹縣", "苗栗縣",
+                "彰化縣", "南投縣", "雲林縣", "嘉義縣", "屏東縣", "台東縣",
+                "花蓮縣", "澎湖縣", "金門縣", "連江縣（馬祖）"
+        };
+        android.widget.Spinner city = new android.widget.Spinner(this);
         city.setId(View.generateViewId());
-        city.setSingleLine(true);
         city.setFocusable(true);
         city.setFocusableInTouchMode(true);
         city.setDefaultFocusHighlightEnabled(false);
-        city.setHint("輸入城市，例如：桃園市");
-        city.setText(prefs.getString("city", "桃園市"));
-        city.setTextColor(0xFF202124);
-        city.setHintTextColor(0xFF68717D);
-        city.setTextSize(17);
-        city.setPadding((int)(14*density), 0, (int)(14*density), 0);
+        city.setPadding((int)(12*density), 0, (int)(12*density), 0);
         city.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+        android.widget.ArrayAdapter<String> cityAdapter = new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_spinner_item, taiwanCities) {
+            @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView item = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
+                item.setText(getItem(position));
+                item.setTextColor(0xFF202124);
+                item.setTextSize(16);
+                item.setGravity(Gravity.CENTER_VERTICAL);
+                item.setPadding((int)(4*density), 0, (int)(4*density), 0);
+                return item;
+            }
+            @Override public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView item = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
+                item.setText(getItem(position));
+                item.setTextColor(0xFF202124);
+                item.setTextSize(16);
+                item.setGravity(Gravity.CENTER_VERTICAL);
+                item.setPadding((int)(14*density), (int)(10*density), (int)(14*density), (int)(10*density));
+                item.setBackgroundColor(0xFFE5E8EC);
+                return item;
+            }
+        };
+        cityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        city.setAdapter(cityAdapter);
+        city.setPopupBackgroundDrawable(roundSurface(0xFFE5E8EC, 12*density));
+        String savedCity = prefs.getString("city", "桃園市").replace("臺", "台");
+        if ("連江縣".equals(savedCity)) savedCity = "連江縣（馬祖）";
+        int savedCityIndex = 2;
+        for (int i = 0; i < taiwanCities.length; i++) {
+            if (taiwanCities[i].equals(savedCity)) { savedCityIndex = i; break; }
+        }
+        city.setSelection(savedCityIndex);
+        city.setContentDescription("選擇台灣縣市，包含離島");
         LinearLayout.LayoutParams cityLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         cityLp.topMargin = (int)(3*density);
         locationPanel.addView(city, cityLp);
@@ -5047,7 +5081,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .putString("display_mode",
                             displayModes.getCheckedRadioButtonId() == dayOption.getId() ? "day" : "week")
                     .putString("location_mode", useCity ? "city" : "device")
-                    .putString("city", value.isEmpty() ? "桃園市" : value)
+                    .putString("city", String.valueOf(city.getSelectedItem()).replace("（馬祖）", ""))
                     .apply();
             dialog.dismiss();
             refreshWeeklyWeatherVisibility();
