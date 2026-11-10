@@ -4003,14 +4003,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout rows = panel.findViewById(R.id.rows);
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
-        addSettingsMenuRow(rows, popup, "介面設定", this::showInterfaceSettingsMenu);
+        addSettingsMenuRow(rows, popup, "桌面設定", this::showInterfaceSettingsMenu);
         addSettingsMenuRow(rows, popup, "視頻輪播", this::showVideoCarouselSettings);
-        boolean traditionalDisplay = TraditionalText.isEnabled(this);
-        addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
-            TraditionalText.setEnabled(this, !traditionalDisplay);
-            popup.dismiss();
-            recreate();
-        });
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
