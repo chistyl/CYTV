@@ -5132,7 +5132,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // 明確指定遙控器焦點路徑，避免 TV 韌體依畫面距離推算時跳過底部按鈕。
         int firstLocationId = device.getId();
-        int cityTargetId = city.getVisibility() == View.VISIBLE ? city.getId() : cancel.getId();
+        int cityTargetId = "city".equals(savedMode) ? cityPicker.getId()
+                : "custom".equals(savedMode) ? customCity.getId() : cancel.getId();
         dayOption.setNextFocusRightId(weekOption.getId());
         dayOption.setNextFocusDownId(firstLocationId);
         dayOption.setNextFocusForwardId(firstLocationId);
@@ -5144,25 +5145,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         device.setNextFocusUpId(dayOption.getId());
         device.setNextFocusDownId(cityMode.getId());
         cityMode.setNextFocusUpId(device.getId());
-        cityMode.setNextFocusDownId(cityTargetId);
-        cityMode.setNextFocusForwardId(cityTargetId);
-        city.setNextFocusUpId(cityMode.getId());
-        city.setNextFocusDownId(cancel.getId());
-        city.setNextFocusForwardId(cancel.getId());
-        cancel.setNextFocusUpId(city.getVisibility() == View.VISIBLE ? city.getId() : cityMode.getId());
+        cityMode.setNextFocusDownId(customMode.getId());
+        customMode.setNextFocusUpId(cityMode.getId());
+        customMode.setNextFocusDownId(cityTargetId);
+        customMode.setNextFocusForwardId(cityTargetId);
+        cityPicker.setNextFocusUpId(cityMode.getId());
+        cityPicker.setNextFocusDownId(cancel.getId());
+        cityPicker.setNextFocusForwardId(cancel.getId());
+        customCity.setNextFocusUpId(customMode.getId());
+        customCity.setNextFocusDownId(cancel.getId());
+        customCity.setNextFocusForwardId(cancel.getId());
+        cancel.setNextFocusUpId("city".equals(savedMode) ? cityPicker.getId()
+                : "custom".equals(savedMode) ? customCity.getId() : device.getId());
         save.setNextFocusUpId(cancel.getNextFocusUpId());
         cancel.setNextFocusRightId(save.getId());
         cancel.setNextFocusLeftId(cancel.getId());
         save.setNextFocusLeftId(cancel.getId());
         save.setNextFocusRightId(save.getId());
-        // 遙控器在輸入城市欄按向下，直接進入取消；再按向右即可到儲存。
-        city.setOnKeyListener((v, keyCode, event) -> {
+        // 遙控器在城市選擇或輸入欄按向下，直接進入底部操作按鈕。
+        View.OnKeyListener cityDownListener = (v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 cancel.requestFocus();
                 return true;
             }
             return false;
-        });
+        };
+        cityPicker.setOnKeyListener(cityDownListener);
+        customCity.setOnKeyListener(cityDownListener);
         cancel.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 save.requestFocus();
