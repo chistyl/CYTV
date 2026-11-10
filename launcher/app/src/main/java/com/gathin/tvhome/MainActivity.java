@@ -4154,9 +4154,45 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (location == null) {
                 weatherHandler.post(() -> showWeeklyWeatherStatus("無法取得電視位置，請改用「固定指定城市」"));
             } else {
-                fetchForecast(location.getLatitude(), location.getLongitude(), "目前位置");
+                String place = resolveWeatherPlace(location.getLatitude(), location.getLongitude());
+                fetchForecast(location.getLatitude(), location.getLongitude(), place);
             }
         });
+    }
+
+    /**
+     * Resolve a concise local place label for device-location weather.
+     * Prefer the most specific district/town name; never append province or country.
+     */
+    private String resolveWeatherPlace(double latitude, double longitude) {
+        try {
+            String url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10"
+                    + "&addressdetails=1&accept-language=zh-TW&lat=" + latitude + "&lon=" + longitude;
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(8000);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("User-Agent", "CYTV-Weather/1.0 (Android TV launcher)");
+            try (InputStream input = connection.getInputStream();
+                 java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                JSONObject result = new JSONObject(output.toString("UTF-8"));
+                JSONObject address = result.optJSONObject("address");
+                if (address != null) {
+                    String[] preferred = {"city_district", "suburb", "town", "city", "county", "municipality", "state"};
+                    for (String key : preferred) {
+                        String value = address.optString(key, "").trim();
+                        if (!value.isEmpty()) return TraditionalText.toTraditional(value);
+                    }
+                }
+            } finally {
+                connection.disconnect();
+            }
+        } catch (Exception ignored) { }
+        return "目前位置";
     }
 
     private void fetchCityForecast(String city) {
@@ -4194,14 +4230,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             }
             if (selected == null) selected = results.getJSONObject(0);
-            String displayName = selected.optString("name", normalized);
-            String admin = selected.optString("admin1", "");
-            String country = selected.optString("country", "");
-            if (!admin.isEmpty() && !admin.equals(displayName)) displayName += "・" + admin;
-            if (!country.isEmpty() && !"台灣".equals(country) && !"Taiwan".equalsIgnoreCase(country))
-                displayName += "・" + country;
-            displayName = TraditionalText.toTraditional(displayName);
-            fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"), displayName);
+            // Keep the user's entered place as the card label; do not append geocoder
+            // administrative areas or country metadata such as "中壢・臺灣省・台灣".
+            fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"),
+                    TraditionalText.toTraditional(normalized));
         } catch (Exception e) {
             showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
         }
