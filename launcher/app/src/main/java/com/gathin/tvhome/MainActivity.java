@@ -5908,6 +5908,85 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
             }
         }
+        // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
+        TextView customHeading = new TextView(this);
+        customHeading.setText("自訂圖片");
+        customHeading.setTextColor(0xFFF5F6FA);
+        customHeading.setTextSize(16);
+        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
+        List<File> customImages = CustomWallpaperLibrary.list(this);
+        if (customImages.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("尚未匯入圖片。可使用 QR Code 或「選擇圖片」新增。");
+            empty.setTextColor(0xFFB9C2CE);
+            empty.setTextSize(13);
+            empty.setPadding((int)(8*density), (int)(8*density), 0, (int)(16*density));
+            choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
+        } else {
+            final int customColumns = 3;
+            final String activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
+            for (int start = 0; start < customImages.size(); start += customColumns) {
+                LinearLayout customRow = new LinearLayout(this);
+                customRow.setOrientation(LinearLayout.HORIZONTAL);
+                for (int col = 0; col < customColumns && start + col < customImages.size(); col++) {
+                    File customFile = customImages.get(start + col);
+                    LinearLayout tile = new LinearLayout(this);
+                    tile.setOrientation(LinearLayout.VERTICAL);
+                    tile.setFocusable(true);
+                    tile.setFocusableInTouchMode(true);
+                    tile.setClickable(true);
+                    tile.setDefaultFocusHighlightEnabled(false);
+                    tile.setBackgroundColor(Color.TRANSPARENT);
+                    ImageView imageView = new ImageView(this);
+                    imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    imageView.setImageURI(Uri.fromFile(customFile));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                    boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
+                    setWallpaperThumbnailBorder(imageView, activeImage, false);
+                    tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
+                            customFile.getAbsolutePath().equals(wallpaperPrefs.getString("custom_wallpaper_file", "")), focused));
+                    tile.setOnClickListener(v -> {
+                        wallpaperPrefs.edit()
+                                .putString("custom_wallpaper_file", customFile.getAbsolutePath())
+                                .remove("custom_wallpaper_uri")
+                                .remove("builtin_wallpaper")
+                                .putBoolean("builtin_random_play", false)
+                                .putBoolean("hide_left_color_effect", true)
+                                .putBoolean("left_color_effect_enabled", false)
+                                .apply();
+                        dialog.dismiss();
+                        recreate();
+                    });
+                    tile.setOnLongClickListener(v -> {
+                        new AlertDialog.Builder(this)
+                                .setTitle("刪除自訂圖片")
+                                .setMessage("確定要從自訂圖片庫刪除這張圖片嗎？")
+                                .setNegativeButton("取消", null)
+                                .setPositiveButton("刪除", (d, which) -> {
+                                    boolean wasActive = customFile.getAbsolutePath().equals(
+                                            wallpaperPrefs.getString("custom_wallpaper_file", ""));
+                                    CustomWallpaperLibrary.delete(this, customFile);
+                                    if (wasActive) wallpaperPrefs.edit().remove("custom_wallpaper_file").apply();
+                                    dialog.dismiss();
+                                    showWallpaperPicker();
+                                }).show();
+                        return true;
+                    });
+                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
+                            (int)(112*density), 1f);
+                    if (col > 0) tileLp.leftMargin = (int)(12*density);
+                    if (col < customColumns - 1) tileLp.rightMargin = (int)(12*density);
+                    customRow.addView(tile, tileLp);
+                }
+                choices.addView(customRow, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                if (start + customColumns < customImages.size()) {
+                    View gap = new View(this);
+                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                }
+            }
+        }
+
         scroll.setFillViewport(false);
         // 隱藏右側捲動條，保留遙控器上下捲動功能。
         scroll.setVerticalScrollBarEnabled(false);
