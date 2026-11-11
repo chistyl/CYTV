@@ -3985,7 +3985,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "桌面設定", this::showInterfaceSettingsMenu);
-        addSettingsMenuRow(rows, popup, "影像輪播", this::showWallpaperPicker);
+        // PopupWindow must finish detaching before the wallpaper Dialog is created.
+        // Posting avoids overlapping window-token transitions on Android 9 TV firmware.
+        addSettingsMenuRow(rows, popup, "影像輪播", () -> root.post(this::showWallpaperPicker));
         addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
