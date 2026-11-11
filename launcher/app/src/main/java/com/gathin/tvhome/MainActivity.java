@@ -1355,9 +1355,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (importCustomWallpaper(uri)) imported++; else failed++;
             }
             if (imported > 0) {
-                Toast.makeText(this, "已加入自訂圖片 " + imported + " 張" + (failed > 0 ? "，失敗 " + failed + " 張" : ""), Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "已加入自訂圖片 " + imported + " 張" + (failed > 0 ? "；已達 12 張上限或部分圖片匯入失敗" : ""), Toast.LENGTH_LONG).show();
             } else if (failed > 0) {
-                Toast.makeText(this, "圖片讀取失敗，請改選 JPG、PNG 或 WebP 圖片", Toast.LENGTH_LONG).show();
+                int currentCount = getCustomWallpaperImages().size();
+                Toast.makeText(this, currentCount >= CustomWallpaperLibrary.MAX_CUSTOM_IMAGES
+                        ? "自訂圖片已達上限 12 張，請先刪除圖片再匯入。"
+                        : "圖片讀取失敗，請改選 JPG、PNG 或 WebP 圖片", Toast.LENGTH_LONG).show();
             }
             if (imported > 0) showWallpaperPicker();
         }
@@ -5844,7 +5847,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         content.addView(builtinGrid);
 
         TextView customHeader = new TextView(this);
-        customHeader.setText("○  自訂圖片");
+        customHeader.setText("○  自訂圖片（" + customImages.size() + "/12）");
         customHeader.setTextColor(0xFFF5F6FA);
         customHeader.setTextSize(16);
         customHeader.setPadding((int)(4*density), (int)(12*density), 0, (int)(8*density));
@@ -5852,7 +5855,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeader.setClickable(true);
         sourceHeaderUpdater[0] = () -> {
             builtinHeader.setText((source[0].equals("builtin") ? "◉  " : "○  ") + "預設圖片");
-            customHeader.setText((source[0].equals("custom") ? "◉  " : "○  ") + "自訂圖片");
+            customHeader.setText((source[0].equals("custom") ? "◉  " : "○  ") + "自訂圖片（" + customImages.size() + "/12）");
         };
         builtinHeader.setFocusable(true);
         builtinHeader.setClickable(true);
@@ -5959,6 +5962,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showQrWallpaperTransferDialog();
         });
         TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
+            if (customImages.size() >= CustomWallpaperLibrary.MAX_CUSTOM_IMAGES) {
+                Toast.makeText(this, "自訂圖片已達上限 12 張，請先刪除圖片再匯入。", Toast.LENGTH_LONG).show();
+                return;
+            }
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pick.addCategory(Intent.CATEGORY_OPENABLE);
