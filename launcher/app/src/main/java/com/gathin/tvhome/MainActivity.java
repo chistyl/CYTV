@@ -4637,8 +4637,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
-
-        });
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -6266,6 +6264,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 else if (focusedAt[1] + newFocus.getHeight() > bottom)
                     pageScroll.smoothScrollBy(0, focusedAt[1] + newFocus.getHeight() - bottom);
             });
+        });
         if (dialog.getWindow() != null) {
             dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(16, 25, 40)));
