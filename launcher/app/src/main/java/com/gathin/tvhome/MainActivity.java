@@ -4637,6 +4637,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
+        // Keep every focused control visible while the outer page scrolls, including nested gallery tiles
+        // and the bottom Cancel/Save actions. This avoids TV firmware focus staying outside the viewport.
+        pageScroll.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+            if (newFocus == null || !dialog.isShowing()) return;
+            ViewParent ancestor = newFocus.getParent();
+            boolean insidePage = false;
+            while (ancestor != null) {
+                if (ancestor == pageScroll) { insidePage = true; break; }
+                ancestor = ancestor.getParent();
+            }
+            if (!insidePage) return;
+            pageScroll.post(() -> {
+                if (!dialog.isShowing() || !newFocus.isShown()) return;
+                int[] focusedAt = new int[2];
+                int[] viewportAt = new int[2];
+                newFocus.getLocationOnScreen(focusedAt);
+                pageScroll.getLocationOnScreen(viewportAt);
+                int margin = (int) (12 * density);
+                int top = viewportAt[1] + margin;
+                int bottom = viewportAt[1] + pageScroll.getHeight() - margin;
+                if (focusedAt[1] < top) pageScroll.smoothScrollBy(0, focusedAt[1] - top);
+                else if (focusedAt[1] + newFocus.getHeight() > bottom)
+                    pageScroll.smoothScrollBy(0, focusedAt[1] + newFocus.getHeight() - bottom);
+            });
+        });
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -5809,6 +5834,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setTextSize(16);
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
+        defaultHeading.setFocusableInTouchMode(true);
+        defaultHeading.setClickable(true);
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
@@ -5968,6 +5995,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         customHeading.setFocusable(true);
+        customHeading.setFocusableInTouchMode(true);
+        customHeading.setClickable(true);
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
@@ -6202,9 +6231,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pageTitle.setTextSize(Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f))));
         pageTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         pageTitle.setGravity(Gravity.CENTER);
+        pageTitle.setFocusable(true);
+        pageTitle.setFocusableInTouchMode(true);
+        pageTitle.setClickable(true);
+        pageTitle.setId(View.generateViewId());
         LinearLayout.LayoutParams pageTitleLp = new LinearLayout.LayoutParams(contentWidth, -2);
         pageTitleLp.topMargin = (int)(16 * density);
         pageContent.addView(pageTitle, pageTitleLp);
+        // The title is the topmost DPAD stop; Up from the mode row must never dead-end below it.
+        for (int i = 0; i < modeRow.getChildCount(); i++) {
+            modeRow.getChildAt(i).setNextFocusUpId(pageTitle.getId());
+        }
+        pageTitle.setNextFocusDownId(modeRow.getChildAt(0).getId());
 
         View accentLine = new View(this);
         GradientDrawable accent = new GradientDrawable();
