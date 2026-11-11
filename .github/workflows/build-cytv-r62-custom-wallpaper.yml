@@ -18,6 +18,7 @@ on:
       - fix/wallpaper-dialog-grid-width-r68
       - fix/custom-wallpaper-grid-fixed-three-columns-r67
       - fix/wallpaper-gallery-fixed-grid-r70
+      - fix/wallpaper-gallery-full-width-r69
   workflow_dispatch:
 
 permissions:
