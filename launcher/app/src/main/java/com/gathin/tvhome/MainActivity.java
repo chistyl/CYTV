@@ -5803,7 +5803,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             draftCustomActive[0] = false;
             persistWallpaperDraft.run();
-            for (int i = 0; i < thumbnailImages.length; i) if (thumbnailImages[i] != null)
+            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
         });
         randomRow.addView(randomSwitch);
@@ -5853,7 +5853,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false; randomSwitch.setChecked(false);
             persistWallpaperDraft.run();
-            for (int i = 0; i < thumbnailImages.length; i) if (thumbnailImages[i] != null)
+            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
