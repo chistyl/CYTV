@@ -6110,6 +6110,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
+                // Keep the final custom-gallery row at exactly three columns.
+                // Without placeholders, a single remaining tile receives the full row width.
+                int remainingCustom = Math.min(customColumns, customImages.size() - start);
+                for (int emptyCol = remainingCustom; emptyCol < customColumns; emptyCol++) {
+                    View emptyCell = new View(this);
+                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(0,
+                            thumbnailHeight, 1f);
+                    if (emptyCol < customColumns - 1) emptyLp.rightMargin = (int)(6 * density);
+                    customRow.addView(emptyCell, emptyLp);
+                }
                 choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
