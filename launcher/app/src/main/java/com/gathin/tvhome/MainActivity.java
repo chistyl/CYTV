@@ -5933,7 +5933,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
@@ -6105,8 +6105,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                 }).show();
                         return true;
                     });
-                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
-                            thumbnailHeight, 1f);
+                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(thumbnailWidth,
+                            thumbnailHeight);
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
@@ -6115,8 +6115,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int remainingCustom = Math.min(customColumns, customImages.size() - start);
                 for (int emptyCol = remainingCustom; emptyCol < customColumns; emptyCol++) {
                     View emptyCell = new View(this);
-                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(0,
-                            thumbnailHeight, 1f);
+                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(thumbnailWidth,
+                            thumbnailHeight);
                     if (emptyCol < customColumns - 1) emptyLp.rightMargin = (int)(6 * density);
                     customRow.addView(emptyCell, emptyLp);
                 }
