@@ -5831,10 +5831,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
         final int screenWidthDpForGrid = Math.round(getResources().getDisplayMetrics().widthPixels / density);
-        // The picker dialog is capped at 440dp wide and the panel has 18dp padding on both sides.
-        // Calculate cells from the dialog's actual inner width, not the full TV screen width.
-        final int dialogWidthDpForGrid = Math.min(440, Math.max(280, screenWidthDpForGrid - 48));
-        final int gridContentWidthDp = Math.max(180, dialogWidthDpForGrid - 36);
+        // The picker is full-screen: use the full panel content width so both galleries
+        // extend to the same right edge as the action buttons, rather than capping thumbnails at 440dp.
+        // The panel has 18dp horizontal padding on each side.
+        final int gridContentWidthDp = Math.max(180, screenWidthDpForGrid - 36);
         final int thumbnailGap = (int)(6 * density);
         // Both galleries use identical fixed 3-column cells with a consistent landscape preview ratio.
         final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
