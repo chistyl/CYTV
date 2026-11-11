@@ -6050,7 +6050,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     imageView.setClipToOutline(true);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
-                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, thumbnailHeight));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
@@ -6101,8 +6101,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                 }).show();
                         return true;
                     });
-                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
-                            thumbnailHeight, 1f);
+                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(thumbnailWidth,
+                            thumbnailHeight);
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
