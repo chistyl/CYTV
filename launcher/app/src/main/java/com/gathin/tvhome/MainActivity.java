@@ -6053,6 +6053,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
+        for (int i = 0; i < modeRow.getChildCount() && i < columnsCount; i++) {
+            View modeButton = modeRow.getChildAt(i);
+            modeButton.setNextFocusDownId(thumbnailItems[i].getId());
+            modeButton.setNextFocusUpId(modeButton.getId());
+        }
         for (int i = 0; i < thumbnailItems.length; i++) {
             View tile = thumbnailItems[i];
             if (tile == null) continue;
@@ -6063,7 +6068,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(tile.getId());
+            if (row == 0) tile.setNextFocusUpId(modeRow.getChildAt(col).getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
@@ -6173,8 +6178,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         accentLp.bottomMargin = (int)(20*density);
         pageContent.addView(accentLine, accentLp);
 
-        // The panel occupies only the space left after the title and accent line.
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, 0, 1f);
+        // 內容依實際高度自然延伸，由外層 pageScroll 負責整頁上下捲動。
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, -2);
         panel.setPadding(0, 0, 0, 0);
         panel.setMinimumHeight(0);
         pageContent.addView(panel, panelLp);
