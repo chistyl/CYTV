@@ -3985,7 +3985,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定下拉選單縮窄，避免橫向佔用過多桌面空間。
         PopupWindow popup = glassPopup(panel, (int) (170 * density));
         addSettingsMenuRow(rows, popup, "桌面設定", this::showInterfaceSettingsMenu);
-        addSettingsMenuRow(rows, popup, "影像輪播", this::showWallpaperPicker);
+        // PopupWindow must finish detaching before the wallpaper Dialog is created.
+        // Posting avoids overlapping window-token transitions on Android 9 TV firmware.
+        addSettingsMenuRow(rows, popup, "影像輪播", () -> root.post(this::showWallpaperPicker));
         addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
@@ -5784,6 +5786,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
                 }
             }
+            // Close the picker before recreating the Activity; otherwise the Dialog may retain
+            // the old Activity window while the new Home instance is being attached.
+            if (dialog.isShowing()) dialog.dismiss();
             recreate();
         });
         randomRow.addView(randomSwitch);
@@ -5929,6 +5934,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             final String modeValue = customModes[modeIndex];
             TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
                 CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
+                if (dialog.isShowing()) dialog.dismiss();
                 recreate();
             });
             modeButton.setTextSize(13);
@@ -6087,10 +6093,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.setLayoutParams(actionLp);
         }
         // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
-        thumbnailItems[3].setNextFocusDownId(qrAction.getId());
-        thumbnailItems[4].setNextFocusDownId(qrAction.getId());
-        thumbnailItems[5].setNextFocusDownId(qrAction.getId());
-        qrAction.setNextFocusUpId(thumbnailItems[4].getId());
+        // Every tile in the last row (themes 7-9) must reach the action buttons.
+        for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
+            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
+        }
+        qrAction.setNextFocusUpId(thumbnailItems[7].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(resetAction.getId());
@@ -6215,8 +6222,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int wallpaperSampleSize(int width, int height, int targetWidth, int targetHeight) {
         int sample = 1;
         if (width <= 0 || height <= 0) return 4;
-        while ((width / (sample * 2)) >= targetWidth
-                && (height / (sample * 2)) >= targetHeight) {
+        // Keep decoded previews at or below the requested thumbnail dimensions.
+        // The previous condition tested the *next* sample size and stopped one step too early
+        // (1672x941 -> 836x470 for a 420x236 tile), retaining roughly four times the pixels.
+        while ((width / sample) > targetWidth || (height / sample) > targetHeight) {
+            if (sample > (1 << 29)) break;
             sample *= 2;
         }
         return Math.max(1, sample);
