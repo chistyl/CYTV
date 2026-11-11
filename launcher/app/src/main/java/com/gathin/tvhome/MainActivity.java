@@ -5751,66 +5751,70 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final View[] thumbnailItems = new View[names.length];
         final ImageView[] thumbnailImages = new ImageView[names.length];
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
-        final int[] draftTheme = {wallpaperPrefs.getInt("builtin_wallpaper", 0)};
-        final boolean[] draftRandom = {wallpaperPrefs.getBoolean("builtin_random_play", false)};
+        final boolean hasWallpaperDraft = wallpaperPrefs.contains("wallpaper_draft_theme");
+        final int[] draftTheme = {hasWallpaperDraft ? wallpaperPrefs.getInt("wallpaper_draft_theme", 1) : wallpaperPrefs.getInt("builtin_wallpaper", 0)};
+        final boolean[] draftRandom = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_random", false) : wallpaperPrefs.getBoolean("builtin_random_play", false)};
+        final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
+                : (!wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty() || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty())};
+        final String[] draftCustomMode = {hasWallpaperDraft ? wallpaperPrefs.getString("wallpaper_draft_custom_mode", CustomWallpaperLibrary.mode(this)) : CustomWallpaperLibrary.mode(this)};
+        final List<File> draftCustomSelection = new ArrayList<>();
+        if (hasWallpaperDraft) {
+            for (String path : wallpaperPrefs.getStringSet("wallpaper_draft_custom_selection", new java.util.HashSet<>())) {
+                File file = new File(path);
+                if (file.isFile()) draftCustomSelection.add(file);
+            }
+        } else draftCustomSelection.addAll(CustomWallpaperLibrary.selected(this));
+        final Runnable persistWallpaperDraft = () -> {
+            java.util.Set<String> paths = new java.util.HashSet<>();
+            for (File file : draftCustomSelection) if (file != null && file.isFile()) paths.add(file.getAbsolutePath());
+            wallpaperPrefs.edit().putInt("wallpaper_draft_theme", draftTheme[0])
+                    .putBoolean("wallpaper_draft_random", draftRandom[0])
+                    .putBoolean("wallpaper_draft_custom_active", draftCustomActive[0])
+                    .putString("wallpaper_draft_custom_mode", draftCustomMode[0])
+                    .putStringSet("wallpaper_draft_custom_selection", paths).apply();
+        };
+        final Runnable clearWallpaperDraft = () -> wallpaperPrefs.edit()
+                .remove("wallpaper_draft_theme").remove("wallpaper_draft_random")
+                .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
+                .remove("wallpaper_draft_custom_selection").apply();
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
-        LinearLayout randomRow = new LinearLayout(this);
-        randomRow.setOrientation(LinearLayout.HORIZONTAL);
-        randomRow.setGravity(Gravity.CENTER_VERTICAL);
-        // 隨機播放列採透明背景，僅保留文字與開關，不顯示整列色塊。
-        randomRow.setPadding(0, 0, 0, 0);
-        TextView randomLabel = new TextView(this);
-        randomLabel.setText("主題隨機播放");
-        randomLabel.setTextColor(Color.WHITE);
-        randomLabel.setTextSize(16);
-        randomLabel.setGravity(Gravity.CENTER_VERTICAL);
-        randomLabel.setIncludeFontPadding(false);
-        randomLabel.setPadding((int)(12*density), 0, 0, 0);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(36*density), 1f));
-        android.widget.Switch randomSwitch = new android.widget.Switch(this);
-        randomSwitch.setTextOn("");
-        randomSwitch.setTextOff("");
-        randomSwitch.setShowText(false);
-        randomSwitch.setChecked(draftRandom[0]);
-        randomSwitch.setOnCheckedChangeListener((button, checked) -> {
-            draftRandom[0] = checked;
-            if (checked && (draftTheme[0] < 1 || draftTheme[0] > 9)) {
-                draftTheme[0] = 1 + new java.util.Random().nextInt(9);
-            }
-            wallpaperPrefs.edit().putInt("builtin_wallpaper", draftTheme[0])
-                    .putBoolean("builtin_random_play", checked)
-                    .putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected").apply();
-            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-            if (localWallpaper.exists()) localWallpaper.delete();
-            for (int i = 0; i < thumbnailImages.length; i++) {
-                if (thumbnailImages[i] != null) {
-                    setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
-                }
-            }
-            // Close the picker before recreating the Activity; otherwise the Dialog may retain
-            // the old Activity window while the new Home instance is being attached.
-            if (dialog.isShowing()) dialog.dismiss();
-            recreate();
+        String[] customModes = {"single", "sequential", "random"};
+        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
+            final int selectedModeIndex = modeIndex;
+            final String modeValue = customModes[modeIndex];
+            TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
+                draftCustomMode[0] = modeValue;
+                persistWallpaperDraft.run();
+                for (int j = 0; j < modeRow.getChildCount(); j++) modeRow.getChildAt(j).setBackground(roundSurface(j == selectedModeIndex ? 0xFF16434B : 0xFF263243, 12*density));
+            });
+            modeButton.setTextSize(13);
+            modeButton.setBackground(roundSurface(modeValue.equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
+            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
+            LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
+            if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
+            modeButton.setLayoutParams(modeLp);
+        }
+        panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
+                || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
+        TextView defaultHeading = new TextView(this);
+        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
+        defaultHeading.setTextColor(0xFFF5F6FA);
+        defaultHeading.setTextSize(16);
+        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
+        defaultHeading.setFocusable(true);
+        defaultHeading.setOnClickListener(v -> {
+            draftCustomActive[0] = false; draftRandom[0] = false;
+            persistWallpaperDraft.run();
+            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
         });
-        randomRow.addView(randomSwitch);
-        randomSwitch.setFocusable(false);
-        randomSwitch.setFocusableInTouchMode(false);
-        randomRow.setId(View.generateViewId());
-        randomRow.setFocusable(true);
-        randomRow.setFocusableInTouchMode(true);
-        randomRow.setClickable(true);
-        randomRow.setDefaultFocusHighlightEnabled(false);
-        randomRow.setBackground(remoteWeatherFocusBackground(false));
-        randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(remoteWeatherFocusBackground(hasFocus));
-            randomLabel.setTextColor(0xFFF5F6FA);
-            v.setElevation(0f);
-        });
-        randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
+        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
+
+
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5820,6 +5824,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
+        final int thumbnailHeight = (int)(150 * density);
+        final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -5828,7 +5834,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, thumbnailHeight, 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5852,18 +5858,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (previewBitmap != null) preview.setImageBitmap(previewBitmap);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setAdjustViewBounds(false);
-                preview.setBackgroundColor(Color.TRANSPARENT);
+                preview.setBackground(roundSurface(Color.TRANSPARENT, 10 * density));
+                preview.setClipToOutline(true);
+                GradientDrawable previewShape = new GradientDrawable();
+                previewShape.setColor(Color.TRANSPARENT);
+                previewShape.setCornerRadius(thumbnailCornerRadius);
+                preview.setBackground(previewShape);
+                preview.setClipToOutline(true);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(112*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, thumbnailHeight);
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(112*density);
+                imageLp.height = thumbnailHeight;
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setElevation(0f);
-                    setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, hasFocus);
+                    setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, hasFocus);
                 });
                 // 部分 Android TV 韌體不會替一般 clickable View 正確轉送 OK 鍵，明確處理遙控器確認鍵。
                 item.setOnKeyListener((v, keyCode, event) -> {
@@ -5897,59 +5909,74 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                     return true;
                 });
-                setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, false);
+                setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
-                    wallpaperPrefs.edit().putInt("builtin_wallpaper", index + 1)
-                            .putBoolean("builtin_random_play", false)
-                            .putBoolean("hide_left_color_effect", true)
-                            .putBoolean("left_color_effect_enabled", false)
-                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                            .remove("custom_wallpaper_selected").apply();
-                    File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-                    if (localWallpaper.exists()) localWallpaper.delete();
-                    dialog.dismiss();
-                    recreate();
+                    draftTheme[0] = index + 1; draftRandom[0] = false; draftCustomActive[0] = false;
+                    persistWallpaperDraft.run();
+                     for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                        setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
-                if (col > 0) itemLp.leftMargin = (int)(12*density);
-                if (col < columnsCount - 1) itemLp.rightMargin = (int)(12*density);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, thumbnailHeight));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
             }
+        }
+        TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
+            dialog.dismiss();
+            showQrWallpaperTransferDialog();
+        });
+        TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
+            dialog.dismiss();
+            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
+            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
+            catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
+        });
+        TextView resetAction = addRoundedAction(choices, "恢復預設", () -> {
+            wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
+                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .remove("custom_wallpaper_selected")
+                    .putBoolean("hide_left_color_effect", false)
+                    .putBoolean("left_color_effect_enabled", true).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (localWallpaper.exists()) localWallpaper.delete();
+            dialog.dismiss(); recreate();
+        });
+        LinearLayout.LayoutParams qrActionLp = (LinearLayout.LayoutParams) qrAction.getLayoutParams();
+        qrActionLp.topMargin = (int)(18 * density);
+        qrAction.setLayoutParams(qrActionLp);
+        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
+            LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
+            actionLp.height = (int)(40*density);
+            actionLp.bottomMargin = (int)(4*density);
+            action.setLayoutParams(actionLp);
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
-        customHeading.setText("自訂圖片");
+        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        customHeading.setFocusable(true);
+        customHeading.setOnClickListener(v -> {
+            List<File> savedCustom = new ArrayList<>(draftCustomSelection);
+            if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
+            if (!savedCustom.isEmpty()) {
+                draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
+                draftCustomActive[0] = true; draftRandom[0] = false;
+                persistWallpaperDraft.run();
+            } else {
+                Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
+            }
+        });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
-        String[] customModes = {"single", "sequential", "random"};
-        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
-        String currentCustomMode = CustomWallpaperLibrary.mode(this);
-        LinearLayout modeRow = new LinearLayout(this);
-        modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
-            final String modeValue = customModes[modeIndex];
-            TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
-                CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
-                if (dialog.isShowing()) dialog.dismiss();
-                recreate();
-            });
-            modeButton.setTextSize(13);
-            modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
-                    ? 0xFF16434B : 0xFF263243, 12*density));
-            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
-            LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
-            if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
-            modeButton.setLayoutParams(modeLp);
-        }
-        choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
@@ -5975,16 +6002,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     ImageView imageView = new ImageView(this);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    GradientDrawable customPreviewShape = new GradientDrawable();
+                    customPreviewShape.setColor(Color.TRANSPARENT);
+                    customPreviewShape.setCornerRadius(thumbnailCornerRadius);
+                    imageView.setBackground(customPreviewShape);
+                    imageView.setClipToOutline(true);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
-                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
                             customFile.getAbsolutePath().equals(wallpaperPrefs.getString("custom_wallpaper_file", "")), focused));
                     tile.setOnClickListener(v -> {
-                        String mode = CustomWallpaperLibrary.mode(this);
-                        List<File> chosen = new ArrayList<>(CustomWallpaperLibrary.selected(this));
+                        String mode = draftCustomMode[0];
+                        List<File> chosen = new ArrayList<>(draftCustomSelection);
                         if ("single".equals(mode)) {
                             chosen.clear();
                             chosen.add(customFile);
@@ -5993,19 +6025,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         } else {
                             chosen.add(customFile);
                         }
-                        CustomWallpaperLibrary.setSelected(this, chosen, mode);
-                        if (!chosen.isEmpty()) {
-                            wallpaperPrefs.edit()
-                                    .putString("custom_wallpaper_file", chosen.get(0).getAbsolutePath())
-                                    .remove("custom_wallpaper_uri")
-                                    .remove("builtin_wallpaper")
-                                    .putBoolean("builtin_random_play", false)
-                                    .putBoolean("hide_left_color_effect", true)
-                                    .putBoolean("left_color_effect_enabled", false)
-                                    .apply();
-                        }
-                        dialog.dismiss();
-                        recreate();
+                        draftCustomSelection.clear(); draftCustomSelection.addAll(chosen);
+                        draftCustomActive[0] = !chosen.isEmpty();
+                        persistWallpaperDraft.run();
+                        if (!chosen.isEmpty()) draftRandom[0] = false;
+                        setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), false);
                     });
                     tile.setOnLongClickListener(v -> {
                         new AlertDialog.Builder(this)
@@ -6025,12 +6049,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return true;
                     });
                     LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
-                            (int)(112*density), 1f);
-                    if (col > 0) tileLp.leftMargin = (int)(12*density);
-                    if (col < customColumns - 1) tileLp.rightMargin = (int)(12*density);
+                            thumbnailHeight, 1f);
+                    if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
-                choices.addView(customRow, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
                     choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
@@ -6044,6 +6067,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
+        for (int i = 0; i < modeRow.getChildCount() && i < columnsCount; i++) {
+            View modeButton = modeRow.getChildAt(i);
+            modeButton.setNextFocusDownId(thumbnailItems[i].getId());
+            modeButton.setNextFocusUpId(modeButton.getId());
+        }
         for (int i = 0; i < thumbnailItems.length; i++) {
             View tile = thumbnailItems[i];
             if (tile == null) continue;
@@ -6054,50 +6082,57 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(randomRow.getId());
+            if (row == 0) tile.setNextFocusUpId(modeRow.getChildAt(col).getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
         }
-        randomRow.setNextFocusDownId(thumbnailItems[0].getId());
+ 
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         // Bound the gallery to the remaining screen height. WRAP_CONTENT here lets
         // every thumbnail expand the dialog's content beyond the TV viewport.
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, -2);
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
-        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
-            dialog.dismiss();
-            showQrWallpaperTransferDialog();
-        });
-        TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
-            dialog.dismiss();
-            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
-            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
-            catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
-        });
-        TextView resetAction = addRoundedAction(panel, "恢復預設", () -> {
-            wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected")
-                    .putBoolean("hide_left_color_effect", false)
-                    .putBoolean("left_color_effect_enabled", true).apply();
+
+        // 設定先暫存於本視窗；只有按「儲存」才寫入正式偏好設定。
+        LinearLayout editActions = new LinearLayout(this);
+        editActions.setOrientation(LinearLayout.HORIZONTAL);
+        editActions.setGravity(Gravity.CENTER_HORIZONTAL);
+        TextView cancelAction = addRoundedAction(editActions, "取消", () -> { clearWallpaperDraft.run(); dialog.dismiss(); });
+        TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, draftCustomMode[0]);
+            SharedPreferences.Editor editor = wallpaperPrefs.edit();
+            if (draftCustomActive[0] && !draftCustomSelection.isEmpty()) {
+                editor.putString("custom_wallpaper_file", draftCustomSelection.get(0).getAbsolutePath())
+                        .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
+                        .putBoolean("builtin_random_play", false);
+            } else {
+                editor.putInt("builtin_wallpaper", draftTheme[0])
+                        .putBoolean("builtin_random_play", draftRandom[0])
+                        .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                        .remove("custom_wallpaper_selected");
+            }
+            editor.putBoolean("hide_left_color_effect", true)
+                    .putBoolean("left_color_effect_enabled", false).apply();
+            clearWallpaperDraft.run();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-            if (localWallpaper.exists()) localWallpaper.delete();
-            dialog.dismiss(); recreate();
+            if (!draftCustomActive[0] && localWallpaper.exists()) localWallpaper.delete();
+            dialog.dismiss();
+            recreate();
         });
-        // 在資料夾視窗相同的 520dp 高度內完整呈現六張圖與三個操作列。
-        // 縮小操作列並統一間距，避免按鈕覆蓋第二排縮圖。
-        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
-            LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
-            actionLp.height = (int)(40*density);
-            actionLp.bottomMargin = (int)(4*density);
+        for (TextView action : new TextView[]{cancelAction, saveAction}) {
+            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(150*density), (int)(44*density));
+            actionLp.leftMargin = (int)(8*density);
+            actionLp.rightMargin = (int)(8*density);
             action.setLayoutParams(actionLp);
         }
-        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
+        LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        editActionsLp.topMargin = (int)(14 * density);
+        editActionsLp.bottomMargin = (int)(28 * density);
+        panel.addView(editActions, editActionsLp);
+        // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
             if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
@@ -6107,15 +6142,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(resetAction.getId());
         resetAction.setNextFocusUpId(chooseAction.getId());
+        resetAction.setNextFocusDownId(cancelAction.getId());
+        cancelAction.setId(View.generateViewId());
+        saveAction.setId(View.generateViewId());
+        cancelAction.setNextFocusUpId(resetAction.getId());
+        cancelAction.setNextFocusRightId(saveAction.getId());
+        cancelAction.setNextFocusDownId(cancelAction.getId());
+        saveAction.setNextFocusLeftId(cancelAction.getId());
+        saveAction.setNextFocusUpId(resetAction.getId());
+        saveAction.setNextFocusDownId(saveAction.getId());
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         // 全螢幕版型：透明內容容器、置頂排列，視窗高度由內容自然決定。
         int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
         int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
-        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
-        int verticalInset = Math.max(18, Math.min(42, Math.round(screenHeightDp * 0.035f)));
-        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
+        int horizontalInset = Math.max(16, Math.min(48, Math.round(screenWidthDp * 0.035f)));
+        int verticalInset = 0;
+        int contentWidth = Math.min(1100, Math.max(280, screenWidthDp - horizontalInset * 2));
 
         LinearLayout screen = new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
@@ -6123,6 +6167,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         screen.setPadding((int)(horizontalInset*density), (int)(verticalInset*density),
                 (int)(horizontalInset*density), (int)(verticalInset*density));
         screen.setBackgroundColor(Color.rgb(16, 25, 40));
+        ScrollView pageScroll = new ScrollView(this);
+        pageScroll.setFillViewport(false);
+        pageScroll.setVerticalScrollBarEnabled(false);
+        pageScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout pageContent = new LinearLayout(this);
+        pageContent.setOrientation(LinearLayout.VERTICAL);
+        pageContent.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        pageContent.setPadding(0, 0, 0, (int)(48 * density));
 
         // 標題置於內容卡片上方，沿用 YouTube 助手的標題與青綠色識別線。
         panel.removeView(title);
@@ -6132,7 +6184,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pageTitle.setTextSize(Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f))));
         pageTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         pageTitle.setGravity(Gravity.CENTER);
-        screen.addView(pageTitle, new LinearLayout.LayoutParams(contentWidth, -2));
+        LinearLayout.LayoutParams pageTitleLp = new LinearLayout.LayoutParams(contentWidth, -2);
+        pageTitleLp.topMargin = (int)(16 * density);
+        pageContent.addView(pageTitle, pageTitleLp);
 
         View accentLine = new View(this);
         GradientDrawable accent = new GradientDrawable();
@@ -6143,13 +6197,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         accentLp.gravity = Gravity.CENTER_HORIZONTAL;
         accentLp.topMargin = (int)(10*density);
         accentLp.bottomMargin = (int)(20*density);
-        screen.addView(accentLine, accentLp);
+        pageContent.addView(accentLine, accentLp);
 
-        // The panel occupies only the space left after the title and accent line.
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, 0, 1f);
+        // 內容依實際高度自然延伸，由外層 pageScroll 負責整頁上下捲動。
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, -2);
         panel.setPadding(0, 0, 0, 0);
         panel.setMinimumHeight(0);
-        screen.addView(panel, panelLp);
+        pageContent.addView(panel, panelLp);
+        pageScroll.addView(pageContent, new ScrollView.LayoutParams(-1, -2));
+        screen.addView(pageScroll, new LinearLayout.LayoutParams(-1, -1));
 
         dialog.setContentView(screen);
         dialog.show();
