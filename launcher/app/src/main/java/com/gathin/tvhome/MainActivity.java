@@ -5825,6 +5825,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
         final int thumbnailHeight = (int)(150 * density);
+        final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -5857,7 +5858,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (previewBitmap != null) preview.setImageBitmap(previewBitmap);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setAdjustViewBounds(false);
-                preview.setBackgroundColor(Color.TRANSPARENT);
+                GradientDrawable previewShape = new GradientDrawable();
+                previewShape.setColor(Color.TRANSPARENT);
+                previewShape.setCornerRadius(thumbnailCornerRadius);
+                preview.setBackground(previewShape);
+                preview.setClipToOutline(true);
                 thumbnailImages[index] = preview;
                 LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, thumbnailHeight);
                 item.addView(preview, imageLp);
@@ -5995,6 +6000,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     ImageView imageView = new ImageView(this);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    GradientDrawable customPreviewShape = new GradientDrawable();
+                    customPreviewShape.setColor(Color.TRANSPARENT);
+                    customPreviewShape.setCornerRadius(thumbnailCornerRadius);
+                    imageView.setBackground(customPreviewShape);
+                    imageView.setClipToOutline(true);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
                     tile.addView(imageView, new LinearLayout.LayoutParams(-1, thumbnailHeight));
@@ -6160,7 +6170,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout pageContent = new LinearLayout(this);
         pageContent.setOrientation(LinearLayout.VERTICAL);
         pageContent.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        pageContent.setPadding(0, 0, 0, (int)(24 * density));
+        pageContent.setPadding(0, 0, 0, (int)(48 * density));
 
         // 標題置於內容卡片上方，沿用 YouTube 助手的標題與青綠色識別線。
         panel.removeView(title);
