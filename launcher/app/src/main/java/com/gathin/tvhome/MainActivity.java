@@ -5778,50 +5778,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
                 .remove("wallpaper_draft_custom_selection").apply();
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
-        LinearLayout randomRow = new LinearLayout(this);
-        randomRow.setOrientation(LinearLayout.HORIZONTAL);
-        randomRow.setGravity(Gravity.CENTER_VERTICAL);
-        // 隨機播放列採透明背景，僅保留文字與開關，不顯示整列色塊。
-        randomRow.setPadding(0, 0, 0, 0);
-        TextView randomLabel = new TextView(this);
-        randomLabel.setText("主題隨機播放");
-        randomLabel.setTextColor(Color.WHITE);
-        randomLabel.setTextSize(16);
-        randomLabel.setGravity(Gravity.CENTER_VERTICAL);
-        randomLabel.setIncludeFontPadding(false);
-        randomLabel.setPadding((int)(12*density), 0, 0, 0);
-        randomRow.addView(randomLabel, new LinearLayout.LayoutParams(0, (int)(36*density), 1f));
-        android.widget.Switch randomSwitch = new android.widget.Switch(this);
-        randomSwitch.setTextOn("");
-        randomSwitch.setTextOff("");
-        randomSwitch.setShowText(false);
-        randomSwitch.setChecked(draftRandom[0]);
-        randomSwitch.setOnCheckedChangeListener((button, checked) -> {
-            draftRandom[0] = checked;
-            if (checked && (draftTheme[0] < 1 || draftTheme[0] > 9)) {
-                draftTheme[0] = 1 + new java.util.Random().nextInt(9);
-            }
-            draftCustomActive[0] = false;
-            persistWallpaperDraft.run();
-            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
-                setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
-        });
-        randomRow.addView(randomSwitch);
-        randomSwitch.setFocusable(false);
-        randomSwitch.setFocusableInTouchMode(false);
-        randomRow.setId(View.generateViewId());
-        randomRow.setFocusable(true);
-        randomRow.setFocusableInTouchMode(true);
-        randomRow.setClickable(true);
-        randomRow.setDefaultFocusHighlightEnabled(false);
-        randomRow.setBackground(remoteWeatherFocusBackground(false));
-        randomRow.setOnFocusChangeListener((v, hasFocus) -> {
-            v.setBackground(remoteWeatherFocusBackground(hasFocus));
-            randomLabel.setTextColor(0xFFF5F6FA);
-            v.setElevation(0f);
-        });
-        randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
         String[] customModes = {"single", "sequential", "random"};
         String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
         LinearLayout modeRow = new LinearLayout(this);
@@ -5851,7 +5807,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
         defaultHeading.setOnClickListener(v -> {
-            draftCustomActive[0] = false; draftRandom[0] = false; randomSwitch.setChecked(false);
+            draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
@@ -5911,7 +5867,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
                     v.setElevation(0f);
-                    setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, hasFocus);
+                    setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, hasFocus);
                 });
                 // 部分 Android TV 韌體不會替一般 clickable View 正確轉送 OK 鍵，明確處理遙控器確認鍵。
                 item.setOnKeyListener((v, keyCode, event) -> {
@@ -5945,12 +5901,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                     return true;
                 });
-                setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, false);
+                setWallpaperThumbnailBorder(preview, draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
                     draftTheme[0] = index + 1; draftRandom[0] = false; draftCustomActive[0] = false;
                     persistWallpaperDraft.run();
-                    randomSwitch.setChecked(false);
-                    for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                     for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
@@ -6005,7 +5960,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
             if (!savedCustom.isEmpty()) {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
-                draftCustomActive[0] = true; draftRandom[0] = false; randomSwitch.setChecked(false);
+                draftCustomActive[0] = true; draftRandom[0] = false;
                 persistWallpaperDraft.run();
             } else {
                 Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
@@ -6058,7 +6013,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         draftCustomSelection.clear(); draftCustomSelection.addAll(chosen);
                         draftCustomActive[0] = !chosen.isEmpty();
                         persistWallpaperDraft.run();
-                        if (!chosen.isEmpty()) { draftRandom[0] = false; randomSwitch.setChecked(false); }
+                        if (!chosen.isEmpty()) draftRandom[0] = false;
                         setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), false);
                     });
                     tile.setOnLongClickListener(v -> {
@@ -6108,16 +6063,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(randomRow.getId());
+            if (row == 0) tile.setNextFocusUpId(tile.getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
         }
-        randomRow.setNextFocusDownId(thumbnailItems[0].getId());
+ 
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         // Bound the gallery to the remaining screen height. WRAP_CONTENT here lets
         // every thumbnail expand the dialog's content beyond the TV viewport.
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, -2);
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
