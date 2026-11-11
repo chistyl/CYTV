@@ -52,12 +52,14 @@ final class WallpaperPlayer {
                     && preferences.getString("custom_wallpaper_uri", null) == null
                     && preferences.getString("custom_wallpaper_file", null) == null) {
                 int currentTheme = preferences.getInt("builtin_wallpaper", 0);
-                if (currentTheme >= 1 && currentTheme <= 6) {
-                    int nextTheme = 1 + random.nextInt(5);
+                if (currentTheme >= 1 && currentTheme <= 9) {
+                    int nextTheme = 1 + random.nextInt(8);
                     if (nextTheme >= currentTheme) nextTheme++;
-                    int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
-                            R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
-                            R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+                    int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                            R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                            R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
+                            R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
+                            R.drawable.wallpaper_theme_09};
                     image.setImageResource(themes[nextTheme - 1]);
                     displayed = "builtin_" + nextTheme;
                     preferences.edit().putInt("builtin_wallpaper", nextTheme).apply();
@@ -117,7 +119,11 @@ final class WallpaperPlayer {
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
-        if (preferences.getInt("builtin_wallpaper", 0) > 0 || preferences.getString("custom_wallpaper_uri", null) != null || preferences.getString("custom_wallpaper_file", null) != null || (config.wallpaperEnabled && !files.isEmpty())) {
+        if (!CustomWallpaperLibrary.selected(context).isEmpty()
+                || preferences.getInt("builtin_wallpaper", 0) > 0
+                || preferences.getString("custom_wallpaper_uri", null) != null
+                || preferences.getString("custom_wallpaper_file", null) != null
+                || (config.wallpaperEnabled && !files.isEmpty())) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
@@ -130,11 +136,32 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
+        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
+        if (!customSelection.isEmpty()) {
+            String mode = CustomWallpaperLibrary.mode(root.getContext());
+            String previousCustom = preferences.getString("custom_wallpaper_current", "");
+            File selected = WallpaperRotation.find(customSelection, previousCustom);
+            if (selected == null) selected = customSelection.get(0);
+            if ("random".equals(mode) && customSelection.size() > 1) {
+                selected = WallpaperRotation.pick(customSelection, "", random);
+            }
+            Bitmap customBitmap = decode(selected);
+            if (customBitmap != null) {
+                show(customBitmap);
+                displayed = selected.getAbsolutePath();
+                preferences.edit().putString("custom_wallpaper_current", displayed)
+                        .putLong("custom_wallpaper_changed", System.currentTimeMillis()).apply();
+                showCaption(false);
+                return;
+            }
+        }
         int builtIn = preferences.getInt("builtin_wallpaper", 0);
-        if (builtIn >= 1 && builtIn <= 6) {
-            int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
-                    R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
-                    R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        if (builtIn >= 1 && builtIn <= 9) {
+            int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                    R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                    R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
+                    R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
+                    R.drawable.wallpaper_theme_09};
             image.setImageResource(themes[builtIn - 1]);
             root.setBackground(null);
             displayed = "builtin_" + builtIn;
@@ -249,7 +276,67 @@ final class WallpaperPlayer {
     }
 
     void update() {
-        if (!active || closed || loading || files.isEmpty()) return;
+        if (!active || closed || loading) return;
+        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
+        // If the last selected custom image was deleted, there is no custom item to rotate to.
+        // Restore the normal wallpaper fallback immediately instead of leaving the deleted bitmap visible.
+        if (customSelection.isEmpty() && displayed != null
+                && displayed.startsWith(File.separator) && !new File(displayed).isFile()) {
+            preferences.edit().remove("custom_wallpaper_current")
+                    .remove("custom_wallpaper_changed").apply();
+            showFirst();
+            return;
+        }
+        if (!customSelection.isEmpty()) {
+            String mode = CustomWallpaperLibrary.mode(root.getContext());
+            String previousCustom = preferences.getString("custom_wallpaper_current", "");
+            // The current-image preference stores an absolute path, while WallpaperRotation.find()
+            // compares basenames. Compare absolute paths here, and fall back to the displayed path
+            // because the gallery delete action clears the preference before the player is updated.
+            String currentCustomPath = previousCustom.isEmpty() ? displayed : previousCustom;
+            File currentCustom = null;
+            for (File candidate : customSelection) {
+                if (candidate.getAbsolutePath().equals(currentCustomPath)) {
+                    currentCustom = candidate;
+                    break;
+                }
+            }
+            boolean currentWasDeleted = currentCustom == null
+                    && currentCustomPath != null && currentCustomPath.startsWith(File.separator);
+
+            // A deleted current image must be replaced immediately, including single-image mode.
+            // Otherwise the old bitmap remains on screen until Home is recreated.
+            if (!currentWasDeleted && ("single".equals(mode) || customSelection.size() < 2)) return;
+            long changed = preferences.getLong("custom_wallpaper_changed", 0);
+            if (!currentWasDeleted
+                    && !WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) return;
+            File nextCustom;
+            if (currentWasDeleted) {
+                nextCustom = customSelection.get(0);
+            } else {
+                nextCustom = "sequential".equals(mode)
+                        ? WallpaperRotation.next(customSelection, previousCustom)
+                        : WallpaperRotation.pick(customSelection, previousCustom, random);
+            }
+            if (nextCustom == null || nextCustom.getAbsolutePath().equals(displayed)) return;
+            File targetCustom = nextCustom;
+            loading = true;
+            decoder.execute(() -> {
+                Bitmap bitmap = decode(targetCustom);
+                root.post(() -> {
+                    loading = false;
+                    if (closed || !active) { if (bitmap != null) bitmap.recycle(); return; }
+                    if (bitmap == null) { Log.w("TvHome.Wallpaper", "Skipping unreadable custom image: " + targetCustom); return; }
+                    show(bitmap);
+                    displayed = targetCustom.getAbsolutePath();
+                    preferences.edit().putString("custom_wallpaper_current", displayed)
+                            .putLong("custom_wallpaper_changed", System.currentTimeMillis()).apply();
+                    showCaption(true);
+                });
+            });
+            return;
+        }
+        if (files.isEmpty()) return;
         String previous = preferences.getString("image", "");
         // A picture outside the time of day's group (the group changed) is replaced at once, not after the interval.
         List<File> playable = playable();
