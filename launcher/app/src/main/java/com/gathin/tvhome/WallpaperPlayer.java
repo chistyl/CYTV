@@ -48,13 +48,20 @@ final class WallpaperPlayer {
     private final Runnable builtinRandomTick = new Runnable() {
         @Override public void run() {
             if (!active || closed) return;
-            if (preferences.getBoolean("builtin_random_play", false)
+            String galleryMode = preferences.getString("wallpaper_gallery_mode",
+                    preferences.getBoolean("builtin_random_play", false) ? "random" : "single");
+            if (!"single".equals(galleryMode)
                     && preferences.getString("custom_wallpaper_uri", null) == null
                     && preferences.getString("custom_wallpaper_file", null) == null) {
                 int currentTheme = preferences.getInt("builtin_wallpaper", 0);
                 if (currentTheme >= 1 && currentTheme <= 6) {
-                    int nextTheme = 1 + random.nextInt(5);
-                    if (nextTheme >= currentTheme) nextTheme++;
+                    int nextTheme;
+                    if ("sequence".equals(galleryMode)) {
+                        nextTheme = currentTheme % 6 + 1;
+                    } else {
+                        nextTheme = 1 + random.nextInt(5);
+                        if (nextTheme >= currentTheme) nextTheme++;
+                    }
                     int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
                             R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
                             R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
@@ -130,6 +137,32 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
+        String galleryMode = preferences.getString("wallpaper_gallery_mode",
+                preferences.getBoolean("builtin_random_play", false) ? "random" : "single");
+        if (!"single".equals(galleryMode)
+                && preferences.getString("custom_wallpaper_file", null) != null) {
+            List<File> gallery = CustomWallpaperLibrary.list(root.getContext());
+            String previousGallery = preferences.getString("custom_gallery_image", "");
+            File firstGallery = WallpaperRotation.find(gallery, previousGallery);
+            if (firstGallery == null) firstGallery = "sequence".equals(galleryMode)
+                    ? WallpaperRotation.next(gallery, previousGallery)
+                    : WallpaperRotation.pick(gallery, previousGallery, random);
+            while (firstGallery != null) {
+                Bitmap galleryBitmap = decode(firstGallery);
+                if (galleryBitmap != null) {
+                    show(galleryBitmap);
+                    displayed = "custom_gallery:" + firstGallery.getName();
+                    preferences.edit().putString("custom_gallery_image", firstGallery.getName())
+                            .putLong("custom_gallery_changed", System.currentTimeMillis()).apply();
+                    showCaption(false);
+                    return;
+                }
+                gallery.remove(firstGallery);
+                firstGallery = "sequence".equals(galleryMode)
+                        ? WallpaperRotation.next(gallery, previousGallery)
+                        : WallpaperRotation.pick(gallery, previousGallery, random);
+            }
+        }
         int builtIn = preferences.getInt("builtin_wallpaper", 0);
         if (builtIn >= 1 && builtIn <= 6) {
             int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
@@ -249,7 +282,15 @@ final class WallpaperPlayer {
     }
 
     void update() {
-        if (!active || closed || loading || files.isEmpty()) return;
+        if (!active || closed || loading) return;
+        String galleryMode = preferences.getString("wallpaper_gallery_mode",
+                preferences.getBoolean("builtin_random_play", false) ? "random" : "single");
+        if (!"single".equals(galleryMode)
+                && preferences.getString("custom_wallpaper_file", null) != null) {
+            updateCustomGallery(galleryMode);
+            return;
+        }
+        if (files.isEmpty()) return;
         String previous = preferences.getString("image", "");
         // A picture outside the time of day's group (the group changed) is replaced at once, not after the interval.
         List<File> playable = playable();
@@ -282,6 +323,42 @@ final class WallpaperPlayer {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();
                 }
+            });
+        });
+    }
+
+    /** Rotates only the user's imported gallery, independently of the built-in theme collection. */
+    private void updateCustomGallery(String galleryMode) {
+        List<File> gallery = CustomWallpaperLibrary.list(root.getContext());
+        if (gallery.isEmpty()) return;
+        String previous = preferences.getString("custom_gallery_image", "");
+        File selected = WallpaperRotation.find(gallery, previous);
+        long changed = preferences.getLong("custom_gallery_changed", 0);
+        if (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
+            selected = "sequence".equals(galleryMode)
+                    ? WallpaperRotation.next(gallery, previous)
+                    : WallpaperRotation.pick(gallery, previous, random);
+        }
+        if (selected == null || selected.getName().equals(previous)) return;
+        File next = selected;
+        loading = true;
+        decoder.execute(() -> {
+            Bitmap bitmap = decode(next);
+            root.post(() -> {
+                loading = false;
+                if (closed || !active) {
+                    if (bitmap != null) bitmap.recycle();
+                    return;
+                }
+                if (bitmap == null) {
+                    Log.w("TvHome.Wallpaper", "Skipping unreadable custom image: " + next.getName());
+                    return;
+                }
+                show(bitmap);
+                displayed = "custom_gallery:" + next.getName();
+                showCaption(false);
+                preferences.edit().putString("custom_gallery_image", next.getName())
+                        .putLong("custom_gallery_changed", System.currentTimeMillis()).apply();
             });
         });
     }
