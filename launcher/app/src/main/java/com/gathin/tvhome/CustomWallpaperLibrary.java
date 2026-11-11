@@ -19,6 +19,7 @@ import java.util.Locale;
 final class CustomWallpaperLibrary {
     private static final String DIRECTORY = "custom_wallpapers";
     private static final long MAX_IMAGE_BYTES = 20L * 1024L * 1024L;
+    static final int MAX_CUSTOM_IMAGES = 12;
 
     private CustomWallpaperLibrary() { }
 
@@ -28,7 +29,7 @@ final class CustomWallpaperLibrary {
         return dir;
     }
 
-    static boolean importImage(Context context, Uri uri) {
+    static synchronized boolean importImage(Context context, Uri uri) {
         if (uri == null) return false;
         File dir = directory(context);
         File temporary = new File(dir, "incoming-" + System.nanoTime() + ".tmp");
@@ -59,6 +60,16 @@ final class CustomWallpaperLibrary {
             if (existing != null && existing.length > 0) {
                 temporary.delete();
                 return true;
+            }
+            // The gallery is capped at 12 unique custom images. Duplicate imports remain successful.
+            int imageCount = 0;
+            File[] gallery = dir.listFiles(file -> file.isFile()
+                    && (file.getName().endsWith(".jpg") || file.getName().endsWith(".jpeg")
+                    || file.getName().endsWith(".png") || file.getName().endsWith(".webp")));
+            if (gallery != null) imageCount = gallery.length;
+            if (imageCount >= MAX_CUSTOM_IMAGES) {
+                temporary.delete();
+                return false;
             }
             File target = new File(dir, String.format(Locale.ROOT, "%013d-%s%s", System.currentTimeMillis(), hash, extension));
             if (!temporary.renameTo(target)) {
