@@ -29,13 +29,15 @@ jobs:
         with:
           packages: platform-tools
       - name: Run unit tests
+        working-directory: launcher
         run: ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
       - name: Build debug APK
+        working-directory: launcher
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
       - name: Package complete source ZIP
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/CYTV-R60-debug.apk
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R60-debug.apk
           zip -r release/CYTV-R60-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
