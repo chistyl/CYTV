@@ -5810,7 +5810,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));\n        TextView defaultHeading = new TextView(this);\n        defaultHeading.setText("預設圖片");\n        defaultHeading.setTextColor(0xFFF5F6FA);\n        defaultHeading.setTextSize(16);\n        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));\n        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));\n        String[] customModes = {"single", "sequential", "random"};
+        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
+        String currentCustomMode = CustomWallpaperLibrary.mode(this);
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
+            final String modeValue = customModes[modeIndex];
+            TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
+                CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
+                if (dialog.isShowing()) dialog.dismiss();
+                recreate();
+            });
+            modeButton.setTextSize(13);
+            modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
+                    ? 0xFF16434B : 0xFF263243, 12*density));
+            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
+            LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
+            if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
+            modeButton.setLayoutParams(modeLp);
+        }
+        choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5922,6 +5943,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
             }
         }
+        TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
+            dialog.dismiss();
+            showQrWallpaperTransferDialog();
+        });
+        TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
+            dialog.dismiss();
+            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
+            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
+            catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
+        });
+        TextView resetAction = addRoundedAction(choices, "恢復預設", () -> {
+            wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
+                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .remove("custom_wallpaper_selected")
+                    .putBoolean("hide_left_color_effect", false)
+                    .putBoolean("left_color_effect_enabled", true).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (localWallpaper.exists()) localWallpaper.delete();
+            dialog.dismiss(); recreate();
+        });
+        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
+            LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
+            actionLp.height = (int)(40*density);
+            actionLp.bottomMargin = (int)(4*density);
+            action.setLayoutParams(actionLp);
+        }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
         customHeading.setText("自訂圖片");
@@ -5929,27 +5978,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
-        String[] customModes = {"single", "sequential", "random"};
-        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
-        String currentCustomMode = CustomWallpaperLibrary.mode(this);
-        LinearLayout modeRow = new LinearLayout(this);
-        modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
-            final String modeValue = customModes[modeIndex];
-            TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
-                CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
-                if (dialog.isShowing()) dialog.dismiss();
-                recreate();
-            });
-            modeButton.setTextSize(13);
-            modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
-                    ? 0xFF16434B : 0xFF263243, 12*density));
-            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
-            LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
-            if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
-            modeButton.setLayoutParams(modeLp);
-        }
-        choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
@@ -6067,37 +6095,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
-        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖", () -> {
-            dialog.dismiss();
-            showQrWallpaperTransferDialog();
-        });
-        TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
-            dialog.dismiss();
-            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
-            pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-            try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
-            catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
-        });
-        TextView resetAction = addRoundedAction(panel, "恢復預設", () -> {
-            wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected")
-                    .putBoolean("hide_left_color_effect", false)
-                    .putBoolean("left_color_effect_enabled", true).apply();
-            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-            if (localWallpaper.exists()) localWallpaper.delete();
-            dialog.dismiss(); recreate();
-        });
-        // 在資料夾視窗相同的 520dp 高度內完整呈現六張圖與三個操作列。
-        // 縮小操作列並統一間距，避免按鈕覆蓋第二排縮圖。
-        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
-            LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
-            actionLp.height = (int)(40*density);
-            actionLp.bottomMargin = (int)(4*density);
-            action.setLayoutParams(actionLp);
-        }
-        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
+        // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
             if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
