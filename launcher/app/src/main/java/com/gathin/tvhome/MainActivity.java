@@ -1350,7 +1350,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 Toast.makeText(this, "圖片已加入自訂圖片庫；目前桌布不變。", Toast.LENGTH_LONG).show();
                 showWallpaperPicker();
             } else {
-                Toast.makeText(this, "圖片匯入失敗，請確認格式與檔案是否有效。", Toast.LENGTH_LONG).show();
+                String message = CustomWallpaperLibrary.isFull(this)
+                        ? "自訂圖片已達上限 12 張，請先刪除圖片再匯入。"
+                        : "圖片匯入失敗，請確認格式與檔案是否有效。";
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             }
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
