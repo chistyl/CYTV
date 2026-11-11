@@ -6050,9 +6050,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
+        // Bound the gallery to the remaining screen height. WRAP_CONTENT here lets
+        // every thumbnail expand the dialog's content beyond the TV viewport.
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(12*density);
-        scrollLp.bottomMargin = (int)(0*density);
+        scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
@@ -6131,9 +6133,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         accentLp.bottomMargin = (int)(20*density);
         screen.addView(accentLine, accentLp);
 
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
+        // The panel occupies only the space left after the title and accent line.
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, 0, 1f);
         panel.setPadding(0, 0, 0, 0);
+        panel.setMinimumHeight(0);
         screen.addView(panel, panelLp);
 
         dialog.setContentView(screen);
@@ -6148,7 +6151,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
-        dialog.getWindow().getDecorView().post(() -> {
+        Window wallpaperWindow = dialog.getWindow();
+        if (wallpaperWindow == null) {
+            android.util.Log.e("CYTV-Wallpaper", "Wallpaper picker window was not created");
+            dialog.dismiss();
+            Toast.makeText(this, "影像設定視窗無法開啟，請稍後再試。", Toast.LENGTH_LONG).show();
+            return;
+        }
+        wallpaperWindow.getDecorView().post(() -> {
+            if (isFinishing() || isDestroyed() || !dialog.isShowing()) return;
             View initial = thumbnailItems[draftTheme[0] - 1];
             if (initial != null && initial.requestFocus()) {
                 scroll.post(() -> {
