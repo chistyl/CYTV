@@ -5751,19 +5751,50 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void showWallpaperPicker() {
         final Dialog dialog = new Dialog(this);
+        // Match the YouTube Assistant screen itself: full-screen deep-navy canvas,
+        // centered 920dp content column, and a top-aligned heading.
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setGravity(Gravity.CENTER_HORIZONTAL);
-        // Match the YouTube Assistant pairing dialog's outer panel spacing and surface.
-        panel.setPadding((int)(24*density), (int)(20*density), (int)(24*density), (int)(20*density));
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setBackgroundColor(Color.rgb(16, 25, 40));
+        int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
+        int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
+        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
+        int contentWidth = Math.min((int)(920*density),
+                getResources().getDisplayMetrics().widthPixels - 2 * (int)(horizontalInset*density));
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER_HORIZONTAL);
+        content.setPadding(0, (int)(24*density), 0, (int)(20*density));
+        panel.addView(content, new LinearLayout.LayoutParams(contentWidth, -1));
+
         TextView title = new TextView(this);
         title.setText("影像設定");
         title.setTextColor(0xFFF5F6FA);
-        title.setTextSize(20);
+        title.setTextSize(32);
+        title.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, (int)(2*density), 0, (int)(6*density));
-        panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+        View accentLine = new View(this);
+        GradientDrawable accent = new GradientDrawable();
+        accent.setColor(Color.rgb(0, 207, 198));
+        accent.setCornerRadius(4*density);
+        accentLine.setBackground(accent);
+        LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams((int)(88*density), (int)(5*density));
+        accentLp.gravity = Gravity.CENTER_HORIZONTAL;
+        accentLp.topMargin = (int)(10*density);
+        content.addView(accentLine, accentLp);
+
+        TextView subtitle = new TextView(this);
+        subtitle.setText("選擇桌布主題，或使用自訂圖片");
+        subtitle.setTextColor(0xFFACB8C1);
+        subtitle.setTextSize(16);
+        subtitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
+        subtitleLp.topMargin = (int)(12*density);
+        subtitleLp.bottomMargin = (int)(22*density);
+        content.addView(subtitle, subtitleLp);
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
         final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
@@ -5827,7 +5858,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
+        randomRow.setPadding((int)(18*density), 0, (int)(18*density), 0);
+        randomRow.setBackground(roundSurface(Color.rgb(32, 44, 60), 18*density));
+        content.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(54*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5941,6 +5974,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 隱藏右側捲動條，保留遙控器上下捲動功能。
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setBackground(roundSurface(Color.rgb(32, 44, 60), 18*density));
+        scroll.setPadding((int)(14*density), (int)(14*density), (int)(14*density), (int)(14*density));
         scroll.addView(choices);
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
         for (int i = 0; i < thumbnailItems.length; i++) {
@@ -5963,8 +5998,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = (int)(0*density);
-        panel.addView(scroll, scrollLp);
-        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
+        content.addView(scroll, scrollLp);
+        TextView qrAction = addRoundedAction(content, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
         });
@@ -6004,36 +6039,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         resetAction.setNextFocusUpId(chooseAction.getId());
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
-        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
-        if (backdropBlur != null) {
-            dialog.setOnDismissListener(ignored -> {
-                android.view.ViewParent parent = backdropBlur.getParent();
-                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
-                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
-                if (image instanceof android.graphics.drawable.BitmapDrawable) {
-                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
-                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                }
-            });
-        }
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
             android.view.Window window = dialog.getWindow();
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            window.setDimAmount(0.6f);
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int dialogWidth = Math.min((int)(680*density), screenWidth - (int)(48*density));
-            int dialogHeight = Math.min((int)(520*density), screenHeight - (int)(48*density));
-            // Same 680dp × 520dp dialog frame as the YouTube Assistant pairing surface,
-            // but anchored near the top so the image choices and action rows share its alignment.
-            window.setLayout(dialogWidth, dialogHeight);
+            window.setBackgroundDrawable(new ColorDrawable(Color.rgb(16, 25, 40)));
+            window.setLayout(android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT);
             window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-            android.view.WindowManager.LayoutParams attributes = window.getAttributes();
-            attributes.y = (int)(24*density);
-            window.setAttributes(attributes);
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
         dialog.getWindow().getDecorView().post(() -> {
             View initial = thumbnailItems[draftTheme[0] - 1];
