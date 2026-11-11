@@ -5827,6 +5827,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setOnClickListener(v -> {
                     source[0] = "builtin";
                     selectedBuiltin[0] = index + 1;
+                    updateSourceHeaders.run();
                     updateWallpaperTileBorders(builtinViews, builtinTiles, selectedBuiltin[0], null, customImages);
                 });
                 tile.setOnFocusChangeListener((v, focused) ->
@@ -5846,6 +5847,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeader.setTextColor(0xFFF5F6FA);
         customHeader.setTextSize(16);
         customHeader.setPadding((int)(4*density), (int)(12*density), 0, (int)(8*density));
+        customHeader.setFocusable(true);
+        customHeader.setClickable(true);
+        Runnable updateSourceHeaders = () -> {
+            builtinHeader.setText((source[0].equals("builtin") ? "◉  " : "○  ") + "預設圖片");
+            customHeader.setText((source[0].equals("custom") ? "◉  " : "○  ") + "自訂圖片");
+        };
+        builtinHeader.setFocusable(true);
+        builtinHeader.setClickable(true);
+        builtinHeader.setOnClickListener(v -> { source[0] = "builtin"; updateSourceHeaders.run(); });
+        customHeader.setOnClickListener(v -> { source[0] = "custom"; updateSourceHeaders.run(); });
+        updateSourceHeaders.run();
         content.addView(customHeader);
 
         LinearLayout customGrid = new LinearLayout(this);
@@ -5906,6 +5918,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setOnClickListener(v -> {
                         source[0] = "custom";
                         selectedCustom[0] = file.getAbsolutePath();
+                        updateSourceHeaders.run();
                         updateWallpaperModeButtons(modeButtons, modeKeys, mode[0]);
                         for (int j = 0; j < customViews.size(); j++) {
                             setWallpaperThumbnailBorder(customViews.get(j), customImages.get(j).getAbsolutePath().equals(selectedCustom[0]), false);
@@ -5927,6 +5940,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         content.addView(customGrid);
+        for (int i = 0; i < builtinViews.length; i++) {
+            setWallpaperThumbnailBorder(builtinViews[i], source[0].equals("builtin") && selectedBuiltin[0] == i + 1, false);
+        }
+        for (int i = 0; i < customViews.size(); i++) {
+            setWallpaperThumbnailBorder(customViews.get(i), source[0].equals("custom")
+                    && customImages.get(i).getAbsolutePath().equals(selectedCustom[0]), false);
+        }
         scroll.addView(content);
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = (int)(10*density);
