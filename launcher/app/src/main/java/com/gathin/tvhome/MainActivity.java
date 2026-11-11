@@ -5836,8 +5836,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // rather than the old 440dp dialog width that left most of the screen unused.
         final int horizontalInsetForGrid = Math.max(16,
                 Math.min(48, Math.round(screenWidthDpForGrid * 0.035f)));
-        final int gridContentWidthDp = Math.min(1100,
-                Math.max(280, screenWidthDpForGrid - horizontalInsetForGrid * 2));
+        // The panel itself has 18dp left/right padding. The gallery rows are children
+        // of that padded panel, so calculate against the true inner width; otherwise
+        // the third fixed-width tile is clipped and only two columns appear on TV.
+        final int panelHorizontalPaddingDp = 36;
+        final int gridContentWidthDp = Math.max(240,
+                Math.min(1100, screenWidthDpForGrid - horizontalInsetForGrid * 2
+                        - panelHorizontalPaddingDp));
         final int thumbnailGap = (int)(6 * density);
         // Both galleries share fixed-width 3-column cells; each image is exactly 16:9.
         final int thumbnailWidth = Math.max(1,
