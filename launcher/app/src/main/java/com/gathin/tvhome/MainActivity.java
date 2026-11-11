@@ -5831,15 +5831,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
         final int screenWidthDpForGrid = Math.round(getResources().getDisplayMetrics().widthPixels / density);
-        // The picker is full-screen: use the full panel content width so both galleries
-        // extend to the same right edge as the action buttons, rather than capping thumbnails at 440dp.
-        // The panel has 18dp horizontal padding on each side.
-        final int gridContentWidthDp = Math.max(180, screenWidthDpForGrid - 36);
+        // This picker is a centered 440dp dialog (or screen width minus 48dp on smaller displays),
+        // not a full-screen panel. Calculate the gallery from the dialog's real inner content width.
+        // The panel has 18dp horizontal padding on each side and three cells with two 6dp gaps.
+        final int dialogWidthDpForGrid = Math.min(440, screenWidthDpForGrid - 48);
+        final int gridContentWidthDp = Math.max(180, dialogWidthDpForGrid - 36);
         final int thumbnailGap = (int)(6 * density);
-        // Both galleries use identical fixed 3-column cells with a consistent landscape preview ratio.
-        // Equal-weight cells make both galleries use identical column widths on TV firmware.
-        // Derive one shared 16:9 height from the available three-column content width.
-        final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
+        // Both galleries share fixed-width 3-column cells; each image is exactly 16:9.
+        final int thumbnailWidth = Math.max(1,
+                (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
         final int thumbnailHeight = Math.max(1, Math.round(thumbnailWidth * 9f / 16f));
         final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
@@ -5850,7 +5850,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, thumbnailHeight, 1f));
+                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
+                    if (col < columnsCount - 1) emptyLp.rightMargin = thumbnailGap;
+                    rowLayout.addView(empty, emptyLp);
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
