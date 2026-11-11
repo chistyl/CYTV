@@ -5112,7 +5112,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             button.setOnFocusChangeListener((v, focused) ->
                     v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
             LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
-                    (int)(112*density), (int)(50*density));
+                    wallpaperTileHeight, (int)(50*density));
             buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
             actions.addView(button, buttonLp);
         }
@@ -5748,6 +5748,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (selectedBuiltin[0] < 1 || selectedBuiltin[0] > builtinImages.length) selectedBuiltin[0] = 1;
         final String[] selectedCustom = {prefs.getString("custom_wallpaper_file", null)};
         final List<File> customImages = getCustomWallpaperImages();
+        // Keep the three-column thumbnail cells close to the reference image's 16:9 ratio.
+        int screenWidthPx = getResources().getDisplayMetrics().widthPixels;
+        int dialogMaxWidthPx = (int)(820 * density);
+        int panelWidthPx = Math.min(screenWidthPx - (int)(48 * density), dialogMaxWidthPx);
+        int contentWidthPx = Math.max(1, panelWidthPx - (int)(44 * density));
+        final int wallpaperTileHeight = Math.max((int)(96 * density),
+                Math.round((contentWidthPx / 3f) / (16f / 9f)));
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -6039,7 +6046,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            dialog.getWindow().setLayout(Math.max(1, Math.min(screenWidth - (int)(48*density), (int)(900*density))),
+            dialog.getWindow().setLayout(Math.max(1, Math.min(screenWidth - (int)(48*density), (int)(820*density))),
                     Math.max(1, screenHeight - (int)(48*density)));
         }
         dialog.getWindow().getDecorView().post(() -> {
