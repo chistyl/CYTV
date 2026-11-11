@@ -5831,11 +5831,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
         final int screenWidthDpForGrid = Math.round(getResources().getDisplayMetrics().widthPixels / density);
-        // This picker is a centered 440dp dialog (or screen width minus 48dp on smaller displays),
-        // not a full-screen panel. Calculate the gallery from the dialog's real inner content width.
-        // The panel has 18dp horizontal padding on each side and three cells with two 6dp gaps.
-        final int dialogWidthDpForGrid = Math.min(440, screenWidthDpForGrid - 48);
-        final int gridContentWidthDp = Math.max(180, dialogWidthDpForGrid - 36);
+        // The wallpaper picker is now a full-screen page. Match the gallery to the actual
+        // content panel width (same inset and 1100dp cap used by the page container below),
+        // rather than the old 440dp dialog width that left most of the screen unused.
+        final int horizontalInsetForGrid = Math.max(16,
+                Math.min(48, Math.round(screenWidthDpForGrid * 0.035f)));
+        final int gridContentWidthDp = Math.min(1100,
+                Math.max(280, screenWidthDpForGrid - horizontalInsetForGrid * 2));
         final int thumbnailGap = (int)(6 * density);
         // Both galleries share fixed-width 3-column cells; each image is exactly 16:9.
         final int thumbnailWidth = Math.max(1,
