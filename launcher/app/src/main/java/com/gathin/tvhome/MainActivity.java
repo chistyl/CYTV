@@ -5915,6 +5915,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
+        String[] customModes = {"single", "sequential", "random"};
+        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
+        String currentCustomMode = CustomWallpaperLibrary.mode(this);
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
+            final String modeValue = customModes[modeIndex];
+            TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
+                CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
+                recreate();
+            });
+            modeButton.setTextSize(13);
+            modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
+                    ? 0xFF16434B : 0xFF263243, 12*density));
+            LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
+            if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
+            modeRow.addView(modeButton, modeLp);
+        }
+        choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
@@ -5947,14 +5966,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
                             customFile.getAbsolutePath().equals(wallpaperPrefs.getString("custom_wallpaper_file", "")), focused));
                     tile.setOnClickListener(v -> {
-                        wallpaperPrefs.edit()
-                                .putString("custom_wallpaper_file", customFile.getAbsolutePath())
-                                .remove("custom_wallpaper_uri")
-                                .remove("builtin_wallpaper")
-                                .putBoolean("builtin_random_play", false)
-                                .putBoolean("hide_left_color_effect", true)
-                                .putBoolean("left_color_effect_enabled", false)
-                                .apply();
+                        String mode = CustomWallpaperLibrary.mode(this);
+                        List<File> chosen = new ArrayList<>(CustomWallpaperLibrary.selected(this));
+                        if ("single".equals(mode)) {
+                            chosen.clear();
+                            chosen.add(customFile);
+                        } else if (chosen.contains(customFile)) {
+                            chosen.remove(customFile);
+                        } else {
+                            chosen.add(customFile);
+                        }
+                        CustomWallpaperLibrary.setSelected(this, chosen, mode);
+                        if (!chosen.isEmpty()) {
+                            wallpaperPrefs.edit()
+                                    .putString("custom_wallpaper_file", chosen.get(0).getAbsolutePath())
+                                    .remove("custom_wallpaper_uri")
+                                    .remove("builtin_wallpaper")
+                                    .putBoolean("builtin_random_play", false)
+                                    .putBoolean("hide_left_color_effect", true)
+                                    .putBoolean("left_color_effect_enabled", false)
+                                    .apply();
+                        }
                         dialog.dismiss();
                         recreate();
                     });
