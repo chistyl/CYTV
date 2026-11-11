@@ -15,6 +15,7 @@ on:
       - fix/wallpaper-source-selector-size-r64
       - fix/wallpaper-gallery-full-width-r65
       - fix/wallpaper-dialog-grid-width-r68
+      - fix/custom-wallpaper-grid-fixed-three-columns-r67
   workflow_dispatch:
 
 permissions:
@@ -59,7 +60,7 @@ jobs:
         with:
           name: CYTV-R68-Dialog-Width-Fixed-Wallpaper-Grid-APK-and-Source
           path: |
-            release/CYTV-R67-wallpaper-gallery-debug.apk
-            release/CYTV-R67-wallpaper-gallery-source.zip
+            release/CYTV-R68-wallpaper-gallery-debug.apk
+            release/CYTV-R68-wallpaper-gallery-source.zip
           if-no-files-found: error
           retention-days: 30
