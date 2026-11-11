@@ -5,6 +5,9 @@ on:
     branches:
       - feature/custom-wallpaper-gallery-r62
       - fix/custom-wallpaper-gallery-selection-r63
+  pull_request:
+    branches:
+      - feature/custom-wallpaper-gallery-r62
   workflow_dispatch:
 
 permissions:
@@ -49,7 +52,7 @@ jobs:
         with:
           name: CYTV-R63-Custom-Wallpaper-APK-and-Source
           path: |
-            release/CYTV-R62-custom-wallpaper-debug.apk
-            release/CYTV-R62-custom-wallpaper-source.zip
+            release/CYTV-R63-custom-wallpaper-debug.apk
+            release/CYTV-R63-custom-wallpaper-source.zip
           if-no-files-found: error
           retention-days: 30
