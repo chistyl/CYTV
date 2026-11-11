@@ -56,7 +56,7 @@ jobs:
         with:
           name: CYTV-R65-Wallpaper-Gallery-APK-and-Source
           path: |
-            release/CYTV-R64-custom-wallpaper-debug.apk
-            release/CYTV-R64-custom-wallpaper-source.zip
+            release/CYTV-R65-wallpaper-gallery-debug.apk
+            release/CYTV-R65-wallpaper-gallery-source.zip
           if-no-files-found: error
           retention-days: 30
