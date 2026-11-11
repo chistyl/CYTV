@@ -2114,29 +2114,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.animate().cancel();
             ambient.setAlpha(0f);
         }
-        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
-        // When app names are enabled, keep the large focused-app title in the gap below the
-        // weekly forecast. The weather card is an overlay, so the original dock-relative title
-        // position could otherwise draw across its lower rows (especially on shorter TV screens).
-        float baseHeroTextSize = cinematic ? 68f : 48f;
+        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight() + 12f * density;
+        // Keep the focused-app title at one fixed dock-relative position whether or not the
+        // weekly weather overlay is visible. On the supported home layout there is sufficient
+        // vertical clearance between the weather card and this title; the overlay must not move
+        // or resize the title when it appears.
+        float baseHeroTextSize = cinematic ? 60f : 42f;
         heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseHeroTextSize);
-        if (!hideAllNames && weeklyWeatherView != null
-                && weeklyWeatherView.getVisibility() == View.VISIBLE
-                && weeklyWeatherView.getHeight() > 0) {
-            float weatherBottom = weeklyWeatherView.getY() + weeklyWeatherView.getHeight();
-            float safeTop = weatherBottom + 12f * density;
-            float safeBottom = dockTopInRoot - 10f * density;
-            float available = safeBottom - safeTop;
-            if (available > 0f) {
-                // Scale the title only as much as needed to fit between the forecast and the dock.
-                float fittedSp = Math.min(baseHeroTextSize, (available / density) * 0.72f);
-                heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, Math.max(22f, fittedSp));
-                hero.measure(
-                        View.MeasureSpec.makeMeasureSpec(Math.max(1, root.getWidth()), View.MeasureSpec.AT_MOST),
-                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-                y = safeTop;
-            }
-        }
         final float heroY = y;
         boolean changed = !label.contentEquals(heroName.getText());
         if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
