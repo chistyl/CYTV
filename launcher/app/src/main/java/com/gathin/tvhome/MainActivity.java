@@ -5944,9 +5944,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             modeButton.setTextSize(13);
             modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
                     ? 0xFF16434B : 0xFF263243, 12*density));
+            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
             LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
             if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
-            modeRow.addView(modeButton, modeLp);
+            modeButton.setLayoutParams(modeLp);
         }
         choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         List<File> customImages = CustomWallpaperLibrary.list(this);
