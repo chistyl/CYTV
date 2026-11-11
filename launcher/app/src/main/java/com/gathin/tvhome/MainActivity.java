@@ -5810,7 +5810,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));\n        TextView defaultHeading = new TextView(this);\n        defaultHeading.setText("預設圖片");\n        defaultHeading.setTextColor(0xFFF5F6FA);\n        defaultHeading.setTextSize(16);\n        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));\n        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));\n        String[] customModes = {"single", "sequential", "random"};
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));\n        String[] customModes = {"single", "sequential", "random"};
         String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
         String currentCustomMode = CustomWallpaperLibrary.mode(this);
         LinearLayout modeRow = new LinearLayout(this);
@@ -5830,7 +5830,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
             modeButton.setLayoutParams(modeLp);
         }
-        choices.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        TextView defaultHeading = new TextView(this);\n        defaultHeading.setText("預設圖片");\n        defaultHeading.setTextColor(0xFFF5F6FA);\n        defaultHeading.setTextSize(16);\n        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));\n        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));\n
 
 
         ScrollView scroll = new ScrollView(this);
