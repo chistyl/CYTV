@@ -476,7 +476,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        CrashDiagnostics.install(this);
+        CrashDiagnostics.stage(this, "launcher:onCreate");
         setContentView(R.layout.activity_main);
+        new Handler(Looper.getMainLooper()).post(() -> CrashDiagnostics.showPreviousCrashIfAny(this));
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
@@ -2197,8 +2200,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 68f);
         heroName.setLetterSpacing(-0.025f);
         heroMeta.setVisibility(View.INVISIBLE);   // keeps its height, so the name does not jump when it fills in
-        heroDots.setVisibility(heroDotsShown ? View.VISIBLE : View.GONE);
-        heroArt.setVisibility(heroArtAlpha > 0f ? View.VISIBLE : View.GONE);
+        heroDots.setVisibility(heroDotsShown ? View.VISIBLE : View.GONE);        heroArt.setVisibility(heroArtAlpha > 0f ? View.VISIBLE : View.GONE);
         // One stretched bitmap: apply its alpha while drawing instead of through an offscreen buffer.
         heroArt.forceHasOverlappingRendering(false);
         if (scrimPercent <= 0) return;   // cinematic_scrim 0: no scrim at all
@@ -4398,7 +4400,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dayColumn.setOrientation(LinearLayout.VERTICAL);
                 dayColumn.setGravity(Gravity.CENTER);
                 dayColumn.setPadding((int)(2*density), (int)(5*density), (int)(2*density), (int)(5*density));
-
                 TextView dateView = new TextView(this);
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
@@ -4630,6 +4631,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             });
         }
+        CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
@@ -5725,7 +5727,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showWallpaperPicker() {
+        CrashDiagnostics.stage(this, "wallpaper_picker:entered");
         final Dialog dialog = new Dialog(this);
+        CrashDiagnostics.stage(this, "wallpaper_picker:dialog_created");
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
@@ -5739,6 +5743,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         final String[] names = {"漂流瓶", "山城夜色", "月台之夜", "流星映照", "夜林螢火", "阿布的魚", "愛心小倉", "熊熊篝火", "紅圍冬帽犬"};
+        CrashDiagnostics.stage(this, "wallpaper_picker:preparing_builtin_previews");
         final int[] previews = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
                 R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
                 R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
@@ -6597,8 +6602,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         pageIndicator.setPadding((int)(8*density), 0, (int)(2*density), 0);
         content.addView(pageIndicator, new FrameLayout.LayoutParams(
                 (int)(22*density), -1, Gravity.END | Gravity.CENTER_VERTICAL));
-        outer.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));
-        scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
+        outer.addView(content, new LinearLayout.LayoutParams(-1, 0, 1f));        scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 
         for (int i = 0; i < packages.size(); i++) {
             String pkg = packages.get(i);
@@ -8797,8 +8801,7 @@ private GradientDrawable roundSurface(int color, float radius) {
      */
     private void addSettingsMenuCheckRow(LinearLayout rows, PopupWindow popup, String title,
                                          boolean checked, Runnable action) {
-        addSettingsMenuRowView(rows, popup, title, action, true, checked);
-    }
+        addSettingsMenuRowView(rows, popup, title, action, true, checked);    }
 
     private void addSettingsMenuRowView(LinearLayout rows, PopupWindow popup, String title, Runnable action) {
         addSettingsMenuRowView(rows, popup, title, action, false, false);
