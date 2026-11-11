@@ -5736,16 +5736,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         title.setPadding(0, (int)(2*density), 0, (int)(6*density));
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
-        final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
-        final int[] previews = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
-                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
-                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        final String[] names = {"漂流瓶", "山城夜色", "月台之夜", "流星映照", "夜林螢火", "阿布的魚", "愛心小倉", "熊熊篝火", "紅圍冬帽犬"};
+        final int[] previews = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
+                R.drawable.wallpaper_theme_09};
         final View[] thumbnailItems = new View[names.length];
         final ImageView[] thumbnailImages = new ImageView[names.length];
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
         final int[] draftTheme = {wallpaperPrefs.getInt("builtin_wallpaper", 0)};
         final boolean[] draftRandom = {wallpaperPrefs.getBoolean("builtin_random_play", false)};
-        if (draftTheme[0] < 1 || draftTheme[0] > 6) draftTheme[0] = 1;
+        if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
         LinearLayout randomRow = new LinearLayout(this);
         randomRow.setOrientation(LinearLayout.HORIZONTAL);
         randomRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -5766,8 +5768,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomSwitch.setChecked(draftRandom[0]);
         randomSwitch.setOnCheckedChangeListener((button, checked) -> {
             draftRandom[0] = checked;
-            if (checked && (draftTheme[0] < 1 || draftTheme[0] > 6)) {
-                draftTheme[0] = 1 + new java.util.Random().nextInt(6);
+            if (checked && (draftTheme[0] < 1 || draftTheme[0] > 9)) {
+                draftTheme[0] = 1 + new java.util.Random().nextInt(9);
             }
             wallpaperPrefs.edit().putInt("builtin_wallpaper", draftTheme[0])
                     .putBoolean("builtin_random_play", checked)
@@ -6002,6 +6004,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                             wallpaperPrefs.getString("custom_wallpaper_file", ""));
                                     CustomWallpaperLibrary.delete(this, customFile);
                                     if (wasActive) wallpaperPrefs.edit().remove("custom_wallpaper_file").apply();
+                                    // Refresh the live wallpaper player now; do not wait for the next minute tick.
+                                    if (wallpaperPlayer != null) wallpaperPlayer.update();
                                     dialog.dismiss();
                                     showWallpaperPicker();
                                 }).show();

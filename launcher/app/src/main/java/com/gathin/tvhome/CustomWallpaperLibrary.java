@@ -86,6 +86,24 @@ final class CustomWallpaperLibrary {
         }
         if (!found) return false;
         save(context, items);
+
+        // Keep the playback selection in sync with the gallery. Otherwise a deleted
+        // image can remain in the rotation preferences and be selected again later.
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        List<File> selected = selected(context);
+        boolean selectionChanged = selected.removeIf(item -> item.equals(file));
+        SharedPreferences.Editor editor = prefs.edit();
+        if (selectionChanged) {
+            JSONArray selectedArray = new JSONArray();
+            for (File item : selected) {
+                if (item.isFile() && item.length() > 0) selectedArray.put(item.getAbsolutePath());
+            }
+            editor.putString("custom_wallpaper_selected", selectedArray.toString());
+        }
+        if (file.getAbsolutePath().equals(prefs.getString("custom_wallpaper_current", ""))) {
+            editor.remove("custom_wallpaper_current").remove("custom_wallpaper_changed");
+        }
+        editor.apply();
         return !file.exists() || file.delete();
     }
 
