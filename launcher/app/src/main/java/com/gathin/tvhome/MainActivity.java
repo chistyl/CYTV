@@ -5839,7 +5839,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setBackgroundColor(Color.TRANSPARENT);
 
                 ImageView preview = new ImageView(this);
-                preview.setImageResource(previews[index]);
+                Bitmap previewBitmap = decodeWallpaperThumbnail(previews[index], 420, 236);
+                if (previewBitmap != null) preview.setImageBitmap(previewBitmap);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
@@ -5963,7 +5964,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     ImageView imageView = new ImageView(this);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    imageView.setImageURI(Uri.fromFile(customFile));
+                    Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
+                    if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
                     tile.addView(imageView, new LinearLayout.LayoutParams(-1, (int)(112*density)));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
@@ -6163,6 +6165,50 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // TV 韌體若暫時拒絕縮圖焦點，至少將焦點放在第一個可操作項目。
             }
         });
+    }
+
+    /** Decode built-in wallpaper previews at thumbnail resolution to avoid loading full 1672x941 images. */
+    private Bitmap decodeWallpaperThumbnail(int resourceId, int targetWidth, int targetHeight) {
+        try {
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeResource(getResources(), resourceId, bounds);
+            android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+            options.inSampleSize = wallpaperSampleSize(bounds.outWidth, bounds.outHeight, targetWidth, targetHeight);
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inDither = true;
+            return android.graphics.BitmapFactory.decodeResource(getResources(), resourceId, options);
+        } catch (RuntimeException | OutOfMemoryError error) {
+            android.util.Log.e("CYTV-Wallpaper", "Unable to decode built-in wallpaper thumbnail", error);
+            return null;
+        }
+    }
+
+    /** Decode user-library previews with bounded memory use; never decode the original at full size. */
+    private Bitmap decodeWallpaperFileThumbnail(File file, int targetWidth, int targetHeight) {
+        try {
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+            android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+            options.inSampleSize = wallpaperSampleSize(bounds.outWidth, bounds.outHeight, targetWidth, targetHeight);
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inDither = true;
+            return android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+        } catch (RuntimeException | OutOfMemoryError error) {
+            android.util.Log.e("CYTV-Wallpaper", "Unable to decode custom wallpaper thumbnail: " + file, error);
+            return null;
+        }
+    }
+
+    private int wallpaperSampleSize(int width, int height, int targetWidth, int targetHeight) {
+        int sample = 1;
+        if (width <= 0 || height <= 0) return 4;
+        while ((width / (sample * 2)) >= targetWidth
+                && (height / (sample * 2)) >= targetHeight) {
+            sample *= 2;
+        }
+        return Math.max(1, sample);
     }
 
     /** 縮圖選取／遙控器焦點框：只畫在圖片前景，不改變縮圖比例與內容。 */
