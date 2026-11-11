@@ -5784,6 +5784,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
                 }
             }
+            // Close the picker before recreating the Activity; otherwise the Dialog may retain
+            // the old Activity window while the new Home instance is being attached.
+            if (dialog.isShowing()) dialog.dismiss();
             recreate();
         });
         randomRow.addView(randomSwitch);
@@ -5929,6 +5932,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             final String modeValue = customModes[modeIndex];
             TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
                 CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
+                if (dialog.isShowing()) dialog.dismiss();
                 recreate();
             });
             modeButton.setTextSize(13);
@@ -6091,7 +6095,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
             if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
         }
-        qrAction.setNextFocusUpId(thumbnailItems[4].getId());
+        qrAction.setNextFocusUpId(thumbnailItems[7].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(resetAction.getId());
