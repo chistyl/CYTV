@@ -5809,11 +5809,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setTextSize(16);
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
+        defaultHeading.setFocusableInTouchMode(true);
+        defaultHeading.setClickable(true);
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
+            defaultHeading.setText("◉  預設圖片");
+            customHeading.setText("○  自訂圖片");
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
 
@@ -5968,6 +5972,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         customHeading.setFocusable(true);
+        customHeading.setFocusableInTouchMode(true);
+        customHeading.setClickable(true);
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
@@ -5975,12 +5981,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
                 draftCustomActive[0] = true; draftRandom[0] = false;
                 persistWallpaperDraft.run();
+                customHeading.setText("◉  自訂圖片");
+                defaultHeading.setText("○  預設圖片");
+                for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                    setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
             } else {
                 Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
             }
         });
+        customHeading.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        defaultHeading.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
         List<File> customImages = CustomWallpaperLibrary.list(this);
+        if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
+            customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("尚未匯入圖片。可使用 QR Code 或「選擇圖片」新增。");
