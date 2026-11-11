@@ -47,11 +47,11 @@ final class CustomWallpaperLibrary {
                 output.write(buffer, 0, count);
             }
             output.flush();
-            if (total <= 0) return false;
+            if (total <= 0) { temporary.delete(); return false; }
             BitmapFactory.Options bounds = new BitmapFactory.Options();
             bounds.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(temporary.getAbsolutePath(), bounds);
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return false;
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) { temporary.delete(); return false; }
 
             String hash = sha256(temporary);
             String extension = extension(context, uri);
@@ -77,7 +77,19 @@ final class CustomWallpaperLibrary {
         }
     }
 
+    /**
+     * R55 stored the selected image at filesDir/custom-wallpaper-image without an extension.
+     * Import it into the gallery before listing, and only remove the legacy copy after a verified
+     * successful import so upgrading to R56 never silently loses the user's existing wallpaper.
+     */
+    private static void migrateLegacyWallpaper(Context context) {
+        File legacy = new File(context.getFilesDir(), "custom-wallpaper-image");
+        if (!legacy.isFile()) return;
+        if (importImage(context, Uri.fromFile(legacy))) legacy.delete();
+    }
+
     static List<File> list(Context context) {
+        migrateLegacyWallpaper(context);
         File[] files = directory(context).listFiles(file -> file.isFile()
                 && (file.getName().endsWith(".jpg") || file.getName().endsWith(".jpeg")
                 || file.getName().endsWith(".png") || file.getName().endsWith(".webp")));
