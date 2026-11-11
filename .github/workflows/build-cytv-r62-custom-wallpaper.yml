@@ -57,7 +57,7 @@ jobs:
         with:
           name: CYTV-R67-Custom-Gallery-Fixed-Three-Columns-APK-and-Source
           path: |
-            release/CYTV-R66-wallpaper-gallery-debug.apk
-            release/CYTV-R66-wallpaper-gallery-source.zip
+            release/CYTV-R67-wallpaper-gallery-debug.apk
+            release/CYTV-R67-wallpaper-gallery-source.zip
           if-no-files-found: error
           retention-days: 30
