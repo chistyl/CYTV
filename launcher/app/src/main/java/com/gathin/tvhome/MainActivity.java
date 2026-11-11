@@ -6067,7 +6067,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
-        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖（設定桌布）", () -> {
+        TextView qrAction = addRoundedAction(panel, "QR Code 掃碼傳圖", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
         });
