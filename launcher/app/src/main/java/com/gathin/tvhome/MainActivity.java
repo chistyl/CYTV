@@ -2114,11 +2114,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.animate().cancel();
             ambient.setAlpha(0f);
         }
-        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
+        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight() + 12f * density;
         // When app names are enabled, keep the large focused-app title in the gap below the
         // weekly forecast. The weather card is an overlay, so the original dock-relative title
         // position could otherwise draw across its lower rows (especially on shorter TV screens).
-        float baseHeroTextSize = cinematic ? 68f : 48f;
+        float baseHeroTextSize = cinematic ? 60f : 42f;
         heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseHeroTextSize);
         if (!hideAllNames && weeklyWeatherView != null
                 && weeklyWeatherView.getVisibility() == View.VISIBLE
