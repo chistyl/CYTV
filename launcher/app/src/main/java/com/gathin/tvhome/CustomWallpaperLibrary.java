@@ -89,6 +89,33 @@ final class CustomWallpaperLibrary {
         return !file.exists() || file.delete();
     }
 
+    static synchronized List<File> selected(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        List<File> result = new ArrayList<>();
+        try {
+            JSONArray array = new JSONArray(prefs.getString("custom_wallpaper_selected", "[]"));
+            for (int i = 0; i < array.length(); i++) {
+                File file = new File(array.getString(i));
+                if (file.isFile() && file.length() > 0) result.add(file);
+            }
+        } catch (Exception ignored) { }
+        return result;
+    }
+
+    static synchronized void setSelected(Context context, List<File> files, String mode) {
+        JSONArray array = new JSONArray();
+        for (File file : files) if (file != null && file.isFile()) array.put(file.getAbsolutePath());
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString("custom_wallpaper_selected", array.toString())
+                .putString("custom_wallpaper_mode", mode)
+                .apply();
+    }
+
+    static String mode(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString("custom_wallpaper_mode", "single");
+    }
+
     private static void save(Context context, List<File> files) {
         JSONArray array = new JSONArray();
         for (File file : files) array.put(file.getAbsolutePath());
