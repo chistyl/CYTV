@@ -5830,6 +5830,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
+        final int screenWidthDpForGrid = Math.round(getResources().getDisplayMetrics().widthPixels / density);
+        final int gridInsetDp = Math.max(16, Math.min(48, Math.round(screenWidthDpForGrid * 0.035f)));
+        final int gridContentWidthDp = Math.min(1100, Math.max(280, screenWidthDpForGrid - gridInsetDp * 2));
+        final int thumbnailGap = (int)(6 * density);
+        // Both built-in and custom galleries share the exact same fixed 3-column cell dimensions.
+        final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
         final int thumbnailHeight = (int)(150 * density);
         final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
@@ -5872,7 +5878,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setBackground(previewShape);
                 preview.setClipToOutline(true);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, thumbnailHeight);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
@@ -5923,7 +5929,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
