@@ -5765,7 +5765,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER_HORIZONTAL);
-        content.setPadding(0, (int)(24*density), 0, (int)(20*density));
+        content.setPadding(0, (int)(14*density), 0, (int)(10*density));
         panel.addView(content, new LinearLayout.LayoutParams(contentWidth, -1));
 
         TextView title = new TextView(this);
@@ -5783,7 +5783,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         accentLine.setBackground(accent);
         LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams((int)(88*density), (int)(5*density));
         accentLp.gravity = Gravity.CENTER_HORIZONTAL;
-        accentLp.topMargin = (int)(10*density);
+        accentLp.topMargin = (int)(6*density);
         content.addView(accentLine, accentLp);
 
         TextView subtitle = new TextView(this);
@@ -5792,8 +5792,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         subtitle.setTextSize(16);
         subtitle.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams subtitleLp = new LinearLayout.LayoutParams(-1, -2);
-        subtitleLp.topMargin = (int)(12*density);
-        subtitleLp.bottomMargin = (int)(22*density);
+        subtitleLp.topMargin = (int)(8*density);
+        subtitleLp.bottomMargin = (int)(10*density);
         content.addView(subtitle, subtitleLp);
 
         final String[] names = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
@@ -5860,7 +5860,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
         randomRow.setPadding((int)(18*density), 0, (int)(18*density), 0);
         randomRow.setBackground(roundSurface(Color.rgb(32, 44, 60), 18*density));
-        content.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(54*density)));
+        content.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(46*density)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5870,6 +5870,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
+        final int[] thumbnailHeightsDp = {124, 112, 124};
+        final float[] thumbnailColumnWeights = {1.10f, 1.0f, 1.10f};
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -5878,7 +5880,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(124*density), 1.0f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5903,11 +5905,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(112*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(thumbnailHeightsDp[col]*density));
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(112*density);
+                imageLp.height = (int)(thumbnailHeightsDp[col]*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5959,12 +5961,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(124*density), thumbnailColumnWeights[col]);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(124*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
@@ -5975,7 +5977,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.setBackground(roundSurface(Color.rgb(32, 44, 60), 18*density));
-        scroll.setPadding((int)(14*density), (int)(14*density), (int)(14*density), (int)(14*density));
+        scroll.setPadding((int)(10*density), (int)(10*density), (int)(10*density), (int)(10*density));
         scroll.addView(choices);
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
         for (int i = 0; i < thumbnailItems.length; i++) {
@@ -5996,14 +5998,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
-        scrollLp.topMargin = (int)(12*density);
+        scrollLp.topMargin = (int)(8*density);
         scrollLp.bottomMargin = (int)(0*density);
         content.addView(scroll, scrollLp);
         TextView qrAction = addRoundedAction(content, "QR Code 掃碼傳圖（設定桌布）", () -> {
             dialog.dismiss();
             showQrWallpaperTransferDialog();
         });
-        TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
+        TextView chooseAction = addRoundedAction(content, "選擇圖片", () -> {
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
@@ -6011,7 +6013,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
             catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
         });
-        TextView resetAction = addRoundedAction(panel, "恢復預設", () -> {
+        TextView resetAction = addRoundedAction(content, "恢復預設", () -> {
             wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
                     .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                     .putBoolean("hide_left_color_effect", false)
