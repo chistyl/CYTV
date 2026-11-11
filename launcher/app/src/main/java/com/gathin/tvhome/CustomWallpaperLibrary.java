@@ -55,12 +55,12 @@ final class CustomWallpaperLibrary {
 
             String hash = sha256(temporary);
             String extension = extension(context, uri);
-            File[] existing = dir.listFiles(file -> file.isFile() && file.getName().startsWith(hash + "."));
+            File[] existing = dir.listFiles(file -> file.isFile() && file.getName().contains("-" + hash + "."));
             if (existing != null && existing.length > 0) {
                 temporary.delete();
                 return true;
             }
-            File target = new File(dir, hash + extension);
+            File target = new File(dir, String.format(Locale.ROOT, "%013d-%s%s", System.currentTimeMillis(), hash, extension));
             if (!temporary.renameTo(target)) {
                 try (FileInputStream in = new FileInputStream(temporary);
                      FileOutputStream out = new FileOutputStream(target)) {
