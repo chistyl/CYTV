@@ -5803,14 +5803,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
+        final TextView[] wallpaperCategoryHeadings = new TextView[2];
         TextView defaultHeading = new TextView(this);
+        wallpaperCategoryHeadings[0] = defaultHeading;
         defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
         defaultHeading.setTextColor(0xFFF5F6FA);
         defaultHeading.setTextSize(16);
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
+        defaultHeading.setClickable(true);
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
+            defaultHeading.setText("◉  預設圖片");
+            if (wallpaperCategoryHeadings[1] != null) wallpaperCategoryHeadings[1].setText("○  自訂圖片");
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
@@ -5967,17 +5972,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        wallpaperCategoryHeadings[1] = customHeading;
         customHeading.setFocusable(true);
+        customHeading.setClickable(true);
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
             if (!savedCustom.isEmpty()) {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
-                draftCustomActive[0] = true; draftRandom[0] = false;
-                persistWallpaperDraft.run();
-            } else {
-                Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
             }
+            draftCustomActive[0] = true;
+            draftRandom[0] = false;
+            defaultHeading.setText("○  預設圖片");
+            customHeading.setText("◉  自訂圖片");
+            persistWallpaperDraft.run();
+            if (savedCustom.isEmpty())
+                Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
         });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
         List<File> customImages = CustomWallpaperLibrary.list(this);
@@ -6070,6 +6080,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                             thumbnailHeight, 1f);
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
+                }
+                // 即使自訂圖片只有 1 或 2 張，也保留三欄固定格寬，不讓圖片被拉伸成整列寬度。
+                int filledColumns = Math.min(customColumns, customImages.size() - start);
+                for (int emptyCol = filledColumns; emptyCol < customColumns; emptyCol++) {
+                    View emptyTile = new View(this);
+                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                    if (emptyCol < customColumns - 1) emptyLp.rightMargin = (int)(6*density);
+                    customRow.addView(emptyTile, emptyLp);
                 }
                 choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
