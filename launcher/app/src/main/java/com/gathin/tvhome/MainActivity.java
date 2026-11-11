@@ -6129,6 +6129,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = 0;
         panel.addView(scroll, scrollLp);
+
+        // 設定先暫存於本視窗；只有按「儲存」才寫入正式偏好設定。
+        LinearLayout editActions = new LinearLayout(this);
+        editActions.setOrientation(LinearLayout.HORIZONTAL);
+        TextView cancelAction = addRoundedAction(editActions, "取消", () -> dialog.dismiss());
+        TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, draftCustomMode[0]);
+            SharedPreferences.Editor editor = wallpaperPrefs.edit();
+            if (draftCustomActive[0] && !draftCustomSelection.isEmpty()) {
+                editor.putString("custom_wallpaper_file", draftCustomSelection.get(0).getAbsolutePath())
+                        .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
+                        .putBoolean("builtin_random_play", false);
+            } else {
+                editor.putInt("builtin_wallpaper", draftTheme[0])
+                        .putBoolean("builtin_random_play", draftRandom[0])
+                        .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                        .remove("custom_wallpaper_selected");
+            }
+            editor.putBoolean("hide_left_color_effect", true)
+                    .putBoolean("left_color_effect_enabled", false).apply();
+            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
+            if (!draftCustomActive[0] && localWallpaper.exists()) localWallpaper.delete();
+            dialog.dismiss();
+            recreate();
+        });
+        for (TextView action : new TextView[]{cancelAction, saveAction}) {
+            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
+            actionLp.leftMargin = (int)(5*density);
+            actionLp.rightMargin = (int)(5*density);
+            action.setLayoutParams(actionLp);
+        }
+        panel.addView(editActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
