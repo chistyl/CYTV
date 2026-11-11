@@ -5,13 +5,13 @@ on:
       - fix/wallpaper-dialog-match-youtube-assistant-r56
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-interface-layout-height-r55.yml'
+      - '.github/workflows/build-wallpaper-dialog-match-r56.yml'
   pull_request:
     branches:
-      - feature/taiwan-county-weather-selector-r52
+      - fix/interface-layout-height-10pct-r55
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-interface-layout-height-r55.yml'
+      - '.github/workflows/build-wallpaper-dialog-match-r56.yml'
   workflow_dispatch:
 permissions:
   contents: read
