@@ -5838,7 +5838,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int thumbnailGap = (int)(6 * density);
         // Both galleries use identical fixed 3-column cells with a consistent landscape preview ratio.
         final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
-        final int thumbnailHeight = Math.max(1, Math.round(thumbnailWidth * 0.66f));
+        final int thumbnailHeight = Math.max(1, Math.round(thumbnailWidth * 9f / 16f));
         final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
