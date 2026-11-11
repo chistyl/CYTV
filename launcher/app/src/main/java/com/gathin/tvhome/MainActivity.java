@@ -4631,7 +4631,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             });
         }
-        CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
@@ -6341,6 +6340,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }
             }
         });
+        CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
             // Match the folder dialog's dimmed desktop backdrop exactly.
