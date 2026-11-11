@@ -5773,7 +5773,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .putBoolean("builtin_random_play", checked)
                     .putBoolean("hide_left_color_effect", true)
                     .putBoolean("left_color_effect_enabled", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file").apply();
+                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .remove("custom_wallpaper_selected").apply();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (localWallpaper.exists()) localWallpaper.delete();
             for (int i = 0; i < thumbnailImages.length; i++) {
@@ -5890,7 +5891,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                             .putBoolean("builtin_random_play", false)
                             .putBoolean("hide_left_color_effect", true)
                             .putBoolean("left_color_effect_enabled", false)
-                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file").apply();
+                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                            .remove("custom_wallpaper_selected").apply();
                     File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
                     if (localWallpaper.exists()) localWallpaper.delete();
                     dialog.dismiss();
@@ -6061,6 +6063,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView resetAction = addRoundedAction(panel, "恢復預設", () -> {
             wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
                     .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .remove("custom_wallpaper_selected")
                     .putBoolean("hide_left_color_effect", false)
                     .putBoolean("left_color_effect_enabled", true).apply();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
