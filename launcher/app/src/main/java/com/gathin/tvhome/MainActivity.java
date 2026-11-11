@@ -5824,6 +5824,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
+        final int thumbnailHeight = (int)(150 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -5832,7 +5833,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(112*density), 1f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, thumbnailHeight, 1f));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5858,11 +5859,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(112*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, thumbnailHeight);
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(112*density);
+                imageLp.height = thumbnailHeight;
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5909,15 +5910,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
-                if (col > 0) itemLp.leftMargin = (int)(12*density);
-                if (col < columnsCount - 1) itemLp.rightMargin = (int)(12*density);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, thumbnailHeight));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
             }
         }
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
@@ -5994,7 +5994,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
-                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
@@ -6034,12 +6034,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return true;
                     });
                     LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
-                            (int)(112*density), 1f);
-                    if (col > 0) tileLp.leftMargin = (int)(12*density);
-                    if (col < customColumns - 1) tileLp.rightMargin = (int)(12*density);
+                            thumbnailHeight, 1f);
+                    if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
-                choices.addView(customRow, new LinearLayout.LayoutParams(-1, (int)(112*density)));
+                choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
                     choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
@@ -6140,7 +6139,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
         int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
         int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
-        int verticalInset = Math.max(18, Math.min(42, Math.round(screenHeightDp * 0.035f)));
+        int verticalInset = 0;
         int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
 
         LinearLayout screen = new LinearLayout(this);
@@ -6165,7 +6164,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pageTitle.setTextSize(Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f))));
         pageTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         pageTitle.setGravity(Gravity.CENTER);
-        pageContent.addView(pageTitle, new LinearLayout.LayoutParams(contentWidth, -2));
+        LinearLayout.LayoutParams pageTitleLp = new LinearLayout.LayoutParams(contentWidth, -2);
+        pageTitleLp.topMargin = (int)(16 * density);
+        pageContent.addView(pageTitle, pageTitleLp);
 
         View accentLine = new View(this);
         GradientDrawable accent = new GradientDrawable();
