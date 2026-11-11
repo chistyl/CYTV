@@ -5837,6 +5837,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int gridContentWidthDp = Math.max(180, screenWidthDpForGrid - 36);
         final int thumbnailGap = (int)(6 * density);
         // Both galleries use identical fixed 3-column cells with a consistent landscape preview ratio.
+        // Equal-weight cells make both galleries use identical column widths on TV firmware.
+        // Derive one shared 16:9 height from the available three-column content width.
         final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
         final int thumbnailHeight = Math.max(1, Math.round(thumbnailWidth * 9f / 16f));
         final int thumbnailCornerRadius = (int)(12 * density);
@@ -5880,7 +5882,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setBackground(previewShape);
                 preview.setClipToOutline(true);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, thumbnailHeight);
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
@@ -5931,7 +5933,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
@@ -6052,7 +6054,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     imageView.setClipToOutline(true);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
-                    tile.addView(imageView, new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, thumbnailHeight));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
@@ -6103,8 +6105,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                 }).show();
                         return true;
                     });
-                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(thumbnailWidth,
-                            thumbnailHeight);
+                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
+                            thumbnailHeight, 1f);
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
