@@ -117,7 +117,11 @@ final class WallpaperPlayer {
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
-        if (preferences.getInt("builtin_wallpaper", 0) > 0 || preferences.getString("custom_wallpaper_uri", null) != null || preferences.getString("custom_wallpaper_file", null) != null || (config.wallpaperEnabled && !files.isEmpty())) {
+        if (!CustomWallpaperLibrary.selected(context).isEmpty()
+                || preferences.getInt("builtin_wallpaper", 0) > 0
+                || preferences.getString("custom_wallpaper_uri", null) != null
+                || preferences.getString("custom_wallpaper_file", null) != null
+                || (config.wallpaperEnabled && !files.isEmpty())) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
