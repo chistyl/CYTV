@@ -5810,7 +5810,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setElevation(0f);
         });
         randomRow.setOnClickListener(v -> randomSwitch.setChecked(!randomSwitch.isChecked()));
-        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));\n        String[] customModes = {"single", "sequential", "random"};
+        panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
+        String[] customModes = {"single", "sequential", "random"};
         String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
         String currentCustomMode = CustomWallpaperLibrary.mode(this);
         LinearLayout modeRow = new LinearLayout(this);
