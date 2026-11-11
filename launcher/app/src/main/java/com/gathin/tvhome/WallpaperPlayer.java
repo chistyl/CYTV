@@ -130,6 +130,25 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
+        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
+        if (!customSelection.isEmpty()) {
+            String mode = CustomWallpaperLibrary.mode(root.getContext());
+            String previousCustom = preferences.getString("custom_wallpaper_current", "");
+            File selected = WallpaperRotation.find(customSelection, previousCustom);
+            if (selected == null) selected = customSelection.get(0);
+            if ("random".equals(mode) && customSelection.size() > 1) {
+                selected = WallpaperRotation.pick(customSelection, "", random);
+            }
+            Bitmap customBitmap = decode(selected);
+            if (customBitmap != null) {
+                show(customBitmap);
+                displayed = selected.getAbsolutePath();
+                preferences.edit().putString("custom_wallpaper_current", displayed)
+                        .putLong("custom_wallpaper_changed", System.currentTimeMillis()).apply();
+                showCaption(false);
+                return;
+            }
+        }
         int builtIn = preferences.getInt("builtin_wallpaper", 0);
         if (builtIn >= 1 && builtIn <= 6) {
             int[] themes = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
@@ -249,7 +268,37 @@ final class WallpaperPlayer {
     }
 
     void update() {
-        if (!active || closed || loading || files.isEmpty()) return;
+        if (!active || closed || loading) return;
+        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
+        if (!customSelection.isEmpty()) {
+            String mode = CustomWallpaperLibrary.mode(root.getContext());
+            if ("single".equals(mode) || customSelection.size() < 2) return;
+            long changed = preferences.getLong("custom_wallpaper_changed", 0);
+            if (!WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) return;
+            String previousCustom = preferences.getString("custom_wallpaper_current", "");
+            File nextCustom = WallpaperRotation.find(customSelection, previousCustom);
+            nextCustom = "sequential".equals(mode)
+                    ? WallpaperRotation.next(customSelection, previousCustom)
+                    : WallpaperRotation.pick(customSelection, previousCustom, random);
+            if (nextCustom == null || nextCustom.getAbsolutePath().equals(displayed)) return;
+            File targetCustom = nextCustom;
+            loading = true;
+            decoder.execute(() -> {
+                Bitmap bitmap = decode(targetCustom);
+                root.post(() -> {
+                    loading = false;
+                    if (closed || !active) { if (bitmap != null) bitmap.recycle(); return; }
+                    if (bitmap == null) { Log.w("TvHome.Wallpaper", "Skipping unreadable custom image: " + targetCustom); return; }
+                    show(bitmap);
+                    displayed = targetCustom.getAbsolutePath();
+                    preferences.edit().putString("custom_wallpaper_current", displayed)
+                            .putLong("custom_wallpaper_changed", System.currentTimeMillis()).apply();
+                    showCaption(true);
+                });
+            });
+            return;
+        }
+        if (files.isEmpty()) return;
         String previous = preferences.getString("image", "");
         // A picture outside the time of day's group (the group changed) is replaced at once, not after the interval.
         List<File> playable = playable();
