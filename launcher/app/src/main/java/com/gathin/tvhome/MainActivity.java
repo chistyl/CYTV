@@ -5809,11 +5809,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setTextSize(16);
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
+        defaultHeading.setFocusableInTouchMode(true);
+        defaultHeading.setClickable(true);
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
+            defaultHeading.setText("◉  預設圖片");
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
 
@@ -5827,7 +5830,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
-        final int thumbnailHeight = (int)(150 * density);
+        final int screenWidthDpForGrid = Math.round(getResources().getDisplayMetrics().widthPixels / density);
+        // The picker dialog is capped at 440dp wide and the panel has 18dp padding on both sides.
+        // Calculate cells from the dialog's actual inner width, not the full TV screen width.
+        final int dialogWidthDpForGrid = Math.min(440, Math.max(280, screenWidthDpForGrid - 48));
+        final int gridContentWidthDp = Math.max(180, dialogWidthDpForGrid - 36);
+        final int thumbnailGap = (int)(6 * density);
+        // Both galleries use identical fixed 3-column cells with a consistent landscape preview ratio.
+        final int thumbnailWidth = Math.max(1, (int)(gridContentWidthDp * density - thumbnailGap * 2) / columnsCount);
+        final int thumbnailHeight = Math.max(1, Math.round(thumbnailWidth * 9f / 16f));
         final int thumbnailCornerRadius = (int)(12 * density);
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
@@ -5869,7 +5880,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setBackground(previewShape);
                 preview.setClipToOutline(true);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, thumbnailHeight);
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
@@ -5920,7 +5931,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, thumbnailHeight, 1f);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(6*density);
                 rowLayout.addView(item, itemLp);
             }
@@ -5968,6 +5979,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         customHeading.setFocusable(true);
+        customHeading.setFocusableInTouchMode(true);
+        customHeading.setClickable(true);
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
@@ -5975,12 +5988,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
                 draftCustomActive[0] = true; draftRandom[0] = false;
                 persistWallpaperDraft.run();
+                customHeading.setText("◉  自訂圖片");
+                defaultHeading.setText("○  預設圖片");
+                for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                    setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
             } else {
                 Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
             }
         });
+        customHeading.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        defaultHeading.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
         List<File> customImages = CustomWallpaperLibrary.list(this);
+        if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
+            customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("尚未匯入圖片。可使用 QR Code 或「選擇圖片」新增。");
@@ -6015,7 +6052,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     imageView.setClipToOutline(true);
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
-                    tile.addView(imageView, new LinearLayout.LayoutParams(-1, thumbnailHeight));
+                    tile.addView(imageView, new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight));
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
@@ -6066,8 +6103,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                 }).show();
                         return true;
                     });
-                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0,
-                            thumbnailHeight, 1f);
+                    LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(thumbnailWidth,
+                            thumbnailHeight);
                     if (col < customColumns - 1) tileLp.rightMargin = (int)(6*density);
                     customRow.addView(tile, tileLp);
                 }
