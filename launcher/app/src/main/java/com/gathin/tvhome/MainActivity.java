@@ -5766,7 +5766,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER_HORIZONTAL);
         content.setPadding(0, (int)(14*density), 0, (int)(10*density));
-        panel.addView(content, new LinearLayout.LayoutParams(contentWidth, -1));
+        panel.addView(content, new LinearLayout.LayoutParams(contentWidth, -2));
 
         TextView title = new TextView(this);
         title.setText("影像設定");
@@ -5870,8 +5870,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout choices = new LinearLayout(this);
         choices.setOrientation(LinearLayout.VERTICAL);
         final int columnsCount = 3;
-        final int[] thumbnailHeightsDp = {124, 112, 124};
-        final float[] thumbnailColumnWeights = {1.10f, 1.0f, 1.10f};
+        final int thumbnailHeightDp = 156;
+        // Wider outer columns make the left and right preview cards clearly larger.
+        final float[] thumbnailColumnWeights = {1.28f, 0.84f, 1.28f};
         final int rowsCount = (names.length + columnsCount - 1) / columnsCount;
         for (int row = 0; row < rowsCount; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -5880,7 +5881,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 final int index = row * columnsCount + col;
                 if (index >= names.length) {
                     View empty = new View(this);
-                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(124*density), 1.0f));
+                    rowLayout.addView(empty, new LinearLayout.LayoutParams(0, (int)(thumbnailHeightDp*density), thumbnailColumnWeights[col]));
                     continue;
                 }
                 LinearLayout item = new LinearLayout(this);
@@ -5905,11 +5906,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setAdjustViewBounds(false);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 thumbnailImages[index] = preview;
-                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(thumbnailHeightsDp[col]*density));
+                LinearLayout.LayoutParams imageLp = new LinearLayout.LayoutParams(-1, (int)(thumbnailHeightDp*density));
                 item.addView(preview, imageLp);
 
                 // 主題卡片只顯示完整圖片預覽，不顯示主題名稱；加高縮圖方便遙控器辨識與選取。
-                imageLp.height = (int)(thumbnailHeightsDp[col]*density);
+                imageLp.height = (int)(thumbnailHeightDp*density);
                 preview.setLayoutParams(imageLp);
 
                 item.setOnFocusChangeListener((v, hasFocus) -> {
@@ -5961,12 +5962,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     recreate();
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
-                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(124*density), thumbnailColumnWeights[col]);
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(thumbnailHeightDp*density), thumbnailColumnWeights[col]);
                 if (col > 0) itemLp.leftMargin = (int)(5*density);
                 if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
                 rowLayout.addView(item, itemLp);
             }
-            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(124*density)));
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(thumbnailHeightDp*density)));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
@@ -5997,7 +5998,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, -2);
         scrollLp.topMargin = (int)(8*density);
         scrollLp.bottomMargin = (int)(0*density);
         content.addView(scroll, scrollLp);
