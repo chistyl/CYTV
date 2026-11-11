@@ -1,4 +1,4 @@
-name: CYTV R65 Wallpaper Gallery Full Width
+name: CYTV R66 Equal Wallpaper Gallery Cells
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - feature/custom-wallpaper-gallery-r62
       - fix/custom-wallpaper-gallery-selection-r63
       - fix/wallpaper-source-selector-size-r64
-      - fix/wallpaper-gallery-full-width-r65
+      - fix/wallpaper-gallery-equal-cells-r66
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r65-wallpaper-gallery-${{ github.ref }}
+  group: cytv-r66-equal-wallpaper-gallery-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,8 +45,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R65-wallpaper-gallery-debug.apk
-          zip -r release/CYTV-R65-wallpaper-gallery-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R66-wallpaper-gallery-debug.apk
+          zip -r release/CYTV-R66-wallpaper-gallery-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -54,7 +54,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R65-Wallpaper-Gallery-APK-and-Source
+          name: CYTV-R66-Equal-Wallpaper-Gallery-APK-and-Source
           path: |
             release/CYTV-R65-wallpaper-gallery-debug.apk
             release/CYTV-R65-wallpaper-gallery-source.zip
