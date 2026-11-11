@@ -1341,17 +1341,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pendingIconPackage = null;
             reopenPendingFolderAfterAppEdit();
         }
-        if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            Uri uri = data.getData();
-            if (importCustomWallpaper(uri)) {
-                getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                        .remove("custom_wallpaper_uri")
-                        .putBoolean("hide_left_color_effect", true)
-                        .putBoolean("left_color_effect_enabled", false).apply();
-                recreate();
-            } else {
-                Toast.makeText(this, "圖片讀取失敗，請改選 JPG 或 PNG 圖片", Toast.LENGTH_LONG).show();
+        if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
+            int imported = 0;
+            int failed = 0;
+            if (data.getClipData() != null) {
+                android.content.ClipData clips = data.getClipData();
+                for (int i = 0; i < clips.getItemCount(); i++) {
+                    Uri uri = clips.getItemAt(i).getUri();
+                    if (uri != null && importCustomWallpaper(uri)) imported++; else failed++;
+                }
+            } else if (data.getData() != null) {
+                Uri uri = data.getData();
+                if (importCustomWallpaper(uri)) imported++; else failed++;
             }
+            if (imported > 0) {
+                Toast.makeText(this, "已加入自訂圖片 " + imported + " 張" + (failed > 0 ? "，失敗 " + failed + " 張" : ""), Toast.LENGTH_LONG).show();
+            } else if (failed > 0) {
+                Toast.makeText(this, "圖片讀取失敗，請改選 JPG、PNG 或 WebP 圖片", Toast.LENGTH_LONG).show();
+            }
+            if (imported > 0) showWallpaperPicker();
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
@@ -5714,39 +5722,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return AppArtwork.render(getResources(), icon, background, scale, false);
     }
 
-    /**
-     * Import the selected image into app-private storage under an ASCII-only fixed name.
-     * The original filename is deliberately ignored so Chinese names and provider-specific
-     * document IDs never become part of the wallpaper loading path.
-     * This also keeps the selected image available after the picker activity has closed.
-     */
+    /** Import one image into the persistent custom wallpaper gallery without applying it. */
     private boolean importCustomWallpaper(Uri uri) {
-        java.io.File target = new java.io.File(getFilesDir(), "custom-wallpaper-image");
-        java.io.File temporary = new java.io.File(getFilesDir(), "custom-wallpaper-image.tmp");
-        try (java.io.InputStream input = getContentResolver().openInputStream(uri);
-             java.io.FileOutputStream output = new java.io.FileOutputStream(temporary)) {
-            if (input == null) return false;
-            byte[] buffer = new byte[16 * 1024];
-            int count;
-            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-            output.flush();
-            if (temporary.length() <= 0) return false;
-            if (target.exists() && !target.delete()) return false;
-            if (!temporary.renameTo(target)) return false;
-            // WallpaperPlayer reads custom_wallpaper_file. Persist the exact key it consumes,
-            // and clear built-in selections so they cannot override the imported image.
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_file", target.getAbsolutePath())
-                    .remove("custom_wallpaper_path")
-                    .remove("custom_wallpaper_uri")
-                    .remove("builtin_wallpaper")
-                    .putBoolean("builtin_random_play", false)
-                    .apply();
-            return true;
-        } catch (Exception | OutOfMemoryError failure) {
-            temporary.delete();
-            return false;
-        }
+        return CustomWallpaperLibrary.importImage(this, uri);
+    }
+
+    private List<File> getCustomWallpaperImages() {
+        return CustomWallpaperLibrary.list(this);
     }
 
     private void showWallpaperPicker() {
@@ -5969,7 +5951,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView chooseAction = addRoundedAction(panel, "選擇圖片", () -> {
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
+            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");\n            pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
             catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
@@ -6109,17 +6091,10 @@ private GradientDrawable roundSurface(int color, float radius) {
                 Toast.makeText(this, "圖片已接收，但檔案無法讀取，請重新傳送。", Toast.LENGTH_LONG).show();
                 return;
             }
-            getSharedPreferences("wallpaper_rotation", MODE_PRIVATE).edit()
-                    .putString("custom_wallpaper_file", received.getAbsolutePath())
-                    .remove("custom_wallpaper_uri")
-                    .remove("builtin_wallpaper")
-                    .putBoolean("builtin_random_play", false)
-                    .putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false)
-                    .apply();
-            Toast.makeText(this, "圖片已接收，正在設定桌布", Toast.LENGTH_LONG).show();
+            boolean imported = importCustomWallpaper(Uri.fromFile(received));
+            Toast.makeText(this, imported ? "圖片已加入自訂圖片庫" : "圖片匯入失敗，請重新傳送", Toast.LENGTH_LONG).show();
             dialog.dismiss();
-            recreate();
+            if (imported) showWallpaperPicker();
         });
         server.start();
         String url = server.getUrl();
