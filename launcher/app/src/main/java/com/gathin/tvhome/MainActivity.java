@@ -6087,9 +6087,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.setLayoutParams(actionLp);
         }
         // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
-        thumbnailItems[3].setNextFocusDownId(qrAction.getId());
-        thumbnailItems[4].setNextFocusDownId(qrAction.getId());
-        thumbnailItems[5].setNextFocusDownId(qrAction.getId());
+        // Every tile in the last row (themes 7-9) must reach the action buttons.
+        for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
+            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
+        }
         qrAction.setNextFocusUpId(thumbnailItems[4].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
@@ -6215,8 +6216,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int wallpaperSampleSize(int width, int height, int targetWidth, int targetHeight) {
         int sample = 1;
         if (width <= 0 || height <= 0) return 4;
-        while ((width / (sample * 2)) >= targetWidth
-                && (height / (sample * 2)) >= targetHeight) {
+        // Keep decoded previews at or below the requested thumbnail dimensions.
+        // The previous condition tested the *next* sample size and stopped one step too early
+        // (1672x941 -> 836x470 for a 420x236 tile), retaining roughly four times the pixels.
+        while ((width / sample) > targetWidth || (height / sample) > targetHeight) {
+            if (sample > (1 << 29)) break;
             sample *= 2;
         }
         return Math.max(1, sample);
