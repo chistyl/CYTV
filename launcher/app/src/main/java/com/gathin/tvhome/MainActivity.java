@@ -5112,7 +5112,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             button.setOnFocusChangeListener((v, focused) ->
                     v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
             LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
-                    wallpaperTileHeight, (int)(50*density));
+                    (int)(112*density), (int)(50*density));
             buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
             actions.addView(button, buttonLp);
         }
