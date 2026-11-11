@@ -5999,8 +5999,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setFocusableInTouchMode(true);
                     tile.setClickable(true);
                     tile.setDefaultFocusHighlightEnabled(false);
+                    tile.setForeground(new ColorDrawable(Color.TRANSPARENT));
                     tile.setBackgroundColor(Color.TRANSPARENT);
+                    tile.setId(View.generateViewId());
                     ImageView imageView = new ImageView(this);
+                    imageView.setFocusable(false);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     GradientDrawable customPreviewShape = new GradientDrawable();
                     customPreviewShape.setColor(Color.TRANSPARENT);
@@ -6013,7 +6016,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
-                            customFile.getAbsolutePath().equals(wallpaperPrefs.getString("custom_wallpaper_file", "")), focused));
+                            draftCustomSelection.contains(customFile), focused));
+                    // Some Android TV launchers route OK/click to the child image rather than its card.
+                    // Forward both touch and DPAD confirmation to the same selectable tile.
+                    imageView.setOnClickListener(v -> tile.performClick());
+                    tile.setOnKeyListener((v, keyCode, event) -> {
+                        if (event.getAction() == KeyEvent.ACTION_UP
+                                && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                                || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                            v.performClick();
+                            return true;
+                        }
+                        return false;
+                    });
                     tile.setOnClickListener(v -> {
                         String mode = draftCustomMode[0];
                         List<File> chosen = new ArrayList<>(draftCustomSelection);
@@ -6029,7 +6044,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         draftCustomActive[0] = !chosen.isEmpty();
                         persistWallpaperDraft.run();
                         if (!chosen.isEmpty()) draftRandom[0] = false;
-                        setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), false);
+                        setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), tile.hasFocus());
                     });
                     tile.setOnLongClickListener(v -> {
                         new AlertDialog.Builder(this)
@@ -6297,7 +6312,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void setWallpaperThumbnailBorder(ImageView preview, boolean selected, boolean focused) {
         GradientDrawable border = new GradientDrawable();
         border.setColor(Color.TRANSPARENT);
-        border.setCornerRadius(2 * density);
+        border.setCornerRadius(12 * density);
         int strokeColor = (selected || focused) ? 0xFF80C9C2 : Color.TRANSPARENT;
         border.setStroke(Math.max(2, (int) (2 * density)), strokeColor);
         preview.setForeground(border);
