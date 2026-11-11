@@ -5831,7 +5831,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             modeButton.setLayoutParams(modeLp);
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
-        TextView defaultHeading = new TextView(this);\n        defaultHeading.setText("預設圖片");\n        defaultHeading.setTextColor(0xFFF5F6FA);\n        defaultHeading.setTextSize(16);\n        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));\n        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));\n
+        TextView defaultHeading = new TextView(this);
+        defaultHeading.setText("預設圖片");
+        defaultHeading.setTextColor(0xFFF5F6FA);
+        defaultHeading.setTextSize(16);
+        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
+        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
+
 
 
         ScrollView scroll = new ScrollView(this);
