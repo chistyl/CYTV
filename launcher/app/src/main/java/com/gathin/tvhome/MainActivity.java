@@ -5858,6 +5858,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (previewBitmap != null) preview.setImageBitmap(previewBitmap);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setAdjustViewBounds(false);
+                preview.setBackground(roundSurface(Color.TRANSPARENT, 10 * density));
+                preview.setClipToOutline(true);
                 GradientDrawable previewShape = new GradientDrawable();
                 previewShape.setColor(Color.TRANSPARENT);
                 previewShape.setCornerRadius(thumbnailCornerRadius);
@@ -6097,6 +6099,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 設定先暫存於本視窗；只有按「儲存」才寫入正式偏好設定。
         LinearLayout editActions = new LinearLayout(this);
         editActions.setOrientation(LinearLayout.HORIZONTAL);
+        editActions.setGravity(Gravity.CENTER_HORIZONTAL);
         TextView cancelAction = addRoundedAction(editActions, "取消", () -> { clearWallpaperDraft.run(); dialog.dismiss(); });
         TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
             CustomWallpaperLibrary.setSelected(this, draftCustomSelection, draftCustomMode[0]);
@@ -6120,13 +6123,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
         });
         for (TextView action : new TextView[]{cancelAction, saveAction}) {
-            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
-            actionLp.leftMargin = (int)(5*density);
-            actionLp.rightMargin = (int)(5*density);
+            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(150*density), (int)(44*density));
+            actionLp.leftMargin = (int)(8*density);
+            actionLp.rightMargin = (int)(8*density);
             action.setLayoutParams(actionLp);
         }
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         editActionsLp.topMargin = (int)(14 * density);
+        editActionsLp.bottomMargin = (int)(28 * density);
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
