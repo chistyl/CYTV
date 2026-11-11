@@ -5753,7 +5753,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        // Match the YouTube Assistant pairing dialog's outer panel spacing and surface.
+        panel.setPadding((int)(24*density), (int)(20*density), (int)(24*density), (int)(20*density));
         panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
         TextView title = new TextView(this);
         title.setText("影像設定");
@@ -6017,12 +6019,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(panel);
         dialog.show();
         if (dialog.getWindow() != null) {
-            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            dialog.getWindow().setDimAmount(0.6f);
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout(
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+            android.view.Window window = dialog.getWindow();
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            window.setDimAmount(0.6f);
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+            int dialogWidth = Math.min((int)(680*density), screenWidth - (int)(48*density));
+            int dialogHeight = Math.min((int)(520*density), screenHeight - (int)(48*density));
+            // Same 680dp × 520dp dialog frame as the YouTube Assistant pairing surface,
+            // but anchored near the top so the image choices and action rows share its alignment.
+            window.setLayout(dialogWidth, dialogHeight);
+            window.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+            android.view.WindowManager.LayoutParams attributes = window.getAttributes();
+            attributes.y = (int)(24*density);
+            window.setAttributes(attributes);
         }
         dialog.getWindow().getDecorView().post(() -> {
             View initial = thumbnailItems[draftTheme[0] - 1];
