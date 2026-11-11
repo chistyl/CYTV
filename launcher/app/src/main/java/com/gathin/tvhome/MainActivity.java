@@ -6475,7 +6475,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            dialog.getWindow().setLayout(Math.min((int)(440*density), getResources().getDisplayMetrics().widthPixels-(int)(48*density)), -2);
+            // R70: this gallery is a full-screen settings page, not the legacy 440dp dialog.
+            // Keep the window wide enough for the three fixed 16:9 columns computed above.
+            int pageWidth = Math.max(1, getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            int pageHeight = Math.max(1, getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+            dialog.getWindow().setLayout(pageWidth, pageHeight);
         }
         close.requestFocus();
     }
