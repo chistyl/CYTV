@@ -5737,10 +5737,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showWallpaperPicker() {
         final Dialog dialog = new Dialog(this);
         final SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
-        final String[] builtinNames = {"瓶中的信", "山城夜色", "莓躍入水", "阿布看魚", "愛心小倉", "龍龍之友"};
-        final int[] builtinImages = {R.drawable.wallpaper_theme_04, R.drawable.wallpaper_theme_02,
-                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_06,
-                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_01};
+        final String[] builtinNames = {"漂流瓶", "山城夜色", "月台之夜", "流星映照", "夜林螢火", "阿布的魚", "愛心小倉", "熊熊篝火", "紅圍冬帽犬"};
+        final int[] builtinImages = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
+                R.drawable.wallpaper_theme_09};
         final String[] mode = {prefs.getString("wallpaper_gallery_mode",
                 prefs.getBoolean("builtin_random_play", false) ? "random" : "single")};
         final String[] source = {prefs.getString("custom_wallpaper_file", null) != null ? "custom" : "builtin"};
@@ -5812,7 +5814,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         builtinGrid.setOrientation(LinearLayout.VERTICAL);
         final ImageView[] builtinViews = new ImageView[builtinImages.length];
         final View[] builtinTiles = new View[builtinImages.length];
-        for (int row = 0; row < 2; row++) {
+        for (int row = 0; row < 3; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
             rowLayout.setOrientation(LinearLayout.HORIZONTAL);
             for (int col = 0; col < 3; col++) {
@@ -6039,7 +6041,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            dialog.getWindow().setLayout(Math.max(1, screenWidth - (int)(48*density)),
+            dialog.getWindow().setLayout(Math.max(1, Math.min(screenWidth - (int)(48*density), (int)(900*density))),
                     Math.max(1, screenHeight - (int)(48*density)));
         }
         dialog.getWindow().getDecorView().post(() -> {
