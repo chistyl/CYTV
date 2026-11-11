@@ -4637,30 +4637,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
-        // Keep every focused control visible while the outer page scrolls, including nested gallery tiles
-        // and the bottom Cancel/Save actions. This avoids TV firmware focus staying outside the viewport.
-        pageScroll.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
-            if (newFocus == null || !dialog.isShowing()) return;
-            ViewParent ancestor = newFocus.getParent();
-            boolean insidePage = false;
-            while (ancestor != null) {
-                if (ancestor == pageScroll) { insidePage = true; break; }
-                ancestor = ancestor.getParent();
-            }
-            if (!insidePage) return;
-            pageScroll.post(() -> {
-                if (!dialog.isShowing() || !newFocus.isShown()) return;
-                int[] focusedAt = new int[2];
-                int[] viewportAt = new int[2];
-                newFocus.getLocationOnScreen(focusedAt);
-                pageScroll.getLocationOnScreen(viewportAt);
-                int margin = (int) (12 * density);
-                int top = viewportAt[1] + margin;
-                int bottom = viewportAt[1] + pageScroll.getHeight() - margin;
-                if (focusedAt[1] < top) pageScroll.smoothScrollBy(0, focusedAt[1] - top);
-                else if (focusedAt[1] + newFocus.getHeight() > bottom)
-                    pageScroll.smoothScrollBy(0, focusedAt[1] + newFocus.getHeight() - bottom);
-            });
+
         });
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -6265,6 +6242,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         dialog.setContentView(screen);
         dialog.show();
+        // Keep every focused control visible while the outer page scrolls, including nested gallery tiles
+        // and the bottom Cancel/Save actions. This avoids TV firmware focus staying outside the viewport.
+        pageScroll.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+            if (newFocus == null || !dialog.isShowing()) return;
+            ViewParent ancestor = newFocus.getParent();
+            boolean insidePage = false;
+            while (ancestor != null) {
+                if (ancestor == pageScroll) { insidePage = true; break; }
+                ancestor = ancestor.getParent();
+            }
+            if (!insidePage) return;
+            pageScroll.post(() -> {
+                if (!dialog.isShowing() || !newFocus.isShown()) return;
+                int[] focusedAt = new int[2];
+                int[] viewportAt = new int[2];
+                newFocus.getLocationOnScreen(focusedAt);
+                pageScroll.getLocationOnScreen(viewportAt);
+                int margin = (int) (12 * density);
+                int top = viewportAt[1] + margin;
+                int bottom = viewportAt[1] + pageScroll.getHeight() - margin;
+                if (focusedAt[1] < top) pageScroll.smoothScrollBy(0, focusedAt[1] - top);
+                else if (focusedAt[1] + newFocus.getHeight() > bottom)
+                    pageScroll.smoothScrollBy(0, focusedAt[1] + newFocus.getHeight() - bottom);
+            });
         if (dialog.getWindow() != null) {
             dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(16, 25, 40)));
