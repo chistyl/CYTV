@@ -1,0 +1,6 @@
+CYTV R59 9-theme source validation
+Built-in resources: wallpaper_theme_01.jpg through wallpaper_theme_09.jpg
+Image dimensions: all 1672 x 941 (16:9)
+WallpaperPlayer references: all 9 built-in resources
+Random built-in playback: nextInt(8) plus skip-current offset selects among the other 8 themes.
+Build status: NOT YET VERIFIED by Android Gradle build.
