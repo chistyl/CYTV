@@ -5797,6 +5797,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(0, (int)(12*density), 0, (int)(8*density));
 
+        final Runnable[] sourceHeaderUpdater = new Runnable[1];
         TextView builtinHeader = new TextView(this);
         builtinHeader.setText("◉  預設圖片");
         builtinHeader.setTextColor(0xFFF5F6FA);
@@ -5827,7 +5828,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setOnClickListener(v -> {
                     source[0] = "builtin";
                     selectedBuiltin[0] = index + 1;
-                    updateSourceHeaders.run();
+                    sourceHeaderUpdater[0].run();
                     updateWallpaperTileBorders(builtinViews, builtinTiles, selectedBuiltin[0], null, customImages);
                 });
                 tile.setOnFocusChangeListener((v, focused) ->
@@ -5849,7 +5850,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeader.setPadding((int)(4*density), (int)(12*density), 0, (int)(8*density));
         customHeader.setFocusable(true);
         customHeader.setClickable(true);
-        Runnable updateSourceHeaders = () -> {
+        sourceHeaderUpdater[0] = () -> {
             builtinHeader.setText((source[0].equals("builtin") ? "◉  " : "○  ") + "預設圖片");
             customHeader.setText((source[0].equals("custom") ? "◉  " : "○  ") + "自訂圖片");
         };
