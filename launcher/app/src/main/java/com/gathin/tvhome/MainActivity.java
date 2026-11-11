@@ -5754,7 +5754,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
-        panel.setBackground(roundSurface(Color.rgb(32, 44, 60), 24*density));
+        panel.setBackgroundColor(Color.TRANSPARENT);
         TextView title = new TextView(this);
         title.setText("影像設定");
         title.setTextColor(0xFFF5F6FA);
@@ -5958,7 +5958,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         randomRow.setNextFocusDownId(thumbnailItems[0].getId());
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
         scrollLp.topMargin = (int)(12*density);
         scrollLp.bottomMargin = (int)(0*density);
         panel.addView(scroll, scrollLp);
@@ -6003,7 +6003,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
-        // 全螢幕版型比照 YouTubeAssistantActivity：深藍底、置頂內容、中央固定寬度卡片。
+        // 全螢幕版型：透明內容容器、置頂排列，視窗高度由內容自然決定。
         int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
         int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
         int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
@@ -6039,10 +6039,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         screen.addView(accentLine, accentLp);
 
         LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth,
-                Math.max((int)(360*density), getResources().getDisplayMetrics().heightPixels
-                        - (int)((verticalInset * 2 + 65)*density)));
-        panel.setPadding((int)(22*density), (int)(16*density),
-                (int)(22*density), (int)(14*density));
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        panel.setPadding(0, 0, 0, 0);
         screen.addView(panel, panelLp);
 
         dialog.setContentView(screen);
