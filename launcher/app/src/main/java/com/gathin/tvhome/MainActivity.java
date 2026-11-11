@@ -5966,8 +5966,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout footer = new LinearLayout(this);
         footer.setOrientation(LinearLayout.HORIZONTAL);
         footer.setGravity(Gravity.CENTER);
-        TextView cancel = addRoundedAction(footer, "取消", dialog::dismiss);
-        TextView save = addRoundedAction(footer, "儲存", () -> {
+        TextView cancel = createWallpaperFooterAction("取消", dialog::dismiss);
+        TextView save = createWallpaperFooterAction("儲存", () -> {
             SharedPreferences.Editor edit = prefs.edit().putString("wallpaper_gallery_mode", mode[0]);
             if ("custom".equals(source[0]) && selectedCustom[0] != null && new File(selectedCustom[0]).isFile()) {
                 edit.putString("custom_wallpaper_file", selectedCustom[0])
@@ -6019,6 +6019,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     ? customTiles.get(0) : builtinTiles[selectedBuiltin[0] - 1];
             if (initial != null) initial.requestFocus();
         });
+    }
+
+    private TextView createWallpaperFooterAction(String label, Runnable action) {
+        TextView button = new TextView(this);
+        button.setText(label);
+        button.setTextColor(Color.WHITE);
+        button.setTextSize(15);
+        button.setGravity(Gravity.CENTER);
+        button.setFocusable(true);
+        button.setClickable(true);
+        button.setDefaultFocusHighlightEnabled(false);
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(0xFF343B47);
+        normal.setCornerRadius(14*density);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(0xFF46566B);
+        focused.setCornerRadius(14*density);
+        focused.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+        button.setBackground(normal);
+        button.setOnFocusChangeListener((v, hasFocus) -> button.setBackground(hasFocus ? focused : normal));
+        button.setOnClickListener(v -> action.run());
+        return button;
     }
 
     private void updateWallpaperModeButtons(TextView[] buttons, String[] keys, String selected) {
