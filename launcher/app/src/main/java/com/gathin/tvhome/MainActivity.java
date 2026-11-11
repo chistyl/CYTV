@@ -5942,6 +5942,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (localWallpaper.exists()) localWallpaper.delete();
             dialog.dismiss(); recreate();
         });
+        LinearLayout.LayoutParams qrActionLp = (LinearLayout.LayoutParams) qrAction.getLayoutParams();
+        qrActionLp.topMargin = (int)(18 * density);
+        qrAction.setLayoutParams(qrActionLp);
         for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
             LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
             actionLp.height = (int)(40*density);
@@ -6112,7 +6115,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             actionLp.rightMargin = (int)(5*density);
             action.setLayoutParams(actionLp);
         }
-        panel.addView(editActions, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        editActionsLp.topMargin = (int)(14 * density);
+        panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
@@ -6138,9 +6143,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 全螢幕版型：透明內容容器、置頂排列，視窗高度由內容自然決定。
         int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
         int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
-        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
+        int horizontalInset = Math.max(16, Math.min(48, Math.round(screenWidthDp * 0.035f)));
         int verticalInset = 0;
-        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
+        int contentWidth = Math.min(1100, Math.max(280, screenWidthDp - horizontalInset * 2));
 
         LinearLayout screen = new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
@@ -6155,6 +6160,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout pageContent = new LinearLayout(this);
         pageContent.setOrientation(LinearLayout.VERTICAL);
         pageContent.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        pageContent.setPadding(0, 0, 0, (int)(24 * density));
 
         // 標題置於內容卡片上方，沿用 YouTube 助手的標題與青綠色識別線。
         panel.removeView(title);
