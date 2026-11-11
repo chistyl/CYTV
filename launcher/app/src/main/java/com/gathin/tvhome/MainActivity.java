@@ -5753,6 +5753,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
         final int[] draftTheme = {wallpaperPrefs.getInt("builtin_wallpaper", 0)};
         final boolean[] draftRandom = {wallpaperPrefs.getBoolean("builtin_random_play", false)};
+        final boolean[] draftCustomActive = {!wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty() || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty()};
+        final String[] draftCustomMode = {CustomWallpaperLibrary.mode(this)};
+        final List<File> draftCustomSelection = new ArrayList<>(CustomWallpaperLibrary.selected(this));
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
         LinearLayout randomRow = new LinearLayout(this);
         randomRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -5777,23 +5780,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (checked && (draftTheme[0] < 1 || draftTheme[0] > 9)) {
                 draftTheme[0] = 1 + new java.util.Random().nextInt(9);
             }
-            wallpaperPrefs.edit().putInt("builtin_wallpaper", draftTheme[0])
-                    .putBoolean("builtin_random_play", checked)
-                    .putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected").apply();
-            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-            if (localWallpaper.exists()) localWallpaper.delete();
-            for (int i = 0; i < thumbnailImages.length; i++) {
-                if (thumbnailImages[i] != null) {
-                    setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
-                }
-            }
-            // Close the picker before recreating the Activity; otherwise the Dialog may retain
-            // the old Activity window while the new Home instance is being attached.
-            if (dialog.isShowing()) dialog.dismiss();
-            recreate();
+            draftCustomActive[0] = false;
+            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                setWallpaperThumbnailBorder(thumbnailImages[i], !checked && i + 1 == draftTheme[0], false);
         });
         randomRow.addView(randomSwitch);
         randomSwitch.setFocusable(false);
@@ -5813,15 +5802,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(randomRow, new LinearLayout.LayoutParams(-1, (int)(36*density)));
         String[] customModes = {"single", "sequential", "random"};
         String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
-        String currentCustomMode = CustomWallpaperLibrary.mode(this);
+        String currentCustomMode = draftCustomMode[0];
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
             final String modeValue = customModes[modeIndex];
             TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
-                CustomWallpaperLibrary.setSelected(this, CustomWallpaperLibrary.selected(this), modeValue);
-                if (dialog.isShowing()) dialog.dismiss();
-                recreate();
+                draftCustomMode[0] = modeValue;
             });
             modeButton.setTextSize(13);
             modeButton.setBackground(roundSurface(modeValue.equals(currentCustomMode)
@@ -5841,10 +5828,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
         defaultHeading.setFocusable(true);
         defaultHeading.setOnClickListener(v -> {
-            wallpaperPrefs.edit().remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected").putBoolean("builtin_random_play", false).apply();
-            dialog.dismiss();
-            recreate();
+            draftCustomActive[0] = false; draftRandom[0] = false; randomSwitch.setChecked(false);
+            for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
 
@@ -5937,16 +5923,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
                 setWallpaperThumbnailBorder(preview, !draftRandom[0] && draftTheme[0] == index + 1, false);
                 item.setOnClickListener(v -> {
-                    wallpaperPrefs.edit().putInt("builtin_wallpaper", index + 1)
-                            .putBoolean("builtin_random_play", false)
-                            .putBoolean("hide_left_color_effect", true)
-                            .putBoolean("left_color_effect_enabled", false)
-                            .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                            .remove("custom_wallpaper_selected").apply();
-                    File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-                    if (localWallpaper.exists()) localWallpaper.delete();
-                    dialog.dismiss();
-                    recreate();
+                    draftTheme[0] = index + 1; draftRandom[0] = false; draftCustomActive[0] = false;
+                    randomSwitch.setChecked(false);
+                    for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
+                        setWallpaperThumbnailBorder(thumbnailImages[i], i == index, false);
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
                 LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
@@ -5996,17 +5976,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
         customHeading.setFocusable(true);
         customHeading.setOnClickListener(v -> {
-            List<File> savedCustom = CustomWallpaperLibrary.selected(this);
+            List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
             if (!savedCustom.isEmpty()) {
-                CustomWallpaperLibrary.setSelected(this, savedCustom, CustomWallpaperLibrary.mode(this));
-                wallpaperPrefs.edit().putString("custom_wallpaper_file", savedCustom.get(0).getAbsolutePath())
-                        .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
-                        .putBoolean("builtin_random_play", false)
-                        .putBoolean("hide_left_color_effect", true)
-                        .putBoolean("left_color_effect_enabled", false).apply();
-                dialog.dismiss();
-                recreate();
+                draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
+                draftCustomActive[0] = true; draftRandom[0] = false; randomSwitch.setChecked(false);
             } else {
                 Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
             }
@@ -6045,8 +6019,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
                             customFile.getAbsolutePath().equals(wallpaperPrefs.getString("custom_wallpaper_file", "")), focused));
                     tile.setOnClickListener(v -> {
-                        String mode = CustomWallpaperLibrary.mode(this);
-                        List<File> chosen = new ArrayList<>(CustomWallpaperLibrary.selected(this));
+                        String mode = draftCustomMode[0];
+                        List<File> chosen = new ArrayList<>(draftCustomSelection);
                         if ("single".equals(mode)) {
                             chosen.clear();
                             chosen.add(customFile);
@@ -6055,19 +6029,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         } else {
                             chosen.add(customFile);
                         }
-                        CustomWallpaperLibrary.setSelected(this, chosen, mode);
-                        if (!chosen.isEmpty()) {
-                            wallpaperPrefs.edit()
-                                    .putString("custom_wallpaper_file", chosen.get(0).getAbsolutePath())
-                                    .remove("custom_wallpaper_uri")
-                                    .remove("builtin_wallpaper")
-                                    .putBoolean("builtin_random_play", false)
-                                    .putBoolean("hide_left_color_effect", true)
-                                    .putBoolean("left_color_effect_enabled", false)
-                                    .apply();
-                        }
-                        dialog.dismiss();
-                        recreate();
+                        draftCustomSelection.clear(); draftCustomSelection.addAll(chosen);
+                        draftCustomActive[0] = !chosen.isEmpty();
+                        if (!chosen.isEmpty()) { draftRandom[0] = false; randomSwitch.setChecked(false); }
+                        setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), false);
                     });
                     tile.setOnLongClickListener(v -> {
                         new AlertDialog.Builder(this)
