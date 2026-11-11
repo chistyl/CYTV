@@ -20,7 +20,12 @@ final class CustomWallpaperLibrary {
     private static final String PREFS = "wallpaper_rotation";
     private static final String KEY_ITEMS = "custom_wallpaper_library";
     private static final String DIRECTORY = "wallpaper-library";
+    static final int MAX_ITEMS = 12;
     private CustomWallpaperLibrary() {}
+
+    static synchronized boolean isFull(Context context) {
+        return list(context).size() >= MAX_ITEMS;
+    }
 
     static synchronized List<File> list(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -54,6 +59,8 @@ final class CustomWallpaperLibrary {
     }
 
     private static File importStream(Context context, InputStream input) throws Exception {
+        // Enforce the gallery limit before copying any bytes; imports never replace existing images.
+        if (list(context).size() >= MAX_ITEMS) return null;
         File dir = new File(context.getFilesDir(), DIRECTORY);
         if (!dir.exists() && !dir.mkdirs()) return null;
         File target = new File(dir, UUID.randomUUID().toString().replace("-", "") + ".img");
