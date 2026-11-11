@@ -5832,11 +5832,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             modeButton.setLayoutParams(modeLp);
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
+                || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
-        defaultHeading.setText("預設圖片");
+        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
         defaultHeading.setTextColor(0xFFF5F6FA);
         defaultHeading.setTextSize(16);
         defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
+        defaultHeading.setFocusable(true);
+        defaultHeading.setOnClickListener(v -> {
+            wallpaperPrefs.edit().remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
+                    .remove("custom_wallpaper_selected").putBoolean("builtin_random_play", false).apply();
+            dialog.dismiss();
+            recreate();
+        });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
 
 
@@ -5981,10 +5990,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
-        customHeading.setText("自訂圖片");
+        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
         customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        customHeading.setFocusable(true);
+        customHeading.setOnClickListener(v -> {
+            List<File> savedCustom = CustomWallpaperLibrary.selected(this);
+            if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
+            if (!savedCustom.isEmpty()) {
+                CustomWallpaperLibrary.setSelected(this, savedCustom, CustomWallpaperLibrary.mode(this));
+                wallpaperPrefs.edit().putString("custom_wallpaper_file", savedCustom.get(0).getAbsolutePath())
+                        .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
+                        .putBoolean("builtin_random_play", false)
+                        .putBoolean("hide_left_color_effect", true)
+                        .putBoolean("left_color_effect_enabled", false).apply();
+                dialog.dismiss();
+                recreate();
+            } else {
+                Toast.makeText(this, "請先匯入自訂圖片", Toast.LENGTH_SHORT).show();
+            }
+        });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.isEmpty()) {
