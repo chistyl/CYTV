@@ -5856,9 +5856,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         builtinHeader.setFocusable(true);
         builtinHeader.setClickable(true);
-        builtinHeader.setOnClickListener(v -> { source[0] = "builtin"; updateSourceHeaders.run(); });
-        customHeader.setOnClickListener(v -> { source[0] = "custom"; updateSourceHeaders.run(); });
-        updateSourceHeaders.run();
+        builtinHeader.setOnClickListener(v -> { source[0] = "builtin"; sourceHeaderUpdater[0].run(); });
+        customHeader.setOnClickListener(v -> { source[0] = "custom"; sourceHeaderUpdater[0].run(); });
+        sourceHeaderUpdater[0].run();
         content.addView(customHeader);
 
         LinearLayout customGrid = new LinearLayout(this);
@@ -5919,7 +5919,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setOnClickListener(v -> {
                         source[0] = "custom";
                         selectedCustom[0] = file.getAbsolutePath();
-                        updateSourceHeaders.run();
+                        sourceHeaderUpdater[0].run();
                         updateWallpaperModeButtons(modeButtons, modeKeys, mode[0]);
                         for (int j = 0; j < customViews.size(); j++) {
                             setWallpaperThumbnailBorder(customViews.get(j), customImages.get(j).getAbsolutePath().equals(selectedCustom[0]), false);
