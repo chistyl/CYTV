@@ -1,4 +1,4 @@
-name: CYTV R64 Wallpaper Source Selector
+name: CYTV R65 Wallpaper Gallery Full Width
 
 on:
   push:
@@ -6,17 +6,19 @@ on:
       - feature/custom-wallpaper-gallery-r62
       - fix/custom-wallpaper-gallery-selection-r63
       - fix/wallpaper-source-selector-size-r64
+      - fix/wallpaper-gallery-full-width-r65
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
       - fix/custom-wallpaper-gallery-selection-r63
+      - fix/wallpaper-source-selector-size-r64
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r64-wallpaper-source-selector-${{ github.ref }}
+  group: cytv-r65-wallpaper-gallery-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -52,7 +54,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R64-Wallpaper-Source-Selector-APK-and-Source
+          name: CYTV-R65-Wallpaper-Gallery-APK-and-Source
           path: |
             release/CYTV-R64-custom-wallpaper-debug.apk
             release/CYTV-R64-custom-wallpaper-source.zip
