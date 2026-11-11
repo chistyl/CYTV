@@ -5817,7 +5817,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
-            customHeading.setText("○  自訂圖片");
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
 
