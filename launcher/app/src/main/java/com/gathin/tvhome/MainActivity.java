@@ -5754,7 +5754,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
-        panel.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+        panel.setBackground(roundSurface(Color.rgb(32, 44, 60), 24*density));
         TextView title = new TextView(this);
         title.setText("影像設定");
         title.setTextColor(0xFFF5F6FA);
@@ -5925,8 +5925,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
                 // 卡片焦點範圍與縮圖高度一致，避免上下多出可見的焦點底色區域。
                 LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(0, (int)(112*density), 1f);
-                if (col > 0) itemLp.leftMargin = (int)(5*density);
-                if (col < columnsCount - 1) itemLp.rightMargin = (int)(5*density);
+                if (col > 0) itemLp.leftMargin = (int)(12*density);
+                if (col < columnsCount - 1) itemLp.rightMargin = (int)(12*density);
                 rowLayout.addView(item, itemLp);
             }
             choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, (int)(112*density)));
@@ -6002,27 +6002,60 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         resetAction.setNextFocusUpId(chooseAction.getId());
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
-        final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
-        if (backdropBlur != null) {
-            dialog.setOnDismissListener(ignored -> {
-                android.view.ViewParent parent = backdropBlur.getParent();
-                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(backdropBlur);
-                android.graphics.drawable.Drawable image = backdropBlur.getDrawable();
-                if (image instanceof android.graphics.drawable.BitmapDrawable) {
-                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
-                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                }
-            });
-        }
-        dialog.setContentView(panel);
+
+        // 全螢幕版型比照 YouTubeAssistantActivity：深藍底、置頂內容、中央固定寬度卡片。
+        int screenWidthDp = Math.round(getResources().getDisplayMetrics().widthPixels / density);
+        int screenHeightDp = Math.round(getResources().getDisplayMetrics().heightPixels / density);
+        int horizontalInset = Math.max(24, Math.min(72, Math.round(screenWidthDp * 0.055f)));
+        int verticalInset = Math.max(18, Math.min(42, Math.round(screenHeightDp * 0.035f)));
+        int contentWidth = Math.min(920, Math.max(280, screenWidthDp - horizontalInset * 2));
+
+        LinearLayout screen = new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        screen.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        screen.setPadding((int)(horizontalInset*density), (int)(verticalInset*density),
+                (int)(horizontalInset*density), (int)(verticalInset*density));
+        screen.setBackgroundColor(Color.rgb(16, 25, 40));
+
+        // 標題置於內容卡片上方，沿用 YouTube 助手的標題與青綠色識別線。
+        panel.removeView(title);
+        TextView pageTitle = new TextView(this);
+        pageTitle.setText("影像設定");
+        pageTitle.setTextColor(0xFFF5F6FA);
+        pageTitle.setTextSize(Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f))));
+        pageTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        pageTitle.setGravity(Gravity.CENTER);
+        screen.addView(pageTitle, new LinearLayout.LayoutParams(contentWidth, -2));
+
+        View accentLine = new View(this);
+        GradientDrawable accent = new GradientDrawable();
+        accent.setColor(0xFF00CFC6);
+        accent.setCornerRadius((int)(4*density));
+        accentLine.setBackground(accent);
+        LinearLayout.LayoutParams accentLp = new LinearLayout.LayoutParams((int)(88*density), (int)(5*density));
+        accentLp.gravity = Gravity.CENTER_HORIZONTAL;
+        accentLp.topMargin = (int)(10*density);
+        accentLp.bottomMargin = (int)(20*density);
+        screen.addView(accentLine, accentLp);
+
+        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth,
+                Math.max((int)(360*density), getResources().getDisplayMetrics().heightPixels
+                        - (int)((verticalInset * 2 + 65)*density)));
+        panel.setPadding((int)(22*density), (int)(16*density),
+                (int)(22*density), (int)(14*density));
+        screen.addView(panel, panelLp);
+
+        dialog.setContentView(screen);
         dialog.show();
         if (dialog.getWindow() != null) {
-            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            dialog.getWindow().setDimAmount(0.6f);
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(16, 25, 40)));
             dialog.getWindow().setLayout(
-                    Math.min((int)(680*density), getResources().getDisplayMetrics().widthPixels - (int)(48*density)),
-                    Math.min((int)(520*density), getResources().getDisplayMetrics().heightPixels - (int)(48*density)));
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT);
+            dialog.getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
         dialog.getWindow().getDecorView().post(() -> {
             View initial = thumbnailItems[draftTheme[0] - 1];
