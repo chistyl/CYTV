@@ -6189,6 +6189,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         screen.setPadding((int)(horizontalInset*density), (int)(verticalInset*density),
                 (int)(horizontalInset*density), (int)(verticalInset*density));
         screen.setBackgroundColor(Color.rgb(16, 25, 40));
+        ScrollView pageScroll = new ScrollView(this);
+        pageScroll.setFillViewport(false);
+        pageScroll.setVerticalScrollBarEnabled(false);
+        pageScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout pageContent = new LinearLayout(this);
+        pageContent.setOrientation(LinearLayout.VERTICAL);
+        pageContent.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
 
         // 標題置於內容卡片上方，沿用 YouTube 助手的標題與青綠色識別線。
         panel.removeView(title);
@@ -6198,7 +6205,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pageTitle.setTextSize(Math.max(24, Math.min(32, Math.round(contentWidth * 0.032f))));
         pageTitle.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
         pageTitle.setGravity(Gravity.CENTER);
-        screen.addView(pageTitle, new LinearLayout.LayoutParams(contentWidth, -2));
+        pageContent.addView(pageTitle, new LinearLayout.LayoutParams(contentWidth, -2));
 
         View accentLine = new View(this);
         GradientDrawable accent = new GradientDrawable();
@@ -6209,13 +6216,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         accentLp.gravity = Gravity.CENTER_HORIZONTAL;
         accentLp.topMargin = (int)(10*density);
         accentLp.bottomMargin = (int)(20*density);
-        screen.addView(accentLine, accentLp);
+        pageContent.addView(accentLine, accentLp);
 
         // The panel occupies only the space left after the title and accent line.
         LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(contentWidth, 0, 1f);
         panel.setPadding(0, 0, 0, 0);
         panel.setMinimumHeight(0);
-        screen.addView(panel, panelLp);
+        pageContent.addView(panel, panelLp);
+        pageScroll.addView(pageContent, new ScrollView.LayoutParams(-1, -2));
+        screen.addView(pageScroll, new LinearLayout.LayoutParams(-1, -1));
 
         dialog.setContentView(screen);
         dialog.show();
