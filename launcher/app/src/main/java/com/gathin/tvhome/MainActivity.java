@@ -6136,6 +6136,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(resetAction.getId());
         resetAction.setNextFocusUpId(chooseAction.getId());
+        resetAction.setNextFocusDownId(cancelAction.getId());
+        cancelAction.setId(View.generateViewId());
+        saveAction.setId(View.generateViewId());
+        cancelAction.setNextFocusUpId(resetAction.getId());
+        cancelAction.setNextFocusRightId(saveAction.getId());
+        cancelAction.setNextFocusDownId(cancelAction.getId());
+        saveAction.setNextFocusLeftId(cancelAction.getId());
+        saveAction.setNextFocusUpId(resetAction.getId());
+        saveAction.setNextFocusDownId(saveAction.getId());
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
