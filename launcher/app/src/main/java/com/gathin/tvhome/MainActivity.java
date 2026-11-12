@@ -6636,29 +6636,29 @@ private GradientDrawable roundSurface(int color, float radius) {
 
         LocalWallpaperServer server = new LocalWallpaperServer(this, new LocalWallpaperServer.Listener() {
             @Override public void onUploaded(Uri uri) {
-            if (isFinishing() || isDestroyed()) return;
+            if (MainActivity.this.isFinishing() || MainActivity.this.isDestroyed()) return;
             // Import every phone upload into the shared gallery; keep the QR page open for the remaining photos.
             File received = uri == null || uri.getPath() == null ? null : new File(uri.getPath());
             if (received == null || !received.isFile() || received.length() <= 0) {
-                Toast.makeText(this, "圖片已接收，但檔案無法讀取，請重新傳送。", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "圖片已接收，但檔案無法讀取，請重新傳送。", Toast.LENGTH_LONG).show();
                 return;
             }
-            File imported = CustomWallpaperLibrary.importFile(this, received);
+            File imported = CustomWallpaperLibrary.importFile(MainActivity.this, received);
             // The gallery keeps its own private copy; remove the temporary upload after the import attempt.
             if (received.exists()) received.delete();
             if (imported == null) {
-                String message = CustomWallpaperLibrary.isFull(this)
+                String message = CustomWallpaperLibrary.isFull(MainActivity.this)
                         ? "自訂圖片已達上限 12 張，剩餘照片未匯入。"
                         : "圖片已接收，但加入自訂圖片庫失敗。";
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                 return;
             }
             qrImportedCount[0]++;
-            Toast.makeText(this, "已匯入第 " + qrImportedCount[0] + " 張照片；目前桌布不變。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "已匯入第 " + qrImportedCount[0] + " 張照片；目前桌布不變。", Toast.LENGTH_SHORT).show();
             }
 
             @Override public void onBatchComplete() {
-                if (isFinishing() || isDestroyed() || !dialog.isShowing()) return;
+                if (MainActivity.this.isFinishing() || MainActivity.this.isDestroyed() || !dialog.isShowing()) return;
                 Toast.makeText(MainActivity.this,
                         "照片上傳完成，成功匯入 " + qrImportedCount[0] + " 張；目前桌布不變。",
                         Toast.LENGTH_LONG).show();
