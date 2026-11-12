@@ -6654,7 +6654,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         title.setPadding(0, 0, 0, (int)(10*density)); panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView tip = new TextView(this);
-        tip.setText("手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，可一次多選照片並上傳至電視自訂圖片庫；不會自動更換目前桌布。每張圖片上限 20 MB，自訂圖片最多 12 張。");
+        tip.setText("手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，可一次多選照片並上傳至電視自訂圖片庫；不會自動更換目前桌布。自訂圖片最多 12 張。");
         tip.setTextColor(0xFFD5DAE2); tip.setTextSize(14); tip.setGravity(Gravity.CENTER);
         tip.setPadding((int)(4*density), 0, (int)(4*density), (int)(10*density));
         panel.addView(tip, new LinearLayout.LayoutParams(-1, -2));
