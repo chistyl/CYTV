@@ -1,12 +1,12 @@
-name: CYTV R105 Unified Wallpaper Rotation
+name: CYTV R106 Unified Wallpaper Rotation
 
 on:
   push:
     branches:
-      - fix/builtin-wallpaper-rotation-lifecycle-r105
+      - fix/custom-wallpaper-selection-persistence-r106
   pull_request:
     branches:
-      - fix/custom-wallpaper-diagnostics-visible-r104
+      - fix/builtin-wallpaper-rotation-lifecycle-r105
   workflow_dispatch:
 
 permissions:
@@ -20,10 +20,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R105
+      - name: Checkout R106
         uses: actions/checkout@v4
         with:
-          ref: fix/builtin-wallpaper-rotation-lifecycle-r105
+          ref: fix/custom-wallpaper-selection-persistence-r106
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -42,8 +42,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R105-debug.apk
-          zip -r release/CYTV-R105-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R106-debug.apk
+          zip -r release/CYTV-R106-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -51,9 +51,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R105-APK-and-Source
+          name: CYTV-R106-APK-and-Source
           path: |
-            release/CYTV-R105-debug.apk
-            release/CYTV-R105-source.zip
+            release/CYTV-R106-debug.apk
+            release/CYTV-R106-source.zip
           if-no-files-found: error
           retention-days: 30
