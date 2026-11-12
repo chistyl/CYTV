@@ -5799,10 +5799,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
             if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
             modeButton.setLayoutParams(modeLp);
-            modeButton.setNextFocusDownId(defaultHeading.getId());
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
-        defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
@@ -5831,6 +5829,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             defaultHeading.setText("◉  預設圖片");
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
+        defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
+        for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
+            modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
 
 
 
