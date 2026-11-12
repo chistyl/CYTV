@@ -1,4 +1,4 @@
-name: CYTV R89 Wallpaper Page Bottom Inset
+name: CYTV R89 Top Bar Icon-Only Buttons
 
 on:
   push:
@@ -21,7 +21,8 @@ on:
       - fix/qr-upload-description-remove-size-limit-r85
       - fix/wallpaper-file-picker-return-r86
       - fix/wallpaper-bottom-actions-margin-15dp-r87
-      - fix/wallpaper-page-bottom-inset-15dp-r89
+      - fix/wallpaper-page-bottom-inset-15dp-r88
+      - fix/topbar-input-wifi-icon-only-r89
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
