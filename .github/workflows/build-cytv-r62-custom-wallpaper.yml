@@ -82,7 +82,7 @@ jobs:
         with:
           name: CYTV-R83-APK-and-Source
           path: |
-            release/CYTV-R82-debug.apk
-            release/CYTV-R82-source.zip
+            release/CYTV-R83-debug.apk
+            release/CYTV-R83-source.zip
           if-no-files-found: error
           retention-days: 30
