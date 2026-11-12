@@ -150,7 +150,8 @@ final class WallpaperPlayer {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
         }
-        installDiagnostics(context);
+        // Post after MainActivity finishes adding its overlays, then put the diagnostic entry above the Home UI.
+        root.post(() -> installDiagnostics(context));
     }
 
     private static final String DIAGNOSTIC_KEY = "custom_wallpaper_diagnostic_events";
@@ -176,8 +177,7 @@ final class WallpaperPlayer {
 
     /** On-device diagnostic entry; no ADB or computer is needed to inspect the last rotation attempts. */
     private void installDiagnostics(Context context) {
-        List<File> selected = CustomWallpaperLibrary.selected(context);
-        if (selected.size() < 2) return;
+        // Always expose diagnostics in this diagnostic build, even if the selected-image list is unexpectedly empty.
         float density = context.getResources().getDisplayMetrics().density;
         TextView action = new TextView(context);
         action.setText("圖片診斷");
@@ -187,6 +187,7 @@ final class WallpaperPlayer {
         action.setPadding(Math.round(14 * density), 0, Math.round(14 * density), 0);
         action.setBackground(roundDiagnosticSurface());
         action.setFocusable(true);
+        action.setFocusableInTouchMode(true);
         action.setClickable(true);
         action.setContentDescription("查看自訂圖片輪播診斷");
         action.setOnClickListener(v -> showDiagnostics());
@@ -196,6 +197,8 @@ final class WallpaperPlayer {
         params.topMargin = Math.round(112 * density);
         params.leftMargin = Math.round(24 * density);
         root.addView(action, params);
+        action.setElevation(24 * density);
+        action.setTranslationZ(24 * density);
         action.bringToFront();
     }
 
