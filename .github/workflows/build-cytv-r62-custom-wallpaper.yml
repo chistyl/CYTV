@@ -39,6 +39,7 @@ on:
       - fix/custom-wallpaper-heading-dpad-focus-r80
       - fix/wallpaper-settings-unified-spacing-r81
       - feature/custom-wallpaper-multi-import-r82
+      - fix/qr-wallpaper-dialog-return-r83
   workflow_dispatch:
 
 permissions:
@@ -83,7 +84,7 @@ jobs:
         with:
           name: CYTV-R84-APK-and-Source
           path: |
-            release/CYTV-R83-debug.apk
-            release/CYTV-R83-source.zip
+            release/CYTV-R84-debug.apk
+            release/CYTV-R84-source.zip
           if-no-files-found: error
           retention-days: 30
