@@ -1,4 +1,4 @@
-name: CYTV R82 Custom Wallpaper Multi Import
+name: CYTV R83 QR Wallpaper Dialog Return
 
 on:
   push:
@@ -16,6 +16,7 @@ on:
       - fix/custom-wallpaper-heading-dpad-focus-r80
       - fix/wallpaper-settings-unified-spacing-r81
       - feature/custom-wallpaper-multi-import-r82
+      - fix/qr-wallpaper-dialog-return-r83
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -36,20 +37,21 @@ on:
       - fix/wallpaper-default-heading-dpad-focus-r79
       - fix/custom-wallpaper-heading-dpad-focus-r80
       - fix/wallpaper-settings-unified-spacing-r81
+      - feature/custom-wallpaper-multi-import-r82
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r82-wallpaper-multi-import-${{ github.ref }}
+  group: cytv-r83-qr-wallpaper-dialog-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R82
+      - name: Checkout R83
         uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -69,8 +71,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R82-debug.apk
-          zip -r release/CYTV-R82-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R83-debug.apk
+          zip -r release/CYTV-R83-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -78,7 +80,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R82-APK-and-Source
+          name: CYTV-R83-APK-and-Source
           path: |
             release/CYTV-R82-debug.apk
             release/CYTV-R82-source.zip
