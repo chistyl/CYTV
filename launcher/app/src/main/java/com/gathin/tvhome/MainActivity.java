@@ -6113,11 +6113,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
+            String activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            if (activePath.isEmpty()) activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
                 View item = customThumbnailItems.get(index);
+                // R108: thumbnails are a gallery preview, not slideshow multi-select controls.
+                // Only the currently displayed image (or an explicit delete target) gets a border.
                 boolean selected = customDeleteSelection.isEmpty()
-                        ? draftCustomSelection.contains(file)
+                        ? file.getAbsolutePath().equals(activePath)
                         : customDeleteSelection.contains(file);
                 setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, item.hasFocus());
             }
@@ -6201,28 +6205,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return false;
                     });
                     tile.setOnClickListener(v -> {
+                        // Thumbnail taps never change slideshow membership or mode.
+                        // Taps are only used to add/remove delete targets after long-press
+                        // explicitly enters delete-selection mode.
                         if (!customDeleteSelection.isEmpty()) {
                             if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
                             else customDeleteSelection.add(customFile);
                             refreshCustomThumbnailBorders.run();
                             refreshCustomDeleteAction.run();
-                            return;
                         }
-                        String mode = draftCustomMode[0];
-                        List<File> chosen = new ArrayList<>(draftCustomSelection);
-                        if ("single".equals(mode)) {
-                            chosen.clear();
-                            chosen.add(customFile);
-                        } else if (chosen.contains(customFile)) {
-                            chosen.remove(customFile);
-                        } else {
-                            chosen.add(customFile);
-                        }
-                        draftCustomSelection.clear(); draftCustomSelection.addAll(chosen);
-                        draftCustomActive[0] = !chosen.isEmpty();
-                        persistWallpaperDraft.run();
-                        if (!chosen.isEmpty()) draftRandom[0] = false;
-                        refreshCustomThumbnailBorders.run();
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
@@ -6389,7 +6380,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear();
                 draftCustomSelection.addAll(allCustomWallpapers);
             }
-            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, "sequential");
+            String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "single";
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, savedCustomMode);
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
                 editor.putString("custom_wallpaper_file", allCustomWallpapers.get(0).getAbsolutePath())
