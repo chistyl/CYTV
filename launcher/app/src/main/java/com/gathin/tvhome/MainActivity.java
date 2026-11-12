@@ -5807,7 +5807,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
         defaultHeading.setTextColor(0xFFF5F6FA);
         defaultHeading.setTextSize(16);
-        defaultHeading.setPadding((int)(8*density), (int)(12*density), 0, (int)(8*density));
+        defaultHeading.setGravity(Gravity.CENTER_VERTICAL);
+        defaultHeading.setPadding((int)(12*density), 0, (int)(12*density), 0);
         defaultHeading.setFocusable(true);
         defaultHeading.setFocusableInTouchMode(true);
         defaultHeading.setClickable(true);
@@ -5819,7 +5820,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             focusBg.setCornerRadius(10 * density);
             if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80CBC4);
             v.setBackground(focusBg);
-            v.setPadding((int)(8*density), (int)(12*density), (int)(8*density), (int)(8*density));
+            v.setPadding((int)(12*density), 0, (int)(12*density), 0);
         });
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
@@ -5828,7 +5829,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
         });
-        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        defaultHeadingLp.topMargin = (int)(5*density);
+        defaultHeadingLp.bottomMargin = (int)(5*density);
+        panel.addView(defaultHeading, defaultHeadingLp);
         defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
             modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
@@ -6001,7 +6005,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
-        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(14*density));
+        customHeading.setGravity(Gravity.CENTER_VERTICAL);
+        customHeading.setPadding((int)(12*density), 0, (int)(12*density), 0);
         customHeading.setNextFocusUpId(resetAction.getId());
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
@@ -6014,7 +6019,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             focusBg.setCornerRadius(10 * density);
             if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80CBC4);
             v.setBackground(focusBg);
-            v.setPadding((int)(8*density), (int)(18*density), (int)(8*density), (int)(14*density));
+            v.setPadding((int)(12*density), 0, (int)(12*density), 0);
         });
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
@@ -6049,7 +6054,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
-        choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams customHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        customHeadingLp.topMargin = (int)(5*density);
+        customHeadingLp.bottomMargin = (int)(5*density);
+        choices.addView(customHeading, customHeadingLp);
         resetAction.setNextFocusDownId(customHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
