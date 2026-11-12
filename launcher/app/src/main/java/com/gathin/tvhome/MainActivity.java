@@ -6228,15 +6228,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return false;
                     });
                     tile.setOnClickListener(v -> {
-                        // Thumbnail taps never change slideshow membership or mode.
-                        // Taps are only used to add/remove delete targets after long-press
-                        // explicitly enters delete-selection mode.
+                        // Normal click selects this image as the immediate/current wallpaper.
+                        // The complete custom gallery remains the slideshow source; selection does not
+                        // remove other images or change the saved sequential/random mode.
                         if (!customDeleteSelection.isEmpty()) {
                             if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
                             else customDeleteSelection.add(customFile);
                             refreshCustomThumbnailBorders.run();
                             refreshCustomDeleteAction.run();
+                            return;
                         }
+                        List<File> allCustom = CustomWallpaperLibrary.list(this);
+                        if (!allCustom.contains(customFile) || !customFile.isFile()) {
+                            Toast.makeText(this, "圖片已不存在，請重新整理圖片庫", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        draftCustomSelection.clear();
+                        draftCustomSelection.addAll(allCustom);
+                        draftCustomActive[0] = true;
+                        persistWallpaperDraft.run();
+                        if (wallpaperPlayer != null) {
+                            wallpaperPlayer.selectCustomWallpaper(customFile, refreshCustomThumbnailBorders);
+                        } else {
+                            wallpaperPrefs.edit()
+                                    .putString("custom_wallpaper_current", customFile.getAbsolutePath())
+                                    .putString("custom_wallpaper_file", customFile.getAbsolutePath())
+                                    .putBoolean("custom_wallpaper_enabled", true)
+                                    .putLong("custom_wallpaper_changed", System.currentTimeMillis())
+                                    .remove("builtin_wallpaper").remove("custom_wallpaper_uri").apply();
+                        }
+                        refreshCustomThumbnailBorders.run();
+                        customHeading.setText("◉  自訂圖片（全部照片）");
+                        defaultHeading.setText("○  預設圖片（全部照片）");
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
