@@ -24,6 +24,7 @@ on:
       - fix/wallpaper-gallery-fixed-grid-r70
       - fix/wallpaper-gallery-full-width-r69
       - fix/wallpaper-gallery-measured-grid-r72
+      - fix/wallpaper-picker-spacing-dpad-r74
   workflow_dispatch:
 
 permissions:
