@@ -6030,6 +6030,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
+        final int customColumns = 3;
+        final List<View> customThumbnailItems = new ArrayList<>();
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("尚未匯入圖片。可使用 QR Code 或「選擇圖片」新增。");
@@ -6038,8 +6040,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             empty.setPadding((int)(8*density), (int)(8*density), 0, (int)(16*density));
             choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         } else {
-            final int customColumns = 3;
-            final List<View> customThumbnailItems = new ArrayList<>();
             final String activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int start = 0; start < customImages.size(); start += customColumns) {
                 LinearLayout customRow = new LinearLayout(this);
