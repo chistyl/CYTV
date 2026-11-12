@@ -7442,8 +7442,11 @@ private GradientDrawable roundSurface(int color, float radius) {
      * If capture or blur is unavailable, the normal dimmed dialog remains usable.
      */
     android.widget.ImageView installFolderBackdropBlur() {
-        final android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
-        if (!(decor instanceof android.view.ViewGroup) || decor.getWidth() <= 0 || decor.getHeight() <= 0) return null;
+        // Capture the launcher's actual content root, not Window decor. On Android TV the decor
+        // may contain window/background layers that do not render the WallpaperPlayer ImageView
+        // into View.draw(); capturing root guarantees the current wallpaper bitmap is included.
+        final android.view.ViewGroup backdropRoot = root;
+        if (backdropRoot == null || backdropRoot.getWidth() <= 0 || backdropRoot.getHeight() <= 0) return null;
         android.graphics.Bitmap source = null;
         android.graphics.Bitmap small = null;
         android.graphics.Bitmap blurred = null;
@@ -7452,11 +7455,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         android.renderscript.Allocation output = null;
         android.renderscript.ScriptIntrinsicBlur blur = null;
         try {
-            int width = decor.getWidth();
-            int height = decor.getHeight();
+            int width = backdropRoot.getWidth();
+            int height = backdropRoot.getHeight();
             source = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
             android.graphics.Canvas canvas = new android.graphics.Canvas(source);
-            decor.draw(canvas);
+            backdropRoot.draw(canvas);
             int smallWidth = Math.max(1, width / 4);
             int smallHeight = Math.max(1, height / 4);
             small = android.graphics.Bitmap.createScaledBitmap(source, smallWidth, smallHeight, true);
@@ -7477,7 +7480,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             overlay.setFocusable(false);
             overlay.setFocusableInTouchMode(false);
             overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            ((android.view.ViewGroup) decor).addView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+            backdropRoot.addView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
             return overlay;
         } catch (Throwable unavailable) {
             if (blurred != null && !blurred.isRecycled()) blurred.recycle();
