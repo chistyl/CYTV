@@ -5838,28 +5838,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         thumbnailItems[0].setNextFocusUpId(defaultHeading.getId());
 
         ScrollView scroll = new ScrollView(this);
-        // Explicit DPAD navigation for the custom-image heading and its 3-column grid.
-        customHeading.setNextFocusUpId(resetAction.getId());
-        resetAction.setNextFocusDownId(customHeading.getId());
-        if (!customTileViews.isEmpty()) {
-            customHeading.setNextFocusDownId(customTileViews.get(0).getId());
-            customTileViews.get(0).setNextFocusUpId(customHeading.getId());
-            for (int i = 0; i < customTileViews.size(); i++) {
-                View tile = customTileViews.get(i);
-                int col = i % 3;
-                int row = i / 3;
-                if (col > 0) tile.setNextFocusLeftId(customTileViews.get(i - 1).getId());
-                if (col < 2 && i + 1 < customTileViews.size())
-                    tile.setNextFocusRightId(customTileViews.get(i + 1).getId());
-                if (row > 0) tile.setNextFocusUpId(customTileViews.get(i - 3).getId());
-                if (i + 3 < customTileViews.size())
-                    tile.setNextFocusDownId(customTileViews.get(i + 3).getId());
-                else tile.setNextFocusDownId(tile.getId());
-            }
-        } else {
-            customHeading.setNextFocusDownId(qrAction.getId());
-        }
-
         scroll.setFillViewport(false);
         scroll.setFocusable(false);
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
@@ -6193,6 +6171,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
+        // Explicit DPAD navigation for the custom-image heading and its 3-column grid.
+        customHeading.setNextFocusUpId(resetAction.getId());
+        resetAction.setNextFocusDownId(customHeading.getId());
+        if (!customTileViews.isEmpty()) {
+            customHeading.setNextFocusDownId(customTileViews.get(0).getId());
+            customTileViews.get(0).setNextFocusUpId(customHeading.getId());
+            for (int i = 0; i < customTileViews.size(); i++) {
+                View tile = customTileViews.get(i);
+                int col = i % 3;
+                int row = i / 3;
+                if (col > 0) tile.setNextFocusLeftId(customTileViews.get(i - 1).getId());
+                if (col < 2 && i + 1 < customTileViews.size())
+                    tile.setNextFocusRightId(customTileViews.get(i + 1).getId());
+                if (row > 0) tile.setNextFocusUpId(customTileViews.get(i - 3).getId());
+                if (i + 3 < customTileViews.size())
+                    tile.setNextFocusDownId(customTileViews.get(i + 3).getId());
+                else tile.setNextFocusDownId(tile.getId());
+            }
+        } else {
+            customHeading.setNextFocusDownId(qrAction.getId());
+        }
         // Use the gallery's measured viewport width, not displayMetrics. The picker is
         // hosted inside a nested full-screen page whose real content width can differ
         // from the physical screen width (TV overscan, page insets and max-width cap).
