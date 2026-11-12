@@ -6511,7 +6511,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
         // 與資料夾視窗完全共用桌面背景快照模糊；只模糊視窗外桌面，面板與 QR Code 保持清晰。
-        final ImageView backdropBlur = installQrWallpaperBackdropBlur();
+        final ImageView backdropBlur = installFolderBackdropBlur();
         final boolean[] backdropDismissed = {false};
         dialog.setOnDismissListener(d -> {
             backdropDismissed[0] = true;
@@ -6533,11 +6533,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            // R70: this gallery is a full-screen settings page, not the legacy 440dp dialog.
-            // Keep the window wide enough for the three fixed 16:9 columns computed above.
-            int pageWidth = Math.max(1, getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int pageHeight = Math.max(1, getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-            dialog.getWindow().setLayout(pageWidth, pageHeight);
+            // Restore the original compact QR transfer dialog dimensions used by the
+            // folder-style surface. The full-screen sizing belongs only to the wallpaper gallery.
+            int dialogWidth = Math.min((int)(440*density),
+                    getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+            dialog.getWindow().setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         close.requestFocus();
     }
