@@ -6130,7 +6130,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
-            String activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            // Use the WallpaperPlayer's rendered image as the source of truth. The saved
+            // preference can briefly lag while an async decode is completing.
+            String activePath = wallpaperPlayer == null ? "" : wallpaperPlayer.currentCustomWallpaperPath();
+            if (activePath.isEmpty()) activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
             if (activePath.isEmpty()) activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
@@ -6158,7 +6161,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             empty.setPadding((int)(8*density), (int)(8*density), 0, (int)(16*density));
             choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         } else {
-            String activeCustom = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            // Read the exact image currently rendered by the player when the gallery opens.
+            String activeCustom = wallpaperPlayer == null ? "" : wallpaperPlayer.currentCustomWallpaperPath();
+            if (activeCustom.isEmpty()) activeCustom = wallpaperPrefs.getString("custom_wallpaper_current", "");
             if (activeCustom.isEmpty()) activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int start = 0; start < customImages.size(); start += customColumns) {
                 LinearLayout customRow = new LinearLayout(this);
