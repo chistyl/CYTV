@@ -6392,6 +6392,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 editor.putInt("builtin_wallpaper", draftTheme[0])
                         .putBoolean("builtin_random_play", draftRandom[0])
+                        .putLong("builtin_wallpaper_changed", System.currentTimeMillis())
                         .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
                         .remove("custom_wallpaper_selected");
             }

@@ -49,31 +49,52 @@ final class WallpaperPlayer {
     private final Random random = new Random();
     private final Handler rotationHandler = new Handler(Looper.getMainLooper());
     private static final long BUILTIN_RANDOM_INTERVAL_MS = 30 * 60_000L;
+    /** One shared one-minute clock checks both built-in and custom wallpaper rotation deadlines. */
+    private static final long ROTATION_POLL_INTERVAL_MS = 60_000L;
     /** Custom gallery slideshow cadence: sequential and random modes both advance once per minute. */
     private static final long CUSTOM_WALLPAPER_INTERVAL_MS = 60_000L;
     private final Runnable builtinRandomTick = new Runnable() {
         @Override public void run() {
             if (!active || closed) return;
-            if (preferences.getBoolean("builtin_random_play", false)
-                    && preferences.getString("custom_wallpaper_uri", null) == null
-                    && preferences.getString("custom_wallpaper_file", null) == null) {
-                int currentTheme = preferences.getInt("builtin_wallpaper", 0);
-                if (currentTheme >= 1 && currentTheme <= 9) {
-                    int nextTheme = 1 + random.nextInt(8);
-                    if (nextTheme >= currentTheme) nextTheme++;
-                    int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
-                            R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
-                            R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
-                            R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
-                            R.drawable.wallpaper_theme_09};
-                    image.setImageResource(themes[nextTheme - 1]);
-                    displayed = "builtin_" + nextTheme;
-                    preferences.edit().putInt("builtin_wallpaper", nextTheme).apply();
-                }
-            }
-            rotationHandler.postDelayed(this, BUILTIN_RANDOM_INTERVAL_MS);
+            rotateBuiltinWallpaper(false);
+            rotationHandler.postDelayed(this, ROTATION_POLL_INTERVAL_MS);
         }
     };
+
+    /** Uses a persisted deadline so standby/Home lifecycle restarts do not reset the 30-minute interval. */
+    private boolean rotateBuiltinWallpaper(boolean force) {
+        if (!preferences.getBoolean("builtin_random_play", false)
+                || preferences.getString("custom_wallpaper_uri", null) != null
+                || preferences.getString("custom_wallpaper_file", null) != null
+                || !CustomWallpaperLibrary.selected(root.getContext()).isEmpty()) {
+            recordDiagnostic(root.getContext(), "內建輪播略過：未啟用或自訂桌布正在使用");
+            return false;
+        }
+        int currentTheme = preferences.getInt("builtin_wallpaper", 0);
+        if (currentTheme < 1 || currentTheme > 9) {
+            recordDiagnostic(root.getContext(), "內建輪播略過：目前預設圖片編號無效");
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        long changed = preferences.getLong("builtin_wallpaper_changed", 0);
+        if (!force && !WallpaperRotation.due(changed, now, BUILTIN_RANDOM_INTERVAL_MS)) {
+            return false;
+        }
+        int nextTheme = 1 + random.nextInt(8);
+        if (nextTheme >= currentTheme) nextTheme++;
+        int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
+                R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
+                R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
+                R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
+                R.drawable.wallpaper_theme_09};
+        image.setImageResource(themes[nextTheme - 1]);
+        displayed = "builtin_" + nextTheme;
+        preferences.edit().putInt("builtin_wallpaper", nextTheme)
+                .putLong("builtin_wallpaper_changed", now).apply();
+        recordDiagnostic(root.getContext(), "內建圖片切換成功：builtin_" + nextTheme
+                + (force ? "（手動測試）" : "（到期自動切換）"));
+        return true;
+    }
     /** Dedicated custom-gallery clock; independent of Home's general minute refresh. */
     private final Runnable customRotationTick = new Runnable() {
         @Override public void run() {
@@ -218,8 +239,16 @@ final class WallpaperPlayer {
         String current = prefs.getString("custom_wallpaper_current", displayed);
         String events = prefs.getString(DIAGNOSTIC_KEY, "尚無執行紀錄");
         StringBuilder report = new StringBuilder();
+        List<File> library = CustomWallpaperLibrary.list(context);
+        boolean builtinRandom = prefs.getBoolean("builtin_random_play", false);
+        int builtinTheme = prefs.getInt("builtin_wallpaper", 0);
+        long builtinChanged = prefs.getLong("builtin_wallpaper_changed", 0);
         report.append("播放模式：").append(modeLabel(mode)).append('\n');
-        report.append("已選圖片：").append(selected.size()).append(" 張\n");
+        report.append("自訂圖片庫：").append(library.size()).append(" 張；已選播放：").append(selected.size()).append(" 張\n");
+        report.append("內建隨機播放：").append(builtinRandom ? "開啟" : "關閉")
+                .append("；目前編號：").append(builtinTheme).append('\n');
+        report.append("內建上次切換：").append(builtinChanged == 0 ? "尚無紀錄"
+                : new SimpleDateFormat("MM/dd HH:mm:ss", Locale.getDefault()).format(new Date(builtinChanged))).append('\n');
         report.append("目前圖片：").append(shortName(current)).append('\n');
         report.append("播放器：").append(active ? "執行中" : "未啟動")
                 .append("；解碼：").append(loading ? "進行中" : "閒置").append('\n');
@@ -238,7 +267,12 @@ final class WallpaperPlayer {
                 .setMessage(report.toString())
                 .setPositiveButton("手動測試切換", (dialog, which) -> {
                     recordDiagnostic(context, "使用者手動測試切換");
-                    update(true);
+                    if (CustomWallpaperLibrary.selected(context).isEmpty()
+                            && preferences.getBoolean("builtin_random_play", false)) {
+                        rotateBuiltinWallpaper(true);
+                    } else {
+                        update(true);
+                    }
                     root.postDelayed(this::showDiagnostics, 1200);
                 })
                 .setNeutralButton("清除紀錄", (dialog, which) -> {
@@ -296,6 +330,9 @@ final class WallpaperPlayer {
             image.setImageResource(themes[builtIn - 1]);
             root.setBackground(null);
             displayed = "builtin_" + builtIn;
+            if (preferences.getLong("builtin_wallpaper_changed", 0) == 0) {
+                preferences.edit().putLong("builtin_wallpaper_changed", System.currentTimeMillis()).apply();
+            }
             showCaption(false);
             return;
         }
@@ -384,7 +421,8 @@ final class WallpaperPlayer {
                 + CustomWallpaperLibrary.selected(root.getContext()).size() + " 張，模式="
                 + modeLabel(CustomWallpaperLibrary.mode(root.getContext())));
         rotationHandler.removeCallbacks(builtinRandomTick);
-        rotationHandler.postDelayed(builtinRandomTick, BUILTIN_RANDOM_INTERVAL_MS);
+        // Poll a shared persisted deadline: returning from standby no longer restarts a fresh 30-minute wait.
+        rotationHandler.postDelayed(builtinRandomTick, ROTATION_POLL_INTERVAL_MS);
         rotationHandler.removeCallbacks(customRotationTick);
         rotationHandler.postDelayed(customRotationTick, CUSTOM_WALLPAPER_INTERVAL_MS);
         update();
