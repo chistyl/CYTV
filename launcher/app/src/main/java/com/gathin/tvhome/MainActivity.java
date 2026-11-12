@@ -1344,39 +1344,44 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pendingIconPackage = null;
             reopenPendingFolderAfterAppEdit();
         }
-        if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
-            List<Uri> selectedUris = new ArrayList<>();
-            android.content.ClipData clipData = data.getClipData();
-            if (clipData != null) {
-                for (int i = 0; i < clipData.getItemCount(); i++) {
-                    Uri uri = clipData.getItemAt(i).getUri();
-                    if (uri != null) selectedUris.add(uri);
+        if (requestCode == WALLPAPER_PICK_REQUEST) {
+            // 無論使用者選取、取消或選取器回傳空結果，都回到原本的「影像設定」頁面。
+            // 重新建立頁面時會讀取已暫存的 wallpaper_draft_*，保留使用者尚未儲存的設定。
+            if (resultCode == RESULT_OK && data != null) {
+                List<Uri> selectedUris = new ArrayList<>();
+                android.content.ClipData clipData = data.getClipData();
+                if (clipData != null) {
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        Uri uri = clipData.getItemAt(i).getUri();
+                        if (uri != null) selectedUris.add(uri);
+                    }
+                } else if (data.getData() != null) {
+                    selectedUris.add(data.getData());
                 }
-            } else if (data.getData() != null) {
-                selectedUris.add(data.getData());
-            }
-            int importedCount = 0;
-            int failedCount = 0;
-            int skippedCount = 0;
-            for (Uri uri : selectedUris) {
-                if (CustomWallpaperLibrary.isFull(this)) {
-                    skippedCount++;
-                    continue;
+                int importedCount = 0;
+                int failedCount = 0;
+                int skippedCount = 0;
+                for (Uri uri : selectedUris) {
+                    if (CustomWallpaperLibrary.isFull(this)) {
+                        skippedCount++;
+                        continue;
+                    }
+                    if (importCustomWallpaper(uri)) importedCount++;
+                    else failedCount++;
                 }
-                if (importCustomWallpaper(uri)) importedCount++;
-                else failedCount++;
+                if (importedCount > 0) {
+                    String message = "成功匯入 " + importedCount + " 張圖片至自訂圖片庫；目前桌布不變。";
+                    if (skippedCount > 0) message += "另有 " + skippedCount + " 張因已達 12 張上限而略過。";
+                    if (failedCount > 0) message += "另有 " + failedCount + " 張匯入失敗。";
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                } else if (skippedCount > 0) {
+                    Toast.makeText(this, "自訂圖片已達上限 12 張，請先刪除圖片再匯入。", Toast.LENGTH_LONG).show();
+                } else if (failedCount > 0) {
+                    Toast.makeText(this, "圖片匯入失敗，請確認格式與檔案是否有效。", Toast.LENGTH_LONG).show();
+                }
             }
-            if (importedCount > 0) {
-                String message = "成功匯入 " + importedCount + " 張圖片至自訂圖片庫；目前桌布不變。";
-                if (skippedCount > 0) message += "另有 " + skippedCount + " 張因已達 12 張上限而略過。";
-                if (failedCount > 0) message += "另有 " + failedCount + " 張匯入失敗。";
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-                showWallpaperPicker();
-            } else if (skippedCount > 0) {
-                Toast.makeText(this, "自訂圖片已達上限 12 張，請先刪除圖片再匯入。", Toast.LENGTH_LONG).show();
-            } else if (failedCount > 0) {
-                Toast.makeText(this, "圖片匯入失敗，請確認格式與檔案是否有效。", Toast.LENGTH_LONG).show();
-            }
+            // 取消選取時不顯示錯誤訊息，也不留在桌面。
+            showWallpaperPicker();
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
@@ -5998,6 +6003,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         qrActionRef[0] = qrAction;
         TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
+            // 先關閉全螢幕影像設定頁，再啟動系統選取器；onActivityResult 無論取消或選取都會重開本頁。
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pick.addCategory(Intent.CATEGORY_OPENABLE);
@@ -6005,7 +6011,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
-            catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
+            catch (ActivityNotFoundException e) {
+                Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show();
+                showWallpaperPicker();
+            }
         });
         TextView resetAction = addRoundedAction(choices, "恢復預設", () -> {
             wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
