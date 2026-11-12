@@ -30,6 +30,7 @@ on:
       - fix/qr-dialog-backdrop-blur-r75
       - fix/custom-wallpaper-multiselect-delete-r76
       - fix/custom-wallpaper-long-press-r77
+      - fix/custom-wallpaper-dpad-long-press-r78
   workflow_dispatch:
 
 permissions:
