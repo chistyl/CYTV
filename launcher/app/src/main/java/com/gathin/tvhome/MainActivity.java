@@ -6113,7 +6113,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
-            String activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
+            String activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            if (activePath.isEmpty()) activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
                 View item = customThumbnailItems.get(index);
@@ -6379,7 +6380,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear();
                 draftCustomSelection.addAll(allCustomWallpapers);
             }
-            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, "sequential");
+            String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "single";
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, savedCustomMode);
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
                 editor.putString("custom_wallpaper_file", allCustomWallpapers.get(0).getAbsolutePath())
