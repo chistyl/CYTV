@@ -5840,7 +5840,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
-        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
+        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片（全部照片）");
         defaultHeading.setTextColor(0xFFF5F6FA);
         defaultHeading.setTextSize(16);
         defaultHeading.setGravity(Gravity.CENTER_VERTICAL);
@@ -5863,7 +5863,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
-            defaultHeading.setText("◉  預設圖片");
+            defaultHeading.setText("◉  預設圖片（全部照片）");
         });
         LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         defaultHeadingLp.topMargin = (int)(5*density);
@@ -6046,7 +6046,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
-        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
+        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片（全部照片）");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
         customHeading.setGravity(Gravity.CENTER_VERTICAL);
@@ -6072,8 +6072,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
                 draftCustomActive[0] = true; draftRandom[0] = false;
                 persistWallpaperDraft.run();
-                customHeading.setText("◉  自訂圖片");
-                defaultHeading.setText("○  預設圖片");
+                customHeading.setText("◉  自訂圖片（全部照片）");
+                defaultHeading.setText("○  預設圖片（全部照片）");
                 for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                     setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
             } else {
@@ -6383,10 +6383,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshCustomDeleteAction.run();
         TextView cancelAction = addRoundedAction(editActions, "取消", () -> { clearWallpaperDraft.run(); dialog.dismiss(); });
         TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
-            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, draftCustomMode[0]);
+            List<File> allCustomWallpapers = CustomWallpaperLibrary.list(this);
+            // R107: selecting the custom category means the entire imported gallery, not hand-picked thumbnails.
+            if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
+                draftCustomSelection.clear();
+                draftCustomSelection.addAll(allCustomWallpapers);
+            }
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, "sequential");
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
-            if (draftCustomActive[0] && !draftCustomSelection.isEmpty()) {
-                editor.putString("custom_wallpaper_file", draftCustomSelection.get(0).getAbsolutePath())
+            if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
+                editor.putString("custom_wallpaper_file", allCustomWallpapers.get(0).getAbsolutePath())
                         .putBoolean("custom_wallpaper_enabled", true)
                         .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
                         .putBoolean("builtin_random_play", false);
