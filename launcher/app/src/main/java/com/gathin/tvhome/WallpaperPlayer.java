@@ -307,7 +307,7 @@ final class WallpaperPlayer {
             String previousCustom = preferences.getString("custom_wallpaper_current", "");
             File selected = WallpaperRotation.find(customSelection, previousCustom);
             if (selected == null) selected = customSelection.get(0);
-            if ("random".equals(mode) && customSelection.size() > 1) {
+            if (WallpaperRotation.isRandom(mode) && customSelection.size() > 1) {
                 selected = WallpaperRotation.pick(customSelection, "", random);
             }
             Bitmap customBitmap = decode(selected);
@@ -517,7 +517,7 @@ final class WallpaperPlayer {
             if (currentWasDeleted) {
                 nextCustom = customSelection.get(0);
             } else {
-                nextCustom = "sequential".equals(mode)
+                nextCustom = WallpaperRotation.isSequential(mode)
                         ? WallpaperRotation.next(customSelection, previousCustom)
                         : WallpaperRotation.pick(customSelection, previousCustom, random);
             }
