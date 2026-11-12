@@ -9187,7 +9187,6 @@ private GradientDrawable roundSurface(int color, float radius) {
                             edit.requestFocus();
                             return;
                         }
-                        SharedPreferences folderPrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
                         java.util.Set<String> folders = folderPrefs.getStringSet(
                                 "home_folders", java.util.Collections.<String>emptySet());
                         if (!newName.equals(oldName) && folders.contains(newName)) {
