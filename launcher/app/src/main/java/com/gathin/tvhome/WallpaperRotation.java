@@ -18,6 +18,12 @@ final class WallpaperRotation {
         return ORDER_SEQUENTIAL.equals(order) || ORDER_SHUFFLE.equals(order);
     }
 
+    /** Accept either the persisted basename or the absolute path used by the custom gallery. */
+    private static boolean matches(File image, String previous) {
+        return previous != null && (image.getName().equals(previous)
+                || image.getAbsolutePath().equals(previous));
+    }
+
     static List<File> images(File directory) {
         List<File> result = new ArrayList<>();
         File[] entries = directory == null ? null : directory.listFiles();
@@ -36,7 +42,7 @@ final class WallpaperRotation {
     }
 
     static File find(List<File> images, String name) {
-        for (File image : images) if (image.getName().equals(name)) return image;
+        for (File image : images) if (matches(image, name)) return image;
         return null;
     }
 
@@ -58,7 +64,7 @@ final class WallpaperRotation {
 
     static File pick(List<File> images, String previous, Random random) {
         List<File> candidates = new ArrayList<>(images);
-        if (candidates.size() > 1) candidates.removeIf(image -> image.getName().equals(previous));
+        if (candidates.size() > 1) candidates.removeIf(image -> matches(image, previous));
         return candidates.isEmpty() ? null : candidates.get(random.nextInt(candidates.size()));
     }
 
@@ -70,7 +76,7 @@ final class WallpaperRotation {
     static File next(List<File> images, String previous) {
         if (images.isEmpty()) return null;
         for (int i = 0; i < images.size(); i++) {
-            if (images.get(i).getName().equals(previous)) {
+            if (matches(images.get(i), previous)) {
                 return images.get((i + 1) % images.size());
             }
         }
