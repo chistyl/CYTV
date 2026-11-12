@@ -3246,6 +3246,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             TextPaint paint = btnWifi.getPaint();
             Drawable[] compound = btnWifi.getCompoundDrawablesRelative();
             int iconRoom = compound[0] != null ? compound[0].getIntrinsicWidth() + btnWifi.getCompoundDrawablePadding() : 0;
+            // R91：VPN 標籤與 Wi-Fi 名稱同時顯示；保留至少 220dp，避免 Wi-Fi 文字被擠掉。
+            btnWifi.setMaxWidth(Math.max(btnWifi.getMaxWidth(), Math.round(220 * density)));
             float room = btnWifi.getMaxWidth() - btnWifi.getPaddingStart() - btnWifi.getPaddingEnd() - iconRoom
                     - span.getSize(paint, badge, 0, badge.length(), null) - paint.measureText(" ") - 2 * density;
             String name = TextUtils.ellipsize(text, paint, Math.max(0, room), TextUtils.TruncateAt.END).toString();
@@ -3255,7 +3257,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // so Ethernet always shows the icon and the badge alone.
             // The space stays even then: a line holding only the span gets no font metrics and collapses.
             boolean stub = name.length() < text.length() && name.length() < 5;
-            text = stub || icon == R.drawable.ic_ethernet ? "" : name;
+            // Wi-Fi 名稱空間不足時退回「Wi-Fi」，不可因 VPN 標籤而清空網路文字。
+            text = icon == R.drawable.ic_ethernet ? "" : (stub ? getString(R.string.wifi) : name);
             SpannableString label = new SpannableString(text + " " + badge);
             label.setSpan(span, text.length() + 1, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             if (!TextUtils.equals(btnWifi.getText(), label)) btnWifi.setText(label);
