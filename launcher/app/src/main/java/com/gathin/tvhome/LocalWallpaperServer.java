@@ -20,7 +20,7 @@ import java.util.UUID;
 
 /** Temporary same-Wi-Fi upload page used to transfer one or more phone photos into the TV custom wallpaper gallery. */
 final class LocalWallpaperServer extends Thread {
-    interface Listener { void onUploaded(Uri uri); }
+    interface Listener { void onUploaded(Uri uri); default void onBatchComplete() { } }
     private final Context context;
     private final Listener listener;
     private final String token = UUID.randomUUID().toString().replace("-", "");
@@ -84,6 +84,11 @@ final class LocalWallpaperServer extends Thread {
         String query = path.contains("?") ? path.substring(path.indexOf('?') + 1) : "";
         if (!query.contains("token=" + token)) { respond(socket, 403, "Forbidden", "驗證失敗，請重新掃描電視上的 QR Code。"); return; }
         if ("GET".equals(method)) { respondHtml(socket); return; }
+        if ("POST".equals(method) && path.startsWith("/complete")) {
+            respond(socket, 200, "OK", "整批照片上傳完成。");
+            new android.os.Handler(context.getMainLooper()).post(listener::onBatchComplete);
+            return;
+        }
         if (!"POST".equals(method) || !path.startsWith("/upload")) { respond(socket, 404, "Not found", "找不到頁面"); return; }
         if (length < 1 || length > 20 * 1024 * 1024) { respond(socket, 413, "File too large", "圖片不可超過 20 MB。"); return; }
         byte[] data = new byte[length];
@@ -113,7 +118,7 @@ final class LocalWallpaperServer extends Thread {
                 + "<h2>傳送圖片到電視</h2><p>可一次選擇多張手機照片，傳送後會加入電視的自訂圖片庫。</p>"
                 + "<input id='f' type='file' accept='image/*' multiple style='font-size:18px;margin:20px 0'>"
                 + "<p><button id='b' style='font-size:20px;padding:14px 24px'>上傳照片到電視</button></p><p id='s'></p>"
-                + "<script>document.getElementById('b').onclick=async()=>{let files=Array.from(document.getElementById('f').files),s=document.getElementById('s');if(!files.length){s.textContent='請先選擇一張或多張圖片';return;}let done=0,failed=0;s.textContent='準備傳送 '+files.length+' 張照片…';for(let f of files){if(f.size>20971520){failed++;continue;}try{let r=await fetch('/upload?token=" + token + "',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok)throw new Error(await r.text());done++;s.textContent='已傳送 '+done+'/'+files.length+' 張';}catch(e){failed++;}}s.textContent='傳送完成：成功 '+done+' 張，失敗 '+failed+' 張。可繼續選圖或關閉此頁面。';};</script>"
+                + "<script>document.getElementById('b').onclick=async()=>{let files=Array.from(document.getElementById('f').files),s=document.getElementById('s');if(!files.length){s.textContent='請先選擇一張或多張圖片';return;}let done=0,failed=0;s.textContent='準備傳送 '+files.length+' 張照片…';for(let f of files){if(f.size>20971520){failed++;continue;}try{let r=await fetch('/upload?token=" + token + "',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok)throw new Error(await r.text());done++;s.textContent='已傳送 '+done+'/'+files.length+' 張';}catch(e){failed++;}}s.textContent='傳送完成：成功 '+done+' 張，失敗 '+failed+' 張。';try{await fetch('/complete?token=" + token + "',{method:'POST'});}catch(e){} };</script>"
                 + "</body></html>";
         byte[] body = html.getBytes(StandardCharsets.UTF_8);
         OutputStream out = socket.getOutputStream();
