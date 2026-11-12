@@ -48,7 +48,7 @@ final class WallpaperPlayer {
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
     private final Random random = new Random();
     private final Handler rotationHandler = new Handler(Looper.getMainLooper());
-    private static final long BUILTIN_RANDOM_INTERVAL_MS = 30 * 60_000L;
+    private static final long BUILTIN_RANDOM_INTERVAL_MS = 60_000L;
     /** One shared one-minute clock checks both built-in and custom wallpaper rotation deadlines. */
     private static final long ROTATION_POLL_INTERVAL_MS = 60_000L;
     /** Custom gallery slideshow cadence: sequential and random modes both advance once per minute. */
@@ -69,18 +69,12 @@ final class WallpaperPlayer {
 
     /** Uses a persisted deadline so standby/Home lifecycle restarts do not reset the 30-minute interval. */
     private boolean rotateBuiltinWallpaper(boolean force) {
-        if (!preferences.getBoolean("builtin_random_play", false)
-                || preferences.getString("custom_wallpaper_uri", null) != null
-                || preferences.getString("custom_wallpaper_file", null) != null
-                || customWallpaperEnabled()) {
-            recordDiagnostic(root.getContext(), "內建輪播略過：未啟用或自訂桌布正在使用");
+        if (customWallpaperEnabled()) {
+            recordDiagnostic(root.getContext(), "內建輪播略過：目前正在使用自訂圖片");
             return false;
         }
         int currentTheme = preferences.getInt("builtin_wallpaper", 0);
-        if (currentTheme < 1 || currentTheme > 9) {
-            recordDiagnostic(root.getContext(), "內建輪播略過：目前預設圖片編號無效");
-            return false;
-        }
+        if (currentTheme < 1 || currentTheme > 9) currentTheme = 1;
         long now = System.currentTimeMillis();
         long changed = preferences.getLong("builtin_wallpaper_changed", 0);
         if (!force && !WallpaperRotation.due(changed, now, BUILTIN_RANDOM_INTERVAL_MS)) {
@@ -239,7 +233,8 @@ final class WallpaperPlayer {
 
     private void showDiagnostics() {
         Context context = root.getContext();
-        List<File> selected = CustomWallpaperLibrary.selected(context);
+        List<File> selected = customWallpaperEnabled()
+                ? CustomWallpaperLibrary.list(context) : Collections.emptyList();
         String mode = CustomWallpaperLibrary.mode(context);
         SharedPreferences prefs = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         String current = prefs.getString("custom_wallpaper_current", displayed);
@@ -273,8 +268,7 @@ final class WallpaperPlayer {
                 .setMessage(report.toString())
                 .setPositiveButton("手動測試切換", (dialog, which) -> {
                     recordDiagnostic(context, "使用者手動測試切換");
-                    if (!customWallpaperEnabled()
-                            && preferences.getBoolean("builtin_random_play", false)) {
+                    if (!customWallpaperEnabled()) {
                         rotateBuiltinWallpaper(true);
                     } else {
                         update(true);
@@ -302,8 +296,9 @@ final class WallpaperPlayer {
      * Only the later changes of a rotation decode in the background.
      */
     private void showFirst() {
-        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
-        if (customWallpaperEnabled() && !customSelection.isEmpty()) {
+        List<File> customSelection = customWallpaperEnabled()
+                ? CustomWallpaperLibrary.list(root.getContext()) : Collections.emptyList();
+        if (!customSelection.isEmpty()) {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
             Log.i("TvHome.Wallpaper", "R102 initial custom selection; count=" + customSelection.size()
                     + ", mode=" + mode + ", displayed=" + displayed);
@@ -478,7 +473,7 @@ final class WallpaperPlayer {
             return;
         }
         List<File> customSelection = customWallpaperEnabled()
-                ? CustomWallpaperLibrary.selected(root.getContext()) : Collections.emptyList();
+                ? CustomWallpaperLibrary.list(root.getContext()) : Collections.emptyList();
         // If the last selected custom image was deleted, there is no custom item to rotate to.
         // Restore the normal wallpaper fallback immediately instead of leaving the deleted bitmap visible.
         if (customSelection.isEmpty() && displayed != null
