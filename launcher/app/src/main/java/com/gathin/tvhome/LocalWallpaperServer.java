@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.UUID;
 
-/** Temporary same-Wi-Fi upload page used to transfer a phone photo to the TV as its wallpaper. */
+/** Temporary same-Wi-Fi upload page used to transfer one or more phone photos into the TV custom wallpaper gallery. */
 final class LocalWallpaperServer extends Thread {
     interface Listener { void onUploaded(Uri uri); }
     private final Context context;
@@ -100,7 +100,7 @@ final class LocalWallpaperServer extends Thread {
         File dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         if (dir == null) dir = context.getFilesDir();
         if (!dir.exists()) dir.mkdirs();
-        File file = new File(dir, "tv-wallpaper-" + System.currentTimeMillis() + ".jpg");
+        File file = new File(dir, "tv-wallpaper-" + UUID.randomUUID().toString().replace("-", "") + ".img");
         try (OutputStream out = new java.io.FileOutputStream(file)) { out.write(data); out.flush(); }
         Uri uri = Uri.fromFile(file);
         respond(socket, 200, "OK", "圖片已傳送到電視，可以關閉此頁面。");
@@ -110,10 +110,10 @@ final class LocalWallpaperServer extends Thread {
     private void respondHtml(Socket socket) throws Exception {
         String html = "<!doctype html><html lang='zh-Hant'><meta name='viewport' content='width=device-width,initial-scale=1'>"
                 + "<meta charset='utf-8'><title>傳送桌布到電視</title><body style='font:18px sans-serif;background:#171b23;color:white;padding:24px'>"
-                + "<h2>傳送圖片到電視</h2><p>選擇手機中的圖片，傳送後會直接設定為電視桌布。</p>"
-                + "<input id='f' type='file' accept='image/*' style='font-size:18px;margin:20px 0'>"
-                + "<p><button id='b' style='font-size:20px;padding:14px 24px'>上傳並設定桌布</button></p><p id='s'></p>"
-                + "<script>document.getElementById('b').onclick=async()=>{let f=document.getElementById('f').files[0],s=document.getElementById('s');if(!f){s.textContent='請先選擇圖片';return;}if(f.size>20971520){s.textContent='圖片不可超過20MB';return;}s.textContent='傳送中…';try{let r=await fetch('/upload?token=" + token + "',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});s.textContent=await r.text();}catch(e){s.textContent='傳送失敗，請確認手機與電視連接同一個 Wi-Fi。';}};</script>"
+                + "<h2>傳送圖片到電視</h2><p>可一次選擇多張手機照片，傳送後會加入電視的自訂圖片庫。</p>"
+                + "<input id='f' type='file' accept='image/*' multiple style='font-size:18px;margin:20px 0'>"
+                + "<p><button id='b' style='font-size:20px;padding:14px 24px'>上傳照片到電視</button></p><p id='s'></p>"
+                + "<script>document.getElementById('b').onclick=async()=>{let files=Array.from(document.getElementById('f').files),s=document.getElementById('s');if(!files.length){s.textContent='請先選擇一張或多張圖片';return;}let done=0,failed=0;s.textContent='準備傳送 '+files.length+' 張照片…';for(let f of files){if(f.size>20971520){failed++;continue;}try{let r=await fetch('/upload?token=" + token + "',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok)throw new Error(await r.text());done++;s.textContent='已傳送 '+done+'/'+files.length+' 張';}catch(e){failed++;}}s.textContent='傳送完成：成功 '+done+' 張，失敗 '+failed+' 張。可繼續選圖或關閉此頁面。';};</script>"
                 + "</body></html>";
         byte[] body = html.getBytes(StandardCharsets.UTF_8);
         OutputStream out = socket.getOutputStream();
