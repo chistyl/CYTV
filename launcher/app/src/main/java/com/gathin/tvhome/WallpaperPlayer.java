@@ -53,6 +53,12 @@ final class WallpaperPlayer {
     private static final long ROTATION_POLL_INTERVAL_MS = 60_000L;
     /** Custom gallery slideshow cadence: sequential and random modes both advance once per minute. */
     private static final long CUSTOM_WALLPAPER_INTERVAL_MS = 60_000L;
+    /** Selection is persistent gallery state; this flag alone decides whether custom wallpapers are active. */
+    private boolean customWallpaperEnabled() {
+        return preferences.getBoolean("custom_wallpaper_enabled",
+                preferences.getString("custom_wallpaper_file", null) != null
+                        || preferences.getString("custom_wallpaper_uri", null) != null);
+    }
     private final Runnable builtinRandomTick = new Runnable() {
         @Override public void run() {
             if (!active || closed) return;
@@ -66,7 +72,7 @@ final class WallpaperPlayer {
         if (!preferences.getBoolean("builtin_random_play", false)
                 || preferences.getString("custom_wallpaper_uri", null) != null
                 || preferences.getString("custom_wallpaper_file", null) != null
-                || !CustomWallpaperLibrary.selected(root.getContext()).isEmpty()) {
+                || customWallpaperEnabled()) {
             recordDiagnostic(root.getContext(), "內建輪播略過：未啟用或自訂桌布正在使用");
             return false;
         }
@@ -162,7 +168,7 @@ final class WallpaperPlayer {
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
-        if (!CustomWallpaperLibrary.selected(context).isEmpty()
+        if ((customWallpaperEnabled() && !CustomWallpaperLibrary.selected(context).isEmpty())
                 || preferences.getInt("builtin_wallpaper", 0) > 0
                 || preferences.getString("custom_wallpaper_uri", null) != null
                 || preferences.getString("custom_wallpaper_file", null) != null
@@ -267,7 +273,7 @@ final class WallpaperPlayer {
                 .setMessage(report.toString())
                 .setPositiveButton("手動測試切換", (dialog, which) -> {
                     recordDiagnostic(context, "使用者手動測試切換");
-                    if (CustomWallpaperLibrary.selected(context).isEmpty()
+                    if (!customWallpaperEnabled()
                             && preferences.getBoolean("builtin_random_play", false)) {
                         rotateBuiltinWallpaper(true);
                     } else {
@@ -297,7 +303,7 @@ final class WallpaperPlayer {
      */
     private void showFirst() {
         List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
-        if (!customSelection.isEmpty()) {
+        if (customWallpaperEnabled() && !customSelection.isEmpty()) {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
             Log.i("TvHome.Wallpaper", "R102 initial custom selection; count=" + customSelection.size()
                     + ", mode=" + mode + ", displayed=" + displayed);
@@ -471,7 +477,8 @@ final class WallpaperPlayer {
             recordDiagnostic(root.getContext(), "更新略過：上一張圖片仍在解碼");
             return;
         }
-        List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
+        List<File> customSelection = customWallpaperEnabled()
+                ? CustomWallpaperLibrary.selected(root.getContext()) : Collections.emptyList();
         // If the last selected custom image was deleted, there is no custom item to rotate to.
         // Restore the normal wallpaper fallback immediately instead of leaving the deleted bitmap visible.
         if (customSelection.isEmpty() && displayed != null
