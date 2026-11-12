@@ -58,6 +58,6 @@ jobs:
           name: CYTV-R110-APK-and-Source
           path: |
             release/CYTV-R110-debug.apk
-            release/CYTV-R107-source.zip
+            release/CYTV-R110-source.zip
           if-no-files-found: error
           retention-days: 30
