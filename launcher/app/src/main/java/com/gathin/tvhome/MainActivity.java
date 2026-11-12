@@ -6085,11 +6085,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     imageView.setOnClickListener(v -> tile.performClick());
                     // The ImageView receives touch gestures directly; forward long-press to the tile.
                     imageView.setOnLongClickListener(v -> tile.performLongClick());
+                    // TV remotes report a held OK key as repeated ACTION_DOWN events.
+                    // Promote the first repeat to the same long-click path used by touch.
+                    final boolean[] customKeyLongPressed = {false};
                     tile.setOnKeyListener((v, keyCode, event) -> {
                         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                                 || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
-                            if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
-                                v.performClick();
+                            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                                if (event.getRepeatCount() == 0) {
+                                    customKeyLongPressed[0] = false;
+                                } else if (!customKeyLongPressed[0]) {
+                                    customKeyLongPressed[0] = true;
+                                    v.performLongClick();
+                                }
+                                return true;
+                            }
+                            if (event.getAction() == KeyEvent.ACTION_UP) {
+                                if (!customKeyLongPressed[0]) v.performClick();
+                                customKeyLongPressed[0] = false;
+                                return true;
+                            }
                             return true;
                         }
                         return false;
