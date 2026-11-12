@@ -6083,6 +6083,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // Some Android TV launchers route OK/click to the child image rather than its card.
                     // Forward both touch and DPAD confirmation to the same selectable tile.
                     imageView.setOnClickListener(v -> tile.performClick());
+                    // The ImageView receives touch gestures directly; forward long-press to the tile.
+                    imageView.setOnLongClickListener(v -> tile.performLongClick());
                     tile.setOnKeyListener((v, keyCode, event) -> {
                         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                                 || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
