@@ -1,4 +1,4 @@
-name: CYTV R97 Folder Delete Dialog Match Category
+name: CYTV R98 Custom Wallpaper 60 Second Rotation
 
 on:
   push:
@@ -29,51 +29,27 @@ on:
       - fix/home-app-hide-refresh-r93
       - fix/folder-rename-dialog-match-category-r96
       - fix/folder-delete-dialog-match-category-r97
+      - feature/custom-wallpaper-60s-rotation-r98
   pull_request:
     branches:
-      - feature/custom-wallpaper-gallery-r62
-      - fix/custom-wallpaper-gallery-selection-r63
-      - fix/wallpaper-source-selector-size-r64
-      - fix/wallpaper-gallery-full-width-r65
-      - fix/wallpaper-dialog-grid-width-r68
-      - fix/custom-wallpaper-grid-fixed-three-columns-r67
-      - fix/wallpaper-gallery-fixed-grid-r70
-      - fix/wallpaper-gallery-full-width-r69
-      - fix/wallpaper-gallery-measured-grid-r72
-      - fix/qr-dialog-restore-folder-style-r73
-      - fix/wallpaper-spacing-dpad-focus-r74
-      - fix/qr-dialog-backdrop-blur-r75
-      - fix/custom-wallpaper-multiselect-delete-r76
-      - fix/custom-wallpaper-long-press-r77
-      - fix/custom-wallpaper-dpad-long-press-r78
-      - fix/wallpaper-default-heading-dpad-focus-r79
-      - fix/custom-wallpaper-heading-dpad-focus-r80
-      - fix/wallpaper-settings-unified-spacing-r81
-      - feature/custom-wallpaper-multi-import-r82
-      - fix/qr-wallpaper-dialog-return-r83
-      - fix/qr-wallpaper-backdrop-blur-r84
-      - fix/qr-upload-description-remove-size-limit-r85
-      - fix/wallpaper-file-picker-return-r86
-      - fix/wallpaper-bottom-actions-margin-15dp-r87
-      - fix/wallpaper-page-bottom-inset-15dp-r89
-      - fix/vpn-foreground-startup-crash-r92
+      - fix/folder-delete-dialog-match-category-r97
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r97-folder-delete-dialog-${{ github.ref }}
+  group: cytv-r98-custom-wallpaper-60s-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R97
+      - name: Checkout R98
         uses: actions/checkout@v4
         with:
-          ref: fix/folder-delete-dialog-match-category-r97
+          ref: feature/custom-wallpaper-60s-rotation-r98
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -92,8 +68,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R97-debug.apk
-          zip -r release/CYTV-R97-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R98-debug.apk
+          zip -r release/CYTV-R98-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -101,9 +77,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R97-APK-and-Source
+          name: CYTV-R98-APK-and-Source
           path: |
-            release/CYTV-R97-debug.apk
-            release/CYTV-R97-source.zip
+            release/CYTV-R98-debug.apk
+            release/CYTV-R98-source.zip
           if-no-files-found: error
           retention-days: 30
