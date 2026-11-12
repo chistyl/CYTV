@@ -6591,7 +6591,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
         return drawable;
     }
-    /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳圖片並直接設為桌布。 */
+    /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳多張圖片至自訂圖片庫。 */
     private void showQrWallpaperTransferDialog() {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
@@ -6627,6 +6627,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         GradientDrawable closeBg = new GradientDrawable(); closeBg.setColor(0xFF343B47); closeBg.setCornerRadius(12*density);
         close.setBackground(closeBg); close.setFocusable(true); close.setClickable(true);
         close.setDefaultFocusHighlightEnabled(false);
+        final int[] qrImportedCount = {0};
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-1, (int)(46*density));
         closeLp.topMargin = (int)(12*density); panel.addView(close, closeLp);
         close.setOnClickListener(v -> {
@@ -6634,7 +6635,6 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (qrImportedCount[0] > 0) showWallpaperPicker();
         });
 
-        final int[] qrImportedCount = {0};
         LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
             if (isFinishing() || isDestroyed()) return;
             // Import every phone upload into the shared gallery; keep the QR page open for the remaining photos.
