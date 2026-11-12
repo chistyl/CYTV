@@ -1,28 +1,30 @@
-name: CYTV R107 Unified Wallpaper Rotation
+name: CYTV R109 Fixed Custom Thumbnail Border
 
 on:
   push:
     branches:
       - feature/all-wallpapers-auto-rotation-60s-r107
       - fix/wallpaper-gallery-no-tap-multiselect-r108
+      - fix/custom-wallpaper-fixed-thumbnail-border-r109
   pull_request:
     branches:
       - fix/custom-wallpaper-selection-persistence-r106
       - feature/all-wallpapers-auto-rotation-60s-r107
+      - fix/wallpaper-gallery-no-tap-multiselect-r108
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r107-all-wallpapers-rotation-${{ github.ref }}
+  group: cytv-r109-fixed-thumbnail-border-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R107
+      - name: Checkout R109
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -44,8 +46,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R107-debug.apk
-          zip -r release/CYTV-R107-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R109-debug.apk
+          zip -r release/CYTV-R109-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -53,7 +55,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R107-APK-and-Source
+          name: CYTV-R109-APK-and-Source
           path: |
             release/CYTV-R107-debug.apk
             release/CYTV-R107-source.zip
