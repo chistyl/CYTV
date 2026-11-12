@@ -199,7 +199,7 @@ final class WallpaperPlayer {
     }
 
     /** Immediately displays a gallery thumbnail selected from the TV remote. */
-    void selectCustomWallpaper(File selected) {
+    void selectCustomWallpaper(File selected, Runnable onApplied) {
         if (selected == null || !selected.isFile() || closed) return;
         Context context = root.getContext();
         List<File> gallery = CustomWallpaperLibrary.list(context);
@@ -234,6 +234,7 @@ final class WallpaperPlayer {
                 recordDiagnostic(context, "手動選取圖片並立即顯示：" + selected.getName()
                         + "；輪播模式=" + mode);
                 refreshCustomRotationTimer();
+                if (onApplied != null) onApplied.run();
             });
         });
     }
