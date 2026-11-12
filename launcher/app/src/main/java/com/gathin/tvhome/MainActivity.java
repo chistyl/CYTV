@@ -4655,8 +4655,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(forecast, new LinearLayout.LayoutParams(-1, -2));
 
         final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
-        if (backdropBlur != null) {
-            dialog.setOnDismissListener(ignored -> {
+        // Always rebuild Home after the visibility dialog closes. Checkbox changes are persisted
+        // immediately, but AppAdapter only applies home_hidden_* when its tile list is reloaded.
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
                 android.view.ViewParent parent = backdropBlur.getParent();
                 if (parent instanceof android.view.ViewGroup)
                     ((android.view.ViewGroup) parent).removeView(backdropBlur);
@@ -4665,8 +4667,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                 }
-            });
-        }
+            }
+            if (!isFinishing() && !isDestroyed()) reloadApps(false);
+        });
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
