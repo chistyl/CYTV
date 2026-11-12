@@ -6220,34 +6220,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
         }
  
-        // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
-        customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
-                ? cancelAction.getId() : customThumbnailItems.get(0).getId());
-        for (int i = 0; i < customThumbnailItems.size(); i++) {
-            View tile = customThumbnailItems.get(i);
-            int col = i % customColumns;
-            if (col > 0) tile.setNextFocusLeftId(customThumbnailItems.get(i - 1).getId());
-            else tile.setNextFocusLeftId(tile.getId());
-            if (col < customColumns - 1 && i + 1 < customThumbnailItems.size()
-                    && (i + 1) / customColumns == i / customColumns)
-                tile.setNextFocusRightId(customThumbnailItems.get(i + 1).getId());
-            else tile.setNextFocusRightId(tile.getId());
-            if (i >= customColumns) tile.setNextFocusUpId(customThumbnailItems.get(i - customColumns).getId());
-            else tile.setNextFocusUpId(customHeading.getId());
-            if (i + customColumns < customThumbnailItems.size())
-                tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
-            else tile.setNextFocusDownId(cancelAction.getId());
-        }
-        resetAction.setNextFocusDownId(customHeading.getId());
-        customHeading.setNextFocusUpId(resetAction.getId());
-        if (!customThumbnailItems.isEmpty()) {
-            int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
-            cancelAction.setNextFocusUpId(lastCustomId);
-            saveAction.setNextFocusUpId(lastCustomId);
-        } else {
-            customHeading.setNextFocusDownId(cancelAction.getId());
-        }
-
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         // Bound the gallery to the remaining screen height. WRAP_CONTENT here lets
         // every thumbnail expand the dialog's content beyond the TV viewport.
@@ -6311,6 +6283,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         saveAction.setNextFocusLeftId(cancelAction.getId());
         saveAction.setNextFocusUpId(resetAction.getId());
         saveAction.setNextFocusDownId(saveAction.getId());
+        // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
+        customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
+                ? cancelAction.getId() : customThumbnailItems.get(0).getId());
+        for (int i = 0; i < customThumbnailItems.size(); i++) {
+            View tile = customThumbnailItems.get(i);
+            int col = i % customColumns;
+            if (col > 0) tile.setNextFocusLeftId(customThumbnailItems.get(i - 1).getId());
+            else tile.setNextFocusLeftId(tile.getId());
+            if (col < customColumns - 1 && i + 1 < customThumbnailItems.size()
+                    && (i + 1) / customColumns == i / customColumns)
+                tile.setNextFocusRightId(customThumbnailItems.get(i + 1).getId());
+            else tile.setNextFocusRightId(tile.getId());
+            if (i >= customColumns) tile.setNextFocusUpId(customThumbnailItems.get(i - customColumns).getId());
+            else tile.setNextFocusUpId(customHeading.getId());
+            if (i + customColumns < customThumbnailItems.size())
+                tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
+            else tile.setNextFocusDownId(cancelAction.getId());
+        }
+        resetAction.setNextFocusDownId(customHeading.getId());
+        customHeading.setNextFocusUpId(resetAction.getId());
+        if (!customThumbnailItems.isEmpty()) {
+            int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
+            cancelAction.setNextFocusUpId(lastCustomId);
+            saveAction.setNextFocusUpId(lastCustomId);
+        } else {
+            customHeading.setNextFocusDownId(cancelAction.getId());
+        }
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
