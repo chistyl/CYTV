@@ -6391,7 +6391,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         deleteAction.setLayoutParams(deleteActionLp);
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         editActionsLp.topMargin = (int)(24 * density);
-        editActionsLp.bottomMargin = (int)(53 * density); // 原 38dp + 額外 15dp 底部外距。
+        editActionsLp.bottomMargin = (int)(38 * density); // 保留按鈕容器原始間距；頁面外距改由最外層 screen 控制。
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
@@ -6457,8 +6457,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout screen = new LinearLayout(this);
         screen.setOrientation(LinearLayout.VERTICAL);
         screen.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        // 最外層頁面底部增加 15dp 安全留白，確保最下方「刪除／取消／儲存」
+        // 到整個影像設定畫面底邊的距離確實增加，而非只改內層按鈕容器 margin。
         screen.setPadding((int)(horizontalInset*density), (int)(verticalInset*density),
-                (int)(horizontalInset*density), (int)(verticalInset*density));
+                (int)(horizontalInset*density), (int)(15*density));
         screen.setBackgroundColor(Color.rgb(16, 25, 40));
         ScrollView pageScroll = new ScrollView(this);
         pageScroll.setFillViewport(false);
