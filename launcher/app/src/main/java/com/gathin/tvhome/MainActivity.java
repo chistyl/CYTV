@@ -6108,7 +6108,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
         final int customColumns = 3;
         final List<View> customThumbnailItems = new ArrayList<>();
+        final List<ImageView> customThumbnailPreviews = new ArrayList<>();
+        final List<File> customThumbnailFiles = new ArrayList<>();
         final List<File> customDeleteSelection = new ArrayList<>();
+        // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
+        final Runnable refreshCustomThumbnailBorders = () -> {
+            for (int index = 0; index < customThumbnailPreviews.size(); index++) {
+                File file = customThumbnailFiles.get(index);
+                View item = customThumbnailItems.get(index);
+                boolean selected = customDeleteSelection.isEmpty()
+                        ? draftCustomSelection.contains(file)
+                        : customDeleteSelection.contains(file);
+                setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, item.hasFocus());
+            }
+        };
         final TextView[] customDeleteAction = new TextView[1];
         final Runnable refreshCustomDeleteAction = () -> {
             if (customDeleteAction[0] != null) {
@@ -6133,9 +6146,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     LinearLayout tile = new LinearLayout(this);
                     tile.setOrientation(LinearLayout.VERTICAL);
                     tile.setFocusable(true);
-                    tile.setFocusableInTouchMode(true);
+                    // TV 遙控器由 DPAD 控制焦點；避免觸控模式額外搶焦點造成重複狀態。
+                    tile.setFocusableInTouchMode(false);
                     tile.setClickable(true);
                     tile.setDefaultFocusHighlightEnabled(false);
+                    tile.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                     tile.setForeground(new ColorDrawable(Color.TRANSPARENT));
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     tile.setId(View.generateViewId());
@@ -6151,11 +6166,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Bitmap customPreviewBitmap = decodeWallpaperFileThumbnail(customFile, 420, 236);
                     if (customPreviewBitmap != null) imageView.setImageBitmap(customPreviewBitmap);
                     tile.addView(imageView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, thumbnailHeight));
+                    customThumbnailPreviews.add(imageView);
+                    customThumbnailFiles.add(customFile);
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
-                    tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
-                            customDeleteSelection.isEmpty() ? draftCustomSelection.contains(customFile)
-                                    : customDeleteSelection.contains(customFile), focused));
+                    tile.setOnFocusChangeListener((v, focused) -> refreshCustomThumbnailBorders.run());
                     // Some Android TV launchers route OK/click to the child image rather than its card.
                     // Forward both touch and DPAD confirmation to the same selectable tile.
                     imageView.setOnClickListener(v -> tile.performClick());
@@ -6189,7 +6204,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         if (!customDeleteSelection.isEmpty()) {
                             if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
                             else customDeleteSelection.add(customFile);
-                            setWallpaperThumbnailBorder(imageView, customDeleteSelection.contains(customFile), tile.hasFocus());
+                            refreshCustomThumbnailBorders.run();
                             refreshCustomDeleteAction.run();
                             return;
                         }
@@ -6207,11 +6222,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         draftCustomActive[0] = !chosen.isEmpty();
                         persistWallpaperDraft.run();
                         if (!chosen.isEmpty()) draftRandom[0] = false;
-                        setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), tile.hasFocus());
+                        refreshCustomThumbnailBorders.run();
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
-                        setWallpaperThumbnailBorder(imageView, true, true);
+                        refreshCustomThumbnailBorders.run();
                         refreshCustomDeleteAction.run();
                         Toast.makeText(this, "已進入多選模式，可繼續點選其他圖片", Toast.LENGTH_SHORT).show();
                         return true;
