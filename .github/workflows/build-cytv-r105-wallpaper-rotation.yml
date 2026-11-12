@@ -17,6 +17,7 @@ on:
       - fix/wallpaper-mode-persistence-and-rotation-r110
       - fix/wallpaper-mode-and-current-thumbnail-r111
       - fix/custom-wallpaper-active-border-from-player-r112
+      - fix/custom-wallpaper-thumbnail-select-r113
   workflow_dispatch:
 
 permissions:
