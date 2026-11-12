@@ -6387,14 +6387,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !draftCustomSelection.isEmpty()) {
                 editor.putString("custom_wallpaper_file", draftCustomSelection.get(0).getAbsolutePath())
+                        .putBoolean("custom_wallpaper_enabled", true)
                         .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
                         .putBoolean("builtin_random_play", false);
             } else {
                 editor.putInt("builtin_wallpaper", draftTheme[0])
                         .putBoolean("builtin_random_play", draftRandom[0])
+                        .putBoolean("custom_wallpaper_enabled", false)
                         .putLong("builtin_wallpaper_changed", System.currentTimeMillis())
-                        .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                        .remove("custom_wallpaper_selected");
+                        .remove("custom_wallpaper_uri").remove("custom_wallpaper_file");
             }
             editor.putBoolean("hide_left_color_effect", true)
                     .putBoolean("left_color_effect_enabled", false).apply();
