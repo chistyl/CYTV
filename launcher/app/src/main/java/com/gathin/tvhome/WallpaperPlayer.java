@@ -198,6 +198,52 @@ final class WallpaperPlayer {
         return currentFile.isFile() ? currentFile.getAbsolutePath() : "";
     }
 
+    /** Immediately displays a gallery thumbnail selected from the TV remote. */
+    void selectCustomWallpaper(File selected) {
+        if (selected == null || !selected.isFile() || closed) return;
+        Context context = root.getContext();
+        List<File> gallery = CustomWallpaperLibrary.list(context);
+        if (!gallery.contains(selected)) return;
+        String mode = CustomWallpaperLibrary.mode(context);
+        CustomWallpaperLibrary.setSelected(context, gallery, mode);
+        loading = true;
+        decoder.execute(() -> {
+            Bitmap bitmap = decode(selected);
+            root.post(() -> {
+                loading = false;
+                if (closed) {
+                    if (bitmap != null) bitmap.recycle();
+                    return;
+                }
+                if (bitmap == null || !selected.isFile()) {
+                    if (bitmap != null) bitmap.recycle();
+                    recordDiagnostic(context, "手動選取圖片解碼失敗：" + selected.getName());
+                    return;
+                }
+                show(bitmap);
+                displayed = selected.getAbsolutePath();
+                preferences.edit()
+                        .putBoolean("custom_wallpaper_enabled", true)
+                        .putString("custom_wallpaper_file", displayed)
+                        .putString("custom_wallpaper_current", displayed)
+                        .putLong("custom_wallpaper_changed", System.currentTimeMillis())
+                        .remove("custom_wallpaper_uri")
+                        .remove("builtin_wallpaper")
+                        .apply();
+                showCaption(true);
+                recordDiagnostic(context, "手動選取圖片並立即顯示：" + selected.getName()
+                        + "；輪播模式=" + mode);
+                refreshCustomRotationTimer();
+            });
+        });
+    }
+
+    /** Restart the next slideshow deadline from the manually selected image. */
+    private void refreshCustomRotationTimer() {
+        rotationHandler.removeCallbacks(customRotationTick);
+        if (active && !closed) rotationHandler.postDelayed(customRotationTick, CUSTOM_WALLPAPER_INTERVAL_MS);
+    }
+
     private static String shortName(String path) {
         if (path == null || path.isEmpty()) return "（尚無）";
         return new File(path).getName();
