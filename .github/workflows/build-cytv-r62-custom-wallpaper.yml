@@ -65,7 +65,7 @@ jobs:
         with:
           name: CYTV-R72-Measured-Width-Wallpaper-Gallery-APK-and-Source
           path: |
-            release/CYTV-R70-wallpaper-gallery-debug.apk
-            release/CYTV-R70-wallpaper-gallery-source.zip
+            release/CYTV-R72-wallpaper-gallery-debug.apk
+            release/CYTV-R72-wallpaper-gallery-source.zip
           if-no-files-found: error
           retention-days: 30
