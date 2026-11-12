@@ -5,6 +5,7 @@ on:
     branches:
       - feature/all-wallpapers-auto-rotation-60s-r107
       - fix/wallpaper-gallery-no-tap-multiselect-r108
+      - fix/custom-wallpaper-single-tap-active-border-r110
       - fix/custom-wallpaper-fixed-thumbnail-border-r109
   pull_request:
     branches:
@@ -57,7 +58,7 @@ jobs:
         with:
           name: CYTV-R109-APK-and-Source
           path: |
-            release/CYTV-R107-debug.apk
-            release/CYTV-R107-source.zip
+            release/CYTV-R110-debug.apk
+            release/CYTV-R110-source.zip
           if-no-files-found: error
           retention-days: 30
