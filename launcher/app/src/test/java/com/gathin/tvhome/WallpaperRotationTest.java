@@ -81,6 +81,21 @@ public class WallpaperRotationTest {
     }
 
     @Test
+    public void rotationMatchesPreviousAbsolutePath() throws IOException {
+        File dir = Files.createTempDirectory("custom-walls").toFile();
+        File first = touch(dir, "a.jpg", 10);
+        File second = touch(dir, "b.jpg", 10);
+        List<File> images = Arrays.asList(first, second);
+
+        assertEquals(second, WallpaperRotation.next(images, first.getAbsolutePath()));
+        assertEquals(second, WallpaperRotation.find(images, second.getAbsolutePath()));
+        Random random = new Random(1);
+        for (int i = 0; i < 20; i++) {
+            assertEquals(second, WallpaperRotation.pick(images, first.getAbsolutePath(), random));
+        }
+    }
+
+    @Test
     public void findsTheFirstPictureWhenThePreviousOneIsGone() {
         List<File> images = Arrays.asList(new File("a.jpg"), new File("b.jpg"));
         assertEquals("a.jpg", WallpaperRotation.next(images, "deleted.jpg").getName());
