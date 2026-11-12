@@ -6032,6 +6032,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
         final int customColumns = 3;
         final List<View> customThumbnailItems = new ArrayList<>();
+        final List<File> customDeleteSelection = new ArrayList<>();
+        final TextView[] customDeleteAction = new TextView[1];
+        final Runnable refreshCustomDeleteAction = () -> {
+            if (customDeleteAction[0] != null) {
+                customDeleteAction[0].setAlpha(customDeleteSelection.isEmpty() ? 0.48f : 1f);
+                customDeleteAction[0].setText(customDeleteSelection.isEmpty() ? "刪除" : "刪除 (" + customDeleteSelection.size() + ")");
+            }
+        };
         if (customImages.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("尚未匯入圖片。可使用 QR Code 或「選擇圖片」新增。");
@@ -6070,7 +6078,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     boolean activeImage = customFile.getAbsolutePath().equals(activeCustom);
                     setWallpaperThumbnailBorder(imageView, activeImage, false);
                     tile.setOnFocusChangeListener((v, focused) -> setWallpaperThumbnailBorder(imageView,
-                            draftCustomSelection.contains(customFile), focused));
+                            customDeleteSelection.isEmpty() ? draftCustomSelection.contains(customFile)
+                                    : customDeleteSelection.contains(customFile), focused));
                     // Some Android TV launchers route OK/click to the child image rather than its card.
                     // Forward both touch and DPAD confirmation to the same selectable tile.
                     imageView.setOnClickListener(v -> tile.performClick());
@@ -6084,6 +6093,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return false;
                     });
                     tile.setOnClickListener(v -> {
+                        if (!customDeleteSelection.isEmpty()) {
+                            if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
+                            else customDeleteSelection.add(customFile);
+                            setWallpaperThumbnailBorder(imageView, customDeleteSelection.contains(customFile), tile.hasFocus());
+                            refreshCustomDeleteAction.run();
+                            return;
+                        }
                         String mode = draftCustomMode[0];
                         List<File> chosen = new ArrayList<>(draftCustomSelection);
                         if ("single".equals(mode)) {
@@ -6101,20 +6117,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         setWallpaperThumbnailBorder(imageView, chosen.contains(customFile), tile.hasFocus());
                     });
                     tile.setOnLongClickListener(v -> {
-                        new AlertDialog.Builder(this)
-                                .setTitle("刪除自訂圖片")
-                                .setMessage("確定要從自訂圖片庫刪除這張圖片嗎？")
-                                .setNegativeButton("取消", null)
-                                .setPositiveButton("刪除", (d, which) -> {
-                                    boolean wasActive = customFile.getAbsolutePath().equals(
-                                            wallpaperPrefs.getString("custom_wallpaper_file", ""));
-                                    CustomWallpaperLibrary.delete(this, customFile);
-                                    if (wasActive) wallpaperPrefs.edit().remove("custom_wallpaper_file").apply();
-                                    // Refresh the live wallpaper player now; do not wait for the next minute tick.
-                                    if (wallpaperPlayer != null) wallpaperPlayer.update();
-                                    dialog.dismiss();
-                                    showWallpaperPicker();
-                                }).show();
+                        if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
+                        setWallpaperThumbnailBorder(imageView, true, true);
+                        refreshCustomDeleteAction.run();
+                        Toast.makeText(this, "已進入多選模式，可繼續點選其他圖片", Toast.LENGTH_SHORT).show();
                         return true;
                     });
                     LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(thumbnailWidth,
@@ -6232,6 +6238,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout editActions = new LinearLayout(this);
         editActions.setOrientation(LinearLayout.HORIZONTAL);
         editActions.setGravity(Gravity.CENTER_HORIZONTAL);
+        TextView deleteAction = addRoundedAction(editActions, "刪除", () -> {
+            if (customDeleteSelection.isEmpty()) {
+                Toast.makeText(this, "請先長按縮圖並選取要刪除的圖片", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            List<File> targets = new ArrayList<>(customDeleteSelection);
+            new AlertDialog.Builder(this)
+                    .setTitle("刪除自訂圖片")
+                    .setMessage("確定刪除已選取的 " + targets.size() + " 張圖片嗎？此操作無法復原。")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("刪除", (d, which) -> {
+                        String activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
+                        boolean activeDeleted = false;
+                        for (File target : targets) {
+                            if (target.getAbsolutePath().equals(activePath)) activeDeleted = true;
+                            CustomWallpaperLibrary.delete(this, target);
+                            draftCustomSelection.remove(target);
+                        }
+                        if (activeDeleted) wallpaperPrefs.edit().remove("custom_wallpaper_file")
+                                .remove("custom_wallpaper_changed").apply();
+                        draftCustomActive[0] = !draftCustomSelection.isEmpty();
+                        persistWallpaperDraft.run();
+                        if (wallpaperPlayer != null) wallpaperPlayer.update();
+                        clearWallpaperDraft.run();
+                        dialog.dismiss();
+                        showWallpaperPicker();
+                    }).show();
+        });
+        customDeleteAction[0] = deleteAction;
+        refreshCustomDeleteAction.run();
         TextView cancelAction = addRoundedAction(editActions, "取消", () -> { clearWallpaperDraft.run(); dialog.dismiss(); });
         TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
             CustomWallpaperLibrary.setSelected(this, draftCustomSelection, draftCustomMode[0]);
@@ -6255,11 +6291,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
         });
         for (TextView action : new TextView[]{cancelAction, saveAction}) {
-            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(150*density), (int)(44*density));
-            actionLp.leftMargin = (int)(8*density);
-            actionLp.rightMargin = (int)(8*density);
+            LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(140*density), (int)(44*density));
+            actionLp.leftMargin = (int)(6*density);
+            actionLp.rightMargin = (int)(6*density);
             action.setLayoutParams(actionLp);
         }
+        LinearLayout.LayoutParams deleteActionLp = new LinearLayout.LayoutParams((int)(112*density), (int)(44*density));
+        deleteActionLp.leftMargin = (int)(6*density);
+        deleteActionLp.rightMargin = (int)(6*density);
+        deleteAction.setLayoutParams(deleteActionLp);
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         editActionsLp.topMargin = (int)(24 * density);
         editActionsLp.bottomMargin = (int)(38 * density);
@@ -6274,10 +6314,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(resetAction.getId());
         resetAction.setNextFocusUpId(chooseAction.getId());
-        resetAction.setNextFocusDownId(cancelAction.getId());
+        resetAction.setNextFocusDownId(deleteAction.getId());
+        deleteAction.setId(View.generateViewId());
         cancelAction.setId(View.generateViewId());
         saveAction.setId(View.generateViewId());
+        deleteAction.setNextFocusUpId(resetAction.getId());
+        deleteAction.setNextFocusRightId(cancelAction.getId());
+        deleteAction.setNextFocusDownId(deleteAction.getId());
         cancelAction.setNextFocusUpId(resetAction.getId());
+        cancelAction.setNextFocusLeftId(deleteAction.getId());
         cancelAction.setNextFocusRightId(saveAction.getId());
         cancelAction.setNextFocusDownId(cancelAction.getId());
         saveAction.setNextFocusLeftId(cancelAction.getId());
@@ -6285,7 +6330,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         saveAction.setNextFocusDownId(saveAction.getId());
         // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
         customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
-                ? cancelAction.getId() : customThumbnailItems.get(0).getId());
+                ? deleteAction.getId() : customThumbnailItems.get(0).getId());
         for (int i = 0; i < customThumbnailItems.size(); i++) {
             View tile = customThumbnailItems.get(i);
             int col = i % customColumns;
