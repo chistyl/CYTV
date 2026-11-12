@@ -69,8 +69,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R89
+      - name: Checkout R94
         uses: actions/checkout@v4
+        with:
+          ref: fix/custom-wallpaper-selection-frame-r94
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -100,7 +102,7 @@ jobs:
         with:
           name: CYTV-R94-APK-and-Source
           path: |
-            release/CYTV-R93-debug.apk
-            release/CYTV-R93-source.zip
+            release/CYTV-R94-debug.apk
+            release/CYTV-R94-source.zip
           if-no-files-found: error
           retention-days: 30
