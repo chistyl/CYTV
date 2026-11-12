@@ -70,7 +70,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R96
+      - name: Checkout R97
         uses: actions/checkout@v4
         with:
           ref: fix/folder-delete-dialog-match-category-r97
@@ -103,7 +103,7 @@ jobs:
         with:
           name: CYTV-R97-APK-and-Source
           path: |
-            release/CYTV-R96-debug.apk
-            release/CYTV-R96-source.zip
+            release/CYTV-R97-debug.apk
+            release/CYTV-R97-source.zip
           if-no-files-found: error
           retention-days: 30
