@@ -1,4 +1,4 @@
-name: CYTV R112 Wallpaper Mode and Current Thumbnail Fix
+name: CYTV R113 Custom Wallpaper Thumbnail Selection Fix
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - fix/wallpaper-mode-persistence-and-rotation-r110
       - fix/wallpaper-mode-and-current-thumbnail-r111
       - fix/custom-wallpaper-active-border-from-player-r112
+      - fix/custom-wallpaper-active-border-from-player-r112
+      - fix/custom-wallpaper-thumbnail-select-r113
       - fix/wallpaper-gallery-no-tap-multiselect-r108
   pull_request:
     branches:
@@ -20,14 +22,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r111-wallpaper-mode-${{ github.ref }}
+  group: cytv-r113-custom-wallpaper-select-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R112
+      - name: Checkout R113
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -49,8 +51,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R112-debug.apk
-          zip -r release/CYTV-R112-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R113-debug.apk
+          zip -r release/CYTV-R113-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -58,7 +60,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R112-APK-and-Source
+          name: CYTV-R113-APK-and-Source
           path: |
             release/CYTV-R112-debug.apk
             release/CYTV-R112-source.zip
