@@ -67,6 +67,18 @@ public class WallpaperRotationTest {
     }
 
     @Test
+    public void customModesAreValidatedAndRecognized() {
+        assertTrue(WallpaperRotation.validMode("single"));
+        assertTrue(WallpaperRotation.validMode("sequential"));
+        assertTrue(WallpaperRotation.validMode("random"));
+        assertFalse(WallpaperRotation.validMode("unknown"));
+        assertTrue(WallpaperRotation.isSequential("sequential"));
+        assertTrue(WallpaperRotation.isSequential("依序播放"));
+        assertTrue(WallpaperRotation.isRandom("random"));
+        assertTrue(WallpaperRotation.isRandom("shuffle"));
+    }
+
+    @Test
     public void pickUsesTheRequestedOrder() {
         List<File> images = Arrays.asList(new File("a.jpg"), new File("b.jpg"), new File("c.jpg"));
         Random random = new Random(1);
