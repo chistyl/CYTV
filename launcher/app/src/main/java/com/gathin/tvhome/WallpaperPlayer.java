@@ -66,7 +66,7 @@ final class WallpaperPlayer {
     /** Uses a persisted deadline so standby/Home lifecycle restarts do not reset the 30-minute interval. */
     private boolean rotateBuiltinWallpaper(boolean force) {
         if (customWallpaperEnabled()) {
-            
+
             return false;
         }
         int currentTheme = preferences.getInt("builtin_wallpaper", 0);
@@ -87,7 +87,7 @@ final class WallpaperPlayer {
         displayed = "builtin_" + nextTheme;
         preferences.edit().putInt("builtin_wallpaper", nextTheme)
                 .putLong("builtin_wallpaper_changed", now).apply();
-        
+
         return true;
     }
     /** Dedicated custom-gallery clock; independent of Home's general minute refresh. */
@@ -95,11 +95,11 @@ final class WallpaperPlayer {
         @Override public void run() {
             if (!active || closed) {
                 Log.w("TvHome.Wallpaper", "R102 custom tick skipped: active=" + active + ", closed=" + closed);
-                
+
                 return;
             }
             Log.i("TvHome.Wallpaper", "R102 custom 60s tick; displayed=" + displayed);
-            
+
             update(true);
             if (active && !closed) {
                 rotationHandler.postDelayed(this, CUSTOM_WALLPAPER_INTERVAL_MS);
@@ -168,6 +168,60 @@ final class WallpaperPlayer {
         }
     }
 
+    /** Returns the path of the custom image actually rendered on Home, not merely the saved preference. */
+    String currentCustomWallpaperPath() {
+        if (displayed == null || displayed.isEmpty()) return "";
+        File currentFile = new File(displayed);
+        return currentFile.isFile() ? currentFile.getAbsolutePath() : "";
+    }
+
+    /** Immediately displays a gallery thumbnail selected from the TV remote. */
+    void selectCustomWallpaper(File selected, Runnable onApplied) {
+        if (selected == null || !selected.isFile() || closed) return;
+        Context context = root.getContext();
+        List<File> gallery = CustomWallpaperLibrary.list(context);
+        if (!gallery.contains(selected)) return;
+        String mode = CustomWallpaperLibrary.mode(context);
+        CustomWallpaperLibrary.setSelected(context, gallery, mode);
+        loading = true;
+        decoder.execute(() -> {
+            Bitmap bitmap = decode(selected);
+            root.post(() -> {
+                loading = false;
+                if (closed) {
+                    if (bitmap != null) bitmap.recycle();
+                    return;
+                }
+                if (bitmap == null || !selected.isFile()) {
+                    if (bitmap != null) bitmap.recycle();
+                    recordDiagnostic(context, "手動選取圖片解碼失敗：" + selected.getName());
+                    return;
+                }
+                show(bitmap);
+                displayed = selected.getAbsolutePath();
+                preferences.edit()
+                        .putBoolean("custom_wallpaper_enabled", true)
+                        .putString("custom_wallpaper_file", displayed)
+                        .putString("custom_wallpaper_current", displayed)
+                        .putLong("custom_wallpaper_changed", System.currentTimeMillis())
+                        .remove("custom_wallpaper_uri")
+                        .remove("builtin_wallpaper")
+                        .apply();
+                showCaption(true);
+                recordDiagnostic(context, "手動選取圖片並立即顯示：" + selected.getName()
+                        + "；輪播模式=" + mode);
+                refreshCustomRotationTimer();
+                if (onApplied != null) onApplied.run();
+            });
+        });
+    }
+
+    /** Restart the next slideshow deadline from the manually selected image. */
+    private void refreshCustomRotationTimer() {
+        rotationHandler.removeCallbacks(customRotationTick);
+        if (active && !closed) rotationHandler.postDelayed(customRotationTick, CUSTOM_WALLPAPER_INTERVAL_MS);
+    }
+
     /**
      * The picture Home opens with is decoded right here, on the main thread, as the single wallpaper always was:
      * Home's first frame already has it instead of drawing the plain colour and the picture popping in later.
@@ -180,7 +234,7 @@ final class WallpaperPlayer {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
             Log.i("TvHome.Wallpaper", "R102 initial custom selection; count=" + customSelection.size()
                     + ", mode=" + mode + ", displayed=" + displayed);
-            
+
             String previousCustom = preferences.getString("custom_wallpaper_current", "");
             File selected = WallpaperRotation.find(customSelection, previousCustom);
             if (selected == null) selected = customSelection.get(0);
@@ -191,7 +245,7 @@ final class WallpaperPlayer {
             if (customBitmap != null) {
                 show(customBitmap);
                 displayed = selected.getAbsolutePath();
-                
+
                 preferences.edit().putString("custom_wallpaper_current", displayed)
                         .putLong("custom_wallpaper_changed", System.currentTimeMillis()).apply();
                 showCaption(false);
@@ -295,7 +349,7 @@ final class WallpaperPlayer {
         active = true;
         Log.i("TvHome.Wallpaper", "R102 start; selected=" + CustomWallpaperLibrary.selected(root.getContext()).size()
                 + ", mode=" + CustomWallpaperLibrary.mode(root.getContext()) + ", displayed=" + displayed);
-        
+
         rotationHandler.removeCallbacks(builtinRandomTick);
         // Poll a shared persisted deadline: returning from standby no longer restarts a fresh 30-minute wait.
         rotationHandler.postDelayed(builtinRandomTick, ROTATION_POLL_INTERVAL_MS);
@@ -306,7 +360,7 @@ final class WallpaperPlayer {
 
     void stop() {
         Log.i("TvHome.Wallpaper", "R102 stop; displayed=" + displayed);
-        
+
         active = false;
         rotationHandler.removeCallbacks(builtinRandomTick);
         rotationHandler.removeCallbacks(customRotationTick);
@@ -339,12 +393,12 @@ final class WallpaperPlayer {
     private void update(boolean forceCustomRotation) {
         if (!active || closed) {
             Log.w("TvHome.Wallpaper", "R102 update skipped: active=" + active + ", closed=" + closed);
-            
+
             return;
         }
         if (loading) {
             Log.w("TvHome.Wallpaper", "R102 update skipped: image decode still loading; force=" + forceCustomRotation);
-            
+
             return;
         }
         List<File> customSelection = customWallpaperEnabled()
@@ -362,7 +416,7 @@ final class WallpaperPlayer {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
             Log.i("TvHome.Wallpaper", "R102 custom update; count=" + customSelection.size()
                     + ", mode=" + mode + ", force=" + forceCustomRotation + ", displayed=" + displayed);
-            
+
             String previousCustom = preferences.getString("custom_wallpaper_current", "");
             // The current-image preference stores an absolute path, while WallpaperRotation.find()
             // compares basenames. Compare absolute paths here, and fall back to the displayed path
@@ -381,7 +435,7 @@ final class WallpaperPlayer {
             // A deleted current image must be replaced immediately, including single-image mode.
             // Otherwise the old bitmap remains on screen until Home is recreated.
             if (!currentWasDeleted && ("single".equals(mode) || customSelection.size() < 2)) {
-                
+
                 return;
             }
             long changed = preferences.getLong("custom_wallpaper_changed", 0);
@@ -397,12 +451,12 @@ final class WallpaperPlayer {
             }
             if (nextCustom == null || nextCustom.getAbsolutePath().equals(displayed)) {
                 Log.w("TvHome.Wallpaper", "R102 no next custom image; next=" + nextCustom + ", displayed=" + displayed);
-                
+
                 return;
             }
             File targetCustom = nextCustom;
             Log.i("TvHome.Wallpaper", "R102 decoding next custom image=" + targetCustom.getAbsolutePath());
-            
+
             loading = true;
             decoder.execute(() -> {
                 Bitmap bitmap = decode(targetCustom);
@@ -411,11 +465,11 @@ final class WallpaperPlayer {
                     if (closed || !active) { if (bitmap != null) bitmap.recycle(); return; }
                     if (bitmap == null) {
                         Log.e("TvHome.Wallpaper", "R102 custom image decode failed: " + targetCustom);
-                        
+
                         return;
                     }
                     Log.i("TvHome.Wallpaper", "R102 custom image decoded and displayed: " + targetCustom);
-                    
+
                     show(bitmap);
                     displayed = targetCustom.getAbsolutePath();
                     preferences.edit().putString("custom_wallpaper_current", displayed)
