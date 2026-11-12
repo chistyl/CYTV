@@ -1,4 +1,4 @@
-name: CYTV R90 Wi-Fi Label Retained
+name: CYTV R91 Wi-Fi Label Visible with VPN
 
 on:
   push:
@@ -24,6 +24,7 @@ on:
       - fix/wallpaper-page-bottom-inset-15dp-r88
       - fix/topbar-input-wifi-icon-only-r89
       - fix/wifi-label-retained-r90
+      - fix/wifi-label-visible-with-vpn-r91
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -57,7 +58,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r90-wifi-label-retained-${{ github.ref }}
+  group: cytv-r91-wifi-label-visible-vpn-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -84,8 +85,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R90-debug.apk
-          zip -r release/CYTV-R90-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R91-debug.apk
+          zip -r release/CYTV-R91-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -93,9 +94,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R90-APK-and-Source
+          name: CYTV-R91-APK-and-Source
           path: |
-            release/CYTV-R90-debug.apk
-            release/CYTV-R90-source.zip
+            release/CYTV-R91-debug.apk
+            release/CYTV-R91-source.zip
           if-no-files-found: error
           retention-days: 30
