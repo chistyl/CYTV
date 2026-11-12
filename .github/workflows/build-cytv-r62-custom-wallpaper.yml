@@ -1,4 +1,4 @@
-name: CYTV R92 VPN Foreground Startup Crash Fix
+name: CYTV R93 Home App Hide Refresh Fix
 
 on:
   push:
@@ -26,6 +26,7 @@ on:
       - fix/wifi-label-retained-r90
       - fix/wifi-label-visible-with-vpn-r91
       - fix/vpn-foreground-startup-crash-r92
+      - fix/home-app-hide-refresh-r93
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -53,13 +54,14 @@ on:
       - fix/wallpaper-file-picker-return-r86
       - fix/wallpaper-bottom-actions-margin-15dp-r87
       - fix/wallpaper-page-bottom-inset-15dp-r89
+      - fix/vpn-foreground-startup-crash-r92
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r92-vpn-foreground-startup-${{ github.ref }}
+  group: cytv-r93-home-app-hide-refresh-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -86,8 +88,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R92-debug.apk
-          zip -r release/CYTV-R92-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R93-debug.apk
+          zip -r release/CYTV-R93-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -95,9 +97,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R92-APK-and-Source
+          name: CYTV-R93-APK-and-Source
           path: |
-            release/CYTV-R92-debug.apk
-            release/CYTV-R92-source.zip
+            release/CYTV-R93-debug.apk
+            release/CYTV-R93-source.zip
           if-no-files-found: error
           retention-days: 30
