@@ -5799,8 +5799,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
             if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
             modeButton.setLayoutParams(modeLp);
+            modeButton.setNextFocusDownId(defaultHeading.getId());
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
@@ -5811,6 +5813,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setFocusable(true);
         defaultHeading.setFocusableInTouchMode(true);
         defaultHeading.setClickable(true);
+        defaultHeading.setDefaultFocusHighlightEnabled(false);
+        defaultHeading.setId(View.generateViewId());
+        defaultHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(focused ? 0xFF203846 : Color.TRANSPARENT);
+            focusBg.setCornerRadius(10 * density);
+            if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80CBC4);
+            v.setBackground(focusBg);
+            v.setPadding((int)(8*density), (int)(12*density), (int)(8*density), (int)(8*density));
+        });
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
@@ -6237,7 +6249,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(modeRow.getChildAt(col).getId());
+            if (row == 0) tile.setNextFocusUpId(defaultHeading.getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
