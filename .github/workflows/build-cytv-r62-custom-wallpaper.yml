@@ -1,4 +1,4 @@
-name: CYTV R91 Wi-Fi Label Visible with VPN
+name: CYTV R92 VPN Foreground Startup Crash Fix
 
 on:
   push:
@@ -25,6 +25,7 @@ on:
       - fix/topbar-input-wifi-icon-only-r89
       - fix/wifi-label-retained-r90
       - fix/wifi-label-visible-with-vpn-r91
+      - fix/vpn-foreground-startup-crash-r92
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -58,7 +59,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r91-wifi-label-visible-vpn-${{ github.ref }}
+  group: cytv-r92-vpn-foreground-startup-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -85,8 +86,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R91-debug.apk
-          zip -r release/CYTV-R91-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R92-debug.apk
+          zip -r release/CYTV-R92-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -94,9 +95,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R91-APK-and-Source
+          name: CYTV-R92-APK-and-Source
           path: |
-            release/CYTV-R91-debug.apk
-            release/CYTV-R91-source.zip
+            release/CYTV-R92-debug.apk
+            release/CYTV-R92-source.zip
           if-no-files-found: error
           retention-days: 30
