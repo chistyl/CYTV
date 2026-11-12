@@ -83,9 +83,18 @@ final class WallpaperRotation {
         return images.get(0);
     }
 
+    /** Picks the next picture for {@code order}; accept persisted labels as well as stable keys. */
+    static boolean isSequential(String order) {
+        if (order == null) return false;
+        String value = order.trim().toLowerCase(Locale.ROOT);
+        return ORDER_SEQUENTIAL.equals(value) || "order".equals(value)
+                || "ordered".equals(value) || "依序播放".equals(value)
+                || "順序播放".equals(value) || "顺序播放".equals(value);
+    }
+
     /** Picks the next picture for {@code order}; an unknown order keeps the historical shuffle. */
     static File pick(List<File> images, String previous, String order, Random random) {
-        return ORDER_SEQUENTIAL.equals(order) ? next(images, previous) : pick(images, previous, random);
+        return isSequential(order) ? next(images, previous) : pick(images, previous, random);
     }
 
     static boolean due(long previous, long now, long interval) {
