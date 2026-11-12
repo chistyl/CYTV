@@ -1,4 +1,5 @@
 name: CYTV R113 Custom Wallpaper Thumbnail Selection Fix
+# R113 CI retrigger: validate thumbnail selection and source packaging.
 
 on:
   push:
