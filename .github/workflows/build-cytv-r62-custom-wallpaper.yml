@@ -12,6 +12,7 @@ on:
       - fix/wallpaper-gallery-measured-grid-r72
       - fix/qr-dialog-restore-folder-style-r73
       - fix/wallpaper-spacing-dpad-focus-r76
+      - fix/custom-wallpaper-multiselect-delete-r76
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -25,6 +26,7 @@ on:
       - fix/wallpaper-gallery-measured-grid-r72
       - fix/qr-dialog-restore-folder-style-r73
       - fix/wallpaper-spacing-dpad-focus-r74
+      - fix/qr-dialog-backdrop-blur-r75
   workflow_dispatch:
 
 permissions:
