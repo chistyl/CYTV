@@ -5811,6 +5811,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setFocusable(true);
         defaultHeading.setFocusableInTouchMode(true);
         defaultHeading.setClickable(true);
+        defaultHeading.setDefaultFocusHighlightEnabled(false);
+        defaultHeading.setId(View.generateViewId());
+        defaultHeading.setBackgroundColor(Color.TRANSPARENT);
+        defaultHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(focused ? 0xFF263243 : Color.TRANSPARENT);
+            focusBg.setCornerRadius(10 * density);
+            if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
+            v.setBackground(focusBg);
+        });
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
@@ -5819,8 +5829,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             defaultHeading.setText("◉  預設圖片");
         });
         panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, -2));
-
-
+        // Explicit DPAD path: mode selector -> default heading -> first preset tile.
+        for (int i = 0; i < modeRow.getChildCount(); i++) {
+            modeRow.getChildAt(i).setNextFocusDownId(defaultHeading.getId());
+        }
+        defaultHeading.setNextFocusUpId(modeRow.getChildAt(modeRow.getChildCount() - 1).getId());
+        defaultHeading.setNextFocusDownId(thumbnailItems[0].getId());
+        thumbnailItems[0].setNextFocusUpId(defaultHeading.getId());
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(false);
@@ -5949,7 +5964,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, thumbnailHeight));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(10*density)));
             }
         }
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
@@ -5988,10 +6003,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
-        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        // More separation between the Custom Images heading and its thumbnail grid.
+        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(18*density));
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
         customHeading.setClickable(true);
+        customHeading.setDefaultFocusHighlightEnabled(false);
+        customHeading.setId(View.generateViewId());
+        customHeading.setBackgroundColor(Color.TRANSPARENT);
+        customHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(focused ? 0xFF263243 : Color.TRANSPARENT);
+            focusBg.setCornerRadius(10 * density);
+            if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
+            v.setBackground(focusBg);
+        });
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
@@ -6008,24 +6034,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         customHeading.setOnKeyListener((v, keyCode, event) -> {
-            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                v.performClick();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
+                    v.performClick();
                 return true;
             }
             return false;
         });
         defaultHeading.setOnKeyListener((v, keyCode, event) -> {
-            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                v.performClick();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
+                    v.performClick();
                 return true;
             }
             return false;
         });
         choices.addView(customHeading, new LinearLayout.LayoutParams(-1, -2));
+        List<View> customTileViews = new ArrayList<>();
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
@@ -6053,6 +6080,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setForeground(new ColorDrawable(Color.TRANSPARENT));
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     tile.setId(View.generateViewId());
+                    customTileViews.add(tile);
                     ImageView imageView = new ImageView(this);
                     imageView.setFocusable(false);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -6132,7 +6160,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
-                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                    // Keep custom-image rows visually separated for TV viewing.
+                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(10*density)));
                 }
             }
         }
@@ -6142,6 +6171,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
+        // Explicit DPAD navigation for the custom-image heading and its 3-column grid.
+        customHeading.setNextFocusUpId(resetAction.getId());
+        resetAction.setNextFocusDownId(customHeading.getId());
+        if (!customTileViews.isEmpty()) {
+            customHeading.setNextFocusDownId(customTileViews.get(0).getId());
+            customTileViews.get(0).setNextFocusUpId(customHeading.getId());
+            for (int i = 0; i < customTileViews.size(); i++) {
+                View tile = customTileViews.get(i);
+                int col = i % 3;
+                int row = i / 3;
+                if (col > 0) tile.setNextFocusLeftId(customTileViews.get(i - 1).getId());
+                if (col < 2 && i + 1 < customTileViews.size())
+                    tile.setNextFocusRightId(customTileViews.get(i + 1).getId());
+                if (row > 0) tile.setNextFocusUpId(customTileViews.get(i - 3).getId());
+                if (i + 3 < customTileViews.size())
+                    tile.setNextFocusDownId(customTileViews.get(i + 3).getId());
+                else tile.setNextFocusDownId(tile.getId());
+            }
+        } else {
+            customHeading.setNextFocusDownId(qrAction.getId());
+        }
         // Use the gallery's measured viewport width, not displayMetrics. The picker is
         // hosted inside a nested full-screen page whose real content width can differ
         // from the physical screen width (TV overscan, page insets and max-width cap).
@@ -6211,7 +6261,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(modeRow.getChildAt(col).getId());
+            if (row == 0) tile.setNextFocusUpId(defaultHeading.getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
@@ -6258,8 +6308,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.setLayoutParams(actionLp);
         }
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        editActionsLp.topMargin = (int)(14 * density);
-        editActionsLp.bottomMargin = (int)(28 * density);
+        // Give the Cancel/Save row more breathing room above and below.
+        editActionsLp.topMargin = (int)(24 * density);
+        editActionsLp.bottomMargin = (int)(38 * density);
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
