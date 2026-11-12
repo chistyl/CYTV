@@ -1,0 +1,59 @@
+name: CYTV R103 On-device Wallpaper Diagnostics
+
+on:
+  push:
+    branches:
+      - fix/custom-wallpaper-ondevice-diagnostics-r103
+  pull_request:
+    branches:
+      - fix/custom-wallpaper-rotation-retry-r102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cytv-r103-ondevice-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout R103
+        uses: actions/checkout@v4
+        with:
+          ref: fix/custom-wallpaper-ondevice-diagnostics-r103
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Run unit tests
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+      - name: Build debug APK
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Package APK and complete source ZIP
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R103-debug.apk
+          zip -r release/CYTV-R103-source.zip . \
+            -x '.git/*' '*/.git/*' \
+               '*/build/*' '*/.gradle/*' \
+               'release/*' '*/local.properties' \
+               '*/.idea/*'
+      - name: Upload APK and source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R103-APK-and-Source
+          path: |
+            release/CYTV-R103-debug.apk
+            release/CYTV-R103-source.zip
+          if-no-files-found: error
+          retention-days: 30
