@@ -5793,6 +5793,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
                 : (!wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty() || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty())};
         final String[] draftCustomMode = {hasWallpaperDraft ? wallpaperPrefs.getString("wallpaper_draft_custom_mode", CustomWallpaperLibrary.mode(this)) : CustomWallpaperLibrary.mode(this)};
+        // R116: random is the default; migrate the retired sequential choice to random while preserving single-image mode.
+        if (!"single".equals(draftCustomMode[0]) && !"random".equals(draftCustomMode[0])) draftCustomMode[0] = "random";
         final List<File> draftCustomSelection = new ArrayList<>();
         if (hasWallpaperDraft) {
             for (String path : wallpaperPrefs.getStringSet("wallpaper_draft_custom_selection", new java.util.HashSet<>())) {
@@ -5814,8 +5816,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
                 .remove("wallpaper_draft_custom_selection").apply();
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
-        String[] customModes = {"single", "sequential", "random"};
-        String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
+        String[] customModes = {"single", "random"};
+        String[] customModeLabels = {"單一圖片", "隨機播放"};
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         final TextView[] modeButtons = new TextView[customModes.length];
@@ -6423,7 +6425,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear();
                 draftCustomSelection.addAll(allCustomWallpapers);
             }
-            String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "single";
+            String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "random";
             CustomWallpaperLibrary.setSelected(this, draftCustomSelection, savedCustomMode);
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {

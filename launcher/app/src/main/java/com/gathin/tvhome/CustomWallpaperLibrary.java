@@ -138,7 +138,7 @@ final class CustomWallpaperLibrary {
 
     static String mode(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString("custom_wallpaper_mode", "single");
+                .getString("custom_wallpaper_mode", "random");
     }
 
     private static void save(Context context, List<File> files) {

@@ -1,0 +1,73 @@
+name: CYTV R116 Random Wallpaper Default
+# R116 CI: validate random default mode, hidden sequential option, wallpaper playback, and source packaging.
+
+on:
+  push:
+    branches:
+      - feature/all-wallpapers-auto-rotation-60s-r107
+      - fix/wallpaper-mode-persistence-and-rotation-r110
+      - fix/wallpaper-mode-and-current-thumbnail-r111
+      - fix/custom-wallpaper-active-border-from-player-r112
+      - fix/wallpaper-heading-labels-r114
+      - fix/wallpaper-random-default-hide-sequential-r116
+      - fix/wallpaper-gallery-no-tap-multiselect-r108
+  pull_request:
+    branches:
+      - fix/custom-wallpaper-selection-persistence-r106
+      - feature/all-wallpapers-auto-rotation-60s-r107
+      - fix/wallpaper-mode-persistence-and-rotation-r110
+      - fix/wallpaper-mode-and-current-thumbnail-r111
+      - fix/custom-wallpaper-active-border-from-player-r112
+      - fix/custom-wallpaper-thumbnail-select-r113
+      - fix/remove-wallpaper-diagnostics-r115
+      - fix/wallpaper-random-default-hide-sequential-r116
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cytv-r116-wallpaper-random-default-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout R116
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Run unit tests
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+      - name: Build debug APK
+        working-directory: launcher
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+      - name: Package APK and complete source ZIP
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R116-debug.apk
+          zip -r release/CYTV-R116-source.zip . \
+            -x '.git/*' '*/.git/*' \
+               '*/build/*' '*/.gradle/*' \
+               'release/*' '*/local.properties' \
+               '*/.idea/*'
+      - name: Upload APK and source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R116-APK-and-Source
+          path: |
+            release/CYTV-R116-debug.apk
+            release/CYTV-R116-source.zip
+          if-no-files-found: error
+          retention-days: 30
