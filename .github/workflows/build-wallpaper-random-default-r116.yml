@@ -1,5 +1,5 @@
-name: CYTV R116 Remove Wallpaper Diagnostics
-# R116 CI: validate diagnostic cleanup, wallpaper playback, and source packaging.
+name: CYTV R116 Random Wallpaper Default
+# R116 CI: validate random default mode, hidden sequential option, wallpaper playback, and source packaging.
 
 on:
   push:
