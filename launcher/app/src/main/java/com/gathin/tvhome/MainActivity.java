@@ -5991,10 +5991,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
             }
         }
+        final TextView[] qrActionRef = new TextView[1];
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
-            dialog.dismiss();
-            showQrWallpaperTransferDialog();
+            // 保留「影像設定」頁面在下層；QR 視窗關閉或完成上傳後直接回到此頁。
+            showQrWallpaperTransferDialog(dialog, qrActionRef[0]);
         });
+        qrActionRef[0] = qrAction;
         TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -6592,7 +6594,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         return drawable;
     }
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳多張圖片至自訂圖片庫。 */
-    private void showQrWallpaperTransferDialog() {
+    private void showQrWallpaperTransferDialog(Dialog settingsDialog, View returnFocus) {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -6630,12 +6632,10 @@ private GradientDrawable roundSurface(int color, float radius) {
         final int[] qrImportedCount = {0};
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-1, (int)(46*density));
         closeLp.topMargin = (int)(12*density); panel.addView(close, closeLp);
-        close.setOnClickListener(v -> {
-            dialog.dismiss();
-            if (qrImportedCount[0] > 0) showWallpaperPicker();
-        });
+        close.setOnClickListener(v -> dialog.dismiss());
 
-        LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
+        LocalWallpaperServer server = new LocalWallpaperServer(this, new LocalWallpaperServer.Listener() {
+            @Override public void onUploaded(Uri uri) {
             if (isFinishing() || isDestroyed()) return;
             // Import every phone upload into the shared gallery; keep the QR page open for the remaining photos.
             File received = uri == null || uri.getPath() == null ? null : new File(uri.getPath());
@@ -6655,6 +6655,16 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
             qrImportedCount[0]++;
             Toast.makeText(this, "已匯入第 " + qrImportedCount[0] + " 張照片；目前桌布不變。", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override public void onBatchComplete() {
+                if (isFinishing() || isDestroyed() || !dialog.isShowing()) return;
+                Toast.makeText(MainActivity.this,
+                        "照片上傳完成，成功匯入 " + qrImportedCount[0] + " 張；目前桌布不變。",
+                        Toast.LENGTH_LONG).show();
+                // 完成整批上傳後關閉 QR 視窗；下層的影像設定頁仍保持原狀。
+                dialog.dismiss();
+            }
         });
         server.start();
         String url = server.getUrl();
@@ -6669,24 +6679,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         } catch (WriterException e) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
-        // Capture the desktop only after the QR dialog has been attached. This avoids
-        // taking a snapshot during the wallpaper-picker dismissal transition, when the
-        // old dialog/backdrop may still be in the activity decor.
-        final ImageView[] backdropBlur = {null};
-        final boolean[] backdropDismissed = {false};
+        // 保留「影像設定」Dialog 在下層，QR 視窗只使用標準 60% 暗色遮罩。
+        // 不再從 Activity decor 擷取桌面快照，避免把桌面背景錯誤覆蓋在影像設定頁上。
         dialog.setOnDismissListener(d -> {
-            backdropDismissed[0] = true;
             server.stopServer();
-            ImageView blurView = backdropBlur[0];
-            if (blurView != null) {
-                ViewParent parent = blurView.getParent();
-                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(blurView);
-                Drawable image = blurView.getDrawable();
-                if (image instanceof android.graphics.drawable.BitmapDrawable) {
-                    Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
-                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                }
-                backdropBlur[0] = null;
+            if (settingsDialog != null && settingsDialog.isShowing() && returnFocus != null) {
+                returnFocus.post(() -> {
+                    if (settingsDialog.isShowing()) returnFocus.requestFocus();
+                });
             }
         });
         CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
@@ -6700,12 +6700,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
             dialog.getWindow().setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
-        View decor = getWindow() != null ? getWindow().getDecorView() : null;
-        if (decor != null) decor.post(() -> {
-            if (!backdropDismissed[0] && dialog.isShowing()) {
-                backdropBlur[0] = installFolderBackdropBlur();
-            }
-        });
+        // 關閉 QR 視窗後由 OnDismissListener 將焦點還給原本的 QR 按鈕。
         close.requestFocus();
     }
 
