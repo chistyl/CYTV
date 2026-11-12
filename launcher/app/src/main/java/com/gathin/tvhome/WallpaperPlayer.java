@@ -70,6 +70,16 @@ final class WallpaperPlayer {
             rotationHandler.postDelayed(this, BUILTIN_RANDOM_INTERVAL_MS);
         }
     };
+    /** Dedicated custom-gallery clock; independent of Home's general minute refresh. */
+    private final Runnable customRotationTick = new Runnable() {
+        @Override public void run() {
+            if (!active || closed) return;
+            update();
+            if (active && !closed) {
+                rotationHandler.postDelayed(this, CUSTOM_WALLPAPER_INTERVAL_MS);
+            }
+        }
+    };
     private final int width;
     /** config wallpaper_true_color: ARGB_8888 instead of RGB_565. */
     private final Bitmap.Config bitmapConfig;
@@ -251,12 +261,15 @@ final class WallpaperPlayer {
         active = true;
         rotationHandler.removeCallbacks(builtinRandomTick);
         rotationHandler.postDelayed(builtinRandomTick, BUILTIN_RANDOM_INTERVAL_MS);
+        rotationHandler.removeCallbacks(customRotationTick);
+        rotationHandler.postDelayed(customRotationTick, CUSTOM_WALLPAPER_INTERVAL_MS);
         update();
     }
 
     void stop() {
         active = false;
         rotationHandler.removeCallbacks(builtinRandomTick);
+        rotationHandler.removeCallbacks(customRotationTick);
     }
 
     /** The pictures the rotation picks from now: wallpaper_moods' group for the time of day, or the whole collection. */
@@ -274,6 +287,7 @@ final class WallpaperPlayer {
         active = false;
         closed = true;
         rotationHandler.removeCallbacks(builtinRandomTick);
+        rotationHandler.removeCallbacks(customRotationTick);
         decoder.shutdownNow();
     }
 
