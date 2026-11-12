@@ -9282,19 +9282,126 @@ private GradientDrawable roundSurface(int color, float radius) {
 
             if (key.contains("/folder:")) {
                 addSettingsMenuRow(folderRows, folderPopup, "刪除分類", () -> {
-                    AlertDialog deleteDialog = new AlertDialog.Builder(this).setTitle("刪除分類")
-                            .setMessage("刪除分類後，裡面的 APP 會移回桌面，不會解除安裝。")
-                            .setNegativeButton("取消", null).setPositiveButton("刪除", (dialog, which) -> {
-                                String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
-                                java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
-                                java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
-                                updated.remove(oldName);
-                                folderPrefs.edit().putStringSet("home_folders", updated)
-                                        .remove("folder_apps_" + oldName).apply();
-                                reloadApps(false);
-                            }).create();
+                    // 刪除確認視窗沿用「應用分類」自訂視窗的尺寸、背景、圓角與置中配置。
+                    final Dialog deleteDialog = new Dialog(this);
+                    LinearLayout outer = new LinearLayout(this);
+                    outer.setOrientation(LinearLayout.VERTICAL);
+                    outer.setPadding((int)(18*density), (int)(12*density),
+                            (int)(18*density), (int)(12*density));
+                    outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+                    TextView title = new TextView(this);
+                    title.setText("刪除分類");
+                    title.setTextColor(0xFFF5F6FA);
+                    title.setTextSize(20);
+                    title.setGravity(Gravity.CENTER);
+                    title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+                    outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+                    TextView message = new TextView(this);
+                    message.setText("刪除分類後，裡面的 APP 會移回桌面，不會解除安裝。");
+                    message.setTextColor(0xFFF1F2F4);
+                    message.setTextSize(18);
+                    message.setGravity(Gravity.CENTER);
+                    message.setLineSpacing(0f, 1.0f);
+                    message.setPadding((int)(12*density), (int)(8*density),
+                            (int)(12*density), (int)(8*density));
+                    message.setBackground(roundSurface(0xFF343A46, 18*density));
+                    LinearLayout.LayoutParams messageLp =
+                            new LinearLayout.LayoutParams(-1, (int)(92*density));
+                    messageLp.topMargin = (int)(4*density);
+                    outer.addView(message, messageLp);
+
+                    LinearLayout actions = new LinearLayout(this);
+                    actions.setOrientation(LinearLayout.HORIZONTAL);
+                    actions.setGravity(Gravity.CENTER);
+                    LinearLayout.LayoutParams actionsLp =
+                            new LinearLayout.LayoutParams(-1, (int)(52*density));
+                    actionsLp.topMargin = (int)(12*density);
+                    outer.addView(actions, actionsLp);
+
+                    Button cancelButton = new Button(this);
+                    Button deleteButton = new Button(this);
+                    cancelButton.setId(View.generateViewId());
+                    deleteButton.setId(View.generateViewId());
+                    cancelButton.setText("取消");
+                    deleteButton.setText("刪除");
+                    for (Button button : new Button[]{cancelButton, deleteButton}) {
+                        button.setAllCaps(false);
+                        button.setTextColor(Color.WHITE);
+                        button.setTextSize(16);
+                        button.setFocusable(true);
+                        button.setFocusableInTouchMode(true);
+                        button.setDefaultFocusHighlightEnabled(false);
+                        button.setMinWidth((int)(104*density));
+                        button.setMinHeight((int)(50*density));
+                        button.setBackground(roundSurface(0xFF343A46, 14*density));
+                        button.setOnFocusChangeListener((v, focused) ->
+                                v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+                        LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                                (int)(112*density), (int)(50*density));
+                        buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+                        actions.addView(button, buttonLp);
+                    }
+
+                    cancelButton.setOnClickListener(v -> deleteDialog.dismiss());
+                    deleteButton.setOnClickListener(v -> {
+                        String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
+                        java.util.Set<String> folders = folderPrefs.getStringSet(
+                                "home_folders", java.util.Collections.<String>emptySet());
+                        java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
+                        updated.remove(oldName);
+                        folderPrefs.edit().putStringSet("home_folders", updated)
+                                .remove("folder_apps_" + oldName).apply();
+                        deleteDialog.dismiss();
+                        reloadApps(false);
+                    });
+
+                    deleteDialog.setContentView(outer);
+                    deleteDialog.setCanceledOnTouchOutside(false);
+                    final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+                    deleteDialog.setOnDismissListener(ignored -> {
+                        if (backdropBlur != null) {
+                            ViewParent parent = backdropBlur.getParent();
+                            if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                                android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                            }
+                        }
+                    });
                     deleteDialog.show();
-                    styleRemoteDialogActions(deleteDialog);
+                    if (deleteDialog.getWindow() != null) {
+                        deleteDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                        int fixedWidth = Math.min((int)(680*density),
+                                getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+                        int compactHeight = Math.min((int)(226*density),
+                                getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+                        deleteDialog.getWindow().setLayout(fixedWidth, compactHeight);
+                        deleteDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                        deleteDialog.getWindow().setDimAmount(0.6f);
+                    }
+
+                    cancelButton.setNextFocusRightId(deleteButton.getId());
+                    deleteButton.setNextFocusLeftId(cancelButton.getId());
+                    cancelButton.setNextFocusUpId(cancelButton.getId());
+                    deleteButton.setNextFocusUpId(deleteButton.getId());
+                    View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
+                        if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                        if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                            deleteButton.requestFocus();
+                            return true;
+                        }
+                        if (v == deleteButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                            cancelButton.requestFocus();
+                            return true;
+                        }
+                        return false;
+                    };
+                    cancelButton.setOnKeyListener(actionNavigation);
+                    deleteButton.setOnKeyListener(actionNavigation);
+                    cancelButton.post(cancelButton::requestFocus);
                 });
             }
             if (key.contains("/folder:")) {
