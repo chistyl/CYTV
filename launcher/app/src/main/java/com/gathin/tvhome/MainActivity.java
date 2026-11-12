@@ -5857,7 +5857,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
-        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片（全部照片）");
+        defaultHeading.setText((customWallpaperActive ? "○  " : "◉  ") + "預設圖片");
         defaultHeading.setTextColor(0xFFF5F6FA);
         defaultHeading.setTextSize(16);
         defaultHeading.setGravity(Gravity.CENTER_VERTICAL);
@@ -5880,7 +5880,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
-            defaultHeading.setText("◉  預設圖片（全部照片）");
+            defaultHeading.setText("◉  預設圖片");
         });
         LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         defaultHeadingLp.topMargin = (int)(5*density);
@@ -6063,7 +6063,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
-        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片（全部照片）");
+        customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
         customHeading.setGravity(Gravity.CENTER_VERTICAL);
@@ -6089,8 +6089,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
                 draftCustomActive[0] = true; draftRandom[0] = false;
                 persistWallpaperDraft.run();
-                customHeading.setText("◉  自訂圖片（全部照片）");
-                defaultHeading.setText("○  預設圖片（全部照片）");
+                customHeading.setText("◉  自訂圖片");
+                defaultHeading.setText("○  預設圖片");
                 for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                     setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
             } else {
@@ -6258,8 +6258,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                     .remove("builtin_wallpaper").remove("custom_wallpaper_uri").apply();
                         }
                         refreshCustomThumbnailBorders.run();
-                        customHeading.setText("◉  自訂圖片（全部照片）");
-                        defaultHeading.setText("○  預設圖片（全部照片）");
+                        customHeading.setText("◉  自訂圖片");
+                        defaultHeading.setText("○  預設圖片");
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
