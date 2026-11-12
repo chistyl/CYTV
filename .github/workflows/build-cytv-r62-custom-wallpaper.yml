@@ -59,7 +59,7 @@ on:
       - fix/wallpaper-page-bottom-inset-15dp-r89
       - fix/vpn-foreground-startup-crash-r92
       - fix/folder-delete-dialog-match-category-r97
-      - feature/custom-wallpaper-60s-rotation-r98
+      - fix/folder-delete-dialog-match-category-r97
   workflow_dispatch:
 
 permissions:
