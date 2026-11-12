@@ -6644,6 +6644,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                 return;
             }
             File imported = CustomWallpaperLibrary.importFile(this, received);
+            // The gallery keeps its own private copy; remove the temporary upload after the import attempt.
+            if (received.exists()) received.delete();
             if (imported == null) {
                 String message = CustomWallpaperLibrary.isFull(this)
                         ? "自訂圖片已達上限 12 張，剩餘照片未匯入。"
