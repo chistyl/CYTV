@@ -6262,7 +6262,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (col < columnsCount - 1 && i + 1 < thumbnailItems.length)
                 tile.setNextFocusRightId(thumbnailItems[i + 1].getId());
             else tile.setNextFocusRightId(tile.getId());
-            if (row == 0) tile.setNextFocusUpId(modeRow.getChildAt(col).getId());
+            if (row == 0) tile.setNextFocusUpId(defaultHeading.getId());
             else tile.setNextFocusUpId(thumbnailItems[i - columnsCount].getId());
             if (i + columnsCount < thumbnailItems.length)
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
