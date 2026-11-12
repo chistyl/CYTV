@@ -5829,7 +5829,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
         });
-        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        defaultHeadingLp.topMargin = (int)(5*density);
+        defaultHeadingLp.bottomMargin = (int)(5*density);
+        panel.addView(defaultHeading, defaultHeadingLp);
         defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
             modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
@@ -6051,7 +6054,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
-        choices.addView(customHeading, new LinearLayout.LayoutParams(-1, (int)(48*density)));
+        LinearLayout.LayoutParams customHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        customHeadingLp.topMargin = (int)(5*density);
+        customHeadingLp.bottomMargin = (int)(5*density);
+        choices.addView(customHeading, customHeadingLp);
         resetAction.setNextFocusDownId(customHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
