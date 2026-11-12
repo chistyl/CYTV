@@ -1,4 +1,4 @@
-name: CYTV R74 Wallpaper Spacing and DPAD Focus
+name: CYTV R75 Wallpaper Spacing and DPAD Focus
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - fix/wallpaper-gallery-full-width-r70
       - fix/wallpaper-gallery-measured-grid-r72
       - fix/qr-dialog-restore-folder-style-r73
-      - fix/wallpaper-spacing-dpad-focus-r74
+      - fix/wallpaper-spacing-dpad-focus-r75
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -24,20 +24,21 @@ on:
       - fix/wallpaper-gallery-full-width-r69
       - fix/wallpaper-gallery-measured-grid-r72
       - fix/qr-dialog-restore-folder-style-r73
+      - fix/wallpaper-spacing-dpad-focus-r74
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r74-wallpaper-spacing-dpad-${{ github.ref }}
+  group: cytv-r75-wallpaper-spacing-dpad-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R74
+      - name: Checkout R75
         uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -57,8 +58,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R74-debug.apk
-          zip -r release/CYTV-R74-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R75-debug.apk
+          zip -r release/CYTV-R75-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -66,9 +67,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R74-APK-and-Source
+          name: CYTV-R75-APK-and-Source
           path: |
-            release/CYTV-R74-debug.apk
-            release/CYTV-R74-source.zip
+            release/CYTV-R75-debug.apk
+            release/CYTV-R75-source.zip
           if-no-files-found: error
           retention-days: 30
