@@ -43,6 +43,8 @@ on:
       - feature/custom-wallpaper-multi-import-r82
       - fix/qr-wallpaper-dialog-return-r83
       - fix/qr-wallpaper-backdrop-blur-r84
+      - fix/qr-upload-description-remove-size-limit-r85
+      - fix/wallpaper-file-picker-return-r86
   workflow_dispatch:
 
 permissions:
