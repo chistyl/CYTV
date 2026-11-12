@@ -1,4 +1,4 @@
-name: CYTV R111 Wallpaper Mode and Current Thumbnail Fix
+name: CYTV R112 Wallpaper Mode and Current Thumbnail Fix
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - feature/all-wallpapers-auto-rotation-60s-r107
       - fix/wallpaper-mode-persistence-and-rotation-r110
       - fix/wallpaper-mode-and-current-thumbnail-r111
+      - fix/custom-wallpaper-active-border-from-player-r112
       - fix/wallpaper-gallery-no-tap-multiselect-r108
   pull_request:
     branches:
@@ -26,7 +27,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R111
+      - name: Checkout R112
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -48,8 +49,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R111-debug.apk
-          zip -r release/CYTV-R111-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R112-debug.apk
+          zip -r release/CYTV-R112-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -57,9 +58,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R111-APK-and-Source
+          name: CYTV-R112-APK-and-Source
           path: |
-            release/CYTV-R111-debug.apk
-            release/CYTV-R111-source.zip
+            release/CYTV-R112-debug.apk
+            release/CYTV-R112-source.zip
           if-no-files-found: error
           retention-days: 30
