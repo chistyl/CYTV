@@ -5821,17 +5821,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String[] customModeLabels = {"單一圖片", "依序播放", "隨機播放"};
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        final TextView[] modeButtons = new TextView[customModes.length];
+        final Runnable refreshModeButtons = () -> {
+            for (int j = 0; j < modeButtons.length; j++) {
+                if (modeButtons[j] != null) modeButtons[j].setBackground(
+                        roundSurface(customModes[j].equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
+            }
+        };
         for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
-            final int selectedModeIndex = modeIndex;
             final String modeValue = customModes[modeIndex];
             TextView modeButton = addRoundedAction(modeRow, customModeLabels[modeIndex], () -> {
                 draftCustomMode[0] = modeValue;
                 persistWallpaperDraft.run();
-                for (int j = 0; j < modeRow.getChildCount(); j++) modeRow.getChildAt(j).setBackground(roundSurface(j == selectedModeIndex ? 0xFF16434B : 0xFF263243, 12*density));
+                refreshModeButtons.run();
             });
+            modeButtons[modeIndex] = modeButton;
             modeButton.setTextSize(13);
             modeButton.setBackground(roundSurface(modeValue.equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
-            // addRoundedAction() 已經將按鈕加入 modeRow；只調整既有 LayoutParams，避免重複 addView。
+            modeButton.setFocusable(true);
+            modeButton.setClickable(true);
+            modeButton.setOnKeyListener((v, keyCode, event) -> {
+                if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                        && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                    v.performClick();
+                    return true;
+                }
+                return false;
+            });
             LinearLayout.LayoutParams modeLp = new LinearLayout.LayoutParams(0, (int)(40*density), 1f);
             if (modeIndex > 0) modeLp.leftMargin = (int)(5*density);
             modeButton.setLayoutParams(modeLp);
@@ -6113,11 +6130,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
+            String activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            if (activePath.isEmpty()) activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
                 View item = customThumbnailItems.get(index);
+                // R108: thumbnails are a gallery preview, not slideshow multi-select controls.
+                // Only the currently displayed image (or an explicit delete target) gets a border.
                 boolean selected = customDeleteSelection.isEmpty()
-                        ? draftCustomSelection.contains(file)
+                        ? file.getAbsolutePath().equals(activePath)
                         : customDeleteSelection.contains(file);
                 setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, item.hasFocus());
             }
@@ -6137,7 +6158,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             empty.setPadding((int)(8*density), (int)(8*density), 0, (int)(16*density));
             choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         } else {
-            final String activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
+            String activeCustom = wallpaperPrefs.getString("custom_wallpaper_current", "");
+            if (activeCustom.isEmpty()) activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int start = 0; start < customImages.size(); start += customColumns) {
                 LinearLayout customRow = new LinearLayout(this);
                 customRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -6201,28 +6223,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return false;
                     });
                     tile.setOnClickListener(v -> {
+                        // Thumbnail taps never change slideshow membership or mode.
+                        // Taps are only used to add/remove delete targets after long-press
+                        // explicitly enters delete-selection mode.
                         if (!customDeleteSelection.isEmpty()) {
                             if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
                             else customDeleteSelection.add(customFile);
                             refreshCustomThumbnailBorders.run();
                             refreshCustomDeleteAction.run();
-                            return;
                         }
-                        String mode = draftCustomMode[0];
-                        List<File> chosen = new ArrayList<>(draftCustomSelection);
-                        if ("single".equals(mode)) {
-                            chosen.clear();
-                            chosen.add(customFile);
-                        } else if (chosen.contains(customFile)) {
-                            chosen.remove(customFile);
-                        } else {
-                            chosen.add(customFile);
-                        }
-                        draftCustomSelection.clear(); draftCustomSelection.addAll(chosen);
-                        draftCustomActive[0] = !chosen.isEmpty();
-                        persistWallpaperDraft.run();
-                        if (!chosen.isEmpty()) draftRandom[0] = false;
-                        refreshCustomThumbnailBorders.run();
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
@@ -6389,10 +6398,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 draftCustomSelection.clear();
                 draftCustomSelection.addAll(allCustomWallpapers);
             }
-            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, "sequential");
+            String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "single";
+            CustomWallpaperLibrary.setSelected(this, draftCustomSelection, savedCustomMode);
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
+                String currentCustomPath = wallpaperPrefs.getString("custom_wallpaper_current", "");
+                boolean currentStillExists = false;
+                for (File candidate : allCustomWallpapers) {
+                    if (candidate.getAbsolutePath().equals(currentCustomPath)) { currentStillExists = true; break; }
+                }
+                String initialCustomPath = currentStillExists ? currentCustomPath : allCustomWallpapers.get(0).getAbsolutePath();
                 editor.putString("custom_wallpaper_file", allCustomWallpapers.get(0).getAbsolutePath())
+                        .putString("custom_wallpaper_current", initialCustomPath)
                         .putBoolean("custom_wallpaper_enabled", true)
                         .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
                         .putBoolean("builtin_random_play", false);
@@ -6403,8 +6420,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .putLong("builtin_wallpaper_changed", System.currentTimeMillis())
                         .remove("custom_wallpaper_uri").remove("custom_wallpaper_file");
             }
-            editor.putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false).apply();
+            editor.putString("custom_wallpaper_mode", savedCustomMode)
+                    .putBoolean("hide_left_color_effect", true)
+                    .putBoolean("left_color_effect_enabled", false).commit();
             clearWallpaperDraft.run();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (!draftCustomActive[0] && localWallpaper.exists()) localWallpaper.delete();
