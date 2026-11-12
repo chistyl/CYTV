@@ -5829,10 +5829,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
         });
-        LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        defaultHeadingLp.topMargin = (int)(8*density);
-        defaultHeadingLp.bottomMargin = (int)(8*density);
-        panel.addView(defaultHeading, defaultHeadingLp);
+        panel.addView(defaultHeading, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
             modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
@@ -5992,13 +5989,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.dismiss(); recreate();
         });
         LinearLayout.LayoutParams qrActionLp = (LinearLayout.LayoutParams) qrAction.getLayoutParams();
-        qrActionLp.topMargin = (int)(8 * density);
+        qrActionLp.topMargin = (int)(18 * density);
         qrAction.setLayoutParams(qrActionLp);
         for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
             LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
             actionLp.height = (int)(40*density);
-            actionLp.bottomMargin = (int)(8*density);
-            actionLp.topMargin = 0;
+            actionLp.bottomMargin = (int)(4*density);
             action.setLayoutParams(actionLp);
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
@@ -6055,10 +6051,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
-        LinearLayout.LayoutParams customHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        customHeadingLp.topMargin = (int)(8*density);
-        customHeadingLp.bottomMargin = (int)(8*density);
-        choices.addView(customHeading, customHeadingLp);
+        choices.addView(customHeading, new LinearLayout.LayoutParams(-1, (int)(48*density)));
         resetAction.setNextFocusDownId(customHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
