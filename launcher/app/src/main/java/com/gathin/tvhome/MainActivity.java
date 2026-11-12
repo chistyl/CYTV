@@ -5988,7 +5988,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
-        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(14*density));
+        customHeading.setNextFocusUpId(resetAction.getId());
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
         customHeading.setClickable(true);
@@ -6038,6 +6039,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         } else {
             final int customColumns = 3;
+            final List<View> customThumbnailItems = new ArrayList<>();
             final String activeCustom = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int start = 0; start < customImages.size(); start += customColumns) {
                 LinearLayout customRow = new LinearLayout(this);
@@ -6053,6 +6055,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     tile.setForeground(new ColorDrawable(Color.TRANSPARENT));
                     tile.setBackgroundColor(Color.TRANSPARENT);
                     tile.setId(View.generateViewId());
+                    customThumbnailItems.add(tile);
                     ImageView imageView = new ImageView(this);
                     imageView.setFocusable(false);
                     imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -6072,10 +6075,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // Forward both touch and DPAD confirmation to the same selectable tile.
                     imageView.setOnClickListener(v -> tile.performClick());
                     tile.setOnKeyListener((v, keyCode, event) -> {
-                        if (event.getAction() == KeyEvent.ACTION_UP
-                                && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                                || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
-                            v.performClick();
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                                || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                            if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
+                                v.performClick();
                             return true;
                         }
                         return false;
@@ -6132,7 +6135,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
-                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(8*density)));
                 }
             }
         }
@@ -6217,12 +6220,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setNextFocusDownId(thumbnailItems[i + columnsCount].getId());
         }
  
+        // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
+        customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
+                ? cancelAction.getId() : customThumbnailItems.get(0).getId());
+        for (int i = 0; i < customThumbnailItems.size(); i++) {
+            View tile = customThumbnailItems.get(i);
+            int col = i % customColumns;
+            if (col > 0) tile.setNextFocusLeftId(customThumbnailItems.get(i - 1).getId());
+            else tile.setNextFocusLeftId(tile.getId());
+            if (col < customColumns - 1 && i + 1 < customThumbnailItems.size()
+                    && (i + 1) / customColumns == i / customColumns)
+                tile.setNextFocusRightId(customThumbnailItems.get(i + 1).getId());
+            else tile.setNextFocusRightId(tile.getId());
+            if (i >= customColumns) tile.setNextFocusUpId(customThumbnailItems.get(i - customColumns).getId());
+            else tile.setNextFocusUpId(customHeading.getId());
+            if (i + customColumns < customThumbnailItems.size())
+                tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
+            else tile.setNextFocusDownId(cancelAction.getId());
+        }
+        resetAction.setNextFocusDownId(customHeading.getId());
+        customHeading.setNextFocusUpId(resetAction.getId());
+        if (!customThumbnailItems.isEmpty()) {
+            int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
+            cancelAction.setNextFocusUpId(lastCustomId);
+            saveAction.setNextFocusUpId(lastCustomId);
+        } else {
+            customHeading.setNextFocusDownId(cancelAction.getId());
+        }
+
         // 將可捲動區域設為彈性高度，避免六款主題與底部操作按鈕超出電視畫面。
         // Bound the gallery to the remaining screen height. WRAP_CONTENT here lets
         // every thumbnail expand the dialog's content beyond the TV viewport.
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, -2);
         scrollLp.topMargin = (int)(12*density);
-        scrollLp.bottomMargin = 0;
+        scrollLp.bottomMargin = (int)(14*density);
         panel.addView(scroll, scrollLp);
 
         // 設定先暫存於本視窗；只有按「儲存」才寫入正式偏好設定。
@@ -6258,8 +6289,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.setLayoutParams(actionLp);
         }
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        editActionsLp.topMargin = (int)(14 * density);
-        editActionsLp.bottomMargin = (int)(28 * density);
+        editActionsLp.topMargin = (int)(24 * density);
+        editActionsLp.bottomMargin = (int)(38 * density);
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
