@@ -1,4 +1,4 @@
-name: CYTV R101 Custom Wallpaper 60 Second Rotation
+name: CYTV R102 Custom Wallpaper 60 Second Rotation
 
 on:
   push:
@@ -30,10 +30,10 @@ on:
       - fix/folder-rename-dialog-match-category-r96
       - feature/custom-wallpaper-60s-rotation-r98
       - fix/custom-wallpaper-independent-timer-r100
-      - fix/custom-wallpaper-force-advance-r101
+      - fix/custom-wallpaper-rotation-retry-r102
   pull_request:
     branches:
-      - fix/custom-wallpaper-independent-timer-r100
+      - fix/custom-wallpaper-force-advance-r101
   workflow_dispatch:
 
 permissions:
@@ -47,10 +47,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R101
+      - name: Checkout R102
         uses: actions/checkout@v4
         with:
-          ref: fix/custom-wallpaper-force-advance-r101
+          ref: fix/custom-wallpaper-rotation-retry-r102
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -69,8 +69,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R101-debug.apk
-          zip -r release/CYTV-R101-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R102-debug.apk
+          zip -r release/CYTV-R102-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -78,9 +78,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R101-APK-and-Source
+          name: CYTV-R102-APK-and-Source
           path: |
-            release/CYTV-R101-debug.apk
-            release/CYTV-R101-source.zip
+            release/CYTV-R102-debug.apk
+            release/CYTV-R102-source.zip
           if-no-files-found: error
           retention-days: 30
