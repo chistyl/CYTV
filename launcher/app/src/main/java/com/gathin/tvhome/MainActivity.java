@@ -6111,18 +6111,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<ImageView> customThumbnailPreviews = new ArrayList<>();
         final List<File> customThumbnailFiles = new ArrayList<>();
         final List<File> customDeleteSelection = new ArrayList<>();
-        // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
+        // R109: custom gallery thumbnails use a fixed, uniform border.
+        // Thumbnail taps never single-select or alter slideshow membership; playback uses all photos.
+        // Long-press deletion remains available and is reflected by the delete counter/action.
         final Runnable refreshCustomThumbnailBorders = () -> {
-            String activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
-                File file = customThumbnailFiles.get(index);
-                View item = customThumbnailItems.get(index);
-                // R108: thumbnails are a gallery preview, not slideshow multi-select controls.
-                // Only the currently displayed image (or an explicit delete target) gets a border.
-                boolean selected = customDeleteSelection.isEmpty()
-                        ? file.getAbsolutePath().equals(activePath)
-                        : customDeleteSelection.contains(file);
-                setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, item.hasFocus());
+                setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), true, false);
             }
         };
         final TextView[] customDeleteAction = new TextView[1];
