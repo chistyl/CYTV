@@ -191,6 +191,13 @@ final class WallpaperPlayer {
         } catch (Exception ignored) { }
     }
 
+    /** Returns the path of the custom image actually rendered on Home, not merely the saved preference. */
+    String currentCustomWallpaperPath() {
+        if (displayed == null || displayed.isEmpty()) return "";
+        File currentFile = new File(displayed);
+        return currentFile.isFile() ? currentFile.getAbsolutePath() : "";
+    }
+
     private static String shortName(String path) {
         if (path == null || path.isEmpty()) return "（尚無）";
         return new File(path).getName();
