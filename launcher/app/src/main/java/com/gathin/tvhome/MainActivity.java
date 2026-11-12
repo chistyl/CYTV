@@ -6593,6 +6593,53 @@ private GradientDrawable roundSurface(int color, float radius) {
         drawable.setStroke(Math.max(1, (int)density), 0x28FFFFFF);
         return drawable;
     }
+    /** 在「影像設定」Dialog 內容上方加上即時快照模糊層；QR 視窗關閉後會移除。 */
+    private ImageView installWallpaperSettingsBackdropBlur(Dialog settingsDialog) {
+        if (settingsDialog == null || settingsDialog.getWindow() == null) return null;
+        final View decorView = settingsDialog.getWindow().getDecorView();
+        if (!(decorView instanceof ViewGroup) || decorView.getWidth() <= 0 || decorView.getHeight() <= 0) return null;
+        Bitmap source = null, small = null, blurred = null;
+        android.renderscript.RenderScript rs = null;
+        android.renderscript.Allocation input = null, output = null;
+        android.renderscript.ScriptIntrinsicBlur blur = null;
+        try {
+            int width = decorView.getWidth(), height = decorView.getHeight();
+            source = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            decorView.draw(new Canvas(source));
+            small = Bitmap.createScaledBitmap(source, Math.max(1, width / 4), Math.max(1, height / 4), true);
+            source.recycle(); source = null;
+            rs = android.renderscript.RenderScript.create(this);
+            input = android.renderscript.Allocation.createFromBitmap(rs, small);
+            output = android.renderscript.Allocation.createTyped(rs, input.getType());
+            blur = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs));
+            blur.setRadius(6.25f); // 1/4 縮圖處理，等效電視畫面約 25px Gaussian Blur。
+            blur.setInput(input);
+            blur.forEach(output);
+            output.copyTo(small);
+            blurred = Bitmap.createScaledBitmap(small, width, height, true);
+            ImageView overlay = new ImageView(this);
+            overlay.setImageBitmap(blurred);
+            overlay.setScaleType(ImageView.ScaleType.FIT_XY);
+            overlay.setClickable(false);
+            overlay.setFocusable(false);
+            overlay.setFocusableInTouchMode(false);
+            overlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ((ViewGroup) decorView).addView(overlay, new ViewGroup.LayoutParams(-1, -1));
+            return overlay;
+        } catch (Throwable unavailable) {
+            if (blurred != null && !blurred.isRecycled()) blurred.recycle();
+            android.util.Log.w("CYTV-Wallpaper", "Wallpaper settings backdrop blur unavailable", unavailable);
+            return null;
+        } finally {
+            if (source != null && !source.isRecycled()) source.recycle();
+            if (small != null && !small.isRecycled()) small.recycle();
+            try { if (blur != null) blur.destroy(); } catch (Exception ignored) { }
+            try { if (input != null) input.destroy(); } catch (Exception ignored) { }
+            try { if (output != null) output.destroy(); } catch (Exception ignored) { }
+            try { if (rs != null) rs.destroy(); } catch (Exception ignored) { }
+        }
+    }
+
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳多張圖片至自訂圖片庫。 */
     private void showQrWallpaperTransferDialog(Dialog settingsDialog, View returnFocus) {
         final Dialog dialog = new Dialog(this);
@@ -6679,10 +6726,20 @@ private GradientDrawable roundSurface(int color, float radius) {
         } catch (WriterException e) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
-        // 保留「影像設定」Dialog 在下層，QR 視窗只使用標準 60% 暗色遮罩。
-        // 不再從 Activity decor 擷取桌面快照，避免把桌面背景錯誤覆蓋在影像設定頁上。
+        // 模糊「影像設定」Dialog 本身，而不是 Activity 桌面；QR 卡片保持清晰。
+        final ImageView settingsBackdropBlur = installWallpaperSettingsBackdropBlur(settingsDialog);
         dialog.setOnDismissListener(d -> {
             server.stopServer();
+            if (settingsBackdropBlur != null) {
+                ViewParent parent = settingsBackdropBlur.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(settingsBackdropBlur);
+                Drawable image = settingsBackdropBlur.getDrawable();
+                if (image instanceof BitmapDrawable) {
+                    Bitmap bitmap = ((BitmapDrawable) image).getBitmap();
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                }
+                settingsBackdropBlur.setImageDrawable(null);
+            }
             if (settingsDialog != null && settingsDialog.isShowing() && returnFocus != null) {
                 returnFocus.post(() -> {
                     if (settingsDialog.isShowing()) returnFocus.requestFocus();
