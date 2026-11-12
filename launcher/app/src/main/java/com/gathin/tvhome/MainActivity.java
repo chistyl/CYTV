@@ -1344,16 +1344,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pendingIconPackage = null;
             reopenPendingFolderAfterAppEdit();
         }
-        if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            Uri uri = data.getData();
-            if (importCustomWallpaper(uri)) {
-                Toast.makeText(this, "圖片已加入自訂圖片庫；目前桌布不變。", Toast.LENGTH_LONG).show();
-                showWallpaperPicker();
-            } else {
-                String message = CustomWallpaperLibrary.isFull(this)
-                        ? "自訂圖片已達上限 12 張，請先刪除圖片再匯入。"
-                        : "圖片匯入失敗，請確認格式與檔案是否有效。";
+        if (requestCode == WALLPAPER_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
+            List<Uri> selectedUris = new ArrayList<>();
+            android.content.ClipData clipData = data.getClipData();
+            if (clipData != null) {
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    Uri uri = clipData.getItemAt(i).getUri();
+                    if (uri != null) selectedUris.add(uri);
+                }
+            } else if (data.getData() != null) {
+                selectedUris.add(data.getData());
+            }
+            int importedCount = 0;
+            int failedCount = 0;
+            int skippedCount = 0;
+            for (Uri uri : selectedUris) {
+                if (CustomWallpaperLibrary.isFull(this)) {
+                    skippedCount++;
+                    continue;
+                }
+                if (importCustomWallpaper(uri)) importedCount++;
+                else failedCount++;
+            }
+            if (importedCount > 0) {
+                String message = "成功匯入 " + importedCount + " 張圖片至自訂圖片庫；目前桌布不變。";
+                if (skippedCount > 0) message += "另有 " + skippedCount + " 張因已達 12 張上限而略過。";
+                if (failedCount > 0) message += "另有 " + failedCount + " 張匯入失敗。";
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                showWallpaperPicker();
+            } else if (skippedCount > 0) {
+                Toast.makeText(this, "自訂圖片已達上限 12 張，請先刪除圖片再匯入。", Toast.LENGTH_LONG).show();
+            } else if (failedCount > 0) {
+                Toast.makeText(this, "圖片匯入失敗，請確認格式與檔案是否有效。", Toast.LENGTH_LONG).show();
             }
         }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
@@ -5976,7 +5998,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            pick.addCategory(Intent.CATEGORY_OPENABLE); pick.setType("image/*");
+            pick.addCategory(Intent.CATEGORY_OPENABLE);
+            pick.setType("image/*");
+            pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             pick.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             try { startActivityForResult(pick, WALLPAPER_PICK_REQUEST); }
             catch (ActivityNotFoundException e) { Toast.makeText(this, "找不到圖片選擇器", Toast.LENGTH_LONG).show(); }
@@ -6581,7 +6605,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         title.setPadding(0, 0, 0, (int)(10*density)); panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView tip = new TextView(this);
-        tip.setText("手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，選擇圖片後會加入電視的自訂圖片庫，不會自動更換目前桌布。圖片上限 20 MB。");
+        tip.setText("手機與電視請連接同一個 Wi-Fi，掃描下方 QR Code，可一次多選照片並上傳至電視自訂圖片庫；不會自動更換目前桌布。每張圖片上限 20 MB，自訂圖片最多 12 張。");
         tip.setTextColor(0xFFD5DAE2); tip.setTextSize(14); tip.setGravity(Gravity.CENTER);
         tip.setPadding((int)(4*density), 0, (int)(4*density), (int)(10*density));
         panel.addView(tip, new LinearLayout.LayoutParams(-1, -2));
@@ -6605,13 +6629,15 @@ private GradientDrawable roundSurface(int color, float radius) {
         close.setDefaultFocusHighlightEnabled(false);
         LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(-1, (int)(46*density));
         closeLp.topMargin = (int)(12*density); panel.addView(close, closeLp);
-        close.setOnClickListener(v -> dialog.dismiss());
+        close.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (qrImportedCount[0] > 0) showWallpaperPicker();
+        });
 
+        final int[] qrImportedCount = {0};
         LocalWallpaperServer server = new LocalWallpaperServer(this, uri -> {
             if (isFinishing() || isDestroyed()) return;
-            // LocalWallpaperServer returns Uri.fromFile(). WallpaperPlayer's URI path uses
-            // ContentResolver and cannot reliably decode file:// URIs; store the real file path
-            // in the preference that WallpaperPlayer reads directly.
+            // Import every phone upload into the shared gallery; keep the QR page open for the remaining photos.
             File received = uri == null || uri.getPath() == null ? null : new File(uri.getPath());
             if (received == null || !received.isFile() || received.length() <= 0) {
                 Toast.makeText(this, "圖片已接收，但檔案無法讀取，請重新傳送。", Toast.LENGTH_LONG).show();
@@ -6619,12 +6645,14 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
             File imported = CustomWallpaperLibrary.importFile(this, received);
             if (imported == null) {
-                Toast.makeText(this, "圖片已接收，但加入自訂圖片庫失敗。", Toast.LENGTH_LONG).show();
+                String message = CustomWallpaperLibrary.isFull(this)
+                        ? "自訂圖片已達上限 12 張，剩餘照片未匯入。"
+                        : "圖片已接收，但加入自訂圖片庫失敗。";
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                 return;
             }
-            Toast.makeText(this, "圖片已加入自訂圖片庫；目前桌布不變。", Toast.LENGTH_LONG).show();
-            dialog.dismiss();
-            showWallpaperPicker();
+            qrImportedCount[0]++;
+            Toast.makeText(this, "已匯入第 " + qrImportedCount[0] + " 張照片；目前桌布不變。", Toast.LENGTH_SHORT).show();
         });
         server.start();
         String url = server.getUrl();
