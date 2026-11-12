@@ -75,6 +75,18 @@ public class AdsFilterVpnService extends VpnService {
     private static final long NETWORK_LOSS_GRACE_MS = 3000L;
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        // A foreground-service start must call startForeground() before ANY early return.
+        // In particular, the Toshiba safety-policy branch and refresh/stop actions can
+        // otherwise return/stop before Android sees the required foreground notification.
+        try {
+            startNotice();
+        } catch (Exception e) {
+            Log.e(TAG, "Unable to enter foreground state", e);
+            appendDnsLog("-", "啟動失敗", "無法建立前景通知：" + e.getClass().getSimpleName()
+                    + "：" + String.valueOf(e.getMessage()));
+            stopSelf(startId);
+            return START_NOT_STICKY;
+        }
         if (AdFilterDevicePolicy.isToshiba65U7000Vs()) {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
             appendDnsLog("-", "診斷", "TOSHIBA 65U7000VS 安全政策：DNS VPN 已停用，保護有線網路");
@@ -121,7 +133,6 @@ public class AdsFilterVpnService extends VpnService {
         stopping.set(false);
         appendDnsLog("-", "診斷", "收到啟動請求；Android API " + Build.VERSION.SDK_INT);
         try {
-            startNotice();
             // Track real Wi-Fi/Ethernet networks, excluding the VPN itself. The default
             // network can change while the filter is running, so do not capture it only once.
             ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
