@@ -1,4 +1,4 @@
-name: CYTV R78 Custom Wallpaper DPAD Long Press
+name: CYTV R79 Default Wallpaper Heading DPAD Focus
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - fix/qr-dialog-restore-folder-style-r73
       - fix/wallpaper-spacing-dpad-focus-r76
       - fix/custom-wallpaper-long-press-r77
-      - fix/custom-wallpaper-dpad-long-press-r78
+      - fix/wallpaper-default-heading-dpad-focus-r79
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -43,7 +43,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R78
+      - name: Checkout R79
         uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -63,8 +63,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R78-debug.apk
-          zip -r release/CYTV-R78-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R79-debug.apk
+          zip -r release/CYTV-R79-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -72,9 +72,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R78-APK-and-Source
+          name: CYTV-R79-APK-and-Source
           path: |
-            release/CYTV-R78-debug.apk
-            release/CYTV-R78-source.zip
+            release/CYTV-R79-debug.apk
+            release/CYTV-R79-source.zip
           if-no-files-found: error
           retention-days: 30
