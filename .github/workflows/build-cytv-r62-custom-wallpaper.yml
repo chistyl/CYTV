@@ -62,7 +62,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r95-custom-wallpaper-selection-frame-${{ github.ref }}
+  group: cytv-r96-folder-rename-dialog-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
