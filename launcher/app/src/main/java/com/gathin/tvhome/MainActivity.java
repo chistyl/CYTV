@@ -5685,8 +5685,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
 
         final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
-        if (backdropBlur != null) {
-            dialog.setOnDismissListener(ignored -> {
+        // This is the APP visibility dialog: apply the persisted home_hidden_* values to the
+        // desktop adapter whenever the dialog closes, including when no blur view was installed.
+        dialog.setOnDismissListener(ignored -> {
+            if (backdropBlur != null) {
                 android.view.ViewParent parent = backdropBlur.getParent();
                 if (parent instanceof android.view.ViewGroup)
                     ((android.view.ViewGroup) parent).removeView(backdropBlur);
@@ -5695,8 +5697,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                 }
-            });
-        }
+            }
+            if (!isFinishing() && !isDestroyed()) reloadApps(false);
+        });
         dialog.setContentView(outer);
         dialog.show();
         if (dialog.getWindow() != null) {
