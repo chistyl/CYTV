@@ -155,8 +155,8 @@ final class WallpaperPlayer {
         List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
         if (!customSelection.isEmpty()) {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
-            Log.i("TvHome.Wallpaper", "R102 custom update; count=" + customSelection.size()
-                    + ", mode=" + mode + ", force=" + forceCustomRotation + ", displayed=" + displayed);
+            Log.i("TvHome.Wallpaper", "R102 initial custom selection; count=" + customSelection.size()
+                    + ", mode=" + mode + ", displayed=" + displayed);
             String previousCustom = preferences.getString("custom_wallpaper_current", "");
             File selected = WallpaperRotation.find(customSelection, previousCustom);
             if (selected == null) selected = customSelection.get(0);
@@ -326,6 +326,8 @@ final class WallpaperPlayer {
         }
         if (!customSelection.isEmpty()) {
             String mode = CustomWallpaperLibrary.mode(root.getContext());
+            Log.i("TvHome.Wallpaper", "R102 custom update; count=" + customSelection.size()
+                    + ", mode=" + mode + ", force=" + forceCustomRotation + ", displayed=" + displayed);
             String previousCustom = preferences.getString("custom_wallpaper_current", "");
             // The current-image preference stores an absolute path, while WallpaperRotation.find()
             // compares basenames. Compare absolute paths here, and fall back to the displayed path
