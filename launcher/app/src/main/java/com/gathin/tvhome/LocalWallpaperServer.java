@@ -110,7 +110,7 @@ final class LocalWallpaperServer extends Thread {
     private void respondHtml(Socket socket) throws Exception {
         String html = "<!doctype html><html lang='zh-Hant'><meta name='viewport' content='width=device-width,initial-scale=1'>"
                 + "<meta charset='utf-8'><title>傳送桌布到電視</title><body style='font:18px sans-serif;background:#171b23;color:white;padding:24px'>"
-                + "<h2>傳送圖片到電視</h2><p>選擇手機中的圖片，傳送後會直接設定為電視桌布。</p>"
+                + "<h2>傳送圖片到電視</h2><p>可一次選擇多張手機照片，傳送後會加入電視的自訂圖片庫。</p>"
                 + "<input id='f' type='file' accept='image/*' multiple style='font-size:18px;margin:20px 0'>"
                 + "<p><button id='b' style='font-size:20px;padding:14px 24px'>上傳照片到電視</button></p><p id='s'></p>"
                 + "<script>document.getElementById('b').onclick=async()=>{let files=Array.from(document.getElementById('f').files),s=document.getElementById('s');if(!files.length){s.textContent='請先選擇一張或多張圖片';return;}let done=0,failed=0;s.textContent='準備傳送 '+files.length+' 張照片…';for(let f of files){if(f.size>20971520){failed++;continue;}try{let r=await fetch('/upload?token=" + token + "',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});if(!r.ok)throw new Error(await r.text());done++;s.textContent='已傳送 '+done+'/'+files.length+' 張';}catch(e){failed++;}}s.textContent='傳送完成：成功 '+done+' 張，失敗 '+failed+' 張。可繼續選圖或關閉此頁面。';};</script>"
