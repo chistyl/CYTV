@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - feature/all-wallpapers-auto-rotation-60s-r107
+      - fix/wallpaper-gallery-no-tap-multiselect-r108
   pull_request:
     branches:
       - fix/custom-wallpaper-selection-persistence-r106
+      - feature/all-wallpapers-auto-rotation-60s-r107
   workflow_dispatch:
 
 permissions:
@@ -23,7 +25,7 @@ jobs:
       - name: Checkout R107
         uses: actions/checkout@v4
         with:
-          ref: feature/all-wallpapers-auto-rotation-60s-r107
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
