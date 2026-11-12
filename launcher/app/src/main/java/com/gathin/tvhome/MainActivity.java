@@ -5811,6 +5811,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeading.setFocusable(true);
         defaultHeading.setFocusableInTouchMode(true);
         defaultHeading.setClickable(true);
+        defaultHeading.setDefaultFocusHighlightEnabled(false);
+        defaultHeading.setId(View.generateViewId());
+        defaultHeading.setBackgroundColor(Color.TRANSPARENT);
+        defaultHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(focused ? 0xFF263243 : Color.TRANSPARENT);
+            focusBg.setCornerRadius(10 * density);
+            if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
+            v.setBackground(focusBg);
+        });
         defaultHeading.setOnClickListener(v -> {
             draftCustomActive[0] = false; draftRandom[0] = false;
             persistWallpaperDraft.run();
@@ -5949,7 +5959,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, thumbnailHeight));
             if (row < rowsCount - 1) {
                 View gap = new View(this);
-                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(10*density)));
             }
         }
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
@@ -5988,10 +5998,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
-        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(8*density));
+        // More separation between the Custom Images heading and its thumbnail grid.
+        customHeading.setPadding((int)(8*density), (int)(18*density), 0, (int)(18*density));
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
         customHeading.setClickable(true);
+        customHeading.setDefaultFocusHighlightEnabled(false);
+        customHeading.setId(View.generateViewId());
+        customHeading.setBackgroundColor(Color.TRANSPARENT);
+        customHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable focusBg = new GradientDrawable();
+            focusBg.setColor(focused ? 0xFF263243 : Color.TRANSPARENT);
+            focusBg.setCornerRadius(10 * density);
+            if (focused) focusBg.setStroke(Math.max(2, (int)(2 * density)), 0xFF80C9C2);
+            v.setBackground(focusBg);
+        });
         customHeading.setOnClickListener(v -> {
             List<File> savedCustom = new ArrayList<>(draftCustomSelection);
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
@@ -6008,19 +6029,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         customHeading.setOnKeyListener((v, keyCode, event) -> {
-            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                v.performClick();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
+                    v.performClick();
                 return true;
             }
             return false;
         });
         defaultHeading.setOnKeyListener((v, keyCode, event) -> {
-            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                v.performClick();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0)
+                    v.performClick();
                 return true;
             }
             return false;
@@ -6132,7 +6153,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(customRow, new LinearLayout.LayoutParams(-1, thumbnailHeight));
                 if (start + customColumns < customImages.size()) {
                     View gap = new View(this);
-                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(4*density)));
+                    // Keep custom-image rows visually separated for TV viewing.
+                    choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(10*density)));
                 }
             }
         }
@@ -6258,8 +6280,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.setLayoutParams(actionLp);
         }
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        editActionsLp.topMargin = (int)(14 * density);
-        editActionsLp.bottomMargin = (int)(28 * density);
+        // Give the Cancel/Save row more breathing room above and below.
+        editActionsLp.topMargin = (int)(24 * density);
+        editActionsLp.bottomMargin = (int)(38 * density);
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
