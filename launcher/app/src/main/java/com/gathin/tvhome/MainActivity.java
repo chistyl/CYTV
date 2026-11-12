@@ -5765,9 +5765,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showWallpaperPicker() {
-        CrashDiagnostics.stage(this, "wallpaper_picker:entered");
         final Dialog dialog = new Dialog(this);
-        CrashDiagnostics.stage(this, "wallpaper_picker:dialog_created");
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int)(18*density), (int)(10*density), (int)(18*density), (int)(10*density));
@@ -5781,7 +5779,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         final String[] names = {"漂流瓶", "山城夜色", "月台之夜", "流星映照", "夜林螢火", "阿布的魚", "愛心小倉", "熊熊篝火", "紅圍冬帽犬"};
-        CrashDiagnostics.stage(this, "wallpaper_picker:preparing_builtin_previews");
         final int[] previews = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
                 R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
                 R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
@@ -6835,7 +6832,6 @@ private GradientDrawable roundSurface(int color, float radius) {
                 });
             }
         });
-        CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
             // Keep the same 60% dim layer as folder dialogs; the QR panel stays sharp.

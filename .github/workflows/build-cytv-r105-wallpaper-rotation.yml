@@ -1,5 +1,5 @@
-name: CYTV R114 Custom Wallpaper Thumbnail Selection Fix
-# R114 CI retrigger: validate thumbnail selection and source packaging.
+name: CYTV R115 Remove Wallpaper Diagnostics
+# R115 CI: validate diagnostic cleanup, wallpaper playback, and source packaging.
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - fix/wallpaper-mode-and-current-thumbnail-r111
       - fix/custom-wallpaper-active-border-from-player-r112
       - fix/wallpaper-heading-labels-r114
+      - fix/remove-wallpaper-diagnostics-r115
       - fix/wallpaper-gallery-no-tap-multiselect-r108
   pull_request:
     branches:
@@ -18,20 +19,21 @@ on:
       - fix/wallpaper-mode-and-current-thumbnail-r111
       - fix/custom-wallpaper-active-border-from-player-r112
       - fix/custom-wallpaper-thumbnail-select-r113
+      - fix/wallpaper-heading-labels-r114
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r114-custom-wallpaper-select-${{ github.ref }}
+  group: cytv-r115-remove-wallpaper-diagnostics-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R114
+      - name: Checkout R115
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -53,8 +55,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R114-debug.apk
-          zip -r release/CYTV-R114-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R115-debug.apk
+          zip -r release/CYTV-R115-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -62,9 +64,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R114-APK-and-Source
+          name: CYTV-R115-APK-and-Source
           path: |
-            release/CYTV-R114-debug.apk
-            release/CYTV-R114-source.zip
+            release/CYTV-R115-debug.apk
+            release/CYTV-R115-source.zip
           if-no-files-found: error
           retention-days: 30
