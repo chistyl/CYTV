@@ -6,14 +6,14 @@ on:
       - fix/custom-wallpaper-selection-persistence-r106
   pull_request:
     branches:
-      - fix/builtin-wallpaper-rotation-lifecycle-r105
+      - feature/all-wallpapers-auto-rotation-60s-r107
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r105-wallpaper-rotation-${{ github.ref }}
+  group: cytv-r107-all-wallpapers-rotation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
