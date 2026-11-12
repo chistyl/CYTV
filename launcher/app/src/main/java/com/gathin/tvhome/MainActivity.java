@@ -6111,12 +6111,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<ImageView> customThumbnailPreviews = new ArrayList<>();
         final List<File> customThumbnailFiles = new ArrayList<>();
         final List<File> customDeleteSelection = new ArrayList<>();
-        // R109: custom gallery thumbnails use a fixed, uniform border.
-        // Thumbnail taps never single-select or alter slideshow membership; playback uses all photos.
-        // Long-press deletion remains available and is reflected by the delete counter/action.
+        final String[] draftCustomPreviewFile = {wallpaperPrefs.getString("custom_wallpaper_file", "")};
+        // R110: one-tap chooses the current/starting photo; its border remains on that photo,
+        // independent of remote focus. Slideshow membership remains the entire custom gallery.
         final Runnable refreshCustomThumbnailBorders = () -> {
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
-                setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), true, false);
+                File file = customThumbnailFiles.get(index);
+                boolean selected = !customDeleteSelection.isEmpty()
+                        ? customDeleteSelection.contains(file)
+                        : file.getAbsolutePath().equals(draftCustomPreviewFile[0]);
+                setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, false);
             }
         };
         final TextView[] customDeleteAction = new TextView[1];
@@ -6198,15 +6202,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         return false;
                     });
                     tile.setOnClickListener(v -> {
-                        // Thumbnail taps never change slideshow membership or mode.
-                        // Taps are only used to add/remove delete targets after long-press
-                        // explicitly enters delete-selection mode.
                         if (!customDeleteSelection.isEmpty()) {
                             if (customDeleteSelection.contains(customFile)) customDeleteSelection.remove(customFile);
                             else customDeleteSelection.add(customFile);
                             refreshCustomThumbnailBorders.run();
                             refreshCustomDeleteAction.run();
+                            return;
                         }
+                        // Single tap selects this photo as the current/starting wallpaper.
+                        // The automatic slideshow still includes every photo in the gallery.
+                        draftCustomPreviewFile[0] = customFile.getAbsolutePath();
+                        draftCustomActive[0] = true;
+                        refreshCustomThumbnailBorders.run();
                     });
                     tile.setOnLongClickListener(v -> {
                         if (!customDeleteSelection.contains(customFile)) customDeleteSelection.add(customFile);
@@ -6376,7 +6383,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             CustomWallpaperLibrary.setSelected(this, draftCustomSelection, "sequential");
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
-                editor.putString("custom_wallpaper_file", allCustomWallpapers.get(0).getAbsolutePath())
+                File chosenStart = new File(draftCustomPreviewFile[0]);
+                if (!chosenStart.isFile() || !allCustomWallpapers.contains(chosenStart)) {
+                    chosenStart = allCustomWallpapers.get(0);
+                }
+                editor.putString("custom_wallpaper_file", chosenStart.getAbsolutePath())
                         .putBoolean("custom_wallpaper_enabled", true)
                         .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
                         .putBoolean("builtin_random_play", false);
