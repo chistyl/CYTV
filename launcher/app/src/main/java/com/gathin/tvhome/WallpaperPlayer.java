@@ -45,6 +45,8 @@ final class WallpaperPlayer {
     private final Random random = new Random();
     private final Handler rotationHandler = new Handler(Looper.getMainLooper());
     private static final long BUILTIN_RANDOM_INTERVAL_MS = 30 * 60_000L;
+    /** Custom gallery slideshow cadence: sequential and random modes both advance once per minute. */
+    private static final long CUSTOM_WALLPAPER_INTERVAL_MS = 60_000L;
     private final Runnable builtinRandomTick = new Runnable() {
         @Override public void run() {
             if (!active || closed) return;
@@ -309,7 +311,7 @@ final class WallpaperPlayer {
             if (!currentWasDeleted && ("single".equals(mode) || customSelection.size() < 2)) return;
             long changed = preferences.getLong("custom_wallpaper_changed", 0);
             if (!currentWasDeleted
-                    && !WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) return;
+                    && !WallpaperRotation.due(changed, System.currentTimeMillis(), CUSTOM_WALLPAPER_INTERVAL_MS)) return;
             File nextCustom;
             if (currentWasDeleted) {
                 nextCustom = customSelection.get(0);
