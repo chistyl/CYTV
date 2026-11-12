@@ -6113,7 +6113,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
-            String activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
+            String activePath = wallpaperPrefs.getString("custom_wallpaper_current", "");
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
                 View item = customThumbnailItems.get(index);
@@ -6125,6 +6125,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 setWallpaperThumbnailBorder(customThumbnailPreviews.get(index), selected, item.hasFocus());
             }
         };
+        // Keep the gallery's active-image border synchronized with WallpaperPlayer rotation.
+        final SharedPreferences.OnSharedPreferenceChangeListener customBorderListener = (prefs, key) -> {
+            if ("custom_wallpaper_current".equals(key)) refreshCustomThumbnailBorders.run();
+        };
+        wallpaperPrefs.registerOnSharedPreferenceChangeListener(customBorderListener);
+        dialog.setOnDismissListener(ignored -> wallpaperPrefs.unregisterOnSharedPreferenceChangeListener(customBorderListener));
         final TextView[] customDeleteAction = new TextView[1];
         final Runnable refreshCustomDeleteAction = () -> {
             if (customDeleteAction[0] != null) {
