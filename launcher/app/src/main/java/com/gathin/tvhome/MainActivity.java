@@ -6113,7 +6113,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<File> customDeleteSelection = new ArrayList<>();
         // 每次狀態變更都統一刷新整個縮圖列，避免上一張圖片殘留舊選取框。
         final Runnable refreshCustomThumbnailBorders = () -> {
-            String activePath = wallpaperPrefs.getString("custom_wallpaper_file", "");
+            // Track the image actually rendered by WallpaperPlayer, not the first image chosen when the gallery was saved.
+            String activePath = wallpaperPrefs.getString("custom_wallpaper_current",
+                    wallpaperPrefs.getString("custom_wallpaper_file", ""));
             for (int index = 0; index < customThumbnailPreviews.size(); index++) {
                 File file = customThumbnailFiles.get(index);
                 View item = customThumbnailItems.get(index);
