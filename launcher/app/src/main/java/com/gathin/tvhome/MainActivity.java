@@ -6540,35 +6540,43 @@ private GradientDrawable roundSurface(int color, float radius) {
         } catch (WriterException e) {
             address.setText("QR Code 產生失敗，請重新開啟此功能。");
         }
-        // 與資料夾視窗完全共用桌面背景快照模糊；只模糊視窗外桌面，面板與 QR Code 保持清晰。
-        final ImageView backdropBlur = installFolderBackdropBlur();
+        // Capture the desktop only after the QR dialog has been attached. This avoids
+        // taking a snapshot during the wallpaper-picker dismissal transition, when the
+        // old dialog/backdrop may still be in the activity decor.
+        final ImageView[] backdropBlur = {null};
         final boolean[] backdropDismissed = {false};
         dialog.setOnDismissListener(d -> {
             backdropDismissed[0] = true;
             server.stopServer();
-            if (backdropBlur != null) {
-                ViewParent parent = backdropBlur.getParent();
-                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
-                Drawable image = backdropBlur.getDrawable();
+            ImageView blurView = backdropBlur[0];
+            if (blurView != null) {
+                ViewParent parent = blurView.getParent();
+                if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(blurView);
+                Drawable image = blurView.getDrawable();
                 if (image instanceof android.graphics.drawable.BitmapDrawable) {
                     Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) image).getBitmap();
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                 }
+                backdropBlur[0] = null;
             }
         });
         CrashDiagnostics.stage(this, "wallpaper_picker:content_view_ready");
         dialog.setContentView(panel); dialog.show();
         if (dialog.getWindow() != null) {
-            // Match the folder dialog's dimmed desktop backdrop exactly.
+            // Keep the same 60% dim layer as folder dialogs; the QR panel stays sharp.
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            // Restore the original compact QR transfer dialog dimensions used by the
-            // folder-style surface. The full-screen sizing belongs only to the wallpaper gallery.
             int dialogWidth = Math.min((int)(440*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
             dialog.getWindow().setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
+        View decor = getWindow() != null ? getWindow().getDecorView() : null;
+        if (decor != null) decor.post(() -> {
+            if (!backdropDismissed[0] && dialog.isShowing()) {
+                backdropBlur[0] = installFolderBackdropBlur();
+            }
+        });
         close.requestFocus();
     }
 
