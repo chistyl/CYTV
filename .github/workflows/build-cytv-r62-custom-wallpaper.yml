@@ -1,4 +1,4 @@
-name: CYTV R85 QR Upload Description
+name: CYTV R86 Wallpaper Picker Return
 
 on:
   push:
@@ -19,6 +19,7 @@ on:
       - fix/qr-wallpaper-dialog-return-r83
       - fix/qr-wallpaper-backdrop-blur-r84
       - fix/qr-upload-description-remove-size-limit-r85
+      - fix/wallpaper-file-picker-return-r86
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -48,14 +49,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r85-qr-upload-description-${{ github.ref }}
+  group: cytv-r86-wallpaper-picker-return-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R85
+      - name: Checkout R86
         uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -75,8 +76,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R85-debug.apk
-          zip -r release/CYTV-R85-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R86-debug.apk
+          zip -r release/CYTV-R86-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -84,7 +85,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R85-APK-and-Source
+          name: CYTV-R86-APK-and-Source
           path: |
             release/CYTV-R85-debug.apk
             release/CYTV-R85-source.zip
