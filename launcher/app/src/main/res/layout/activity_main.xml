@@ -370,13 +370,6 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/btnInputs"
-                    style="@style/TopButton"
-                    android:text="@string/inputs"
-                    android:drawableStart="@drawable/ic_input"
-                    android:nextFocusDown="@+id/grid" />
-
-                <TextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:maxWidth="180dp"
@@ -384,6 +377,13 @@
                     android:ellipsize="end"
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
+                    android:id="@+id/btnInputs"
+                    style="@style/TopButton"
+                    android:text="@string/inputs"
+                    android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
