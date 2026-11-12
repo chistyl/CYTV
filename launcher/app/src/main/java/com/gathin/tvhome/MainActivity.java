@@ -6142,6 +6142,59 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setHorizontalScrollBarEnabled(false);
         scroll.addView(choices);
+        // Use the gallery's measured viewport width, not displayMetrics. The picker is
+        // hosted inside a nested full-screen page whose real content width can differ
+        // from the physical screen width (TV overscan, page insets and max-width cap).
+        // Re-size both preset and custom rows from the same measured value so every
+        // thumbnail has an identical fixed 16:9 cell and exactly three columns.
+        scroll.getViewTreeObserver().addOnGlobalLayoutListener(
+                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override public void onGlobalLayout() {
+                        if (scroll.getWidth() <= 0) return;
+                        scroll.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        int availableWidth = Math.max(3, scroll.getWidth()
+                                - choices.getPaddingLeft() - choices.getPaddingRight());
+                        int gap = (int) (6 * density);
+                        int cellWidth = Math.max(1, (availableWidth - gap * 2) / 3);
+                        int cellHeight = Math.max(1, Math.round(cellWidth * 9f / 16f));
+                        for (int rowIndex = 0; rowIndex < choices.getChildCount(); rowIndex++) {
+                            View rowView = choices.getChildAt(rowIndex);
+                            if (!(rowView instanceof LinearLayout)) continue;
+                            LinearLayout galleryRow = (LinearLayout) rowView;
+                            if (galleryRow.getOrientation() != LinearLayout.HORIZONTAL
+                                    || galleryRow.getChildCount() != 3) continue;
+                            LinearLayout.LayoutParams rowParams =
+                                    (LinearLayout.LayoutParams) galleryRow.getLayoutParams();
+                            rowParams.height = cellHeight;
+                            rowParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                            galleryRow.setLayoutParams(rowParams);
+                            for (int col = 0; col < 3; col++) {
+                                View cell = galleryRow.getChildAt(col);
+                                ViewGroup.LayoutParams rawCellParams = cell.getLayoutParams();
+                                LinearLayout.LayoutParams cellParams = rawCellParams instanceof LinearLayout.LayoutParams
+                                        ? (LinearLayout.LayoutParams) rawCellParams
+                                        : new LinearLayout.LayoutParams(cellWidth, cellHeight);
+                                cellParams.width = cellWidth;
+                                cellParams.height = cellHeight;
+                                cellParams.rightMargin = col < 2 ? gap : 0;
+                                cell.setLayoutParams(cellParams);
+                                if (cell instanceof ViewGroup) {
+                                    ViewGroup cellGroup = (ViewGroup) cell;
+                                    for (int childIndex = 0; childIndex < cellGroup.getChildCount(); childIndex++) {
+                                        View image = cellGroup.getChildAt(childIndex);
+                                        if (image instanceof ImageView) {
+                                            ViewGroup.LayoutParams imageParams = image.getLayoutParams();
+                                            imageParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                            imageParams.height = cellHeight;
+                                            image.setLayoutParams(imageParams);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        choices.requestLayout();
+                    }
+                });
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
         for (int i = 0; i < modeRow.getChildCount() && i < columnsCount; i++) {
             View modeButton = modeRow.getChildAt(i);
