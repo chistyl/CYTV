@@ -18,6 +18,20 @@ final class WallpaperRotation {
         return ORDER_SEQUENTIAL.equals(order) || ORDER_SHUFFLE.equals(order);
     }
 
+    static boolean validMode(String mode) {
+        return "single".equals(mode) || ORDER_SEQUENTIAL.equals(mode) || "random".equals(mode);
+    }
+
+    static boolean isSequential(String mode) {
+        return ORDER_SEQUENTIAL.equals(mode) || "order".equals(mode)
+                || "ordered".equals(mode) || "依序播放".equals(mode) || "顺序播放".equals(mode);
+    }
+
+    static boolean isRandom(String mode) {
+        return "random".equals(mode) || ORDER_SHUFFLE.equals(mode)
+                || "隨機播放".equals(mode) || "随机播放".equals(mode);
+    }
+
     /** Accept either the persisted basename or the absolute path used by the custom gallery. */
     private static boolean matches(File image, String previous) {
         return previous != null && (image.getName().equals(previous)
@@ -85,7 +99,7 @@ final class WallpaperRotation {
 
     /** Picks the next picture for {@code order}; an unknown order keeps the historical shuffle. */
     static File pick(List<File> images, String previous, String order, Random random) {
-        return ORDER_SEQUENTIAL.equals(order) ? next(images, previous) : pick(images, previous, random);
+        return isSequential(order) ? next(images, previous) : pick(images, previous, random);
     }
 
     static boolean due(long previous, long now, long interval) {
