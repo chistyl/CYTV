@@ -1030,7 +1030,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
-        wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
+        wifiIconOnly = false; // R90：Wi-Fi 按鈕固定顯示文字與圖示。
         if (cfg.wifiStatusColor) {
             wifiPlainTint = btnWifi.getCompoundDrawableTintList();
             wifiOnlineTint = getColorStateList(R.color.pill_icon_online);
@@ -1057,8 +1057,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             topButtons.setGravity(Gravity.CENTER_VERTICAL);
         }
         if (iconOnlyButtons) {
+            // R90：Wi-Fi 永遠保留文字與圖示；純圖示設定只套用到設定按鈕。
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
-            else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
         } else {
             // 右上角「設定」固定使用純圖示，與輸入來源按鈕一致。
