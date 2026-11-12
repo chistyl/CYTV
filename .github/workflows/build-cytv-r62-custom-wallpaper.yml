@@ -1,4 +1,4 @@
-name: CYTV R88 Wallpaper Page Bottom Inset
+name: CYTV R89 Wallpaper Page Bottom Inset
 
 on:
   push:
@@ -21,7 +21,7 @@ on:
       - fix/qr-upload-description-remove-size-limit-r85
       - fix/wallpaper-file-picker-return-r86
       - fix/wallpaper-bottom-actions-margin-15dp-r87
-      - fix/wallpaper-page-bottom-inset-15dp-r88
+      - fix/wallpaper-page-bottom-inset-15dp-r89
   pull_request:
     branches:
       - feature/custom-wallpaper-gallery-r62
@@ -48,21 +48,21 @@ on:
       - fix/qr-upload-description-remove-size-limit-r85
       - fix/wallpaper-file-picker-return-r86
       - fix/wallpaper-bottom-actions-margin-15dp-r87
-      - fix/wallpaper-page-bottom-inset-15dp-r88
+      - fix/wallpaper-page-bottom-inset-15dp-r89
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r87-wallpaper-bottom-margin-${{ github.ref }}
+  group: cytv-r89-topbar-input-icon-only-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R88
+      - name: Checkout R89
         uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -82,8 +82,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R88-debug.apk
-          zip -r release/CYTV-R88-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R89-debug.apk
+          zip -r release/CYTV-R89-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -91,9 +91,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R88-APK-and-Source
+          name: CYTV-R89-APK-and-Source
           path: |
-            release/CYTV-R88-debug.apk
-            release/CYTV-R88-source.zip
+            release/CYTV-R89-debug.apk
+            release/CYTV-R89-source.zip
           if-no-files-found: error
           retention-days: 30
