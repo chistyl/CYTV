@@ -1,4 +1,4 @@
-name: CYTV R99 Custom Wallpaper 60 Second Rotation
+name: CYTV R100 Custom Wallpaper 60 Second Rotation
 
 on:
   push:
@@ -29,27 +29,27 @@ on:
       - fix/home-app-hide-refresh-r93
       - fix/folder-rename-dialog-match-category-r96
       - feature/custom-wallpaper-60s-rotation-r98
-      - fix/custom-wallpaper-rotation-path-match-r99
+      - fix/custom-wallpaper-independent-timer-r100
   pull_request:
     branches:
-      - feature/custom-wallpaper-60s-rotation-r98
+      - fix/custom-wallpaper-rotation-path-match-r99
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r99-custom-wallpaper-60s-${{ github.ref }}
+  group: cytv-r100-custom-wallpaper-60s-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R99
+      - name: Checkout R100
         uses: actions/checkout@v4
         with:
-          ref: fix/custom-wallpaper-rotation-path-match-r99
+          ref: fix/custom-wallpaper-independent-timer-r100
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -68,8 +68,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R99-debug.apk
-          zip -r release/CYTV-R99-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R100-debug.apk
+          zip -r release/CYTV-R100-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -77,9 +77,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R99-APK-and-Source
+          name: CYTV-R100-APK-and-Source
           path: |
-            release/CYTV-R99-debug.apk
-            release/CYTV-R99-source.zip
+            release/CYTV-R100-debug.apk
+            release/CYTV-R100-source.zip
           if-no-files-found: error
           retention-days: 30
