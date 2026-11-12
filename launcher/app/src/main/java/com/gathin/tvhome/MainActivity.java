@@ -6248,7 +6248,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         draftCustomActive[0] = true;
                         persistWallpaperDraft.run();
                         if (wallpaperPlayer != null) {
-                            wallpaperPlayer.selectCustomWallpaper(customFile);
+                            wallpaperPlayer.selectCustomWallpaper(customFile, refreshCustomThumbnailBorders);
                         } else {
                             wallpaperPrefs.edit()
                                     .putString("custom_wallpaper_current", customFile.getAbsolutePath())
