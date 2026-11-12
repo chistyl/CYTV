@@ -30,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cytv-r73-qr-dialog-folder-style-${{ github.ref }}
+  group: cytv-r74-wallpaper-spacing-dpad-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
         with:
           name: CYTV-R74-APK-and-Source
           path: |
-            release/CYTV-R73-qr-dialog-debug.apk
-            release/CYTV-R73-qr-dialog-source.zip
+            release/CYTV-R74-debug.apk
+            release/CYTV-R74-source.zip
           if-no-files-found: error
           retention-days: 30
