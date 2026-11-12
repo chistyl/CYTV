@@ -194,7 +194,7 @@ final class WallpaperPlayer {
                 }
                 if (bitmap == null || !selected.isFile()) {
                     if (bitmap != null) bitmap.recycle();
-                    recordDiagnostic(context, "手動選取圖片解碼失敗：" + selected.getName());
+
                     return;
                 }
                 show(bitmap);
@@ -208,8 +208,7 @@ final class WallpaperPlayer {
                         .remove("builtin_wallpaper")
                         .apply();
                 showCaption(true);
-                recordDiagnostic(context, "手動選取圖片並立即顯示：" + selected.getName()
-                        + "；輪播模式=" + mode);
+
                 refreshCustomRotationTimer();
                 if (onApplied != null) onApplied.run();
             });
