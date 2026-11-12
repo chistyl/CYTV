@@ -74,7 +74,7 @@ final class WallpaperPlayer {
     private final Runnable customRotationTick = new Runnable() {
         @Override public void run() {
             if (!active || closed) return;
-            update();
+            update(true);
             if (active && !closed) {
                 rotationHandler.postDelayed(this, CUSTOM_WALLPAPER_INTERVAL_MS);
             }
@@ -292,6 +292,11 @@ final class WallpaperPlayer {
     }
 
     void update() {
+        update(false);
+    }
+
+    /** A dedicated slideshow tick has already waited the full interval; do not gate it a second time. */
+    private void update(boolean forceCustomRotation) {
         if (!active || closed || loading) return;
         List<File> customSelection = CustomWallpaperLibrary.selected(root.getContext());
         // If the last selected custom image was deleted, there is no custom item to rotate to.
@@ -324,7 +329,7 @@ final class WallpaperPlayer {
             // Otherwise the old bitmap remains on screen until Home is recreated.
             if (!currentWasDeleted && ("single".equals(mode) || customSelection.size() < 2)) return;
             long changed = preferences.getLong("custom_wallpaper_changed", 0);
-            if (!currentWasDeleted
+            if (!currentWasDeleted && !forceCustomRotation
                     && !WallpaperRotation.due(changed, System.currentTimeMillis(), CUSTOM_WALLPAPER_INTERVAL_MS)) return;
             File nextCustom;
             if (currentWasDeleted) {
