@@ -9103,35 +9103,181 @@ private GradientDrawable roundSurface(int color, float radius) {
             if (key.contains("/folder:")) {
                 String oldName = key.substring(key.indexOf("/folder:") + "/folder:".length());
                 addSettingsMenuRow(folderRows, folderPopup, "重新命名", () -> {
+                    // 一般資料夾重新命名沿用「應用分類」自訂視窗的完整尺寸與視覺樣式。
                     EditText edit = new EditText(this);
+                    edit.setId(View.generateViewId());
                     edit.setSingleLine(true);
                     edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+                    edit.setFocusable(true);
+                    edit.setFocusableInTouchMode(true);
+                    edit.setSelectAllOnFocus(false);
+                    edit.setTextSize(18f);
+                    edit.setTextColor(0xFF202124);
+                    edit.setHintTextColor(0xFF68717D);
+                    edit.setPadding((int)(14*density), 0, (int)(14*density), 0);
+                    edit.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+                    edit.setHint("輸入資料夾名稱");
                     edit.setText(oldName);
-                    AlertDialog renameDialog = new AlertDialog.Builder(this).setTitle("重新命名").setView(edit)
-                            .setNegativeButton("取消", null).setPositiveButton("儲存", (dialog, which) -> {
-                                String newName = edit.getText().toString().trim();
-                                if (newName.isEmpty() || "系統".equals(newName)) {
-                                    Toast.makeText(this, "資料夾名稱不可使用", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                                java.util.Set<String> folders = folderPrefs.getStringSet("home_folders", java.util.Collections.<String>emptySet());
-                                if (!newName.equals(oldName) && folders.contains(newName)) {
-                                    Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                                if (newName.equals(oldName)) return;
-                                java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
-                                updated.remove(oldName); updated.add(newName);
-                                java.util.Set<String> members = folderPrefs.getStringSet("folder_apps_" + oldName, java.util.Collections.<String>emptySet());
-                                folderPrefs.edit().putStringSet("home_folders", updated)
-                                        .putStringSet("folder_apps_" + newName, new java.util.HashSet<>(members))
-                                        .remove("folder_apps_" + oldName).apply();
-                                reloadApps(false);
-                            }).create();
+                    edit.setSelection(edit.getText().length());
+                    edit.setBackground(roundSurface(0xFFE5E8EC, 14*density));
+
+                    final Dialog renameDialog = new Dialog(this);
+                    LinearLayout outer = new LinearLayout(this);
+                    outer.setOrientation(LinearLayout.VERTICAL);
+                    outer.setPadding((int)(18*density), (int)(12*density),
+                            (int)(18*density), (int)(12*density));
+                    outer.setBackground(roundSurface(Color.rgb(29, 33, 43), 22*density));
+
+                    TextView title = new TextView(this);
+                    title.setText("重新命名");
+                    title.setTextColor(0xFFF5F6FA);
+                    title.setTextSize(20);
+                    title.setGravity(Gravity.CENTER);
+                    title.setPadding(0, (int)(1*density), 0, (int)(7*density));
+                    outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+
+                    LinearLayout fieldPanel = new LinearLayout(this);
+                    fieldPanel.setOrientation(LinearLayout.VERTICAL);
+                    fieldPanel.setGravity(Gravity.CENTER_VERTICAL);
+                    fieldPanel.setPadding((int)(18*density), (int)(12*density),
+                            (int)(18*density), (int)(12*density));
+                    fieldPanel.setBackground(roundSurface(0xFF343A46, 18*density));
+                    LinearLayout.LayoutParams fieldPanelLp =
+                            new LinearLayout.LayoutParams(-1, (int)(92*density));
+                    fieldPanelLp.topMargin = (int)(4*density);
+                    outer.addView(fieldPanel, fieldPanelLp);
+                    fieldPanel.addView(edit, new LinearLayout.LayoutParams(-1, (int)(52*density)));
+
+                    LinearLayout actions = new LinearLayout(this);
+                    actions.setOrientation(LinearLayout.HORIZONTAL);
+                    actions.setGravity(Gravity.CENTER);
+                    LinearLayout.LayoutParams actionsLp =
+                            new LinearLayout.LayoutParams(-1, (int)(52*density));
+                    actionsLp.topMargin = (int)(12*density);
+                    outer.addView(actions, actionsLp);
+
+                    Button cancelButton = new Button(this);
+                    Button saveButton = new Button(this);
+                    cancelButton.setId(View.generateViewId());
+                    saveButton.setId(View.generateViewId());
+                    cancelButton.setText("取消");
+                    saveButton.setText("儲存");
+                    for (Button button : new Button[]{cancelButton, saveButton}) {
+                        button.setAllCaps(false);
+                        button.setTextColor(Color.WHITE);
+                        button.setTextSize(16);
+                        button.setFocusable(true);
+                        button.setFocusableInTouchMode(true);
+                        button.setDefaultFocusHighlightEnabled(false);
+                        button.setMinWidth((int)(104*density));
+                        button.setMinHeight((int)(50*density));
+                        button.setBackground(roundSurface(0xFF343A46, 14*density));
+                        button.setOnFocusChangeListener((v, focused) ->
+                                v.setBackground(roundSurface(focused ? 0xFF465366 : 0xFF343A46, 14*density)));
+                        LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(
+                                (int)(112*density), (int)(50*density));
+                        buttonLp.setMargins((int)(8*density), 0, (int)(8*density), 0);
+                        actions.addView(button, buttonLp);
+                    }
+
+                    Runnable saveFolderName = () -> {
+                        String newName = edit.getText().toString().trim();
+                        if (newName.isEmpty() || "系統".equals(newName)) {
+                            Toast.makeText(this, "資料夾名稱不可使用", Toast.LENGTH_SHORT).show();
+                            edit.requestFocus();
+                            return;
+                        }
+                        SharedPreferences folderPrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
+                        java.util.Set<String> folders = folderPrefs.getStringSet(
+                                "home_folders", java.util.Collections.<String>emptySet());
+                        if (!newName.equals(oldName) && folders.contains(newName)) {
+                            Toast.makeText(this, "資料夾名稱已存在", Toast.LENGTH_SHORT).show();
+                            edit.requestFocus();
+                            return;
+                        }
+                        if (newName.equals(oldName)) {
+                            renameDialog.dismiss();
+                            return;
+                        }
+                        java.util.HashSet<String> updated = new java.util.HashSet<>(folders);
+                        updated.remove(oldName);
+                        updated.add(newName);
+                        java.util.Set<String> members = folderPrefs.getStringSet(
+                                "folder_apps_" + oldName, java.util.Collections.<String>emptySet());
+                        folderPrefs.edit().putStringSet("home_folders", updated)
+                                .putStringSet("folder_apps_" + newName, new java.util.HashSet<>(members))
+                                .remove("folder_apps_" + oldName).apply();
+                        renameDialog.dismiss();
+                        reloadApps(false);
+                    };
+                    cancelButton.setOnClickListener(v -> renameDialog.dismiss());
+                    saveButton.setOnClickListener(v -> saveFolderName.run());
+                    edit.setOnEditorActionListener((v, actionId, event) -> {
+                        if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                            saveFolderName.run();
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    renameDialog.setContentView(outer);
+                    renameDialog.setCanceledOnTouchOutside(false);
+                    final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
+                    renameDialog.setOnDismissListener(ignored -> {
+                        if (backdropBlur != null) {
+                            ViewParent parent = backdropBlur.getParent();
+                            if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(backdropBlur);
+                            android.graphics.drawable.Drawable drawable = backdropBlur.getDrawable();
+                            if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                                android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                            }
+                        }
+                    });
                     renameDialog.show();
-                    styleRemoteDialogActions(renameDialog);
-                    styleRemoteEditField(edit);
-                    edit.post(edit::requestFocus);
+                    if (renameDialog.getWindow() != null) {
+                        renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                        int fixedWidth = Math.min((int)(680*density),
+                                getResources().getDisplayMetrics().widthPixels - (int)(48*density));
+                        int compactHeight = Math.min((int)(226*density),
+                                getResources().getDisplayMetrics().heightPixels - (int)(48*density));
+                        renameDialog.getWindow().setLayout(fixedWidth, compactHeight);
+                        renameDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                        renameDialog.getWindow().setDimAmount(0.6f);
+                    }
+
+                    edit.setNextFocusDownId(cancelButton.getId());
+                    cancelButton.setNextFocusUpId(edit.getId());
+                    saveButton.setNextFocusUpId(edit.getId());
+                    cancelButton.setNextFocusRightId(saveButton.getId());
+                    saveButton.setNextFocusLeftId(cancelButton.getId());
+                    edit.setOnKeyListener((v, keyCode, event) -> {
+                        if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                            cancelButton.requestFocus();
+                            return true;
+                        }
+                        return false;
+                    });
+                    View.OnKeyListener actionNavigation = (v, keyCode, event) -> {
+                        if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                        if (v == cancelButton && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                            saveButton.requestFocus();
+                            return true;
+                        }
+                        if (v == saveButton && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                            cancelButton.requestFocus();
+                            return true;
+                        }
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                            edit.requestFocus();
+                            edit.setSelection(edit.getText().length());
+                            return true;
+                        }
+                        return false;
+                    };
+                    cancelButton.setOnKeyListener(actionNavigation);
+                    saveButton.setOnKeyListener(actionNavigation);
+                    edit.post(() -> { edit.requestFocus(); edit.setSelection(edit.getText().length()); });
                 });
             }
 
