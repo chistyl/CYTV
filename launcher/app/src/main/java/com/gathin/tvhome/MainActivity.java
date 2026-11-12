@@ -6391,7 +6391,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         deleteAction.setLayoutParams(deleteActionLp);
         LinearLayout.LayoutParams editActionsLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         editActionsLp.topMargin = (int)(24 * density);
-        editActionsLp.bottomMargin = (int)(38 * density);
+        editActionsLp.bottomMargin = (int)(53 * density); // 原 38dp + 額外 15dp 底部外距。
         panel.addView(editActions, editActionsLp);
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
