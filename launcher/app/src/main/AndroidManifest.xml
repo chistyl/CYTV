@@ -87,6 +87,11 @@
         android:localeConfig="@xml/locales_config">
 
         <activity
+            android:name=".ActivationActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
