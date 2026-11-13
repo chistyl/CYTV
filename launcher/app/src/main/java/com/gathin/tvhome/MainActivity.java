@@ -5822,34 +5822,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
                 .remove("wallpaper_draft_module_enabled").remove("wallpaper_draft_custom_selection").apply();
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
-        final Runnable[] refreshModuleEnableButton = new Runnable[1];
-        TextView moduleEnableButton = addRoundedAction(panel, "", () -> {
-            draftModuleEnabled[0] = !draftModuleEnabled[0];
-            persistWallpaperDraft.run();
-            if (refreshModuleEnableButton[0] != null) refreshModuleEnableButton[0].run();
-        });
-        refreshModuleEnableButton[0] = () -> {
-            moduleEnableButton.setText(draftModuleEnabled[0] ? "啟用：開啟" : "啟用：關閉");
-            moduleEnableButton.setBackground(roundSurface(draftModuleEnabled[0] ? 0xFF16434B : 0xFF263243, 12*density));
-            moduleEnableButton.setContentDescription(draftModuleEnabled[0] ? "影像輪播模組已啟用" : "影像輪播模組已停用");
-        };
-        moduleEnableButton.setTextSize(14);
-        moduleEnableButton.setFocusable(true);
-        moduleEnableButton.setClickable(true);
-        moduleEnableButton.setOnKeyListener((v, keyCode, event) -> {
-            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
-                v.performClick();
-                return true;
-            }
-            return false;
-        });
-        refreshModuleEnableButton[0].run();
-        LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
-        moduleEnableLp.bottomMargin = (int)(7*density);
-        panel.addView(moduleEnableButton, moduleEnableLp);
-
         String[] customModes = {"single", "random"};
         String[] customModeLabels = {"單一圖片", "隨機播放"};
         LinearLayout modeRow = new LinearLayout(this);
@@ -5887,6 +5859,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             modeButton.setLayoutParams(modeLp);
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        final Runnable[] refreshModuleEnableButton = new Runnable[1];
+        TextView moduleEnableButton = addRoundedAction(panel, "", () -> {
+            draftModuleEnabled[0] = !draftModuleEnabled[0];
+            persistWallpaperDraft.run();
+            if (refreshModuleEnableButton[0] != null) refreshModuleEnableButton[0].run();
+        });
+        refreshModuleEnableButton[0] = () -> {
+            moduleEnableButton.setText(draftModuleEnabled[0] ? "啟用：開啟" : "啟用：關閉");
+            moduleEnableButton.setBackground(roundSurface(draftModuleEnabled[0] ? 0xFF16434B : 0xFF263243, 12*density));
+            moduleEnableButton.setContentDescription(draftModuleEnabled[0] ? "影像輪播模組已啟用" : "影像輪播模組已停用");
+        };
+        moduleEnableButton.setTextSize(14);
+        moduleEnableButton.setFocusable(true);
+        moduleEnableButton.setClickable(true);
+        moduleEnableButton.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        refreshModuleEnableButton[0].run();
+        LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
+        moduleEnableLp.bottomMargin = (int)(7*density);
+        panel.addView(moduleEnableButton, moduleEnableLp);
+
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
