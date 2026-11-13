@@ -4993,8 +4993,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         modeRow.addView(weekButton, weekLp);
         // 選取狀態決定固定底色；遙控器焦點移動不改變已選取模式的顏色。
         Runnable refreshWeatherModeButtons = () -> {
-            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF536174 : 0xFF465366, 14*density));
-            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF465366 : 0xFF536174, 14*density));
+            // 選取色 #16434B；未選取色 #343A46。選取顏色不受遙控器焦點影響。
+            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF16434B : 0xFF343A46, 14*density));
+            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF343A46 : 0xFF16434B, 14*density));
         };
         dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
         weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
