@@ -2,8 +2,6 @@ package com.gathin.tvhome;
 
 import java.util.Base64;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -89,13 +87,13 @@ final class LicenseVerifier {
             verifier.update(payload);
             if (!verifier.verify(signatureBytes)) return result(Status.BAD_SIGNATURE);
 
-            JSONObject json = new JSONObject(new String(payload, StandardCharsets.UTF_8));
-            if (json.optInt("v", -1) != FORMAT_VERSION) return result(Status.UNSUPPORTED_VERSION);
-            if (!PRODUCT_ID.equals(json.optString("product", ""))) return result(Status.WRONG_PRODUCT);
+            String json = new String(payload, StandardCharsets.UTF_8);
+            if (jsonLong(json, "v", -1L) != FORMAT_VERSION) return result(Status.UNSUPPORTED_VERSION);
+            if (!PRODUCT_ID.equals(jsonString(json, "product", ""))) return result(Status.WRONG_PRODUCT);
 
-            String licenseId = json.optString("license_id", "").trim();
-            long issuedAt = json.optLong("issued_at", -1L);
-            long expiresAt = json.optLong("expires_at", 0L); // zero means perpetual
+            String licenseId = jsonString(json, "license_id", "").trim();
+            long issuedAt = jsonLong(json, "issued_at", -1L);
+            long expiresAt = jsonLong(json, "expires_at", 0L); // zero means perpetual
             if (licenseId.isEmpty() || issuedAt <= 0 || expiresAt < 0 || issuedAt > nowMillis + 300_000L) {
                 return new Result(Status.INVALID_FIELDS, "", 0L, 0L);
             }
@@ -103,11 +101,42 @@ final class LicenseVerifier {
                 return new Result(Status.EXPIRED, licenseId, issuedAt, expiresAt);
             }
             return new Result(Status.VALID, licenseId, issuedAt, expiresAt);
-        } catch (IllegalArgumentException | JSONException e) {
+        } catch (IllegalArgumentException e) {
             return result(Status.MALFORMED);
         } catch (Exception e) {
             return result(Status.BAD_SIGNATURE);
         }
+    }
+
+
+    // Parse the small canonical payload without Android's org.json unit-test stubs.
+    private static String jsonString(String json, String key, String fallback) {
+        String marker = "\"" + key + "\"";
+        int keyAt = json.indexOf(marker);
+        if (keyAt < 0) return fallback;
+        int colon = json.indexOf(':', keyAt + marker.length());
+        if (colon < 0) return fallback;
+        int start = json.indexOf('"', colon + 1);
+        if (start < 0) return fallback;
+        int end = json.indexOf('"', start + 1);
+        if (end < 0) return fallback;
+        return json.substring(start + 1, end);
+    }
+
+    private static long jsonLong(String json, String key, long fallback) {
+        String marker = "\"" + key + "\"";
+        int keyAt = json.indexOf(marker);
+        if (keyAt < 0) return fallback;
+        int colon = json.indexOf(':', keyAt + marker.length());
+        if (colon < 0) return fallback;
+        int start = colon + 1;
+        while (start < json.length() && Character.isWhitespace(json.charAt(start))) start++;
+        int end = start;
+        if (end < json.length() && json.charAt(end) == '-') end++;
+        while (end < json.length() && Character.isDigit(json.charAt(end))) end++;
+        if (end == start) return fallback;
+        try { return Long.parseLong(json.substring(start, end)); }
+        catch (NumberFormatException e) { return fallback; }
     }
 
     private static byte[] decodeUrl(String value) {
