@@ -1,6 +1,6 @@
 package com.gathin.tvhome;
 
-import android.util.Base64;
+import java.util.Base64;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -105,7 +105,7 @@ final class LicenseVerifier {
 
     private static byte[] decodeUrl(String value) {
         // Android Base64 URL_SAFE accepts padded and unpadded Base64URL.
-        return Base64.decode(value, Base64.URL_SAFE | Base64.NO_WRAP);
+        return Base64.getUrlDecoder().decode(value);
     }
 
     private static PublicKey publicKey() throws Exception {
@@ -113,7 +113,7 @@ final class LicenseVerifier {
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", "");
-        byte[] der = Base64.decode(encoded, Base64.DEFAULT);
+        byte[] der = Base64.getDecoder().decode(encoded);
         return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(der));
     }
 
