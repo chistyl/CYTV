@@ -41,6 +41,8 @@ final class WallpaperPlayer {
     private final long interval;
     private final String order;
     private final SharedPreferences preferences;
+    /** Independent master switch for the entire image-carousel module. */
+    private final boolean moduleEnabled;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
     private final Random random = new Random();
     private final Handler rotationHandler = new Handler(Looper.getMainLooper());
@@ -138,6 +140,7 @@ final class WallpaperPlayer {
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
+        moduleEnabled = preferences.getBoolean("wallpaper_module_enabled", true);
         moods = config.wallpaperMoods;
         latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
         longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
@@ -156,12 +159,12 @@ final class WallpaperPlayer {
         image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
-        caption = names.isEmpty() ? null : makeCaption(context, root);
-        if ((customWallpaperEnabled() && !CustomWallpaperLibrary.selected(context).isEmpty())
+        caption = !moduleEnabled || names.isEmpty() ? null : makeCaption(context, root);
+        if (moduleEnabled && ((customWallpaperEnabled() && !CustomWallpaperLibrary.selected(context).isEmpty())
                 || preferences.getInt("builtin_wallpaper", 0) > 0
                 || preferences.getString("custom_wallpaper_uri", null) != null
                 || preferences.getString("custom_wallpaper_file", null) != null
-                || (config.wallpaperEnabled && !files.isEmpty())) {
+                || (config.wallpaperEnabled && !files.isEmpty()))) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
@@ -197,7 +200,8 @@ final class WallpaperPlayer {
 
                     return;
                 }
-                show(bitmap);
+                if (moduleEnabled) show(bitmap);
+                else bitmap.recycle();
                 displayed = selected.getAbsolutePath();
                 preferences.edit()
                         .putBoolean("custom_wallpaper_enabled", true)
@@ -345,6 +349,12 @@ final class WallpaperPlayer {
     }
 
     void start() {
+        if (!moduleEnabled) {
+            active = false;
+            root.setBackgroundColor(backgroundColor);
+            image.setImageDrawable(null);
+            return;
+        }
         active = true;
         Log.i("TvHome.Wallpaper", "R102 start; selected=" + CustomWallpaperLibrary.selected(root.getContext()).size()
                 + ", mode=" + CustomWallpaperLibrary.mode(root.getContext()) + ", displayed=" + displayed);
@@ -390,7 +400,7 @@ final class WallpaperPlayer {
 
     /** A dedicated slideshow tick has already waited the full interval; do not gate it a second time. */
     private void update(boolean forceCustomRotation) {
-        if (!active || closed) {
+        if (!moduleEnabled || !active || closed) {
             Log.w("TvHome.Wallpaper", "R102 update skipped: active=" + active + ", closed=" + closed);
 
             return;
