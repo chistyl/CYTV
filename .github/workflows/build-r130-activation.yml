@@ -1,4 +1,4 @@
-name: Launcher ATV R132 Universal Password Build
+name: Launcher ATV R133 Ethernet Ad Filter Policy Build
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
       - main
       - fix/weather-dialog-global-dpad-dispatch-r129
       - feature/first-launch-activation-r130
+      - feature/universal-activation-password-r132
       - fix/ethernet-hide-ad-filter-r131
     paths:
       - 'launcher/**'
@@ -35,13 +36,13 @@ jobs:
       - name: Package complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-R132-Activation-debug.apk
-          zip -r release/LauncherATV-R132-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-R133-Activation-debug.apk
+          zip -r release/LauncherATV-R133-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: LauncherATV-R132-APK-and-Source
+          name: LauncherATV-R133-APK-and-Source
           path: |
-            release/LauncherATV-R132-Activation-debug.apk
-            release/LauncherATV-R132-Source.zip
+            release/LauncherATV-R133-Activation-debug.apk
+            release/LauncherATV-R133-Source.zip
           if-no-files-found: error
