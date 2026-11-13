@@ -6073,6 +6073,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(defaultHeading, defaultHeadingLp);
         moduleEnableButton.setNextFocusDownId(defaultHeading.getId());
         defaultHeading.setNextFocusUpId(moduleEnableButton.getId());
+        if (thumbnailItems.length > 0 && thumbnailItems[0] != null)
+            defaultHeading.setNextFocusDownId(thumbnailItems[0].getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
             modeRow.getChildAt(modeIndex).setNextFocusDownId(moduleEnableButton.getId());
 
@@ -6535,7 +6537,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
         for (int i = 0; i < modeRow.getChildCount() && i < columnsCount; i++) {
             View modeButton = modeRow.getChildAt(i);
-            modeButton.setNextFocusDownId(thumbnailItems[i].getId());
+            modeButton.setNextFocusLeftId(i == 0 ? modeButton.getId() : modeButtons[0].getId());
+            modeButton.setNextFocusRightId(i == 1 ? modeButton.getId() : modeButtons[1].getId());
+            modeButton.setNextFocusDownId(moduleEnableButton.getId());
             modeButton.setNextFocusUpId(modeButton.getId());
         }
         for (int i = 0; i < thumbnailItems.length; i++) {
@@ -6673,6 +6677,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelAction.setNextFocusRightId(saveAction.getId());
         cancelAction.setNextFocusDownId(cancelAction.getId());
         saveAction.setNextFocusLeftId(cancelAction.getId());
+        saveAction.setNextFocusRightId(saveAction.getId());
+        deleteAction.setNextFocusLeftId(deleteAction.getId());
         saveAction.setNextFocusUpId(chooseAction.getId());
         saveAction.setNextFocusDownId(saveAction.getId());
         // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
@@ -6691,16 +6697,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else tile.setNextFocusUpId(customHeading.getId());
             if (i + customColumns < customThumbnailItems.size())
                 tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
-            else tile.setNextFocusDownId(cancelAction.getId());
+            else tile.setNextFocusDownId(deleteAction.getId());
         }
         chooseAction.setNextFocusDownId(customHeading.getId());
         customHeading.setNextFocusUpId(chooseAction.getId());
         if (!customThumbnailItems.isEmpty()) {
             int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
+            deleteAction.setNextFocusUpId(lastCustomId);
             cancelAction.setNextFocusUpId(lastCustomId);
             saveAction.setNextFocusUpId(lastCustomId);
         } else {
-            customHeading.setNextFocusDownId(cancelAction.getId());
+            customHeading.setNextFocusDownId(deleteAction.getId());
         }
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
@@ -6781,20 +6788,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         wallpaperWindow.getDecorView().post(() -> {
             if (isFinishing() || isDestroyed() || !dialog.isShowing()) return;
-            View initial = thumbnailItems[draftTheme[0] - 1];
+            int selectedModeIndex = "single".equals(draftCustomMode[0]) ? 0 : 1;
+            View initial = modeButtons[selectedModeIndex];
             if (initial != null && initial.requestFocus()) {
-                scroll.post(() -> {
-                    int[] loc = new int[2];
-                    initial.getLocationOnScreen(loc);
-                    int[] scrollLoc = new int[2];
-                    scroll.getLocationOnScreen(scrollLoc);
-                    int top = loc[1] - scrollLoc[1];
-                    if (top < 0 || top + initial.getHeight() > scroll.getHeight()) {
-                        scroll.smoothScrollTo(0, Math.max(0, initial.getTop() - (int)(8*density)));
-                    }
-                });
-            } else if (qrAction.requestFocus()) {
-                // TV 韌體若暫時拒絕縮圖焦點，至少將焦點放在第一個可操作項目。
+                // 開啟時從目前選取的播放模式開始，依序往下操作，不跳過頂部設定。
+            } else if (moduleEnableButton.requestFocus()) {
+                // 若電視韌體拒絕模式按鈕焦點，退回啟用開關。
+            } else if (thumbnailItems[0] != null) {
+                thumbnailItems[0].requestFocus();
             }
         });
     }
