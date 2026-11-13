@@ -1,28 +1,28 @@
-name: CYTV R118 Image Carousel Module Enable
-# R118 validates the independent image-carousel master switch and packages the APK plus complete source.
+name: CYTV R119 Wallpaper Picker Parent Fix
+# R119 fixes the wallpaper picker duplicate-parent crash while preserving the R118 module switch.
 
 on:
   push:
     branches:
-      - feature/wallpaper-module-enable-r118
+      - fix/wallpaper-picker-double-parent-r119
   pull_request:
     branches:
-      - fix/input-source-dpad-left-r117
       - feature/wallpaper-module-enable-r118
+      - fix/wallpaper-picker-double-parent-r119
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r118-wallpaper-module-enable-${{ github.ref }}
+  group: cytv-r119-wallpaper-picker-fix-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R118
+      - name: Checkout R119
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -44,8 +44,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R118-debug.apk
-          zip -r release/CYTV-R118-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R119-debug.apk
+          zip -r release/CYTV-R119-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -53,7 +53,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R118-APK-and-Source
+          name: CYTV-R119-APK-and-Source
           path: |
             release/CYTV-R118-debug.apk
             release/CYTV-R118-source.zip
