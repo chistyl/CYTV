@@ -80,8 +80,6 @@ public final class LicenseActivity extends Activity {
 
         setContentView(root);
         codeInput.requestFocus();
-        activate.setNextFocusUpId(codeInput.getId());
-        codeInput.setNextFocusDownId(activate.getId());
     }
 
     private void activate() {
