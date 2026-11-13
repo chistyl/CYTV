@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Create a reusable, offline CYTV activation code. Requires OpenSSL on PATH.
+"""Issue a one-device-only CYTV activation token offline. Requires OpenSSL on PATH.
 
-Keep the RSA private key offline and out of the repository. One code is intentionally
-reusable across devices; offline software cannot enforce a device-count limit.
+The device fingerprint must be copied from the target TV's activation screen.
+Keep the RSA private key offline and out of the repository.
 """
 import argparse
 import base64
 import json
+import re
 import subprocess
 import tempfile
 import time
@@ -21,7 +22,8 @@ def b64url(data: bytes) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--private-key", required=True, type=Path, help="Path to the offline RSA private PEM")
-    parser.add_argument("--license-id", required=True, help="Internal license reference")
+    parser.add_argument("--license-id", required=True, help="Unique license reference")
+    parser.add_argument("--device-fingerprint", required=True, help="64-character SHA-256 fingerprint shown on the target TV")
     parser.add_argument("--expires", help="Optional expiry date YYYY-MM-DD (UTC, valid through that day); omit for perpetual")
     args = parser.parse_args()
 
@@ -29,6 +31,9 @@ def main() -> int:
         parser.error("private key file does not exist")
     if not args.license_id.strip():
         parser.error("license ID must not be empty")
+    fingerprint = args.device_fingerprint.strip().upper()
+    if not re.fullmatch(r"[0-9A-F]{64}", fingerprint):
+        parser.error("--device-fingerprint must be exactly 64 hexadecimal characters")
 
     expires_at = 0
     if args.expires:
@@ -42,6 +47,7 @@ def main() -> int:
         "v": 1,
         "product": "CYTV",
         "license_id": args.license_id.strip(),
+        "device_fingerprint": fingerprint,
         "issued_at": int(time.time() * 1000),
         "expires_at": expires_at,
     }
