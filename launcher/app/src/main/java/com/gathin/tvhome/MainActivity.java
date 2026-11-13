@@ -4985,22 +4985,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             button.setDefaultFocusHighlightEnabled(false);
             button.setBackground(remoteWeatherFocusBackground(false));
         }
-        final boolean[] dayFocused = {false};
-        final boolean[] weekFocused = {false};
         LinearLayout.LayoutParams dayLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
         dayLp.rightMargin = (int)(4*density);
         LinearLayout.LayoutParams weekLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
         weekLp.leftMargin = (int)(4*density);
         modeRow.addView(dayButton, dayLp);
         modeRow.addView(weekButton, weekLp);
+        // 選取狀態決定固定底色；遙控器焦點移動不改變已選取模式的顏色。
         Runnable refreshWeatherModeButtons = () -> {
-            dayButton.setBackground(roundSurface(dayFocused[0] ? 0xFF536174
-                    : daySelected[0] ? 0xFF343A46 : 0xFF465366, 14*density));
-            weekButton.setBackground(roundSurface(weekFocused[0] ? 0xFF536174
-                    : daySelected[0] ? 0xFF465366 : 0xFF17434A, 14*density));
+            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF536174 : 0xFF465366, 14*density));
+            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF465366 : 0xFF536174, 14*density));
         };
-        dayButton.setOnFocusChangeListener((v, focused) -> { dayFocused[0] = focused; refreshWeatherModeButtons.run(); });
-        weekButton.setOnFocusChangeListener((v, focused) -> { weekFocused[0] = focused; refreshWeatherModeButtons.run(); });
         dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
         weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
         refreshWeatherModeButtons.run();
