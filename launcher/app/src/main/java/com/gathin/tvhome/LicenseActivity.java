@@ -110,6 +110,8 @@ public final class LicenseActivity extends Activity {
         } else {
             String message = result.status == LicenseVerifier.Status.EXPIRED
                     ? "授權碼已到期，請確認授權期限。"
+                    : result.status == LicenseVerifier.Status.DEVICE_MISMATCH
+                    ? "此授權碼不屬於本設備，請確認設備識別碼。"
                     : "授權碼無效，請檢查內容後再試一次。";
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             codeInput.requestFocus();
