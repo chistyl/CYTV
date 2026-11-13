@@ -9,6 +9,7 @@ on:
     branches:
       - fix/wallpaper-module-cancel-rollback-r123
       - fix/weather-settings-layout-height-r124
+      - fix/weather-mode-selected-color-stable-r125
   workflow_dispatch:
 
 permissions:
