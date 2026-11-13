@@ -25,12 +25,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Build debug APK
+      - name: Run unit tests and build debug APK
         working-directory: launcher
-        run: ./gradlew :app:assembleDebug --no-daemon
-      - name: Upload APK
+        run: ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Package complete source ZIP
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R130-Activation-debug.apk
+          zip -r release/CYTV-R130-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+      - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R130-Activation-APK
-          path: launcher/app/build/outputs/apk/debug/app-debug.apk
+          name: CYTV-R130-APK-and-Source
+          path: |
+            release/CYTV-R130-Activation-debug.apk
+            release/CYTV-R130-Source.zip
           if-no-files-found: error
