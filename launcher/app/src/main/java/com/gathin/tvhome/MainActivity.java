@@ -6511,7 +6511,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         qrAction.setNextFocusUpId(thumbnailItems[7].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
-        chooseAction.setNextFocusDownId(chooseAction.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
         deleteAction.setId(View.generateViewId());
         
         
