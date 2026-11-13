@@ -5207,13 +5207,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int cityTargetId = "city".equals(savedMode) ? cityPicker.getId()
                 : "custom".equals(savedMode) ? customCity.getId() : cancel.getId();
         dayButton.setNextFocusRightId(weekButton.getId());
-        dayButton.setNextFocusDownId(firstLocationId);
-        dayButton.setNextFocusForwardId(firstLocationId);
+        dayButton.setNextFocusDownId(enableButton.getId());
+        dayButton.setNextFocusForwardId(enableButton.getId());
         weekButton.setNextFocusLeftId(dayButton.getId());
-        weekButton.setNextFocusDownId(firstLocationId);
-        weekButton.setNextFocusForwardId(firstLocationId);
+        weekButton.setNextFocusDownId(enableButton.getId());
+        weekButton.setNextFocusForwardId(enableButton.getId());
         enableButton.setNextFocusDownId(firstLocationId);
         enableButton.setNextFocusUpId(weekButton.getId());
+        enableButton.setNextFocusDownId(firstLocationId);
         device.setNextFocusUpId(enableButton.getId());
         device.setNextFocusDownId(cityMode.getId());
         cityMode.setNextFocusUpId(device.getId());
