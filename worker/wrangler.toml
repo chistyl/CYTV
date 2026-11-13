@@ -1,4 +1,4 @@
-name = "cytv-activation"
+name = "cytv"
 main = "src/index.js"
 compatibility_date = "2026-11-13"
 
