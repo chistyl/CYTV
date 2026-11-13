@@ -4963,57 +4963,74 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         title.setPadding(0, (int)(1*density), 0, (int)(7*density));
         outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
 
-        // 顯示模式採用參考圖的圓形單選鈕，右側獨立保留天氣總開關。
+        // 顯示模式改為參考圖的雙按鈕排列，天氣總開關獨立佔滿一列。
+        final boolean[] daySelected = {"day".equals(prefs.getString("display_mode", "week"))};
+        final boolean[] weatherEnabled = {prefs.getBoolean("enabled", false)};
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         modeRow.setGravity(Gravity.CENTER_VERTICAL);
-        android.widget.RadioGroup displayModes = new android.widget.RadioGroup(this);
-        displayModes.setOrientation(LinearLayout.HORIZONTAL);
-        android.widget.RadioButton dayOption = new android.widget.RadioButton(this);
-        android.widget.RadioButton weekOption = new android.widget.RadioButton(this);
-        dayOption.setId(View.generateViewId());
-        weekOption.setId(View.generateViewId());
-        dayOption.setText("顯示一天");
-        weekOption.setText("顯示一週");
+        TextView dayButton = new TextView(this);
+        TextView weekButton = new TextView(this);
+        TextView enableButton = new TextView(this);
+        dayButton.setText("顯示一天");
+        weekButton.setText("顯示一週");
+        TextView[] modeButtons = {dayButton, weekButton};
+        for (TextView button : modeButtons) {
+            button.setTextColor(0xFFF5F6FA);
+            button.setTextSize(16);
+            button.setGravity(Gravity.CENTER);
+            button.setFocusable(true);
+            button.setFocusableInTouchMode(true);
+            button.setClickable(true);
+            button.setDefaultFocusHighlightEnabled(false);
+            button.setBackground(remoteWeatherFocusBackground(false));
+        }
+        final boolean[] dayFocused = {false};
+        final boolean[] weekFocused = {false};
+        LinearLayout.LayoutParams dayLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
+        dayLp.rightMargin = (int)(4*density);
+        LinearLayout.LayoutParams weekLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
+        weekLp.leftMargin = (int)(4*density);
+        modeRow.addView(dayButton, dayLp);
+        modeRow.addView(weekButton, weekLp);
+        Runnable refreshWeatherModeButtons = () -> {
+            dayButton.setBackground(roundSurface(dayFocused[0] ? 0xFF536174
+                    : daySelected[0] ? 0xFF343A46 : 0xFF465366, 14*density));
+            weekButton.setBackground(roundSurface(weekFocused[0] ? 0xFF536174
+                    : daySelected[0] ? 0xFF465366 : 0xFF17434A, 14*density));
+        };
+        dayButton.setOnFocusChangeListener((v, focused) -> { dayFocused[0] = focused; refreshWeatherModeButtons.run(); });
+        weekButton.setOnFocusChangeListener((v, focused) -> { weekFocused[0] = focused; refreshWeatherModeButtons.run(); });
+        dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
+        weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
+        refreshWeatherModeButtons.run();
+        outer.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
+
+        enableButton.setText(weatherEnabled[0] ? "啟用：開啟" : "啟用：關閉");
+        enableButton.setTextColor(0xFFF5F6FA);
+        enableButton.setTextSize(16);
+        enableButton.setGravity(Gravity.CENTER);
+        enableButton.setFocusable(true);
+        enableButton.setFocusableInTouchMode(true);
+        enableButton.setClickable(true);
+        enableButton.setDefaultFocusHighlightEnabled(false);
+        Runnable refreshWeatherEnableButton = () -> {
+            enableButton.setText(weatherEnabled[0] ? "啟用：開啟" : "啟用：關閉");
+            enableButton.setBackground(roundSurface(weatherEnabled[0] ? 0xFF17434A : 0xFF343A46, 14*density));
+        };
+        enableButton.setOnClickListener(v -> { weatherEnabled[0] = !weatherEnabled[0]; refreshWeatherEnableButton.run(); });
+        enableButton.setOnFocusChangeListener((v, focused) -> {
+            enableButton.setBackground(roundSurface(focused ? 0xFF465366
+                    : weatherEnabled[0] ? 0xFF17434A : 0xFF343A46, 14*density));
+        });
+        refreshWeatherEnableButton.run();
+        LinearLayout.LayoutParams enableLp = new LinearLayout.LayoutParams(-1, (int)(44*density));
+        enableLp.topMargin = (int)(5*density);
+        outer.addView(enableButton, enableLp);
+
         int[][] checkedStates = {new int[]{android.R.attr.state_checked}, new int[]{}};
         android.content.res.ColorStateList optionTint = new android.content.res.ColorStateList(
                 checkedStates, new int[]{0xFF80C9C2, 0xFFACB8C1});
-        for (android.widget.RadioButton option : new android.widget.RadioButton[]{dayOption, weekOption}) {
-            option.setTextColor(0xFFF5F6FA);
-            option.setTextSize(16);
-            option.setButtonTintList(optionTint);
-            option.setFocusable(true);
-            option.setFocusableInTouchMode(true);
-            option.setDefaultFocusHighlightEnabled(false);
-            option.setMinHeight((int)(42*density));
-            option.setPadding((int)(4*density), 0, (int)(18*density), 0);
-            option.setBackground(remoteWeatherFocusBackground(false));
-            option.setOnFocusChangeListener((v, focused) ->
-                    v.setBackground(remoteWeatherFocusBackground(focused)));
-            displayModes.addView(option, new android.widget.RadioGroup.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, (int)(42*density)));
-        }
-        String displayMode = prefs.getString("display_mode", "week");
-        displayModes.check("day".equals(displayMode) ? dayOption.getId() : weekOption.getId());
-        LinearLayout.LayoutParams displayLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        modeRow.addView(displayModes, displayLp);
-
-        android.widget.Switch enabledSwitch = new android.widget.Switch(this);
-        enabledSwitch.setFocusable(true);
-        enabledSwitch.setFocusableInTouchMode(true);
-        enabledSwitch.setDefaultFocusHighlightEnabled(false);
-        enabledSwitch.setShowText(false);
-        enabledSwitch.setTextOn("");
-        enabledSwitch.setTextOff("");
-        enabledSwitch.setChecked(prefs.getBoolean("enabled", false));
-        enabledSwitch.setThumbTintList(new android.content.res.ColorStateList(
-                checkedStates, new int[]{0xFF80C9C2, 0xFFACB8C1}));
-        enabledSwitch.setTrackTintList(new android.content.res.ColorStateList(
-                checkedStates, new int[]{0xFF465366, 0xFF343A46}));
-        enabledSwitch.setContentDescription("啟用天氣預報");
-        modeRow.addView(enabledSwitch, new LinearLayout.LayoutParams(
-                (int)(58*density), (int)(42*density)));
-        outer.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
         // 地點設定獨立放入深灰色圓角區塊，位置與比例比照參考圖。
         LinearLayout locationPanel = new LinearLayout(this);
@@ -5154,8 +5171,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             String typedCity = customCity.getText().toString().trim();
             if (useCustom && typedCity.isEmpty()) { customCity.setError("請輸入城市名稱"); customCity.requestFocus(); return; }
             prefs.edit()
-                    .putBoolean("enabled", enabledSwitch.isChecked())
-                    .putString("display_mode", displayModes.getCheckedRadioButtonId() == dayOption.getId() ? "day" : "week")
+                    .putBoolean("enabled", weatherEnabled[0])
+                    .putString("display_mode", daySelected[0] ? "day" : "week")
                     .putString("location_mode", useCustom ? "custom" : useCity ? "city" : "device")
                     .putString("city", cityPicker.getText().toString().replace("（馬祖）", ""))
                     .putString("custom_city", typedCity)
@@ -5190,7 +5207,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int reducedHeight = Math.min((int)(382*density),
+            int reducedHeight = Math.min((int)(430*density),
                     getResources().getDisplayMetrics().heightPixels - (int)(48*density));
             dialog.getWindow().setLayout(fixedWidth, reducedHeight);
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -5201,15 +5218,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int firstLocationId = device.getId();
         int cityTargetId = "city".equals(savedMode) ? cityPicker.getId()
                 : "custom".equals(savedMode) ? customCity.getId() : cancel.getId();
-        dayOption.setNextFocusRightId(weekOption.getId());
-        dayOption.setNextFocusDownId(firstLocationId);
-        dayOption.setNextFocusForwardId(firstLocationId);
-        weekOption.setNextFocusLeftId(dayOption.getId());
-        weekOption.setNextFocusDownId(firstLocationId);
-        weekOption.setNextFocusForwardId(firstLocationId);
-        enabledSwitch.setNextFocusDownId(firstLocationId);
-        enabledSwitch.setNextFocusLeftId(weekOption.getId());
-        device.setNextFocusUpId(dayOption.getId());
+        dayButton.setNextFocusRightId(weekButton.getId());
+        dayButton.setNextFocusDownId(enableButton.getId());
+        dayButton.setNextFocusForwardId(enableButton.getId());
+        weekButton.setNextFocusLeftId(dayButton.getId());
+        weekButton.setNextFocusDownId(enableButton.getId());
+        weekButton.setNextFocusForwardId(enableButton.getId());
+        enableButton.setNextFocusUpId(weekButton.getId());
+        enableButton.setNextFocusDownId(firstLocationId);
+        device.setNextFocusUpId(enableButton.getId());
         device.setNextFocusDownId(cityMode.getId());
         cityMode.setNextFocusUpId(device.getId());
         cityMode.setNextFocusRightId(customMode.getId());
@@ -5255,7 +5272,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
-        dayOption.post(dayOption::requestFocus);
+        dayButton.post(dayButton::requestFocus);
     }
 
 

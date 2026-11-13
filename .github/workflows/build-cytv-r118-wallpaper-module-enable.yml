@@ -1,28 +1,28 @@
-name: CYTV R123 Wallpaper Module Cancel Rollback
-# R123 clears unsaved wallpaper settings drafts on cancel/dismiss while preserving drafts for the system image picker.
+name: CYTV R124 Weather Settings Layout Height
+# R124 matches weather settings to the requested two-row controls and increases dialog height for the expanded layout.
 
 on:
   push:
     branches:
-      - fix/wallpaper-module-cancel-rollback-r123
+      - fix/weather-settings-layout-height-r124
   pull_request:
     branches:
-      - fix/wallpaper-enable-button-top-margin-r121
-      - fix/wallpaper-disabled-glow-and-picker-cleanup-r122
+      - fix/wallpaper-module-cancel-rollback-r123
+      - fix/weather-settings-layout-height-r124
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r123-wallpaper-cancel-rollback-${{ github.ref }}
+  group: cytv-r124-weather-settings-layout-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R123
+      - name: Checkout R124
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -44,8 +44,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R123-debug.apk
-          zip -r release/CYTV-R123-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R124-debug.apk
+          zip -r release/CYTV-R124-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -53,9 +53,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R123-APK-and-Source
+          name: CYTV-R124-APK-and-Source
           path: |
-            release/CYTV-R123-debug.apk
-            release/CYTV-R123-source.zip
+            release/CYTV-R124-debug.apk
+            release/CYTV-R124-source.zip
           if-no-files-found: error
           retention-days: 30
