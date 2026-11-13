@@ -4024,6 +4024,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return wifi && !ethernet;
     }
 
+    /** True while a physical Ethernet transport is connected, even if Wi-Fi is also enabled. */
+    private boolean isEthernetConnected() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        for (Network network : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return true;
+        }
+        return false;
+    }
+
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
     private void showVideoCarouselSettings() { videoCarousel.showSettingsDialog(); }
 
@@ -4042,11 +4053,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
-        // 不論 Wi-Fi 或有線 Ethernet，都顯示廣告阻擋入口。
-        addSettingsMenuRow(rows, popup, "廣告過濾", () -> {
-            popup.dismiss();
-            startActivity(new Intent(this, AdsBlockerActivity.class));
-        });
+        // 有線 Ethernet 連線時隱藏廣告過濾入口；Wi-Fi／其他非 Ethernet 網路維持顯示。
+        if (!isEthernetConnected()) {
+            addSettingsMenuRow(rows, popup, "廣告過濾", () -> {
+                popup.dismiss();
+                startActivity(new Intent(this, AdsBlockerActivity.class));
+            });
+        }
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
