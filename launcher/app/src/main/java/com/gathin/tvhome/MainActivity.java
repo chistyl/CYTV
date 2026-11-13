@@ -4100,6 +4100,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         addSettingsMenuRow(rows, popup, "應用顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
+        // R134: 隱藏「簡體轉繁體」切換入口，保留既有文字顯示處理邏輯。
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
