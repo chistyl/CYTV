@@ -12,9 +12,15 @@
 4. A normal reboot must not require activation again.
 5. Existing R117 launcher behaviour remains unchanged after successful activation.
 
+## Shared default activation code
+- Shared default code: `CYTV0822`.
+- The code activates an unlimited number of devices with a perpetual local activation record.
+- It is accepted offline in addition to RSA-SHA256 signed activation codes.
+- Because the shared code is embedded in the APK, it is a convenience access code, not a strong secret; a person who reverse-engineers the APK can recover or bypass it. Do not use it where strong anti-piracy enforcement is required.
+
 ## Security and data model
 - The app embeds only a public verification key. The signing private key must remain outside the repository, APK, and source ZIP.
-- Activation codes contain a versioned, canonical payload and an RSA-SHA256 signature. Payload fields: product identifier, license identifier, issue time, optional expiry time, and format version.
+- Individually issued activation codes contain a versioned, canonical payload and an RSA-SHA256 signature. Payload fields: product identifier, license identifier, issue time, optional expiry time, and format version.
 - The signed code is device-independent by design, so the same code can activate multiple TVs. Offline multi-device codes cannot enforce a device-count limit or be remotely revoked.
 - After successful verification, the app creates a local device-bound activation record using a non-exportable Android Keystore key and app-private storage.
 - The local record is integrity-protected and checked on every launch. Missing, invalid, expired, or mismatched records return to activation.
@@ -23,7 +29,7 @@
 ## Startup flow
 1. MainActivity performs the license gate before inflating or exposing the launcher UI.
 2. If no valid local activation exists, launch the landscape activation screen and finish/hold the launcher activity.
-3. The activation screen accepts a pasted or typed signed code and validates it entirely offline.
+3. The activation screen accepts the shared default code or a pasted/typed signed code and validates it entirely offline.
 4. On success, persist the device-bound local record and continue to the launcher.
 5. On cancellation or invalid input, do not expose the home screen.
 
