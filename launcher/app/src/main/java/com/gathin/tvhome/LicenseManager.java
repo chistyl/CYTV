@@ -7,7 +7,13 @@ final class LicenseManager {
     private LicenseManager() {}
 
     static LicenseVerifier.Result activate(Context context, String code) {
-        LicenseVerifier.Result result = LicenseVerifier.verify(code);
+        LicenseVerifier.Result result;
+        try {
+            DeviceIdentity.getOrCreate();
+            result = LicenseVerifier.verify(code, DeviceIdentity.publicKeyFingerprint());
+        } catch (Exception e) {
+            return new LicenseVerifier.Result(LicenseVerifier.Status.INVALID_FIELDS, "", 0L, 0L);
+        }
         if (result.isValid() && !LicenseStorage.save(context, result)) {
             return new LicenseVerifier.Result(LicenseVerifier.Status.INVALID_FIELDS, "", 0L, 0L);
         }
