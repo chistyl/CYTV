@@ -1,28 +1,28 @@
-name: CYTV R121 Wallpaper Enable Button Top Margin
-# R121 adds 15dp top margin to the module enable button; preserves R120 defaults and R119 picker fix.
+name: CYTV R122 Wallpaper Glow and Picker Cleanup
+# R122 restores desktop glow when wallpaper module is disabled, sets 5dp top margin and removes Restore Default action.
 
 on:
   push:
     branches:
-      - fix/wallpaper-enable-button-top-margin-r121
+      - fix/wallpaper-disabled-glow-and-picker-cleanup-r122
   pull_request:
     branches:
-      - fix/wallpaper-module-disabled-by-default-r120
       - fix/wallpaper-enable-button-top-margin-r121
+      - fix/wallpaper-disabled-glow-and-picker-cleanup-r122
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r121-wallpaper-enable-margin-${{ github.ref }}
+  group: cytv-r122-wallpaper-glow-picker-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R121
+      - name: Checkout R122
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -44,8 +44,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R121-debug.apk
-          zip -r release/CYTV-R121-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R122-debug.apk
+          zip -r release/CYTV-R122-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -53,7 +53,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R121-APK-and-Source
+          name: CYTV-R122-APK-and-Source
           path: |
             release/CYTV-R121-debug.apk
             release/CYTV-R121-source.zip
