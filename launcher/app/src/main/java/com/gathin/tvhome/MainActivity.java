@@ -5335,7 +5335,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // R129：在 Dialog 層統一攔截電視遙控器按鍵，避免子 View／DecorView 吃掉 DPAD。
         dialog.setOnKeyListener((dlg, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
-            View focused = dlg.getWindow() != null ? dlg.getWindow().getDecorView().findFocus() : null;
+            View focused = dialog.getWindow() != null ? dialog.getWindow().getDecorView().findFocus() : null;
             if (focused == null) focused = dayButton;
             View target = null;
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
