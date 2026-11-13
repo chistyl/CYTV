@@ -5040,6 +5040,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout locations = new LinearLayout(this);
         locations.setOrientation(LinearLayout.VERTICAL);
+        locations.setFocusable(false);
+        locations.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         android.widget.RadioButton device = new android.widget.RadioButton(this);
         android.widget.RadioButton cityMode = new android.widget.RadioButton(this);
         android.widget.RadioButton customMode = new android.widget.RadioButton(this);
@@ -5055,6 +5057,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         locations.addView(device, new LinearLayout.LayoutParams(-1, (int)(40*density)));
         android.widget.RadioGroup cityModes = new android.widget.RadioGroup(this);
+        cityModes.setFocusable(false);
+        cityModes.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         cityModes.setOrientation(android.widget.RadioGroup.HORIZONTAL);
         LinearLayout.LayoutParams cityModesLp = new LinearLayout.LayoutParams(-1, (int)(44*density));
         cityModesLp.topMargin = (int)(2*density);
@@ -5224,11 +5228,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         enableButton.setNextFocusDownId(firstLocationId);
         device.setNextFocusUpId(enableButton.getId());
         device.setNextFocusDownId(cityMode.getId());
+        device.setNextFocusLeftId(device.getId());
+        device.setNextFocusRightId(device.getId());
         cityMode.setNextFocusUpId(device.getId());
+        cityMode.setNextFocusLeftId(cityMode.getId());
         cityMode.setNextFocusRightId(customMode.getId());
         cityMode.setNextFocusDownId(cityTargetId);
         customMode.setNextFocusUpId(device.getId());
         customMode.setNextFocusLeftId(cityMode.getId());
+        customMode.setNextFocusRightId(customMode.getId());
         customMode.setNextFocusDownId(cityTargetId);
         customMode.setNextFocusForwardId(cityTargetId);
         cityPicker.setNextFocusUpId(cityMode.getId());
@@ -5252,6 +5260,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         };
+        // 電視遙控器使用明確的方向鍵路徑，不依賴 RadioGroup／系統的自動焦點推算。
+        View.OnKeyListener locationRadioDpadListener = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            View target = null;
+            if (v == device) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) target = cityMode;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) target = enableButton;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) target = device;
+            } else if (v == cityMode) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) target = device;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) target = customMode;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) target = cityMode;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    target = cityPicker.getVisibility() == View.VISIBLE ? cityPicker
+                            : customCity.getVisibility() == View.VISIBLE ? customCity : cancel;
+                }
+            } else if (v == customMode) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) target = device;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) target = cityMode;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) target = customMode;
+                else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    target = customCity.getVisibility() == View.VISIBLE ? customCity
+                            : cityPicker.getVisibility() == View.VISIBLE ? cityPicker : cancel;
+                }
+            }
+            if (target != null) {
+                target.requestFocus();
+                return true;
+            }
+            return false;
+        };
+        device.setOnKeyListener(locationRadioDpadListener);
+        cityMode.setOnKeyListener(locationRadioDpadListener);
+        customMode.setOnKeyListener(locationRadioDpadListener);
         cityPicker.setOnKeyListener(cityDownListener);
         customCity.setOnKeyListener(cityDownListener);
         cancel.setOnKeyListener((v, keyCode, event) -> {
