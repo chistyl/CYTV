@@ -4991,14 +4991,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weekLp.leftMargin = (int)(4*density);
         modeRow.addView(dayButton, dayLp);
         modeRow.addView(weekButton, weekLp);
-        // 選取狀態決定固定底色；遙控器焦點移動不改變已選取模式的顏色。
+        // 選取狀態與遙控器焦點分開呈現：焦點移入時提高亮度，讓使用者清楚看見目前停留的按鈕。
         Runnable refreshWeatherModeButtons = () -> {
-            // 選取色 #16434B；未選取色 #343A46。選取顏色不受遙控器焦點影響。
-            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF16434B : 0xFF343A46, 14*density));
-            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF343A46 : 0xFF16434B, 14*density));
+            int dayColor = daySelected[0] ? 0xFF16434B : 0xFF343A46;
+            int weekColor = daySelected[0] ? 0xFF343A46 : 0xFF16434B;
+            if (dayButton.hasFocus()) dayColor = daySelected[0] ? 0xFF28727A : 0xFF566477;
+            if (weekButton.hasFocus()) weekColor = daySelected[0] ? 0xFF566477 : 0xFF28727A;
+            dayButton.setBackground(roundSurface(dayColor, 14*density));
+            weekButton.setBackground(roundSurface(weekColor, 14*density));
         };
         dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
         weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
+        dayButton.setOnFocusChangeListener((v, focused) -> refreshWeatherModeButtons.run());
+        weekButton.setOnFocusChangeListener((v, focused) -> refreshWeatherModeButtons.run());
         refreshWeatherModeButtons.run();
         outer.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
@@ -5331,6 +5336,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             return false;
+        });
+        // R129：在 Dialog 層統一攔截電視遙控器按鍵，避免子 View／DecorView 吃掉 DPAD。
+        dialog.setOnKeyListener((dlg, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            View focused = dialog.getWindow() != null ? dialog.getWindow().getDecorView().findFocus() : null;
+            if (focused == null) focused = dayButton;
+            View target = null;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (focused.isClickable()) focused.performClick();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (focused == weekButton) target = dayButton;
+                else if (focused == enableButton) target = weekButton;
+                else if (focused == device) target = enableButton;
+                else if (focused == cityMode || focused == customMode) target = device;
+                else if (focused == cityPicker) target = cityMode;
+                else if (focused == customCity) target = customMode;
+                else if (focused == cancel || focused == save) target =
+                        "city".equals(selectedLocationMode[0]) ? cityPicker :
+                        "custom".equals(selectedLocationMode[0]) ? customCity : device;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (focused == dayButton || focused == weekButton) target = enableButton;
+                else if (focused == enableButton) target = device;
+                else if (focused == device) target = cityMode;
+                else if (focused == cityMode || focused == customMode) target =
+                        "city".equals(selectedLocationMode[0]) ? cityPicker :
+                        "custom".equals(selectedLocationMode[0]) ? customCity : cancel;
+                else if (focused == cityPicker || focused == customCity) target = cancel;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                if (focused == weekButton) target = dayButton;
+                else if (focused == customMode) target = cityMode;
+                else if (focused == save) target = cancel;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                if (focused == dayButton) target = weekButton;
+                else if (focused == cityMode) target = customMode;
+                else if (focused == cancel) target = save;
+            } else return false;
+            if (target != null) { target.requestFocus(); return true; }
+            return true;
         });
         dayButton.post(dayButton::requestFocus);
     }
@@ -5918,8 +5963,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final TextView[] modeButtons = new TextView[customModes.length];
         final Runnable refreshModeButtons = () -> {
             for (int j = 0; j < modeButtons.length; j++) {
-                if (modeButtons[j] != null) modeButtons[j].setBackground(
-                        roundSurface(customModes[j].equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
+                TextView button = modeButtons[j];
+                if (button == null) continue;
+                boolean selected = customModes[j].equals(draftCustomMode[0]);
+                // 選取底色固定保留；遙控器焦點只增加外框，不覆蓋選取顏色。
+                android.graphics.drawable.GradientDrawable stateBg = new android.graphics.drawable.GradientDrawable();
+                stateBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                stateBg.setColor(selected ? 0xFF16434B : 0xFF263243);
+                stateBg.setCornerRadius(12*density);
+                if (button.hasFocus()) {
+                    stateBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+                    button.setElevation(4*density);
+                } else {
+                    stateBg.setStroke(0, Color.TRANSPARENT);
+                    button.setElevation(0f);
+                }
+                button.setBackground(stateBg);
             }
         };
         for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
@@ -5930,6 +5989,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 refreshModeButtons.run();
             });
             modeButtons[modeIndex] = modeButton;
+            modeButton.setOnFocusChangeListener((v, focused) -> refreshModeButtons.run());
             modeButton.setTextSize(13);
             modeButton.setBackground(roundSurface(modeValue.equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
             modeButton.setFocusable(true);
@@ -6013,6 +6073,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.addView(defaultHeading, defaultHeadingLp);
         moduleEnableButton.setNextFocusDownId(defaultHeading.getId());
         defaultHeading.setNextFocusUpId(moduleEnableButton.getId());
+        if (thumbnailItems.length > 0 && thumbnailItems[0] != null)
+            defaultHeading.setNextFocusDownId(thumbnailItems[0].getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
             modeRow.getChildAt(modeIndex).setNextFocusDownId(moduleEnableButton.getId());
 
@@ -6475,7 +6537,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 六格明確設定遙控器方向焦點，避免不同電視韌體自行猜測造成跳格。
         for (int i = 0; i < modeRow.getChildCount() && i < columnsCount; i++) {
             View modeButton = modeRow.getChildAt(i);
-            modeButton.setNextFocusDownId(thumbnailItems[i].getId());
+            modeButton.setNextFocusLeftId(i == 0 ? modeButton.getId() : modeButtons[0].getId());
+            modeButton.setNextFocusRightId(i == 1 ? modeButton.getId() : modeButtons[1].getId());
+            modeButton.setNextFocusDownId(moduleEnableButton.getId());
             modeButton.setNextFocusUpId(modeButton.getId());
         }
         for (int i = 0; i < thumbnailItems.length; i++) {
@@ -6613,6 +6677,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelAction.setNextFocusRightId(saveAction.getId());
         cancelAction.setNextFocusDownId(cancelAction.getId());
         saveAction.setNextFocusLeftId(cancelAction.getId());
+        saveAction.setNextFocusRightId(saveAction.getId());
+        deleteAction.setNextFocusLeftId(deleteAction.getId());
         saveAction.setNextFocusUpId(chooseAction.getId());
         saveAction.setNextFocusDownId(saveAction.getId());
         // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
@@ -6631,16 +6697,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else tile.setNextFocusUpId(customHeading.getId());
             if (i + customColumns < customThumbnailItems.size())
                 tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
-            else tile.setNextFocusDownId(cancelAction.getId());
+            else tile.setNextFocusDownId(deleteAction.getId());
         }
         chooseAction.setNextFocusDownId(customHeading.getId());
         customHeading.setNextFocusUpId(chooseAction.getId());
         if (!customThumbnailItems.isEmpty()) {
             int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
+            deleteAction.setNextFocusUpId(lastCustomId);
             cancelAction.setNextFocusUpId(lastCustomId);
             saveAction.setNextFocusUpId(lastCustomId);
         } else {
-            customHeading.setNextFocusDownId(cancelAction.getId());
+            customHeading.setNextFocusDownId(deleteAction.getId());
         }
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
@@ -6721,20 +6788,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         wallpaperWindow.getDecorView().post(() -> {
             if (isFinishing() || isDestroyed() || !dialog.isShowing()) return;
-            View initial = thumbnailItems[draftTheme[0] - 1];
+            int selectedModeIndex = "single".equals(draftCustomMode[0]) ? 0 : 1;
+            View initial = modeButtons[selectedModeIndex];
             if (initial != null && initial.requestFocus()) {
-                scroll.post(() -> {
-                    int[] loc = new int[2];
-                    initial.getLocationOnScreen(loc);
-                    int[] scrollLoc = new int[2];
-                    scroll.getLocationOnScreen(scrollLoc);
-                    int top = loc[1] - scrollLoc[1];
-                    if (top < 0 || top + initial.getHeight() > scroll.getHeight()) {
-                        scroll.smoothScrollTo(0, Math.max(0, initial.getTop() - (int)(8*density)));
-                    }
-                });
-            } else if (qrAction.requestFocus()) {
-                // TV 韌體若暫時拒絕縮圖焦點，至少將焦點放在第一個可操作項目。
+                // 開啟時從目前選取的播放模式開始，依序往下操作，不跳過頂部設定。
+            } else if (moduleEnableButton.requestFocus()) {
+                // 若電視韌體拒絕模式按鈕焦點，退回啟用開關。
+            } else if (thumbnailItems[0] != null) {
+                thumbnailItems[0].requestFocus();
             }
         });
     }
