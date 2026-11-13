@@ -5332,6 +5332,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         });
+        // R129：在 Dialog 層統一攔截電視遙控器按鍵，避免子 View／DecorView 吃掉 DPAD。
+        dialog.setOnKeyListener((dlg, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            View focused = dlg.getWindow() != null ? dlg.getWindow().getDecorView().findFocus() : null;
+            if (focused == null) focused = dayButton;
+            View target = null;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (focused.isClickable()) focused.performClick();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (focused == weekButton) target = dayButton;
+                else if (focused == enableButton) target = weekButton;
+                else if (focused == device) target = enableButton;
+                else if (focused == cityMode || focused == customMode) target = device;
+                else if (focused == cityPicker) target = cityMode;
+                else if (focused == customCity) target = customMode;
+                else if (focused == cancel || focused == save) target =
+                        "city".equals(selectedLocationMode[0]) ? cityPicker :
+                        "custom".equals(selectedLocationMode[0]) ? customCity : device;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (focused == dayButton || focused == weekButton) target = enableButton;
+                else if (focused == enableButton) target = device;
+                else if (focused == device) target = cityMode;
+                else if (focused == cityMode || focused == customMode) target =
+                        "city".equals(selectedLocationMode[0]) ? cityPicker :
+                        "custom".equals(selectedLocationMode[0]) ? customCity : cancel;
+                else if (focused == cityPicker || focused == customCity) target = cancel;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                if (focused == weekButton) target = dayButton;
+                else if (focused == customMode) target = cityMode;
+                else if (focused == save) target = cancel;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                if (focused == dayButton) target = weekButton;
+                else if (focused == cityMode) target = customMode;
+                else if (focused == cancel) target = save;
+            } else return false;
+            if (target != null) { target.requestFocus(); return true; }
+            return true;
+        });
         dayButton.post(dayButton::requestFocus);
     }
 
