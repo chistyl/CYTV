@@ -123,6 +123,9 @@ import java.util.Set;
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
+    // True when startup was redirected to the activation screen before Home UI initialization.
+    private boolean startupBlockedByLicense;
+
     @Override
     protected void attachBaseContext(android.content.Context base) {
         super.attachBaseContext(LauncherLocale.wrap(base));   // locale
@@ -476,10 +479,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        CrashDiagnostics.install(this);
-        CrashDiagnostics.stage(this, "launcher:onCreate");
+        if (!LicenseManager.isActivated(this)) {
+            // Mark the early-exit path: Android still dispatches lifecycle callbacks to this Activity,
+            // but the Home views, players, receivers and callbacks have not been initialized yet.
+            startupBlockedByLicense = true;
+            startActivity(new Intent(this, LicenseActivity.class));
+            finish();
+            return;
+        }
         setContentView(R.layout.activity_main);
-        new Handler(Looper.getMainLooper()).post(() -> CrashDiagnostics.showPreviousCrashIfAny(this));
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
@@ -1241,6 +1249,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (startupBlockedByLicense) return;
         resumed = true;
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
@@ -1524,19 +1533,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void restartIdleClock() {
-        root.removeCallbacks(showIdleClock);
-        if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
+        // Android may dispatch onUserInteraction before onCreate has installed the Home layout,
+        // or while this Activity is finishing at the offline-license gate.
+        FrameLayout homeRoot = root;
+        if (homeRoot == null || isFinishing() || isDestroyed()) return;
+        homeRoot.removeCallbacks(showIdleClock);
+        if (resumed && idleClockMs > 0) homeRoot.postDelayed(showIdleClock, idleClockMs);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        if (startupBlockedByLicense) return;
         resumed = false;
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
         RemoteKeys.release(this);
         cancelHoldOk();
-        root.removeCallbacks(showIdleClock);
+        if (root != null) root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         videoCarousel.pause();
@@ -1561,6 +1575,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStop() {
         super.onStop();
+        if (startupBlockedByLicense) return;
         started = false;
         unregisterReceiver(timeReceiver);
         handler.removeCallbacks(clockCheck);
@@ -1593,6 +1608,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        if (startupBlockedByLicense) return;
         handler.removeCallbacks(refreshWifiStatusAfterFocus);
         if (hasFocus) {
             // Some TV firmwares keep Home resumed across standby and do not emit a fresh network callback.
@@ -1610,6 +1626,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         handler.removeCallbacks(refreshWifiStatusAfterFocus);
         super.onDestroy();
+        if (startupBlockedByLicense) return;
         RemoteKeys.release(this);
         cancelHoldOk();
         if (gameDay != null) gameDay.shutdown();
