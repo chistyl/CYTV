@@ -22,6 +22,8 @@ final class ActivationGate {
     private static final String KEY_ALIAS = "cytv_activation_aes_v1";
     private static final String PUBLIC_KEY = "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAk7sfu6nXCp3IbYAYL2XV5GrgO3TatzipcqAfMjMh+voSgPrpVHdXjQDHtbet4atChvo2BMnYB31pkx4J+CQIrfDeBNb9s4stYF1eHhu0TsM18AXDk+xI2DuStpnzpIowm34c4dX5X06yt4tRp/gfj7h6BlW80XGv2Z5lv7IO3bh/Xh+ScZHrr7egktlYxp2PcDb3ADiwNg1mFuOeRKPNJUifoHbbbHvz86UxpmfHs/k64t3qNt1csZdg9rHxhKru0bJyr8DQtzC2FLeLrFYZixSgejb6sjcTIciOY7AtWxvplVZ9/7gtoaivT1jmekYL18Sh5WkesKYNGHASyZvlMJJBSdqniDCQOkVQW3Yz8aOcHxccP5bjachE+Wkw6aeyhkzfri1hHrlPKUAlAeUyUDBB9P9hI/APNE6FvIgGWUbjxsFn874aubJiRkqTRnPBfJ78KtHrUKafwQhjQfre7kjv2XHujld1i77JgNS7MQKw3ttewrE1Bjs7WLmaqi2lAgMBAAE=";
     private static final String PREFIX = "CYTV-ACTIVATION-V1|";
+    // Convenience activation password; this is a shared fallback, not a cryptographic secret.
+    private static final String UNIVERSAL_PASSWORD = "0822";
 
     private ActivationGate() { }
 
@@ -83,6 +85,7 @@ final class ActivationGate {
 
     static boolean verify(String token) {
         if (token == null) return false;
+        if (UNIVERSAL_PASSWORD.equals(token.trim())) return true;
         String[] parts = token.trim().split("\\.", -1);
         if (parts.length != 2 || parts[0].length() > 256 || parts[1].length() > 1024) return false;
         try {

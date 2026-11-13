@@ -1,4 +1,4 @@
-name: Launcher ATV R130 Activation Build
+name: Launcher ATV R132 Universal Password Build
 
 on:
   pull_request:
@@ -7,6 +7,8 @@ on:
       - main
       - fix/weather-dialog-global-dpad-dispatch-r129
       - feature/first-launch-activation-r130
+      - feature/universal-activation-password-r132
+      - fix/ethernet-hide-ad-filter-r131
     paths:
       - 'launcher/**'
       - '.github/workflows/build-r130-activation.yml'
@@ -18,6 +20,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || (github.event.pull_request.head.ref == 'fix/hide-simplified-traditional-button-r134' && 'R134' || 'R132') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,13 +38,13 @@ jobs:
       - name: Package complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-R130-Activation-debug.apk
-          zip -r release/LauncherATV-R130-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-${RELEASE_VERSION}-Activation-debug.apk
+          zip -r release/LauncherATV-${RELEASE_VERSION}-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: LauncherATV-R130-APK-and-Source
+          name: LauncherATV-${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || (github.event.pull_request.head.ref == 'fix/hide-simplified-traditional-button-r134' && 'R134' || 'R132') }}-APK-and-Source
           path: |
-            release/LauncherATV-R130-Activation-debug.apk
-            release/LauncherATV-R130-Source.zip
+            release/LauncherATV-*.apk
+            release/LauncherATV-*-Source.zip
           if-no-files-found: error
