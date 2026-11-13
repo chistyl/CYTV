@@ -540,8 +540,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
         // 全新安裝／尚未設定時，左側色彩效果預設開啟；選擇六款內建主題或隨機播放時再依設定關閉。
-        ambientGlow = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
-                .getBoolean("left_color_effect_enabled", true);
+        SharedPreferences wallpaperVisualPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        boolean wallpaperModuleEnabled = wallpaperVisualPrefs.getBoolean("wallpaper_module_enabled", false);
+        // 影像輪播關閉時恢復桌面左側光暈，不受先前選圖時儲存的隱藏狀態影響。
+        ambientGlow = !wallpaperModuleEnabled
+                || wallpaperVisualPrefs.getBoolean("left_color_effect_enabled", true);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
@@ -2134,6 +2137,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private boolean isCustomWallpaperActive() {
         SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        if (!prefs.getBoolean("wallpaper_module_enabled", false)) return false;
         return !TextUtils.isEmpty(prefs.getString("custom_wallpaper_uri", null))
                 || !TextUtils.isEmpty(prefs.getString("custom_wallpaper_file", null));
     }
@@ -5884,7 +5888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         refreshModuleEnableButton[0].run();
         LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
-        moduleEnableLp.topMargin = (int)(15*density);
+        moduleEnableLp.topMargin = (int)(5*density);
         moduleEnableLp.bottomMargin = (int)(7*density);
         // addRoundedAction(panel, ...) 已將按鈕加入 panel；只更新版面參數，避免重複 addView 導致 child already has a parent。
         moduleEnableButton.setLayoutParams(moduleEnableLp);
@@ -6079,20 +6083,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 showWallpaperPicker();
             }
         });
-        TextView resetAction = addRoundedAction(choices, "恢復預設", () -> {
-            wallpaperPrefs.edit().remove("builtin_wallpaper").putBoolean("builtin_random_play", false)
-                    .remove("custom_wallpaper_uri").remove("custom_wallpaper_file")
-                    .remove("custom_wallpaper_selected")
-                    .putBoolean("hide_left_color_effect", false)
-                    .putBoolean("left_color_effect_enabled", true).apply();
-            File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
-            if (localWallpaper.exists()) localWallpaper.delete();
-            dialog.dismiss(); recreate();
-        });
         LinearLayout.LayoutParams qrActionLp = (LinearLayout.LayoutParams) qrAction.getLayoutParams();
         qrActionLp.topMargin = (int)(18 * density);
         qrAction.setLayoutParams(qrActionLp);
-        for (TextView action : new TextView[]{qrAction, chooseAction, resetAction}) {
+        for (TextView action : new TextView[]{qrAction, chooseAction}) {
             LinearLayout.LayoutParams actionLp = (LinearLayout.LayoutParams) action.getLayoutParams();
             actionLp.height = (int)(40*density);
             actionLp.bottomMargin = (int)(4*density);
@@ -6105,7 +6099,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setGravity(Gravity.CENTER_VERTICAL);
         customHeading.setPadding((int)(12*density), 0, (int)(12*density), 0);
-        customHeading.setNextFocusUpId(resetAction.getId());
+        customHeading.setNextFocusUpId(chooseAction.getId());
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
         customHeading.setClickable(true);
@@ -6156,7 +6150,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeadingLp.topMargin = (int)(5*density);
         customHeadingLp.bottomMargin = (int)(5*density);
         choices.addView(customHeading, customHeadingLp);
-        resetAction.setNextFocusDownId(customHeading.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
@@ -6487,8 +6481,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             editor.putBoolean("wallpaper_module_enabled", draftModuleEnabled[0])
                     .putString("custom_wallpaper_mode", savedCustomMode)
-                    .putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false).commit();
+                    .putBoolean("hide_left_color_effect", draftModuleEnabled[0])
+                    .putBoolean("left_color_effect_enabled", !draftModuleEnabled[0]).commit();
             clearWallpaperDraft.run();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (!draftCustomActive[0] && localWallpaper.exists()) localWallpaper.delete();
@@ -6517,21 +6511,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         qrAction.setNextFocusUpId(thumbnailItems[7].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
-        chooseAction.setNextFocusDownId(resetAction.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
         deleteAction.setId(View.generateViewId());
-        resetAction.setNextFocusUpId(chooseAction.getId());
-        resetAction.setNextFocusDownId(deleteAction.getId());
+        
+        
         cancelAction.setId(View.generateViewId());
         saveAction.setId(View.generateViewId());
-        deleteAction.setNextFocusUpId(resetAction.getId());
+        deleteAction.setNextFocusUpId(chooseAction.getId());
         deleteAction.setNextFocusRightId(cancelAction.getId());
         deleteAction.setNextFocusDownId(deleteAction.getId());
-        cancelAction.setNextFocusUpId(resetAction.getId());
+        cancelAction.setNextFocusUpId(chooseAction.getId());
         cancelAction.setNextFocusLeftId(deleteAction.getId());
         cancelAction.setNextFocusRightId(saveAction.getId());
         cancelAction.setNextFocusDownId(cancelAction.getId());
         saveAction.setNextFocusLeftId(cancelAction.getId());
-        saveAction.setNextFocusUpId(resetAction.getId());
+        saveAction.setNextFocusUpId(chooseAction.getId());
         saveAction.setNextFocusDownId(saveAction.getId());
         // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
         customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
@@ -6551,8 +6545,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
             else tile.setNextFocusDownId(cancelAction.getId());
         }
-        resetAction.setNextFocusDownId(customHeading.getId());
-        customHeading.setNextFocusUpId(resetAction.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
+        customHeading.setNextFocusUpId(chooseAction.getId());
         if (!customThumbnailItems.isEmpty()) {
             int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
             cancelAction.setNextFocusUpId(lastCustomId);
