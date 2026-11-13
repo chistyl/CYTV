@@ -1,0 +1,45 @@
+name: Launcher ATV R130 Activation Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+      - fix/weather-dialog-global-dpad-dispatch-r129
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-r130-activation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run unit tests and build debug APK
+        working-directory: launcher
+        run: ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Package complete source ZIP
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-R130-Activation-debug.apk
+          zip -r release/LauncherATV-R130-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+      - name: Upload APK and source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: LauncherATV-R130-APK-and-Source
+          path: |
+            release/LauncherATV-R130-Activation-debug.apk
+            release/LauncherATV-R130-Source.zip
+          if-no-files-found: error
