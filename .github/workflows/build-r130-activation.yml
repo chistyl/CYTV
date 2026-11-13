@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - fix/weather-dialog-global-dpad-dispatch-r129
+      - feature/first-launch-activation-r130
     paths:
       - 'launcher/**'
       - '.github/workflows/build-r130-activation.yml'
