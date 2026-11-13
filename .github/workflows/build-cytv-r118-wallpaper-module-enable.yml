@@ -55,7 +55,7 @@ jobs:
         with:
           name: CYTV-R124-APK-and-Source
           path: |
-            release/CYTV-R123-debug.apk
-            release/CYTV-R123-source.zip
+            release/CYTV-R124-debug.apk
+            release/CYTV-R124-source.zip
           if-no-files-found: error
           retention-days: 30
