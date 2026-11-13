@@ -540,8 +540,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
         // 全新安裝／尚未設定時，左側色彩效果預設開啟；選擇六款內建主題或隨機播放時再依設定關閉。
-        ambientGlow = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE)
-                .getBoolean("left_color_effect_enabled", true);
+        SharedPreferences wallpaperDisplayPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        // 影像輪播關閉時恢復桌面左側光暈；啟用輪播時沿用使用者儲存的左側色彩效果設定。
+        ambientGlow = !wallpaperDisplayPrefs.getBoolean("wallpaper_module_enabled", false)
+                || wallpaperDisplayPrefs.getBoolean("left_color_effect_enabled", true);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
@@ -2134,6 +2136,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private boolean isCustomWallpaperActive() {
         SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        // 已停用影像輪播時，自訂圖片不會實際顯示，不能因此隱藏桌面左側光暈。
+        if (!prefs.getBoolean("wallpaper_module_enabled", false)) return false;
         return !TextUtils.isEmpty(prefs.getString("custom_wallpaper_uri", null))
                 || !TextUtils.isEmpty(prefs.getString("custom_wallpaper_file", null));
     }
@@ -5884,7 +5888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         refreshModuleEnableButton[0].run();
         LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
-        moduleEnableLp.topMargin = (int)(15*density);
+        moduleEnableLp.topMargin = (int)(5*density);
         moduleEnableLp.bottomMargin = (int)(7*density);
         // addRoundedAction(panel, ...) 已將按鈕加入 panel；只更新版面參數，避免重複 addView 導致 child already has a parent。
         moduleEnableButton.setLayoutParams(moduleEnableLp);
@@ -6487,8 +6491,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             editor.putBoolean("wallpaper_module_enabled", draftModuleEnabled[0])
                     .putString("custom_wallpaper_mode", savedCustomMode)
-                    .putBoolean("hide_left_color_effect", true)
-                    .putBoolean("left_color_effect_enabled", false).commit();
+                    .putBoolean("hide_left_color_effect", draftModuleEnabled[0])
+                    .putBoolean("left_color_effect_enabled", !draftModuleEnabled[0]).commit();
             clearWallpaperDraft.run();
             File localWallpaper = new File(getFilesDir(), "custom-wallpaper.img");
             if (!draftCustomActive[0] && localWallpaper.exists()) localWallpaper.delete();
