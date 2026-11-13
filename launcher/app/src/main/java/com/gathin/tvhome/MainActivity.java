@@ -5825,6 +5825,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .remove("wallpaper_draft_theme").remove("wallpaper_draft_random")
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
                 .remove("wallpaper_draft_module_enabled").remove("wallpaper_draft_custom_selection").apply();
+        // 取消或意外關閉設定視窗時，丟棄所有暫存；只有啟動系統選圖器時才保留草稿。
+        final boolean[] preserveWallpaperDraftOnDismiss = {false};
+        final boolean[] wallpaperSettingsSaved = {false};
+        dialog.setOnDismissListener(ignored -> {
+            if (!preserveWallpaperDraftOnDismiss[0] && !wallpaperSettingsSaved[0]) {
+                clearWallpaperDraft.run();
+            }
+        });
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
         String[] customModes = {"single", "random"};
         String[] customModeLabels = {"單一圖片", "隨機播放"};
@@ -6070,6 +6078,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         qrActionRef[0] = qrAction;
         TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
+            // 系統選圖器返回後要恢復尚未儲存的其他選項，因此此路徑保留草稿。
+            preserveWallpaperDraftOnDismiss[0] = true;
             // 先關閉全螢幕影像設定頁，再啟動系統選取器；onActivityResult 無論取消或選取都會重開本頁。
             dialog.dismiss();
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -6451,6 +6461,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshCustomDeleteAction.run();
         TextView cancelAction = addRoundedAction(editActions, "取消", () -> { clearWallpaperDraft.run(); dialog.dismiss(); });
         TextView saveAction = addRoundedAction(editActions, "儲存", () -> {
+            wallpaperSettingsSaved[0] = true;
             List<File> allCustomWallpapers = CustomWallpaperLibrary.list(this);
             // R107: selecting the custom category means the entire imported gallery, not hand-picked thumbnails.
             if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
