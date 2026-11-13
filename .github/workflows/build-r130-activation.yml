@@ -21,7 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      RELEASE_VERSION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || 'R132' }}
+      RELEASE_VERSION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || (github.event.pull_request.head.ref == 'fix/hide-simplified-traditional-button-r134' && 'R134' || 'R132') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
