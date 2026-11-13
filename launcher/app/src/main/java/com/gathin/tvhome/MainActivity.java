@@ -1042,8 +1042,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.topMenu) {
             // One gear: Inputs and Wi-Fi move into its dropdown. The Wi-Fi pill stays hidden but keeps its
             // label up to date, which the menu's Wi-Fi row shows.
-            showInputsPill = false;
-            btnInputs.setVisibility(View.GONE);
+            // R118 test: keep Inputs pill visible beside the gear for D-pad focus testing.
+            showInputsPill = true;
+            showInputsMenuRow = true;
             btnWifi.setVisibility(View.GONE);
             ((TextView) btnSettings).setText(R.string.settings);
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
@@ -3471,23 +3472,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */
     private void updateInputsButton() {
-        if (!showInputsPill) {
-            btnInputs.setVisibility(View.GONE);
-            return;
-        }
-        boolean any = liveTvIntent() != null || !sourcePanelService.isEmpty()
-                || (coocaaSources && !CoocaaSources.list(this).isEmpty());
-        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
-        if (!any && tim != null) {
-            for (TvInputInfo info : tim.getTvInputList()) {
-                // Inputs hidden in Settings > Inputs are left out of the menu, so they don't count here either.
-                if (info.isPassthroughInput() && !info.isHidden(this)) {
-                    any = true;
-                    break;
-                }
-            }
-        }
-        btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+        // R118 test build: keep the Inputs pill visible even when no TV input is currently detected.
+        // This lets the tester verify its visibility and D-pad left/right focus boundary on every boot.
+        btnInputs.setVisibility(View.VISIBLE);
     }
 
     /** boot_to_live_tv, or the Open on start app: the first time Home comes up after the TV starts, open that app
