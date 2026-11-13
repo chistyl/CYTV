@@ -478,6 +478,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         CrashDiagnostics.install(this);
         CrashDiagnostics.stage(this, "launcher:onCreate");
+        if (!LicenseManager.isActivated(this)) {
+            startActivity(new Intent(this, LicenseActivity.class));
+            finish();
+            return;
+        }
         setContentView(R.layout.activity_main);
         new Handler(Looper.getMainLooper()).post(() -> CrashDiagnostics.showPreviousCrashIfAny(this));
         density = getResources().getDisplayMetrics().density;
