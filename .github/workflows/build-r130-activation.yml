@@ -42,6 +42,6 @@ jobs:
         with:
           name: LauncherATV-R132-APK-and-Source
           path: |
-            release/LauncherATV-R130-Activation-debug.apk
-            release/LauncherATV-R130-Source.zip
+            release/LauncherATV-R132-Activation-debug.apk
+            release/LauncherATV-R132-Source.zip
           if-no-files-found: error
