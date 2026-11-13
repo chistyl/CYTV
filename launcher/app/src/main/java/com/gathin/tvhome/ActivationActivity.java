@@ -75,7 +75,7 @@ public final class ActivationActivity extends Activity {
         activate.setOnClickListener(v -> submit());
         codeInput.setOnEditorActionListener((v, actionId, event) -> { submit(); return true; });
         setContentView(root);
-        activate.requestFocus();
+        codeInput.requestFocus();
     }
 
     private void submit() {
