@@ -6099,7 +6099,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeading.setTextSize(16);
         customHeading.setGravity(Gravity.CENTER_VERTICAL);
         customHeading.setPadding((int)(12*density), 0, (int)(12*density), 0);
-        customHeading.setNextFocusUpId(resetAction.getId());
+        customHeading.setNextFocusUpId(chooseAction.getId());
         customHeading.setFocusable(true);
         customHeading.setFocusableInTouchMode(true);
         customHeading.setClickable(true);
@@ -6150,7 +6150,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeadingLp.topMargin = (int)(5*density);
         customHeadingLp.bottomMargin = (int)(5*density);
         choices.addView(customHeading, customHeadingLp);
-        resetAction.setNextFocusDownId(customHeading.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
@@ -6511,21 +6511,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         qrAction.setNextFocusUpId(thumbnailItems[7].getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
-        chooseAction.setNextFocusDownId(resetAction.getId());
+        chooseAction.setNextFocusDownId(chooseAction.getId());
         deleteAction.setId(View.generateViewId());
-        resetAction.setNextFocusUpId(chooseAction.getId());
-        resetAction.setNextFocusDownId(deleteAction.getId());
+        
+        
         cancelAction.setId(View.generateViewId());
         saveAction.setId(View.generateViewId());
-        deleteAction.setNextFocusUpId(resetAction.getId());
+        deleteAction.setNextFocusUpId(chooseAction.getId());
         deleteAction.setNextFocusRightId(cancelAction.getId());
         deleteAction.setNextFocusDownId(deleteAction.getId());
-        cancelAction.setNextFocusUpId(resetAction.getId());
+        cancelAction.setNextFocusUpId(chooseAction.getId());
         cancelAction.setNextFocusLeftId(deleteAction.getId());
         cancelAction.setNextFocusRightId(saveAction.getId());
         cancelAction.setNextFocusDownId(cancelAction.getId());
         saveAction.setNextFocusLeftId(cancelAction.getId());
-        saveAction.setNextFocusUpId(resetAction.getId());
+        saveAction.setNextFocusUpId(chooseAction.getId());
         saveAction.setNextFocusDownId(saveAction.getId());
         // 自訂圖片區也使用明確 DPAD 焦點路徑，避免部分 Android TV 韌體跳過自訂圖片卡片。
         customHeading.setNextFocusDownId(customThumbnailItems.isEmpty()
@@ -6545,8 +6545,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tile.setNextFocusDownId(customThumbnailItems.get(i + customColumns).getId());
             else tile.setNextFocusDownId(cancelAction.getId());
         }
-        resetAction.setNextFocusDownId(customHeading.getId());
-        customHeading.setNextFocusUpId(resetAction.getId());
+        chooseAction.setNextFocusDownId(customHeading.getId());
+        customHeading.setNextFocusUpId(chooseAction.getId());
         if (!customThumbnailItems.isEmpty()) {
             int lastCustomId = customThumbnailItems.get(customThumbnailItems.size() - 1).getId();
             cancelAction.setNextFocusUpId(lastCustomId);
