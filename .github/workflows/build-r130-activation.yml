@@ -1,9 +1,11 @@
-name: CYTV R130 Activation Build
+name: Launcher ATV R130 Activation Build
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [main]
+    branches:
+      - main
+      - fix/weather-dialog-global-dpad-dispatch-r129
     paths:
       - 'launcher/**'
       - '.github/workflows/build-r130-activation.yml'
@@ -31,13 +33,13 @@ jobs:
       - name: Package complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R130-Activation-debug.apk
-          zip -r release/CYTV-R130-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/LauncherATV-R130-Activation-debug.apk
+          zip -r release/LauncherATV-R130-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R130-APK-and-Source
+          name: LauncherATV-R130-APK-and-Source
           path: |
-            release/CYTV-R130-Activation-debug.apk
-            release/CYTV-R130-Source.zip
+            release/LauncherATV-R130-Activation-debug.apk
+            release/LauncherATV-R130-Source.zip
           if-no-files-found: error
