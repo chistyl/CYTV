@@ -4991,14 +4991,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weekLp.leftMargin = (int)(4*density);
         modeRow.addView(dayButton, dayLp);
         modeRow.addView(weekButton, weekLp);
-        // 選取狀態決定固定底色；遙控器焦點移動不改變已選取模式的顏色。
+        // 選取狀態與遙控器焦點分開呈現：焦點移入時提高亮度，讓使用者清楚看見目前停留的按鈕。
         Runnable refreshWeatherModeButtons = () -> {
-            // 選取色 #16434B；未選取色 #343A46。選取顏色不受遙控器焦點影響。
-            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF16434B : 0xFF343A46, 14*density));
-            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF343A46 : 0xFF16434B, 14*density));
+            int dayColor = daySelected[0] ? 0xFF16434B : 0xFF343A46;
+            int weekColor = daySelected[0] ? 0xFF343A46 : 0xFF16434B;
+            if (dayButton.hasFocus()) dayColor = daySelected[0] ? 0xFF28727A : 0xFF566477;
+            if (weekButton.hasFocus()) weekColor = daySelected[0] ? 0xFF566477 : 0xFF28727A;
+            dayButton.setBackground(roundSurface(dayColor, 14*density));
+            weekButton.setBackground(roundSurface(weekColor, 14*density));
         };
         dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
         weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
+        dayButton.setOnFocusChangeListener((v, focused) -> refreshWeatherModeButtons.run());
+        weekButton.setOnFocusChangeListener((v, focused) -> refreshWeatherModeButtons.run());
         refreshWeatherModeButtons.run();
         outer.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(44*density)));
 
