@@ -4102,6 +4102,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
         // R134: 隱藏「簡體轉繁體」切換入口，保留既有文字顯示處理邏輯。
         // 設定子選單不再提供此切換項目，文字顯示功能維持原狀。
+        // R134 驗收項目：僅移除選單入口，不變更文字轉換行為。
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
