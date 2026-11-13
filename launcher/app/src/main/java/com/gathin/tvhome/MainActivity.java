@@ -5886,6 +5886,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
         moduleEnableLp.bottomMargin = (int)(7*density);
         panel.addView(moduleEnableButton, moduleEnableLp);
+        moduleEnableButton.setNextFocusUpId(modeRow.getChildAt(0).getId());
+        moduleEnableButton.setNextFocusDownId(defaultHeading.getId());
 
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
@@ -5919,9 +5921,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeadingLp.topMargin = (int)(5*density);
         defaultHeadingLp.bottomMargin = (int)(5*density);
         panel.addView(defaultHeading, defaultHeadingLp);
-        defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
+        defaultHeading.setNextFocusUpId(moduleEnableButton.getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
-            modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
+            modeRow.getChildAt(modeIndex).setNextFocusDownId(moduleEnableButton.getId());
 
 
 
