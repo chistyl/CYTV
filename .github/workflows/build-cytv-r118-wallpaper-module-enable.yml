@@ -1,30 +1,31 @@
-name: CYTV R127 Weather Location Radio DPAD Fix
-# R127 adds explicit TV remote DPAD navigation for the three weather location radio options; preserves R126 colors.
+name: CYTV R128 Weather Location Focus Rewrite
+# R128 replaces RadioButton/RadioGroup with independent focusable options to prevent Android TV DPAD interception.
 
 on:
   push:
     branches:
-      - fix/weather-location-radio-dpad-r127
+      - fix/weather-location-radio-dpad-r128
   pull_request:
     branches:
       - fix/wallpaper-module-cancel-rollback-r123
       - fix/weather-settings-layout-height-r124
       - fix/weather-mode-selected-color-stable-r125
       - fix/weather-mode-colors-r126
+      - fix/weather-location-radio-dpad-r127
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r127-weather-location-dpad-${{ github.ref }}
+  group: cytv-r128-weather-location-focus-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R127
+      - name: Checkout R128
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -46,8 +47,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R127-debug.apk
-          zip -r release/CYTV-R127-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R128-debug.apk
+          zip -r release/CYTV-R128-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -55,9 +56,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R127-APK-and-Source
+          name: CYTV-R128-APK-and-Source
           path: |
-            release/CYTV-R127-debug.apk
-            release/CYTV-R127-source.zip
+            release/CYTV-R128-debug.apk
+            release/CYTV-R128-source.zip
           if-no-files-found: error
           retention-days: 30

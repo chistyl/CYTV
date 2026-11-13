@@ -5042,33 +5042,53 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locations.setOrientation(LinearLayout.VERTICAL);
         locations.setFocusable(false);
         locations.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-        android.widget.RadioButton device = new android.widget.RadioButton(this);
-        android.widget.RadioButton cityMode = new android.widget.RadioButton(this);
-        android.widget.RadioButton customMode = new android.widget.RadioButton(this);
-        device.setId(View.generateViewId()); cityMode.setId(View.generateViewId()); customMode.setId(View.generateViewId());
+
+        // 使用一般 TextView 自行繪製單選狀態，避開 Android RadioGroup 對 DPAD 焦點的攔截。
+        final String savedMode = prefs.getString("location_mode", "device");
+        final String[] selectedLocationMode = {savedMode};
+        TextView device = new TextView(this);
+        TextView cityMode = new TextView(this);
+        TextView customMode = new TextView(this);
+        device.setId(View.generateViewId());
+        cityMode.setId(View.generateViewId());
+        customMode.setId(View.generateViewId());
         device.setText("使用電視裝置目前位置（預設）");
-        cityMode.setText("固定指定城市"); customMode.setText("自行輸入城市");
-        for (android.widget.RadioButton option : new android.widget.RadioButton[]{device, cityMode, customMode}) {
-            option.setTextColor(Color.WHITE); option.setTextSize(15); option.setButtonTintList(optionTint);
-            option.setFocusable(true); option.setFocusableInTouchMode(true); option.setDefaultFocusHighlightEnabled(false);
-            option.setMinHeight((int)(40*density)); option.setPadding((int)(4*density), 0, (int)(8*density), 0);
+        cityMode.setText("固定指定城市");
+        customMode.setText("自行輸入城市");
+
+        TextView[] locationOptions = {device, cityMode, customMode};
+        for (TextView option : locationOptions) {
+            option.setTextColor(Color.WHITE);
+            option.setTextSize(15);
+            option.setGravity(Gravity.CENTER_VERTICAL);
+            option.setFocusable(true);
+            option.setFocusableInTouchMode(true);
+            option.setClickable(true);
+            option.setDefaultFocusHighlightEnabled(false);
+            option.setMinHeight((int)(40*density));
+            option.setPadding((int)(8*density), 0, (int)(8*density), 0);
             option.setBackground(remoteWeatherFocusBackground(false));
-            option.setOnFocusChangeListener((v, focused) -> v.setBackground(remoteWeatherFocusBackground(focused)));
+            option.setOnFocusChangeListener((v, focused) ->
+                    v.setBackground(remoteWeatherFocusBackground(focused)));
         }
+        Runnable refreshLocationOptionLabels = () -> {
+            device.setText(("device".equals(selectedLocationMode[0]) ? "◉  " : "○  ") + "使用電視裝置目前位置（預設）");
+            cityMode.setText(("city".equals(selectedLocationMode[0]) ? "◉  " : "○  ") + "固定指定城市");
+            customMode.setText(("custom".equals(selectedLocationMode[0]) ? "◉  " : "○  ") + "自行輸入城市");
+            device.setTextColor("device".equals(selectedLocationMode[0]) ? 0xFF80C9C2 : Color.WHITE);
+            cityMode.setTextColor("city".equals(selectedLocationMode[0]) ? 0xFF80C9C2 : Color.WHITE);
+            customMode.setTextColor("custom".equals(selectedLocationMode[0]) ? 0xFF80C9C2 : Color.WHITE);
+        };
         locations.addView(device, new LinearLayout.LayoutParams(-1, (int)(40*density)));
-        android.widget.RadioGroup cityModes = new android.widget.RadioGroup(this);
+        LinearLayout cityModes = new LinearLayout(this);
         cityModes.setFocusable(false);
-        cityModes.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-        cityModes.setOrientation(android.widget.RadioGroup.HORIZONTAL);
+        cityModes.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams cityModesLp = new LinearLayout.LayoutParams(-1, (int)(44*density));
         cityModesLp.topMargin = (int)(2*density);
-        cityModes.addView(cityMode, new android.widget.RadioGroup.LayoutParams(0, -1, 1f));
-        cityModes.addView(customMode, new android.widget.RadioGroup.LayoutParams(0, -1, 1f));
+        cityModes.addView(cityMode, new LinearLayout.LayoutParams(0, -1, 1f));
+        cityModes.addView(customMode, new LinearLayout.LayoutParams(0, -1, 1f));
         locations.addView(cityModes, cityModesLp);
-        String savedMode = prefs.getString("location_mode", "device");
-        if ("city".equals(savedMode)) cityModes.check(cityMode.getId());
-        else if ("custom".equals(savedMode)) cityModes.check(customMode.getId());
-        else device.setChecked(true);
+        refreshLocationOptionLabels.run();
         locationPanel.addView(locations, new LinearLayout.LayoutParams(-1, (int)(86*density)));
         final String[] taiwanCities = {"台北市","新北市","桃園市","台中市","台南市","高雄市","基隆市","新竹市","嘉義市","宜蘭縣","新竹縣","苗栗縣","彰化縣","南投縣","雲林縣","嘉義縣","屏東縣","台東縣","花蓮縣","澎湖縣","金門縣","連江縣（馬祖）"};
         String savedCity = prefs.getString("city", "桃園市").replace("臺", "台");
@@ -5093,12 +5113,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locationPanel.addView(customCity, customLp);
         cityPicker.setVisibility("city".equals(savedMode) ? View.VISIBLE : View.GONE);
         customCity.setVisibility("custom".equals(savedMode) ? View.VISIBLE : View.GONE);
-        device.setOnClickListener(v -> { cityModes.clearCheck(); cityPicker.setVisibility(View.GONE); customCity.setVisibility(View.GONE); });
-        cityModes.setOnCheckedChangeListener((g, checked) -> {
-            if (checked != -1) device.setChecked(false);
-            cityPicker.setVisibility(checked == cityMode.getId() ? View.VISIBLE : View.GONE);
-            customCity.setVisibility(checked == customMode.getId() ? View.VISIBLE : View.GONE);
-        });
+        Runnable applyLocationMode = () -> {
+            refreshLocationOptionLabels.run();
+            cityPicker.setVisibility("city".equals(selectedLocationMode[0]) ? View.VISIBLE : View.GONE);
+            customCity.setVisibility("custom".equals(selectedLocationMode[0]) ? View.VISIBLE : View.GONE);
+        };
+        device.setOnClickListener(v -> { selectedLocationMode[0] = "device"; applyLocationMode.run(); });
+        cityMode.setOnClickListener(v -> { selectedLocationMode[0] = "city"; applyLocationMode.run(); });
+        customMode.setOnClickListener(v -> { selectedLocationMode[0] = "custom"; applyLocationMode.run(); });
         cityPicker.setOnClickListener(v -> {
             Dialog pickerDialog = new Dialog(this);
             LinearLayout pickerRoot = new LinearLayout(this); pickerRoot.setOrientation(LinearLayout.VERTICAL);
@@ -5166,8 +5188,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         cancel.setOnClickListener(v -> dialog.dismiss());
         save.setOnClickListener(v -> {
-            boolean useCity = cityMode.isChecked();
-            boolean useCustom = customMode.isChecked();
+            boolean useCity = "city".equals(selectedLocationMode[0]);
+            boolean useCustom = "custom".equals(selectedLocationMode[0]);
             String typedCity = customCity.getText().toString().trim();
             if (useCustom && typedCity.isEmpty()) { customCity.setError("請輸入城市名稱"); customCity.requestFocus(); return; }
             prefs.edit()
