@@ -1529,8 +1529,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void restartIdleClock() {
-        root.removeCallbacks(showIdleClock);
-        if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
+        // Android may dispatch onUserInteraction before onCreate has installed the Home layout,
+        // or while this Activity is finishing at the offline-license gate.
+        FrameLayout homeRoot = root;
+        if (homeRoot == null || isFinishing() || isDestroyed()) return;
+        homeRoot.removeCallbacks(showIdleClock);
+        if (resumed && idleClockMs > 0) homeRoot.postDelayed(showIdleClock, idleClockMs);
     }
 
     @Override
@@ -1541,7 +1545,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
         RemoteKeys.release(this);
         cancelHoldOk();
-        root.removeCallbacks(showIdleClock);
+        if (root != null) root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         videoCarousel.pause();
