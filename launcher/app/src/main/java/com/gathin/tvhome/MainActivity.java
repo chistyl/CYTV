@@ -5790,6 +5790,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final ImageView[] thumbnailImages = new ImageView[names.length];
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
         final boolean hasWallpaperDraft = wallpaperPrefs.contains("wallpaper_draft_theme");
+        final boolean[] draftModuleEnabled = {hasWallpaperDraft
+                ? wallpaperPrefs.getBoolean("wallpaper_draft_module_enabled", true)
+                : wallpaperPrefs.getBoolean("wallpaper_module_enabled", true)};
         final int[] draftTheme = {hasWallpaperDraft ? wallpaperPrefs.getInt("wallpaper_draft_theme", 1) : wallpaperPrefs.getInt("builtin_wallpaper", 0)};
         final boolean[] draftRandom = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_random", false) : wallpaperPrefs.getBoolean("builtin_random_play", false)};
         final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
@@ -5811,12 +5814,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .putBoolean("wallpaper_draft_random", draftRandom[0])
                     .putBoolean("wallpaper_draft_custom_active", draftCustomActive[0])
                     .putString("wallpaper_draft_custom_mode", draftCustomMode[0])
+                    .putBoolean("wallpaper_draft_module_enabled", draftModuleEnabled[0])
                     .putStringSet("wallpaper_draft_custom_selection", paths).apply();
         };
         final Runnable clearWallpaperDraft = () -> wallpaperPrefs.edit()
                 .remove("wallpaper_draft_theme").remove("wallpaper_draft_random")
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
-                .remove("wallpaper_draft_custom_selection").apply();
+                .remove("wallpaper_draft_module_enabled").remove("wallpaper_draft_custom_selection").apply();
         if (draftTheme[0] < 1 || draftTheme[0] > 9) draftTheme[0] = 1;
         String[] customModes = {"single", "random"};
         String[] customModeLabels = {"單一圖片", "隨機播放"};
@@ -5855,6 +5859,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             modeButton.setLayoutParams(modeLp);
         }
         panel.addView(modeRow, new LinearLayout.LayoutParams(-1, (int)(40*density)));
+        final Runnable[] refreshModuleEnableButton = new Runnable[1];
+        TextView moduleEnableButton = addRoundedAction(panel, "", () -> {
+            draftModuleEnabled[0] = !draftModuleEnabled[0];
+            persistWallpaperDraft.run();
+            if (refreshModuleEnableButton[0] != null) refreshModuleEnableButton[0].run();
+        });
+        refreshModuleEnableButton[0] = () -> {
+            moduleEnableButton.setText(draftModuleEnabled[0] ? "啟用：開啟" : "啟用：關閉");
+            moduleEnableButton.setBackground(roundSurface(draftModuleEnabled[0] ? 0xFF16434B : 0xFF263243, 12*density));
+            moduleEnableButton.setContentDescription(draftModuleEnabled[0] ? "影像輪播模組已啟用" : "影像輪播模組已停用");
+        };
+        moduleEnableButton.setTextSize(14);
+        moduleEnableButton.setFocusable(true);
+        moduleEnableButton.setClickable(true);
+        moduleEnableButton.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        refreshModuleEnableButton[0].run();
+        LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
+        moduleEnableLp.bottomMargin = (int)(7*density);
+        panel.addView(moduleEnableButton, moduleEnableLp);
+        moduleEnableButton.setNextFocusUpId(modeRow.getChildAt(0).getId());
+
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
                 || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty();
         TextView defaultHeading = new TextView(this);
@@ -5887,9 +5920,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         defaultHeadingLp.topMargin = (int)(5*density);
         defaultHeadingLp.bottomMargin = (int)(5*density);
         panel.addView(defaultHeading, defaultHeadingLp);
-        defaultHeading.setNextFocusUpId(modeRow.getChildAt(0).getId());
+        moduleEnableButton.setNextFocusDownId(defaultHeading.getId());
+        defaultHeading.setNextFocusUpId(moduleEnableButton.getId());
         for (int modeIndex = 0; modeIndex < modeRow.getChildCount(); modeIndex++)
-            modeRow.getChildAt(modeIndex).setNextFocusDownId(defaultHeading.getId());
+            modeRow.getChildAt(modeIndex).setNextFocusDownId(moduleEnableButton.getId());
 
 
 
@@ -6449,7 +6483,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .putLong("builtin_wallpaper_changed", System.currentTimeMillis())
                         .remove("custom_wallpaper_uri").remove("custom_wallpaper_file");
             }
-            editor.putString("custom_wallpaper_mode", savedCustomMode)
+            editor.putBoolean("wallpaper_module_enabled", draftModuleEnabled[0])
+                    .putString("custom_wallpaper_mode", savedCustomMode)
                     .putBoolean("hide_left_color_effect", true)
                     .putBoolean("left_color_effect_enabled", false).commit();
             clearWallpaperDraft.run();
