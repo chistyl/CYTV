@@ -4100,12 +4100,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         addSettingsMenuRow(rows, popup, "應用顯示", this::showHomeAppVisibilityDialog);
         addSettingsMenuRow(rows, popup, "天氣預報", this::showWeeklyWeatherSettings);
-        boolean traditionalDisplay = TraditionalText.isEnabled(this);
-        addSettingsMenuCheckRow(rows, popup, "簡體轉繁體", traditionalDisplay, () -> {
-            TraditionalText.setEnabled(this, !traditionalDisplay);
-            popup.dismiss();
-            recreate();
-        });
         SharedPreferences appNamePrefs = getSharedPreferences("tv_app_customizations", MODE_PRIVATE);
         boolean allNamesHidden = appNamePrefs.getBoolean("hide_all_names", true);
         addSettingsMenuRow(rows, popup,
