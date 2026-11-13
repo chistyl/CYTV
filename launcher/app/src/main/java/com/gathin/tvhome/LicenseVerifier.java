@@ -18,9 +18,6 @@ import java.security.spec.X509EncodedKeySpec;
 final class LicenseVerifier {
     static final String PRODUCT_ID = "CYTV";
     private static final int FORMAT_VERSION = 1;
-    // Shared perpetual activation code requested for CYTV R118.
-    static final String SHARED_DEFAULT_CODE = "CYTV0822";
-
     // Public key only. Matching private key is held offline by the license issuer.
     private static final String PUBLIC_KEY_PEM =
             "-----BEGIN PUBLIC KEY-----\n" +
@@ -65,11 +62,7 @@ final class LicenseVerifier {
         if (activationCode == null || activationCode.trim().isEmpty()) {
             return result(Status.EMPTY);
         }
-        // This shared code is intentionally device-independent and perpetual.
-        // Since it ships in the APK, it is a convenience code, not a tamper-proof secret.
-        if (SHARED_DEFAULT_CODE.equals(activationCode.trim())) {
-            return new Result(Status.VALID, "CYTV-SHARED-DEFAULT", nowMillis, 0L);
-        }
+        // All activation codes must carry a valid RSA-SHA256 signature.
         try {
             String[] parts = activationCode.trim().split("\\.", -1);
             if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
