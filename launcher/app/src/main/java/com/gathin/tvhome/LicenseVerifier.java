@@ -33,7 +33,7 @@ final class LicenseVerifier {
             "-----END PUBLIC KEY-----";
 
     enum Status {
-        VALID, EMPTY, MALFORMED, BAD_SIGNATURE, WRONG_PRODUCT, UNSUPPORTED_VERSION, EXPIRED, INVALID_FIELDS
+        VALID, EMPTY, MALFORMED, BAD_SIGNATURE, WRONG_PRODUCT, DEVICE_MISMATCH, UNSUPPORTED_VERSION, EXPIRED, INVALID_FIELDS
     }
 
     static final class Result {
@@ -55,10 +55,18 @@ final class LicenseVerifier {
     private LicenseVerifier() {}
 
     static Result verify(String activationCode) {
-        return verify(activationCode, System.currentTimeMillis());
+        return verify(activationCode, "", System.currentTimeMillis());
     }
 
     static Result verify(String activationCode, long nowMillis) {
+        return verify(activationCode, "", nowMillis);
+    }
+
+    static Result verify(String activationCode, String expectedDeviceFingerprint) {
+        return verify(activationCode, expectedDeviceFingerprint, System.currentTimeMillis());
+    }
+
+    static Result verify(String activationCode, String expectedDeviceFingerprint, long nowMillis) {
         if (activationCode == null || activationCode.trim().isEmpty()) {
             return result(Status.EMPTY);
         }
@@ -85,6 +93,11 @@ final class LicenseVerifier {
             if (!PRODUCT_ID.equals(jsonString(json, "product", ""))) return result(Status.WRONG_PRODUCT);
 
             String licenseId = jsonString(json, "license_id", "").trim();
+            String boundFingerprint = jsonString(json, "device_fingerprint", "").trim().toUpperCase(java.util.Locale.US);
+            String expectedFingerprint = expectedDeviceFingerprint == null ? "" : expectedDeviceFingerprint.trim().toUpperCase(java.util.Locale.US);
+            if (boundFingerprint.isEmpty() || !boundFingerprint.matches("[0-9A-F]{64}") || expectedFingerprint.isEmpty() || !boundFingerprint.equals(expectedFingerprint)) {
+                return result(Status.DEVICE_MISMATCH);
+            }
             long issuedAt = jsonLong(json, "issued_at", -1L);
             long expiresAt = jsonLong(json, "expires_at", 0L); // zero means perpetual
             if (licenseId.isEmpty() || issuedAt <= 0 || expiresAt < 0 || issuedAt > nowMillis + 300_000L) {
