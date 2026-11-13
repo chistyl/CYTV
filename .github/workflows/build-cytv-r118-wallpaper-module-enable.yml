@@ -1,28 +1,29 @@
-name: CYTV R125 Weather Mode Selected Color Stable
-# R125 keeps the selected weather display-mode button color stable regardless of remote-control focus.
+name: CYTV R126 Weather Mode Colors
+# R126 sets selected weather mode color to #16434B and unselected color to #343A46.
 
 on:
   push:
     branches:
-      - fix/weather-mode-selected-color-stable-r125
+      - fix/weather-mode-colors-r126
   pull_request:
     branches:
       - fix/wallpaper-module-cancel-rollback-r123
       - fix/weather-settings-layout-height-r124
+      - fix/weather-mode-selected-color-stable-r125
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r125-weather-mode-color-${{ github.ref }}
+  group: cytv-r126-weather-mode-colors-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout R125
+      - name: Checkout R126
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -44,8 +45,8 @@ jobs:
       - name: Package APK and complete source ZIP
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R125-debug.apk
-          zip -r release/CYTV-R125-source.zip . \
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R126-debug.apk
+          zip -r release/CYTV-R126-source.zip . \
             -x '.git/*' '*/.git/*' \
                '*/build/*' '*/.gradle/*' \
                'release/*' '*/local.properties' \
@@ -53,9 +54,9 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R125-APK-and-Source
+          name: CYTV-R126-APK-and-Source
           path: |
-            release/CYTV-R125-debug.apk
-            release/CYTV-R125-source.zip
+            release/CYTV-R126-debug.apk
+            release/CYTV-R126-source.zip
           if-no-files-found: error
           retention-days: 30
