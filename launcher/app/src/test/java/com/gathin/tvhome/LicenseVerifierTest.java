@@ -32,10 +32,8 @@ public class LicenseVerifierTest {
     }
 
     @Test public void rejectsWrongProduct() {
-        // A malformed fixture is rejected safely; product mismatch is also covered by signature-valid fixture
-        // in the release test harness where the complete fixture is provisioned.
-        assertTrue(LicenseVerifier.verify(WRONG_PRODUCT.replace("<secret>", "ZWRf"), NOW).status
-                != LicenseVerifier.Status.VALID);
+        assertEquals(LicenseVerifier.Status.WRONG_PRODUCT,
+                LicenseVerifier.verify(WRONG_PRODUCT, NOW).status);
     }
 
     @Test public void rejectsAlteredSignatureAndMalformedInput() {
