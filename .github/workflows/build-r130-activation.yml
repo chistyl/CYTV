@@ -43,7 +43,7 @@ jobs:
       - name: Upload APK and source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: LauncherATV-${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || 'R132' }}-APK-and-Source
+          name: LauncherATV-${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/ethernet-ad-filter-policy-r133' && 'R133' || (github.event.pull_request.head.ref == 'fix/hide-simplified-traditional-button-r134' && 'R134' || 'R132') }}-APK-and-Source
           path: |
             release/LauncherATV-*.apk
             release/LauncherATV-*-Source.zip
