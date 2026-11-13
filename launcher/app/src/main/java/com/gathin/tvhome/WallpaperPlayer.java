@@ -140,7 +140,7 @@ final class WallpaperPlayer {
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
-        moduleEnabled = preferences.getBoolean("wallpaper_module_enabled", true);
+        moduleEnabled = preferences.getBoolean("wallpaper_module_enabled", false);
         moods = config.wallpaperMoods;
         latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
         longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
