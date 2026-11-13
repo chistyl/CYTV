@@ -5791,8 +5791,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         SharedPreferences wallpaperPrefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
         final boolean hasWallpaperDraft = wallpaperPrefs.contains("wallpaper_draft_theme");
         final boolean[] draftModuleEnabled = {hasWallpaperDraft
-                ? wallpaperPrefs.getBoolean("wallpaper_draft_module_enabled", true)
-                : wallpaperPrefs.getBoolean("wallpaper_module_enabled", true)};
+                ? wallpaperPrefs.getBoolean("wallpaper_draft_module_enabled", false)
+                : wallpaperPrefs.getBoolean("wallpaper_module_enabled", false)};
         final int[] draftTheme = {hasWallpaperDraft ? wallpaperPrefs.getInt("wallpaper_draft_theme", 1) : wallpaperPrefs.getInt("builtin_wallpaper", 0)};
         final boolean[] draftRandom = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_random", false) : wallpaperPrefs.getBoolean("builtin_random_play", false)};
         final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
