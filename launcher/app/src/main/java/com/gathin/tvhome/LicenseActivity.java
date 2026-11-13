@@ -18,6 +18,7 @@ import android.widget.Toast;
 /** Offline activation screen. It intentionally has no network dependency. */
 public final class LicenseActivity extends Activity {
     private EditText codeInput;
+    private String deviceFingerprint = "";
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -41,13 +42,29 @@ public final class LicenseActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, dp(58)));
 
         TextView hint = new TextView(this);
-        hint.setText("請輸入啟用碼或產品授權碼。此程序不需要連接網路。");
+        try {
+            DeviceIdentity.getOrCreate();
+            deviceFingerprint = DeviceIdentity.publicKeyFingerprint();
+        } catch (Exception e) {
+            deviceFingerprint = "無法取得設備識別碼";
+        }
+        hint.setText("一機一碼離線授權。請提供下方設備識別碼以簽發專屬授權碼。");
         hint.setTextColor(Color.LTGRAY);
         hint.setTextSize(17);
         hint.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, dp(48));
         hp.bottomMargin = dp(18);
         root.addView(hint, hp);
+
+        TextView fingerprint = new TextView(this);
+        fingerprint.setText("設備識別碼：\\n" + deviceFingerprint);
+        fingerprint.setTextColor(Color.rgb(120, 190, 255));
+        fingerprint.setTextSize(13);
+        fingerprint.setGravity(Gravity.CENTER);
+        fingerprint.setTextIsSelectable(true);
+        LinearLayout.LayoutParams deviceParams = new LinearLayout.LayoutParams(-1, dp(58));
+        deviceParams.bottomMargin = dp(12);
+        root.addView(fingerprint, deviceParams);
 
         codeInput = new EditText(this);
         codeInput.setSingleLine(true);
