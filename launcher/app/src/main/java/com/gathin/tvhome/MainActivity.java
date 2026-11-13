@@ -5885,7 +5885,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshModuleEnableButton[0].run();
         LinearLayout.LayoutParams moduleEnableLp = new LinearLayout.LayoutParams(-1, (int)(40*density));
         moduleEnableLp.bottomMargin = (int)(7*density);
-        panel.addView(moduleEnableButton, moduleEnableLp);
+        // addRoundedAction(panel, ...) 已將按鈕加入 panel；只更新版面參數，避免重複 addView 導致 child already has a parent。
+        moduleEnableButton.setLayoutParams(moduleEnableLp);
         moduleEnableButton.setNextFocusUpId(modeRow.getChildAt(0).getId());
 
         boolean customWallpaperActive = !wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty()
