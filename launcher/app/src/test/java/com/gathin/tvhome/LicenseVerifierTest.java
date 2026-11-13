@@ -20,11 +20,9 @@ public class LicenseVerifierTest {
             "eyJ2IjoxLCJwcm9kdWN0IjoiT1RIRVIiLCJsaWNlbnNlX2lkIjoiVEVTVC1XUk9ORyIsImlzc3VlZF9hdCI6MTcwMDAwMDAwMDAwMCwiZXhwaXJlc19hdCI6NDEwMjQ0NDgwMDAwMH0." +
             "rKlUUDPg6SfvSUwYXBHR8qe2pz-E8FkKJJ01UKyfMy8myVlOTO8bigYnXcZfHtPCuioOpHKgX6F2eQPUub5WwzRM3VgY6VCKjMuBpp4WAG1EX1XSPnbliSstIvD5bCrUl1GjMjMrQvZUoanPW7taD482bSJzZnLRClEqvVHDjRjFCc3yJuY6bro0rerWiSwZ-nyzM7Dy7HW0tAbj3MhbnLhpf7f6RSD1H_9XjMydhb3m77aW8v3lxJJp0lgMCf9LjPi6L39aatGrdNNtCUIPCb8HJIG2shclPh3jjK2Uw6SMJBbbnO4cFiaWud0IegFcYKkulKGnXhlM73UUYURyadzAFk9iW0omOIw831F2f86aXV5u_jqKaNZmuqXqFsBcmJpg9zKLBWFJCkKRwl993brf_x20vXR_VFjhuAoniLgmVuUncO_-I1SsHS3Gz1L9yy2Xqc_hFldTPWw4rQEoFxA9Fcw5Q8uwB4BZbNHLwjC0XBY-QFdqxhUkjLHUTheO";
 
-    @Test public void acceptsSharedDefaultCodeOnAnyDevice() {
-        LicenseVerifier.Result result = LicenseVerifier.verify("CYTV0822", NOW);
-        assertTrue(result.isValid());
-        assertEquals("CYTV-SHARED-DEFAULT", result.licenseId);
-        assertEquals(0L, result.expiresAt);
+    @Test public void rejectsPlaintextSharedCode() {
+        assertEquals(LicenseVerifier.Status.MALFORMED,
+                LicenseVerifier.verify("CYTV0822", NOW).status);
     }
 
     @Test public void acceptsValidOfflineCode() {
