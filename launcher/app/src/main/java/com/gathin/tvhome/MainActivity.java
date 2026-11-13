@@ -5963,8 +5963,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final TextView[] modeButtons = new TextView[customModes.length];
         final Runnable refreshModeButtons = () -> {
             for (int j = 0; j < modeButtons.length; j++) {
-                if (modeButtons[j] != null) modeButtons[j].setBackground(
-                        roundSurface(customModes[j].equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
+                TextView button = modeButtons[j];
+                if (button == null) continue;
+                boolean selected = customModes[j].equals(draftCustomMode[0]);
+                // 選取底色固定保留；遙控器焦點只增加外框，不覆蓋選取顏色。
+                android.graphics.drawable.GradientDrawable stateBg = new android.graphics.drawable.GradientDrawable();
+                stateBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                stateBg.setColor(selected ? 0xFF16434B : 0xFF263243);
+                stateBg.setCornerRadius(12*density);
+                if (button.hasFocus()) {
+                    stateBg.setStroke(Math.max(2, (int)(2*density)), 0xFF80C9C2);
+                    button.setElevation(4*density);
+                } else {
+                    stateBg.setStroke(0, Color.TRANSPARENT);
+                    button.setElevation(0f);
+                }
+                button.setBackground(stateBg);
             }
         };
         for (int modeIndex = 0; modeIndex < customModes.length; modeIndex++) {
@@ -5975,6 +5989,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 refreshModeButtons.run();
             });
             modeButtons[modeIndex] = modeButton;
+            modeButton.setOnFocusChangeListener((v, focused) -> refreshModeButtons.run());
             modeButton.setTextSize(13);
             modeButton.setBackground(roundSurface(modeValue.equals(draftCustomMode[0]) ? 0xFF16434B : 0xFF263243, 12*density));
             modeButton.setFocusable(true);
