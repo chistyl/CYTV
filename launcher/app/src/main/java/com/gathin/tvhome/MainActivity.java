@@ -4035,7 +4035,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (Network network : cm.getAllNetworks()) {
             NetworkCapabilities caps = cm.getNetworkCapabilities(network);
             if (caps != null
-                    && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
                 return true;
             }
