@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.WindowManager;
@@ -29,7 +30,7 @@ public final class ActivationActivity extends Activity {
         root.setBackgroundColor(Color.rgb(12, 19, 25));
 
         TextView title = new TextView(this);
-        title.setText("CYTV 啟用驗證");
+        title.setText("Launcher ATV 啟用驗證");
         title.setTextColor(Color.WHITE);
         title.setTextSize(28);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -37,7 +38,7 @@ public final class ActivationActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView hint = new TextView(this);
-        hint.setText("首次使用前，請輸入啟用驗證碼\n驗證成功後即可使用本設備");
+        hint.setText("首次使用前，請輸入啟用驗證碼\\n驗證成功後即可使用本設備");
         hint.setTextColor(Color.LTGRAY);
         hint.setTextSize(17);
         hint.setGravity(Gravity.CENTER);
@@ -69,6 +70,11 @@ public final class ActivationActivity extends Activity {
         Button activate = new Button(this);
         activate.setText("啟用並進入桌面");
         activate.setTextSize(17);
+        activate.setTextColor(Color.WHITE);
+        GradientDrawable roundedButton = new GradientDrawable();
+        roundedButton.setColor(Color.rgb(91, 91, 93));
+        roundedButton.setCornerRadius(dp(8));
+        activate.setBackground(roundedButton);
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(dp(300), dp(58));
         bp.topMargin = dp(12);
         root.addView(activate, bp);
