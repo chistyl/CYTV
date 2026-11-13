@@ -41,7 +41,7 @@ public final class LicenseActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, dp(58)));
 
         TextView hint = new TextView(this);
-        hint.setText("請輸入共用啟用碼或產品授權碼。此程序不需要連接網路。");
+        hint.setText("請輸入啟用碼或產品授權碼。此程序不需要連接網路。");
         hint.setTextColor(Color.LTGRAY);
         hint.setTextSize(17);
         hint.setGravity(Gravity.CENTER);
@@ -54,7 +54,7 @@ public final class LicenseActivity extends Activity {
         codeInput.setTextSize(17);
         codeInput.setTextColor(Color.WHITE);
         codeInput.setHintTextColor(Color.GRAY);
-        codeInput.setHint("輸入啟用碼：CYTV0822");
+        codeInput.setHint("請輸入啟用碼");
         codeInput.setSelectAllOnFocus(false);
         codeInput.setPadding(dp(16), dp(10), dp(16), dp(10));
         codeInput.setBackgroundColor(Color.rgb(38, 42, 50));
