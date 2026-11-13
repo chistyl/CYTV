@@ -5044,7 +5044,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         locations.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
         // 使用一般 TextView 自行繪製單選狀態，避開 Android RadioGroup 對 DPAD 焦點的攔截。
-        final String[] selectedLocationMode = {prefs.getString("location_mode", "device")};
+        final String savedMode = prefs.getString("location_mode", "device");
+        final String[] selectedLocationMode = {savedMode};
         TextView device = new TextView(this);
         TextView cityMode = new TextView(this);
         TextView customMode = new TextView(this);
