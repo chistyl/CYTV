@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CYTV 授權中心</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#090b10;color:#f4f6fa;display:grid;place-items:center;padding:22px}
+main{width:min(100%,430px);background:#151922;border:1px solid #2b3240;border-radius:22px;padding:26px;box-shadow:0 24px 80px #0008}
+h1{font-size:24px;margin:0 0 8px}.muted{color:#aab3c2;font-size:14px;line-height:1.6}
+label{display:block;font-size:13px;color:#b8c1cf;margin:20px 0 7px}
+input{width:100%;border:1px solid #394354;background:#0d1118;color:white;border-radius:12px;padding:14px;font-size:16px;outline:none}
+button{width:100%;border:0;border-radius:12px;padding:15px;background:#e9edf5;color:#10141b;font-weight:700;font-size:16px;margin-top:16px;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.code{font-size:42px;letter-spacing:7px;font-weight:750;text-align:center;margin:26px 0 8px;font-variant-numeric:tabular-nums}
+.timer{text-align:center;color:#9eabc0;font-size:13px}.status{min-height:24px;margin-top:14px;color:#c8d2e1;font-size:13px}
+.hidden{display:none}.small{font-size:12px;color:#7f8a9b;margin-top:18px}
+</style></head>
+<body><main>
+<h1>CYTV 授權中心</h1>
+<p class="muted">管理者登入後，為第一次啟用的電視產生一次性驗證碼。</p>
+<section id="login">
+<label for="adminKey">管理者授權金鑰</label>
+<input id="adminKey" type="password" autocomplete="current-password" placeholder="輸入管理者金鑰">
+<button id="loginBtn">登入授權中心</button>
+</section>
+<section id="generator" class="hidden">
+<button id="generateBtn">產生 6 位數驗證碼</button>
+<div id="code" class="code">------</div>
+<div id="timer" class="timer">有效時間 5 分鐘・限使用一次</div>
+<button id="copyBtn" class="hidden">複製驗證碼</button>
+<div class="status" id="status"></div>
+</section>
+<p class="small">驗證碼有效 5 分鐘，成功兌換後立即失效。請勿將管理者金鑰提供給他人。</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);let adminKey="",expiresAt=0,tick=null;
+$("loginBtn").onclick=()=>{adminKey=$("adminKey").value.trim();if(!adminKey){$("status").textContent="請輸入管理者金鑰";return}$("login").classList.add("hidden");$("generator").classList.remove("hidden");$("status").textContent="已進入授權中心";};
+$("generateBtn").onclick=async()=>{const btn=$("generateBtn");btn.disabled=true;$("status").textContent="正在產生驗證碼…";try{
+const r=await fetch("/api/admin/code",{method:"POST",headers:{"authorization":"Bearer "+adminKey}});
+const data=await r.json();if(!r.ok)throw new Error(data.error==="unauthorized"?"管理者金鑰錯誤":"產生失敗");
+$("code").textContent=data.code;$("copyBtn").classList.remove("hidden");expiresAt=data.expiresAt;
+$("status").textContent="驗證碼已產生，請在電視輸入。";$("copyBtn").onclick=async()=>{await navigator.clipboard.writeText(data.code);$("status").textContent="已複製驗證碼";};
+if(tick)clearInterval(tick);tick=setInterval(()=>{const left=Math.max(0,expiresAt-Math.floor(Date.now()/1000));$("timer").textContent=left>0?"剩餘有效時間："+Math.floor(left/60)+":"+String(left%60).padStart(2,"0"):"驗證碼已過期，請重新產生";if(!left){clearInterval(tick);$("code").textContent="------";$("copyBtn").classList.add("hidden");}},500);
+}catch(e){$("status").textContent=e.message;}finally{btn.disabled=false;}};
+</script></body></html>
