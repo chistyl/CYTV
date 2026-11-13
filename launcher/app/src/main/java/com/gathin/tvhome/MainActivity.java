@@ -5028,6 +5028,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         enableLp.topMargin = (int)(5*density);
         outer.addView(enableButton, enableLp);
 
+        int[][] checkedStates = {new int[]{android.R.attr.state_checked}, new int[]{}};
+        android.content.res.ColorStateList optionTint = new android.content.res.ColorStateList(
+                checkedStates, new int[]{0xFF80C9C2, 0xFFACB8C1});
+
         // 地點設定獨立放入深灰色圓角區塊，位置與比例比照參考圖。
         LinearLayout locationPanel = new LinearLayout(this);
         locationPanel.setOrientation(LinearLayout.VERTICAL);
