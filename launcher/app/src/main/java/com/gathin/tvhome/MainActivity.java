@@ -4984,9 +4984,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             button.setClickable(true);
             button.setDefaultFocusHighlightEnabled(false);
             button.setBackground(remoteWeatherFocusBackground(false));
-            button.setOnFocusChangeListener((v, focused) ->
-                    v.setBackground(remoteWeatherFocusBackground(focused)));
         }
+        final boolean[] dayFocused = {false};
+        final boolean[] weekFocused = {false};
         LinearLayout.LayoutParams dayLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
         dayLp.rightMargin = (int)(4*density);
         LinearLayout.LayoutParams weekLp = new LinearLayout.LayoutParams(0, (int)(44*density), 1f);
@@ -4994,9 +4994,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         modeRow.addView(dayButton, dayLp);
         modeRow.addView(weekButton, weekLp);
         Runnable refreshWeatherModeButtons = () -> {
-            dayButton.setBackground(roundSurface(daySelected[0] ? 0xFF343A46 : 0xFF465366, 14*density));
-            weekButton.setBackground(roundSurface(daySelected[0] ? 0xFF465366 : 0xFF17434A, 14*density));
+            dayButton.setBackground(roundSurface(dayFocused[0] ? 0xFF536174
+                    : daySelected[0] ? 0xFF343A46 : 0xFF465366, 14*density));
+            weekButton.setBackground(roundSurface(weekFocused[0] ? 0xFF536174
+                    : daySelected[0] ? 0xFF465366 : 0xFF17434A, 14*density));
         };
+        dayButton.setOnFocusChangeListener((v, focused) -> { dayFocused[0] = focused; refreshWeatherModeButtons.run(); });
+        weekButton.setOnFocusChangeListener((v, focused) -> { weekFocused[0] = focused; refreshWeatherModeButtons.run(); });
         dayButton.setOnClickListener(v -> { daySelected[0] = true; refreshWeatherModeButtons.run(); });
         weekButton.setOnClickListener(v -> { daySelected[0] = false; refreshWeatherModeButtons.run(); });
         refreshWeatherModeButtons.run();
@@ -5015,6 +5019,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             enableButton.setBackground(roundSurface(weatherEnabled[0] ? 0xFF17434A : 0xFF343A46, 14*density));
         };
         enableButton.setOnClickListener(v -> { weatherEnabled[0] = !weatherEnabled[0]; refreshWeatherEnableButton.run(); });
+        enableButton.setOnFocusChangeListener((v, focused) -> {
+            enableButton.setBackground(roundSurface(focused ? 0xFF465366
+                    : weatherEnabled[0] ? 0xFF17434A : 0xFF343A46, 14*density));
+        });
         refreshWeatherEnableButton.run();
         LinearLayout.LayoutParams enableLp = new LinearLayout.LayoutParams(-1, (int)(44*density));
         enableLp.topMargin = (int)(5*density);
@@ -5212,7 +5220,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weekButton.setNextFocusLeftId(dayButton.getId());
         weekButton.setNextFocusDownId(enableButton.getId());
         weekButton.setNextFocusForwardId(enableButton.getId());
-        enableButton.setNextFocusDownId(firstLocationId);
         enableButton.setNextFocusUpId(weekButton.getId());
         enableButton.setNextFocusDownId(firstLocationId);
         device.setNextFocusUpId(enableButton.getId());
