@@ -1298,8 +1298,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wallpaperPlayer.start();
         videoCarousel.resumeAfterWake();
         // Let the first Home frame render before touching network-bound services after standby.
+        enforceEthernetAdFilterPolicy();
         handler.postDelayed(() -> {
-            if (resumed) refreshStandbyNetworkServices();
+            if (resumed) {
+                enforceEthernetAdFilterPolicy();
+                refreshStandbyNetworkServices();
+            }
         }, 1200L);
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
@@ -4024,6 +4028,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return wifi && !ethernet;
     }
 
+    /** Ethernet takes priority for this device policy: the local DNS VPN must stay off on wired LAN. */
+    private boolean isEthernetInternetAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        for (Network network : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            if (caps != null
+                    && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Hide the ad-filter entry and stop its VPN whenever an Internet-capable Ethernet link is present. */
+    private void enforceEthernetAdFilterPolicy() {
+        if (!isEthernetInternetAvailable()) return;
+        getSharedPreferences("ad_filter", MODE_PRIVATE).edit().putBoolean("enabled", false).apply();
+        Intent stop = new Intent(this, AdsFilterVpnService.class);
+        stop.setAction(AdsFilterVpnService.ACTION_STOP);
+        try {
+            startService(stop);
+        } catch (RuntimeException ignored) {
+            stopService(new Intent(this, AdsFilterVpnService.class));
+        }
+    }
+
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */
     private void showVideoCarouselSettings() { videoCarousel.showSettingsDialog(); }
 
@@ -4042,11 +4074,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
         });
-        // 不論 Wi-Fi 或有線 Ethernet，都顯示廣告阻擋入口。
-        addSettingsMenuRow(rows, popup, "廣告過濾", () -> {
-            popup.dismiss();
-            startActivity(new Intent(this, AdsBlockerActivity.class));
-        });
+        // 有線 Ethernet 使用時隱藏入口並停用本機 DNS VPN；Wi-Fi 時才提供手動控制。
+        if (isEthernetInternetAvailable()) {
+            enforceEthernetAdFilterPolicy();
+        } else {
+            addSettingsMenuRow(rows, popup, "廣告過濾", () -> {
+                popup.dismiss();
+                startActivity(new Intent(this, AdsBlockerActivity.class));
+            });
+        }
         // 與其他設定／APP 選單共用 addSettingsMenuRowView 的 46dp 標準列高。
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (170 * density), Math.min(panel.getMeasuredWidth(), (int) (220 * density))));
