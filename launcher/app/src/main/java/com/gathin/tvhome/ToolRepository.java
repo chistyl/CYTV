@@ -29,6 +29,7 @@ final class ToolRepository {
     private static final String KEY_ICON_SIZE = "icon_size";
     private static final String KEY_SHOW_NAMES = "show_names";
     private static final String KEY_ICON_MODE = "icon_mode";
+    private static final String KEY_LAST_FOCUSED_TOOL = "last_focused_tool";
 
     static final int MIN_COLUMNS = 3;
     static final int MAX_COLUMNS = 8;
@@ -203,6 +204,14 @@ final class ToolRepository {
     synchronized boolean setIconMode(IconMode mode) {
         if (mode == null) return false;
         return preferences.edit().putString(KEY_ICON_MODE, mode.name()).commit();
+    }
+
+    synchronized String getLastFocusedTool() {
+        return preferences.getString(KEY_LAST_FOCUSED_TOOL, "");
+    }
+
+    synchronized void setLastFocusedTool(String key) {
+        preferences.edit().putString(KEY_LAST_FOCUSED_TOOL, key == null ? "" : key).apply();
     }
 
     private boolean saveTools(List<Tool> tools) {
