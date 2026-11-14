@@ -1,0 +1,50 @@
+name: CYTV R139 Firefly Glow Scale and Position Build
+
+on:
+  push:
+    branches:
+      - feature/glow-particles-scale-position-r139
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r139-firefly-scale-position.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - feature/glow-particles-firefly-r138
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r139-firefly-scale-position.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run unit tests and build debug APK
+        working-directory: launcher
+        run: ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Package APK and complete source
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R139-debug.apk
+          zip -r release/CYTV-R139-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+      - name: Upload deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R139-APK-and-Source
+          path: |
+            release/CYTV-R139-debug.apk
+            release/CYTV-R139-Source.zip
+          if-no-files-found: error
