@@ -189,8 +189,11 @@ public final class ToolCenterActivity extends Activity {
         if (nextPageButton != null) nextPageButton.setEnabled(currentPage < pageCount - 1);
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
         int cellWidth = Math.max(dp(64), (screenWidth - dp(12 * columns)) / columns);
-        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(330);
-        int cellHeight = Math.max(dp(80), availableHeight / rows - dp(12));
+        // Keep every configured row inside the available TV viewport, including 720p panels.
+        // The ScrollView remains a safety net for unusually large fonts or accessibility scaling.
+        int availableHeight = Math.max(dp(320),
+                getResources().getDisplayMetrics().heightPixels - dp(300));
+        int cellHeight = Math.max(dp(64), availableHeight / rows - dp(12));
         for (ToolRepository.Tool tool : pageTools) {
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
