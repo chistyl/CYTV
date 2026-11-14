@@ -16,6 +16,8 @@
 7. Keep the weather overlay outside the app-grid measurement so enabling/disabling weather never changes the clock or weather anchor. Place the widget shelf below the app grid so it cannot cover the weather card.
 8. Keep the weather mode's daily/week layout responsive to available screen width, with a compact one-day card and a wider seven-day forecast.
 6. Preserve native bind/configure flow, host IDs, saved widget IDs, and provider RemoteViews.
+7. Keep the weather card on one fixed desktop anchor and one fixed device-adaptive frame in both「一天」and「一週」modes. The selected mode may adapt inner typography, icon scale and spacing only; it must not change the card's x/y position, width or height.
+8. Keep weather rendering out of the measured app-grid layout so enabling, refreshing or switching forecast mode does not resize the desktop app grid or widget shelf.
 
 ## Acceptance checks
 - Desktop visibly displays the widget section and its add/manage controls.
@@ -25,7 +27,15 @@
 - After adding a widget, its RemoteViews render on Home without opening a separate screen.
 - Provider list displays app icons and has an app launch action.
 - Column/row settings persist after leaving and reopening the widget screen.
+- Switching weather between day/week leaves the weather card frame unchanged; refresh/enable does not reflow the app grid or widget shelf.
 - D-pad can reach add/manage/provider actions and widget content.
+
+## Weather card frame rule
+- Shared position anchor: below the clock block, same x/y in both modes.
+- Shared frame: width is calculated from available TV display space once using a fixed ratio and clamped bounds; height is fixed at 170dp.
+- Day mode uses the larger icon and temperature presentation within the frame.
+- Week mode uses seven compact columns with adaptive text and icon sizing within the same frame.
+- Both modes use the same CYTV weather-card surface. No mode-specific width or height changes.
 
 ## Explicit remaining validation
 - Build/CI can validate compilation and unit tests, not TV firmware widget bind permission UI, individual provider RemoteViews, or every widget's D-pad behavior.
