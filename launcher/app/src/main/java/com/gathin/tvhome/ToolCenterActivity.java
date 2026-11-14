@@ -42,6 +42,7 @@ public final class ToolCenterActivity extends Activity {
     private EditText searchInput;
     private String searchQuery = "";
     private String focusedToolKey = "";
+    private String selectedCategory = "全部";
     private boolean restoringFocus;
     private ToolIconProvider iconProvider;
     private final float density() { return getResources().getDisplayMetrics().density; }
@@ -112,6 +113,11 @@ public final class ToolCenterActivity extends Activity {
             }
             @Override public void afterTextChanged(Editable s) { }
         });
+        Button categoryButton = actionButton("分類：全部");
+        categoryButton.setOnClickListener(v -> showCategoryFilter(categoryButton));
+        LinearLayout.LayoutParams categoryLp = new LinearLayout.LayoutParams(dp(190), dp(44));
+        categoryLp.bottomMargin = dp(10);
+        root.addView(categoryButton, categoryLp);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -137,8 +143,9 @@ public final class ToolCenterActivity extends Activity {
         List<ToolRepository.Tool> tools = new ArrayList<>();
         String query = searchQuery.toLowerCase(Locale.ROOT);
         for (ToolRepository.Tool tool : allTools) {
-            if (query.isEmpty() || tool.label.toLowerCase(Locale.ROOT).contains(query)
-                    || tool.packageName.toLowerCase(Locale.ROOT).contains(query)) {
+            if ((selectedCategory.equals("全部") || selectedCategory.equals(tool.category))
+                    && (query.isEmpty() || tool.label.toLowerCase(Locale.ROOT).contains(query)
+                    || tool.packageName.toLowerCase(Locale.ROOT).contains(query))) {
                 tools.add(tool);
             }
         }
@@ -190,9 +197,11 @@ public final class ToolCenterActivity extends Activity {
             tile.setOnClickListener(v -> launch(tool));
             tile.setOnLongClickListener(v -> {
                 new AlertDialog.Builder(this).setTitle(tool.label)
-                        .setItems(new String[]{"移除工具捷徑", "上移", "下移"}, (dialog, which) -> {
+                        .setItems(new String[]{"移除工具捷徑", "上移", "下移", "變更分類"}, (dialog, which) -> {
                             if (which == 0) repository.remove(tool.packageName, tool.activityName);
-                            else repository.move(tool.packageName, tool.activityName, which == 1 ? -1 : 1);
+                            else if (which == 1) repository.move(tool.packageName, tool.activityName, -1);
+                            else if (which == 2) repository.move(tool.packageName, tool.activityName, 1);
+                            else changeToolCategory(tool);
                             renderTools();
                         }).show();
                 return true;
@@ -221,6 +230,49 @@ public final class ToolCenterActivity extends Activity {
                 restoringFocus = false;
             });
         }
+    }
+
+    private void showCategoryFilter(Button button) {
+        List<String> categories = repository.getCategories();
+        ArrayList<String> options = new ArrayList<>();
+        options.add("全部");
+        options.addAll(categories);
+        String[] labels = options.toArray(new String[0]);
+        int selected = Math.max(0, options.indexOf(selectedCategory));
+        new AlertDialog.Builder(this).setTitle("工具分類篩選")
+                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+                    selectedCategory = labels[which];
+                    button.setText("分類：" + selectedCategory);
+                    dialog.dismiss();
+                    renderTools();
+                }).setNegativeButton("取消", null).show();
+    }
+
+    private void changeToolCategory(ToolRepository.Tool tool) {
+        List<String> categories = repository.getCategories();
+        ArrayList<String> options = new ArrayList<>(categories);
+        options.add("＋ 新增自訂分類");
+        String[] labels = options.toArray(new String[0]);
+        new AlertDialog.Builder(this).setTitle("設定工具分類")
+                .setItems(labels, (dialog, which) -> {
+                    if (which == labels.length - 1) {
+                        EditText input = new EditText(this);
+                        input.setSingleLine(true);
+                        input.setHint("輸入分類名稱");
+                        new AlertDialog.Builder(this).setTitle("新增自訂分類")
+                                .setView(input)
+                                .setPositiveButton("儲存", (d, w) -> {
+                                    String value = input.getText().toString().trim();
+                                    if (!value.isEmpty()) {
+                                        repository.setCategory(tool.packageName, tool.activityName, value);
+                                        renderTools();
+                                    }
+                                }).setNegativeButton("取消", null).show();
+                    } else {
+                        repository.setCategory(tool.packageName, tool.activityName, labels[which]);
+                        renderTools();
+                    }
+                }).show();
     }
 
     private void showInstalledApps() {
