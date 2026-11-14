@@ -46,6 +46,7 @@ public final class ToolCenterActivity extends Activity {
     private TextView pageInfo;
     private Button previousPageButton;
     private Button nextPageButton;
+    private Button categoryFilterButton;
     private int currentPage;
     private EditText searchInput;
     private String searchQuery = "";
@@ -173,11 +174,14 @@ public final class ToolCenterActivity extends Activity {
             }
             @Override public void afterTextChanged(Editable s) { }
         });
-        Button categoryButton = actionButton("分類：全部");
-        categoryButton.setOnClickListener(v -> showCategoryFilter(categoryButton));
+        categoryFilterButton = actionButton("分類：全部");
+        categoryFilterButton.setId(View.generateViewId());
+        categoryFilterButton.setOnClickListener(v -> showCategoryFilter(categoryFilterButton));
         LinearLayout.LayoutParams categoryLp = new LinearLayout.LayoutParams(dp(190), dp(44));
         categoryLp.bottomMargin = dp(10);
-        root.addView(categoryButton, categoryLp);
+        root.addView(categoryFilterButton, categoryLp);
+        searchInput.setNextFocusDownId(categoryFilterButton.getId());
+        categoryFilterButton.setNextFocusUpId(searchInput.getId());
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -331,8 +335,18 @@ public final class ToolCenterActivity extends Activity {
             if (previousPageButton != null) previousPageButton.setNextFocusUpId(bottomRowFirstTileId);
             if (nextPageButton != null) nextPageButton.setNextFocusUpId(bottomRowFirstTileId);
         }
-        if (firstTileId != View.NO_ID && searchInput != null) {
-            searchInput.setNextFocusDownId(firstTileId);
+        if (firstTileId != View.NO_ID && categoryFilterButton != null) {
+            categoryFilterButton.setNextFocusDownId(firstTileId);
+            // Keep left/right movement within each visible row. The platform's geometric
+            // focus search can otherwise jump to the header or pager on narrow TV layouts.
+            for (int i = 0; i < grid.getChildCount(); i++) {
+                View child = grid.getChildAt(i);
+                int rowStart = (i / columns) * columns;
+                int rowEnd = Math.min(rowStart + columns, grid.getChildCount()) - 1;
+                if (i > rowStart) child.setNextFocusLeftId(grid.getChildAt(i - 1).getId());
+                if (i < rowEnd) child.setNextFocusRightId(grid.getChildAt(i + 1).getId());
+                if (i < columns) child.setNextFocusUpId(categoryFilterButton.getId());
+            }
         }
         String restoreKey = !focusedToolKey.isEmpty()
                 ? focusedToolKey : repository.getLastFocusedTool();
