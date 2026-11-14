@@ -140,6 +140,7 @@ public final class ToolCenterActivity extends Activity {
         root.addView(hint);
 
         searchInput = new EditText(this);
+        searchInput.setId(View.generateViewId());
         searchInput.setSingleLine(true);
         searchInput.setTextSize(16);
         searchInput.setTextColor(Color.WHITE);
@@ -239,8 +240,17 @@ public final class ToolCenterActivity extends Activity {
         int availableHeight = Math.max(dp(320),
                 getResources().getDisplayMetrics().heightPixels - dp(300));
         int cellHeight = Math.max(dp(64), availableHeight / rows - dp(12));
+        int firstTileId = View.NO_ID;
+        int bottomRowFirstTileId = View.NO_ID;
+        int tileIndex = 0;
         for (ToolRepository.Tool tool : pageTools) {
             LinearLayout tile = new LinearLayout(this);
+            tile.setId(View.generateViewId());
+            if (firstTileId == View.NO_ID) firstTileId = tile.getId();
+            if (tileIndex / columns == (pageTools.size() - 1) / columns
+                    && bottomRowFirstTileId == View.NO_ID) {
+                bottomRowFirstTileId = tile.getId();
+            }
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setGravity(Gravity.CENTER);
             tile.setFocusable(true);
@@ -293,6 +303,26 @@ public final class ToolCenterActivity extends Activity {
             lp.height = cellHeight;
             lp.setMargins(dp(6), dp(6), dp(6), dp(6));
             grid.addView(tile, lp);
+            tileIndex++;
+        }
+        // Explicit D-pad path: the last visible tool row leads to paging controls,
+        // and paging controls lead back to the first tile row on the current page.
+        if (bottomRowFirstTileId != View.NO_ID) {
+            int downTarget = nextPageButton != null && nextPageButton.isEnabled()
+                    ? nextPageButton.getId()
+                    : previousPageButton != null && previousPageButton.isEnabled()
+                    ? previousPageButton.getId() : searchInput.getId();
+            for (int i = 0; i < grid.getChildCount(); i++) {
+                View child = grid.getChildAt(i);
+                if (i / columns == (grid.getChildCount() - 1) / columns) {
+                    child.setNextFocusDownId(downTarget);
+                }
+            }
+            if (previousPageButton != null) previousPageButton.setNextFocusUpId(bottomRowFirstTileId);
+            if (nextPageButton != null) nextPageButton.setNextFocusUpId(bottomRowFirstTileId);
+        }
+        if (firstTileId != View.NO_ID && searchInput != null) {
+            searchInput.setNextFocusDownId(firstTileId);
         }
         String restoreKey = !focusedToolKey.isEmpty()
                 ? focusedToolKey : repository.getLastFocusedTool();
