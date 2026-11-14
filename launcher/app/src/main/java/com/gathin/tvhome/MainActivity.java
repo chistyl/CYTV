@@ -3,6 +3,10 @@ package com.gathin.tvhome;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
@@ -74,6 +78,7 @@ import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.HorizontalScrollView;
@@ -175,6 +180,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppAdapter adapter;
     private RecyclerView grid;
     private FrameLayout root;
+    // Native third-party widgets hosted directly in the Home desktop (R159).
+    private static final int CYTV_WIDGET_HOST_ID = 0x43595456;
+    private AppWidgetManager desktopWidgetManager;
+    private AppWidgetHost desktopWidgetHost;
+    private LinearLayout desktopWidgetSection;
+    private GridLayout desktopWidgetGrid;
     private WallpaperPlayer wallpaperPlayer;
     private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
@@ -603,16 +614,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
-            // Align the compact daily card slightly inward from the clock edge, matching the approved layout.
-            SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
-            boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
-            lp.leftMargin = clockPos[0] - rootPos[0] + (dailyMode ? (int) (25 * density) : 0);
-            // Daily mode uses the compact reference width; weekly mode retains its existing width.
+            // Day and week modes share one fixed card frame: the clock is the only position anchor.
+            // Device resolution determines the frame once; display mode only changes the content inside it.
+            lp.leftMargin = clockPos[0] - rootPos[0];
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * (dailyMode ? 0.32f : 0.60f));
+            int preferredWidth = Math.round(availableWidth * 0.60f);
+            lp.width = Math.min(availableWidth, Math.max((int) (360 * density),
+                    Math.min((int) (680 * density), preferredWidth)));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
-            weeklyWeatherView.setMinimumHeight((int)(112 * density));
+            lp.height = (int) (200 * density);
+            weeklyWeatherView.setMinimumHeight(lp.height);
             weeklyWeatherView.setLayoutParams(lp);
         };
         clockBlock.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
@@ -781,6 +793,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Order savedOrder = Order.load(Order.file(this));
         adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
         grid.setAdapter(adapter);
+        setupDesktopWidgets();
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -1235,6 +1248,163 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Build the inline widget shelf on the existing desktop; hidden when no widgets are configured. */
+    private void setupDesktopWidgets() {
+        desktopWidgetSection = findViewById(R.id.desktopWidgetSection);
+        if (desktopWidgetSection == null) return;
+        updateDesktopWidgetSpacing();
+        desktopWidgetManager = AppWidgetManager.getInstance(this);
+        desktopWidgetHost = new AppWidgetHost(this, CYTV_WIDGET_HOST_ID);
+        LinearLayout header = (LinearLayout) desktopWidgetSection.getChildAt(0);
+        if (header != null && header.getChildCount() >= 2) {
+            header.getChildAt(1).setOnClickListener(v ->
+                    startActivity(new Intent(this, WidgetShelfActivity.class)));
+            header.getChildAt(2).setOnClickListener(v ->
+                    startActivity(new Intent(this, WidgetShelfActivity.class)));
+        }
+        View scroll = desktopWidgetSection.getChildAt(1);
+        if (scroll instanceof ScrollView) {
+            View child = ((ScrollView) scroll).getChildAt(0);
+            if (child instanceof GridLayout) desktopWidgetGrid = (GridLayout) child;
+        }
+        renderDesktopWidgets();
+    }
+
+    private void startDesktopWidgetListening() {
+        if (desktopWidgetHost == null) return;
+        try { desktopWidgetHost.startListening(); } catch (RuntimeException ignored) { }
+        renderDesktopWidgets();
+    }
+
+    private void stopDesktopWidgetListening() {
+        if (desktopWidgetHost == null) return;
+        try { desktopWidgetHost.stopListening(); } catch (RuntimeException ignored) { }
+    }
+
+    private int desktopWidgetDp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    /** Reserve the fixed weather-card frame so it never overlaps the widget shelf. */
+    private void updateDesktopWidgetSpacing() {
+        if (desktopWidgetSection == null) return;
+        boolean weatherEnabled = getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                .getBoolean("enabled", false);
+        ViewGroup.LayoutParams raw = desktopWidgetSection.getLayoutParams();
+        if (raw instanceof LinearLayout.LayoutParams) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) raw;
+            int target = desktopWidgetDp(weatherEnabled ? 210 : 8);
+            if (lp.topMargin != target) {
+                lp.topMargin = target;
+                desktopWidgetSection.setLayoutParams(lp);
+            }
+        }
+    }
+
+    private void renderDesktopWidgets() {
+        if (desktopWidgetGrid == null || desktopWidgetManager == null || desktopWidgetHost == null) return;
+        desktopWidgetGrid.removeAllViews();
+        SharedPreferences prefs = getSharedPreferences("cytv_desktop_widgets", MODE_PRIVATE);
+        String raw = prefs.getString("widget_ids", "[]");
+        ArrayList<Integer> ids = new ArrayList<>();
+        ArrayList<Integer> valid = new ArrayList<>();
+        try {
+            JSONArray saved = new JSONArray(raw);
+            for (int i = 0; i < saved.length(); i++) {
+                int id = saved.optInt(i, AppWidgetManager.INVALID_APPWIDGET_ID);
+                if (id != AppWidgetManager.INVALID_APPWIDGET_ID && !ids.contains(id)) ids.add(id);
+            }
+        } catch (Exception ignored) { }
+        int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        desktopWidgetGrid.setColumnCount(columns);
+        for (int id : ids) {
+            AppWidgetProviderInfo info = desktopWidgetManager.getAppWidgetInfo(id);
+            if (info == null) {
+                try { desktopWidgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
+                continue;
+            }
+            valid.add(id);
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(desktopWidgetDp(9), desktopWidgetDp(7), desktopWidgetDp(9), desktopWidgetDp(8));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xD91A202A);
+            bg.setCornerRadius(desktopWidgetDp(13));
+            bg.setStroke(Math.max(1, desktopWidgetDp(1)), 0x334CA6AD);
+            card.setBackground(bg);
+
+            LinearLayout titleRow = new LinearLayout(this);
+            titleRow.setGravity(Gravity.CENTER_VERTICAL);
+            ImageView appIcon = new ImageView(this);
+            try { appIcon.setImageDrawable(getPackageManager().getApplicationIcon(info.provider.getPackageName())); }
+            catch (Exception ignored) { appIcon.setImageResource(android.R.drawable.sym_def_app_icon); }
+            titleRow.addView(appIcon, new LinearLayout.LayoutParams(desktopWidgetDp(24), desktopWidgetDp(24)));
+            TextView title = new TextView(this);
+            CharSequence label = info.loadLabel(getPackageManager());
+            title.setText(label == null ? info.provider.getPackageName() : label);
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(13);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, desktopWidgetDp(30), 1);
+            titleLp.leftMargin = desktopWidgetDp(7);
+            titleRow.addView(title, titleLp);
+            TextView launch = new TextView(this);
+            launch.setText("啟動");
+            launch.setTextColor(0xFF9BDCE0);
+            launch.setTextSize(12);
+            launch.setGravity(Gravity.CENTER);
+            launch.setFocusable(true);
+            launch.setClickable(true);
+            launch.setPadding(desktopWidgetDp(8), 0, desktopWidgetDp(8), 0);
+            launch.setOnClickListener(v -> {
+                Intent app = getPackageManager().getLaunchIntentForPackage(info.provider.getPackageName());
+                if (app != null) open(app);
+                else Toast.makeText(this, "此小工具 APP 沒有可啟動的主畫面", Toast.LENGTH_SHORT).show();
+            });
+            titleRow.addView(launch, new LinearLayout.LayoutParams(desktopWidgetDp(48), desktopWidgetDp(30)));
+            card.addView(titleRow);
+
+            AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
+            hostView.setFocusable(true);
+            hostView.setFocusableInTouchMode(false);
+            int widgetHeight = Math.max(desktopWidgetDp(82), Math.min(desktopWidgetDp(122),
+                    info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(100)));
+            card.addView(hostView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, widgetHeight));
+
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = 0;
+            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            lp.setMargins(desktopWidgetDp(5), desktopWidgetDp(4), desktopWidgetDp(5), desktopWidgetDp(4));
+            desktopWidgetGrid.addView(card, lp);
+        }
+        if (valid.size() != ids.size()) {
+            JSONArray cleaned = new JSONArray();
+            for (int id : valid) cleaned.put(id);
+            prefs.edit().putString("widget_ids", cleaned.toString()).apply();
+        }
+        if (valid.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("尚未新增小工具  ·  按上方「新增小工具 +」開始");
+            empty.setTextColor(0xFF9AA6B5);
+            empty.setTextSize(13);
+            empty.setGravity(Gravity.CENTER_VERTICAL);
+            empty.setPadding(desktopWidgetDp(12), 0, 0, 0);
+            desktopWidgetGrid.addView(empty, new GridLayout.LayoutParams(
+                    GridLayout.spec(0), GridLayout.spec(0, 1f)));
+        }
+        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+        View scroll = desktopWidgetSection.getChildAt(1);
+        if (scroll instanceof ScrollView) {
+            ((ScrollView) scroll).getLayoutParams().height = desktopWidgetDp(rows * 130);
+            ((ScrollView) scroll).requestLayout();
+        }
+        desktopWidgetSection.setVisibility(View.VISIBLE);
+        desktopWidgetGrid.requestLayout();
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -1247,12 +1417,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         updateClockVisibility();
         tileRefresh.onStart();
+        startDesktopWidgetListening();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         resumed = true;
+        renderDesktopWidgets();
         if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
@@ -1583,6 +1755,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         handler.removeCallbacks(clockCheck);
         stopped = true;
         tileRefresh.onStop();
+        stopDesktopWidgetListening();
     }
 
     /**
@@ -4179,6 +4352,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void refreshWeeklyWeatherVisibility() {
+        updateDesktopWidgetSpacing();
         if (weeklyWeatherView == null) return;
         configureWeatherInteraction();
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
@@ -4562,7 +4736,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // This prevents any forecast refresh/scroll container update from replacing or clipping it.
         boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
                 .getString("display_mode", "week"));
-        weeklyWeatherView.setBackgroundResource(dailyMode ? android.R.color.transparent : R.drawable.v17_weather_card);
+        weeklyWeatherView.setBackgroundResource(R.drawable.v17_weather_card);
         if (weeklyWeatherHeading != null) {
             weeklyWeatherHeading.setText(TraditionalText.toTraditional(
                     (dailyMode ? "天氣預報・" : "一週天氣・")
@@ -4582,7 +4756,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // 單日模式採透明無邊框呈現：圖示在左，文字資訊在右。
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
-                    0, (int)(80*density), 4f);
+                    0, (int)(72*density), 4f);
             iconFrameLp.rightMargin = (int)(8*density);
             dailyContent.addView(iconFrame, iconFrameLp);
             iconFrame.setTranslationX(0f);
@@ -4600,7 +4774,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             TextView condition = new TextView(this);
             condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
             condition.setTextColor(0xFFF5F6FA);
-            condition.setTextSize(22);
+            condition.setTextSize(19);
             condition.setMaxLines(1);
             details.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4629,9 +4803,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             temperature.setText(coloredTemperature);
             temperature.setTextColor(Color.WHITE);
-            temperature.setTextSize(32);
+            temperature.setTextSize(28);
             temperature.setMaxLines(1);
-            temperature.setAutoSizeTextTypeUniformWithConfiguration(22, 32, 1,
+            temperature.setAutoSizeTextTypeUniformWithConfiguration(20, 28, 1,
                     android.util.TypedValue.COMPLEX_UNIT_SP);
             LinearLayout.LayoutParams temperatureLp = new LinearLayout.LayoutParams(-1, -2);
             temperatureLp.topMargin = (int)(2*density);
@@ -4641,7 +4815,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             precipitation.setText(TraditionalText.toTraditional("降雨 "
                     + (rain != null && !rain.isNull(0) ? rain.optInt(0) + "%" : "--")));
             precipitation.setTextColor(0xFFD5D9E0);
-            precipitation.setTextSize(16);
+            precipitation.setTextSize(13);
             precipitation.setMaxLines(1);
             LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
             precipitationLp.topMargin = (int)(2*density);
@@ -4687,12 +4861,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 LinearLayout dayColumn = new LinearLayout(this);
                 dayColumn.setOrientation(LinearLayout.VERTICAL);
                 dayColumn.setGravity(Gravity.CENTER);
-                dayColumn.setPadding((int)(2*density), (int)(5*density), (int)(2*density), (int)(5*density));
+                dayColumn.setPadding((int)(1*density), (int)(2*density), (int)(1*density), (int)(2*density));
                 TextView dateView = new TextView(this);
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
-                dateView.setTextSize(14);
-                dateView.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                dateView.setTextSize(12);
+                dateView.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 dateView.setMaxLines(1);
                 dateView.setGravity(Gravity.CENTER);
@@ -4701,18 +4875,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // Use our own opaque vector-style drawing instead of system emoji fonts.
                 // Emoji glyph palettes vary by Android TV vendor and may render as translucent tiles.
                 View iconView = new WeeklyWeatherIconView(this, code);
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(50*density));
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
                 iconLp.topMargin = (int)(2*density);
                 dayColumn.addView(iconView, iconLp);
 
                 TextView condition = new TextView(this);
                 condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
                 condition.setTextColor(0xFFE8EBF0);
-                condition.setTextSize(13);
+                condition.setTextSize(11);
                 condition.setGravity(Gravity.CENTER);
                 // Let the label shrink slightly when each of the seven forecast columns is narrow.
                 // Keep up to two lines so the full Traditional Chinese condition remains readable.
-                condition.setAutoSizeTextTypeUniformWithConfiguration(10, 13, 1,
+                condition.setAutoSizeTextTypeUniformWithConfiguration(9, 11, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 condition.setMaxLines(2);
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
@@ -4742,8 +4916,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 temperature.setText(coloredTemperature);
                 temperature.setTextColor(Color.WHITE);
-                temperature.setTextSize(14);
-                temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                temperature.setTextSize(11);
+                temperature.setAutoSizeTextTypeUniformWithConfiguration(9, 11, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 temperature.setMaxLines(1);
                 temperature.setGravity(Gravity.CENTER);
@@ -4754,10 +4928,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView precipitation = new TextView(this);
                 precipitation.setText(TraditionalText.toTraditional("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
                 precipitation.setTextColor(0xFFD5D9E0);
-                precipitation.setTextSize(12);
+                precipitation.setTextSize(10);
                 precipitation.setGravity(Gravity.CENTER);
                 // Rain probability also adapts to the available column width instead of clipping.
-                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
+                precipitation.setAutoSizeTextTypeUniformWithConfiguration(8, 10, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 precipitation.setMaxLines(2);
                 dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
