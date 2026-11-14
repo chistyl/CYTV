@@ -159,6 +159,7 @@ public final class WidgetShelfActivity extends Activity {
             thirdParty.add(info);
         }
         if (thirdParty.isEmpty()) {
+            pendingWidgetSlotIndex = -1;
             Toast.makeText(this, "目前沒有找到已安裝的第三方小工具提供者", Toast.LENGTH_LONG).show();
             return;
         }
@@ -464,6 +465,7 @@ public final class WidgetShelfActivity extends Activity {
             try { widgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
         }
         pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
+        pendingWidgetSlotIndex = -1;
     }
 
     private int configuredSlotCount() {
@@ -576,7 +578,7 @@ public final class WidgetShelfActivity extends Activity {
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams(
                 GridLayout.spec(index / columns, 1f), GridLayout.spec(index % columns, 1f));
         lp.width = 0;
-        lp.height = dp(220);
+        lp.height = dp(240);
         lp.setMargins(dp(6), dp(6), dp(6), dp(6));
         return lp;
     }
