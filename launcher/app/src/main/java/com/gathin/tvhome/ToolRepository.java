@@ -131,21 +131,6 @@ final class ToolRepository {
         return saveTools(tools);
     }
 
-    synchronized boolean pruneUninstalled() {
-        ArrayList<Tool> tools = new ArrayList<>(getTools());
-        ArrayList<Tool> kept = new ArrayList<>();
-        for (Tool tool : tools) {
-            try {
-                preferences.getClass(); // Keep this repository independent of Activity/PackageManager.
-                kept.add(tool);
-            } catch (RuntimeException ignored) {
-                // Reserved for callers that supply a validated installed-app list in a later stage.
-            }
-        }
-        if (kept.size() == tools.size()) return false;
-        return saveTools(kept);
-    }
-
     synchronized int getColumns() {
         return clamp(preferences.getInt(KEY_COLUMNS, DEFAULT_COLUMNS), MIN_COLUMNS, MAX_COLUMNS);
     }
