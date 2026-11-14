@@ -38,7 +38,9 @@ public final class GlowParticlesView extends View {
         if (active == enabled) return;
         active = enabled;
         if (active && getVisibility() == VISIBLE && isAttachedToWindow()) {
+            removeCallbacks(frame);
             invalidate();
+            post(frame);
         } else {
             removeCallbacks(frame);
         }
@@ -92,6 +94,5 @@ public final class GlowParticlesView extends View {
             canvas.drawCircle(x, y, Math.max(.65f * getResources().getDisplayMetrics().density, radius * .55f), paint);
         }
         canvas.restore();
-        if (active) postDelayed(frame, FRAME_DELAY_MS);
     }
 }
