@@ -115,6 +115,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -4313,6 +4314,83 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * Independent weather fallback: MET Norway Locationforecast.
+     * Uses a separate host/provider from Open-Meteo and requires no API key.
+     * Daily highs/lows are aggregated from the provider's forecast time series.
+     */
+    private void fetchMetNoForecast(double lat, double lon, String place) throws Exception {
+        String endpoint = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat="
+                + lat + "&lon=" + lon;
+        JSONObject response = getJson(endpoint);
+        JSONArray series = response.getJSONObject("properties").getJSONArray("timeseries");
+        java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        parser.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        java.text.SimpleDateFormat dayFormat = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        java.util.LinkedHashMap<String, double[]> dailyValues = new java.util.LinkedHashMap<>();
+        java.util.HashMap<String, Integer> dailyCodes = new java.util.HashMap<>();
+        for (int i = 0; i < series.length(); i++) {
+            JSONObject item = series.optJSONObject(i);
+            if (item == null) continue;
+            java.util.Date timestamp = parser.parse(item.optString("time", ""));
+            if (timestamp == null) continue;
+            String day = dayFormat.format(timestamp);
+            JSONObject data = item.optJSONObject("data");
+            JSONObject instant = data == null ? null : data.optJSONObject("instant");
+            JSONObject details = instant == null ? null : instant.optJSONObject("details");
+            if (details == null || !details.has("air_temperature")) continue;
+            double temp = details.optDouble("air_temperature", Double.NaN);
+            if (Double.isNaN(temp)) continue;
+            double[] range = dailyValues.get(day);
+            if (range == null) {
+                range = new double[]{temp, temp};
+                dailyValues.put(day, range);
+            } else {
+                range[0] = Math.max(range[0], temp);
+                range[1] = Math.min(range[1], temp);
+            }
+            JSONObject next = data.optJSONObject("next_6_hours");
+            if (next == null) next = data.optJSONObject("next_1_hours");
+            JSONObject summary = next == null ? null : next.optJSONObject("summary");
+            String symbol = summary == null ? "" : summary.optString("symbol_code", "");
+            if (!symbol.isEmpty() && !dailyCodes.containsKey(day)) {
+                dailyCodes.put(day, metNoSymbolToWmo(symbol));
+            }
+        }
+        if (dailyValues.size() < 7) throw new IOException("備援天氣資料不足七天");
+        JSONArray dates = new JSONArray(), codes = new JSONArray(), highs = new JSONArray(), lows = new JSONArray();
+        int count = 0;
+        for (Map.Entry<String, double[]> entry : dailyValues.entrySet()) {
+            if (count++ >= 7) break;
+            dates.put(entry.getKey());
+            codes.put(dailyCodes.containsKey(entry.getKey()) ? dailyCodes.get(entry.getKey()) : 3);
+            highs.put(Math.round(entry.getValue()[0] * 10.0) / 10.0);
+            lows.put(Math.round(entry.getValue()[1] * 10.0) / 10.0);
+        }
+        if (dates.length() < 7) throw new IOException("備援天氣資料不足七天");
+        weatherHandler.post(() -> {
+            renderWeeklyWeather(dates, codes, highs, lows, null, place);
+            if (openWeeklyForecastAfterRefresh) {
+                openWeeklyForecastAfterRefresh = false;
+                showWeeklyForecastDialog(dates, codes, highs, lows, null, place);
+            }
+        });
+    }
+
+    private int metNoSymbolToWmo(String symbol) {
+        String s = symbol.toLowerCase(Locale.ROOT);
+        if (s.contains("thunder")) return 95;
+        if (s.contains("sleet")) return 68;
+        if (s.contains("snow")) return 71;
+        if (s.contains("rain")) return 61;
+        if (s.contains("fog")) return 45;
+        if (s.contains("cloudy")) return 3;
+        if (s.contains("partlycloudy")) return 2;
+        if (s.contains("fair")) return 1;
+        if (s.contains("clearsky")) return 0;
+        return 3;
+    }
+
     private void fetchForecast(double lat, double lon, String place) {
         try {
             if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
@@ -4321,9 +4399,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                     + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
                     + "&forecast_days=7&timezone=auto";
-            JSONObject response = getJson(url);
-            if (response.optBoolean("error", false))
-                throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
+            JSONObject response;
+            try {
+                response = getJson(url);
+                if (response.optBoolean("error", false))
+                    throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
+            } catch (Exception primaryError) {
+                android.util.Log.w("CYTV-Weather", "Open-Meteo failed; trying independent MET Norway fallback", primaryError);
+                try {
+                    fetchMetNoForecast(lat, lon, place);
+                    return;
+                } catch (Exception fallbackError) {
+                    fallbackError.addSuppressed(primaryError);
+                    throw new IOException("主要與備援天氣服務皆無法連線：" + fallbackError.getMessage(), fallbackError);
+                }
+            }
             JSONObject daily = response.getJSONObject("daily");
             JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
             JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
