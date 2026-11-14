@@ -41,6 +41,8 @@ public final class ToolCenterActivity extends Activity {
     private TextView empty;
     private EditText searchInput;
     private String searchQuery = "";
+    private String focusedToolKey = "";
+    private boolean restoringFocus;
     private ToolIconProvider iconProvider;
     private final float density() { return getResources().getDisplayMetrics().density; }
     private int dp(int value) { return Math.round(value * density()); }
@@ -161,6 +163,10 @@ public final class ToolCenterActivity extends Activity {
             bg.setStroke(dp(1), 0x22FFFFFF);
             tile.setBackground(bg);
             tile.setOnFocusChangeListener((view, focused) -> {
+                if (focused) {
+                    focusedToolKey = tool.key();
+                    repository.setLastFocusedTool(focusedToolKey);
+                }
                 GradientDrawable state = new GradientDrawable();
                 state.setColor(focused ? 0xFF263D49 : 0xFF202936);
                 state.setCornerRadius(dp(16));
@@ -180,6 +186,7 @@ public final class ToolCenterActivity extends Activity {
                 label.setPadding(0, dp(8), 0, 0);
                 tile.addView(label, new LinearLayout.LayoutParams(-1, -2));
             }
+            tile.setTag(tool.key());
             tile.setOnClickListener(v -> launch(tool));
             tile.setOnLongClickListener(v -> {
                 new AlertDialog.Builder(this).setTitle(tool.label)
@@ -195,6 +202,24 @@ public final class ToolCenterActivity extends Activity {
             lp.height = cellHeight;
             lp.setMargins(dp(6), dp(6), dp(6), dp(6));
             grid.addView(tile, lp);
+        }
+        String restoreKey = !focusedToolKey.isEmpty()
+                ? focusedToolKey : repository.getLastFocusedTool();
+        if (!restoringFocus && !tools.isEmpty()) {
+            restoringFocus = true;
+            grid.post(() -> {
+                View target = null;
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    View child = grid.getChildAt(i);
+                    if (restoreKey.equals(child.getTag())) {
+                        target = child;
+                        break;
+                    }
+                }
+                if (target == null && grid.getChildCount() > 0) target = grid.getChildAt(0);
+                if (target != null) target.requestFocus();
+                restoringFocus = false;
+            });
         }
     }
 
