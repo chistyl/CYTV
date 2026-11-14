@@ -4522,6 +4522,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherDays.addView(status, new LinearLayout.LayoutParams(-1, -2));
     }
 
+    private void addWeatherAttribution(LinearLayout parent) {
+        if (!weatherFromCwa || parent == null) return;
+        TextView attribution = new TextView(this);
+        attribution.setText("資料來源：交通部中央氣象署");
+        attribution.setTextColor(0xFFB9C0CA);
+        attribution.setTextSize(10);
+        attribution.setGravity(Gravity.END);
+        attribution.setPadding((int)(4*density), (int)(3*density), (int)(4*density), 0);
+        parent.addView(attribution, new LinearLayout.LayoutParams(-1, -2));
+    }
+
     private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
         if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
         hasWeeklyWeatherData = true;
@@ -4617,7 +4628,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             precipitationLp.topMargin = (int)(2*density);
             details.addView(precipitation, precipitationLp);
 
-            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));
+            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));\n            addWeatherAttribution(weeklyWeatherDays);
             weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
             if (!weatherHiddenByScroll) {
                 final android.view.ViewTreeObserver observer = weeklyWeatherView.getViewTreeObserver();
@@ -4735,7 +4746,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 forecast.addView(dayColumn, columnLp);
             } catch (Exception ignored) { }
         }
-        weeklyWeatherDays.addView(forecast, new LinearLayout.LayoutParams(-1, -2));
+        weeklyWeatherDays.addView(forecast, new LinearLayout.LayoutParams(-1, -2));\n        addWeatherAttribution(weeklyWeatherDays);
         weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
         // Wait for Android's next completed measure/layout pass. A plain post() can run before
         // the newly visible wrap-content overlay has been measured, leaving it at stale coordinates
