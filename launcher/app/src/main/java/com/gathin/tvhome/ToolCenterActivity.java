@@ -109,7 +109,7 @@ public final class ToolCenterActivity extends Activity {
             GradientDrawable bg = new GradientDrawable();
             bg.setColor(0xFF202936);
             bg.setCornerRadius(dp(16));
-            bg.setStroke(dp(1), 0x223FFFFFF);
+            bg.setStroke(dp(1), 0x22FFFFFF);
             tile.setBackground(bg);
 
             ImageView icon = new ImageView(this);
