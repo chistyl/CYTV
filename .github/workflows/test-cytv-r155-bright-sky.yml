@@ -121,7 +121,31 @@ jobs:
                       day = parsed.astimezone(tz).date().isoformat()
                   except (ValueError, TypeError):
                       continue
-                  value = field(values[0], "value", "Value", "ParameterName", "parameterName")
+                  # CWA elementValue is keyed by the element-specific name
+                  # (e.g. MaxTemperature / Weather / ProbabilityOfPrecipitation),
+                  # and each item commonly wraps the actual scalar in Value.
+                  def scalar(node):
+                      if isinstance(node, dict):
+                          for key in ("Value", "value", "ParameterName", "parameterName"):
+                              if key in node:
+                                  found = scalar(node[key])
+                                  if found not in (None, "", "-", "X"):
+                                      return found
+                          for key, child in node.items():
+                              if key not in ("Unit", "unit", "Measures", "measures"):
+                                  found = scalar(child)
+                                  if found not in (None, "", "-", "X"):
+                                      return found
+                          return None
+                      if isinstance(node, list):
+                          for child in node:
+                              found = scalar(child)
+                              if found not in (None, "", "-", "X"):
+                                  return found
+                          return None
+                      return node if isinstance(node, (str, int, float)) else None
+
+                  value = scalar(values[0])
                   if value in (None, "", "-", "X"):
                       continue
                   result.append((day, str(value)))
