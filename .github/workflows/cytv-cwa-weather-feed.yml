@@ -1,0 +1,243 @@
+name: CYTV CWA Taiwan Weekly Weather Feed
+
+on:
+  push:
+    branches:
+      - feature/weather-third-fallback-r155
+    paths:
+      - '.github/workflows/cytv-cwa-weather-feed.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-cwa-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch and validate CWA county weekly forecasts
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          key = os.environ.get("CWA_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("CWA_API_KEY is missing; refusing to publish an empty feed.")
+
+          # Official CWA F-D0047 one-week township datasets (22 counties/cities).
+          datasets = {
+              "F-D0047-003": "宜蘭縣", "F-D0047-007": "桃園市",
+              "F-D0047-011": "新竹縣", "F-D0047-015": "苗栗縣",
+              "F-D0047-019": "彰化縣", "F-D0047-023": "南投縣",
+              "F-D0047-027": "雲林縣", "F-D0047-031": "嘉義縣",
+              "F-D0047-035": "屏東縣", "F-D0047-039": "臺東縣",
+              "F-D0047-043": "花蓮縣", "F-D0047-047": "澎湖縣",
+              "F-D0047-051": "基隆市", "F-D0047-055": "新竹市",
+              "F-D0047-059": "嘉義市", "F-D0047-063": "臺北市",
+              "F-D0047-067": "高雄市", "F-D0047-071": "新北市",
+              "F-D0047-075": "臺中市", "F-D0047-079": "臺南市",
+              "F-D0047-083": "連江縣", "F-D0047-087": "金門縣",
+          }
+
+          def get(obj, *keys, default=None):
+              for k in keys:
+                  if isinstance(obj, dict) and k in obj:
+                      return obj[k]
+              return default
+
+          def scalar(node):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      if k.lower() in ("value", "parametername"):
+                          result = scalar(v)
+                          if result not in (None, "", "-", "X"):
+                              return result
+                  for k, v in node.items():
+                      if k.lower() not in ("unit", "measures"):
+                          result = scalar(v)
+                          if result not in (None, "", "-", "X"):
+                              return result
+                  return None
+              if isinstance(node, list):
+                  for v in node:
+                      result = scalar(v)
+                      if result not in (None, "", "-", "X"):
+                          return result
+                  return None
+              return node if isinstance(node, (str, int, float)) else None
+
+          def locations_from(payload):
+              records = get(payload, "records", "Records", default={}) or {}
+              roots = get(records, "Locations", "locations", default=[]) or []
+              found = []
+              def walk(node):
+                  if isinstance(node, dict):
+                      if get(node, "LocationName", "locationName") and get(node, "WeatherElement", "weatherElement") is not None:
+                          found.append(node)
+                      for value in node.values():
+                          if isinstance(value, (dict, list)):
+                              walk(value)
+                  elif isinstance(node, list):
+                      for value in node:
+                          walk(value)
+              walk(roots)
+              return found
+
+          def parse_time(value):
+              try:
+                  dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      dt = dt.replace(tzinfo=ZoneInfo("Asia/Taipei"))
+                  return dt.astimezone(ZoneInfo("Asia/Taipei"))
+              except (TypeError, ValueError):
+                  return None
+
+          def element_slots(location, element_name):
+              elements = get(location, "WeatherElement", "weatherElement", default=[]) or []
+              element = next((e for e in elements if get(e, "ElementName", "elementName") == element_name), None)
+              if not element:
+                  return []
+              result = []
+              for slot in get(element, "Time", "time", default=[]) or []:
+                  start = get(slot, "StartTime", "startTime", "DataTime", "dataTime")
+                  values = get(slot, "ElementValue", "elementValue", default=[]) or []
+                  dt = parse_time(start)
+                  value = scalar(values)
+                  if dt and value not in (None, "", "-", "X"):
+                      result.append((dt.date().isoformat(), value))
+              return result
+
+          def number(value):
+              try:
+                  return float(str(value).replace("%", "").strip())
+              except (TypeError, ValueError):
+                  return None
+
+          bundle = {
+              "source": "交通部中央氣象署",
+              "license": "政府資料開放授權條款-第1版",
+              "datasetType": "F-D0047 weekly township forecast",
+              "generatedAt": datetime.now(ZoneInfo("Asia/Taipei")).isoformat(),
+              "locations": [],
+          }
+
+          total_locations = 0
+          valid_locations = 0
+          for dataset_id, county in datasets.items():
+              query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
+              url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{query}"
+              req = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Feed/1.0"})
+              with urllib.request.urlopen(req, timeout=25) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"CWA HTTP {response.status} for {dataset_id}")
+                  payload = json.loads(response.read().decode("utf-8"))
+              if str(get(payload, "success", "Success", default="")).lower() != "true":
+                  raise SystemExit(f"CWA did not return success=true for {dataset_id}")
+              raw_locations = locations_from(payload)
+              if not raw_locations:
+                  raise SystemExit(f"No township locations returned for {county} ({dataset_id})")
+
+              county_valid = 0
+              for loc in raw_locations:
+                  daily = {}
+                  fields = {
+                      "high": "最高溫度",
+                      "low": "最低溫度",
+                      "weather": "天氣現象",
+                      "rainProbability": "12小時降雨機率",
+                  }
+                  for output_key, element_name in fields.items():
+                      for day, raw_value in element_slots(loc, element_name):
+                          entry = daily.setdefault(day, {"date": day, "high": None, "low": None,
+                                                         "weather": None, "rainProbability": None})
+                          if output_key in ("high", "low", "rainProbability"):
+                              value = number(raw_value)
+                              if value is None:
+                                  continue
+                              if output_key == "high":
+                                  entry["high"] = value if entry["high"] is None else max(entry["high"], value)
+                              elif output_key == "low":
+                                  entry["low"] = value if entry["low"] is None else min(entry["low"], value)
+                              else:
+                                  entry["rainProbability"] = value if entry["rainProbability"] is None else max(entry["rainProbability"], value)
+                          elif entry["weather"] is None:
+                              entry["weather"] = str(raw_value)
+
+                  forecast = [daily[k] for k in sorted(daily)
+                              if daily[k]["high"] is not None and daily[k]["low"] is not None][:7]
+                  total_locations += 1
+                  if len(forecast) >= 7:
+                      county_valid += 1
+                      valid_locations += 1
+                      bundle["locations"].append({
+                          "county": county,
+                          "name": get(loc, "LocationName", "locationName", default=""),
+                          "geocode": get(loc, "Geocode", "geocode", default=""),
+                          "latitude": number(get(loc, "Latitude", "latitude")),
+                          "longitude": number(get(loc, "Longitude", "longitude")),
+                          "forecast": forecast,
+                      })
+              if county_valid == 0:
+                  raise SystemExit(f"{county} ({dataset_id}) produced no normalized seven-day township forecasts")
+              print(f"Validated {county}: {len(raw_locations)} townships, {county_valid} normalized seven-day forecasts", flush=True)
+              time.sleep(0.2)
+
+          if valid_locations < 300:
+              raise SystemExit(f"Only {valid_locations} townships have normalized seven-day forecasts; expected at least 300.")
+
+          os.makedirs("feed", exist_ok=True)
+          with open("feed/cwa-weekly.json", "w", encoding="utf-8") as f:
+              json.dump(bundle, f, ensure_ascii=False, separators=(",", ":"))
+          with open("feed/README.md", "w", encoding="utf-8") as f:
+              f.write(
+                  "# CYTV CWA Weekly Weather Feed\n\n"
+                  "Source: Taiwan Central Weather Administration (CWA), F-D0047 one-week township datasets.\n\n"
+                  "License: Government Data Open License, Version 1.\n\n"
+                  "Attribution: 交通部中央氣象署\n\n"
+                  "The feed is refreshed by GitHub Actions every six hours. The CWA API key is never included.\n"
+              )
+          print("CWA county weekly feed validation: PASS")
+          print("Datasets:", len(datasets))
+          print("Townships returned:", total_locations)
+          print("Townships with normalized 7-day forecasts:", valid_locations)
+          print("API key present; value not logged.")
+          PY
+
+      - name: Publish public feed branch (without API credentials)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir publish
+          cd publish
+          git init
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads origin weather-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin weather-data
+            git checkout -b weather-data FETCH_HEAD
+          else
+            git checkout --orphan weather-data
+          fi
+          cp ../feed/cwa-weekly.json ./cwa-weekly.json
+          cp ../feed/README.md ./README.md
+          git add cwa-weekly.json README.md
+          if git diff --cached --quiet; then
+            echo "CWA feed is unchanged; no publication commit needed."
+          else
+            git commit -m "data: refresh CWA nationwide weekly forecast"
+            git push origin weather-data
+          fi

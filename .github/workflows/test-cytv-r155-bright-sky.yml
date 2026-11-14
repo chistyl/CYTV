@@ -1,0 +1,181 @@
+name: CYTV R155 CWA Weekly Forecast API Validation
+
+on:
+  push:
+    branches:
+      - feature/weather-third-fallback-r155
+    paths:
+      - '.github/workflows/test-cytv-r155-bright-sky.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - fix/weather-metno-fallback-r154
+    paths:
+      - '.github/workflows/test-cytv-r155-bright-sky.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-cwa-weekly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate CWA Taoyuan weekly forecast API
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from collections import defaultdict
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          api_key = os.environ.get("CWA_API_KEY", "").strip()
+          if not api_key:
+              raise SystemExit("CWA_API_KEY GitHub Secret is missing or empty.")
+
+          dataset_id = "F-D0047-007"
+          params = urllib.parse.urlencode({"Authorization": api_key, "format": "JSON"})
+          url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{params}"
+          request = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Validation/1.0"})
+
+          try:
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"CWA returned HTTP {response.status}.")
+                  payload = json.loads(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as exc:
+              raise SystemExit(f"CWA API request failed: HTTP {exc.code}. Check CWA_API_KEY and dataset access.") from None
+          except urllib.error.URLError as exc:
+              raise SystemExit(f"CWA API network error: {exc.reason}") from None
+
+          def field(obj, *names, default=None):
+              for name in names:
+                  if isinstance(obj, dict) and name in obj:
+                      return obj[name]
+              return default
+
+          if str(field(payload, "success", "Success", default="")).lower() != "true":
+              raise SystemExit("CWA API did not return success=true.")
+
+          records = field(payload, "records", "Records", default={}) or {}
+          # F-D0047 township datasets use PascalCase: Locations/Location.
+          groups = field(records, "Locations", "locations", default=[]) or []
+          locations = []
+          for group in groups:
+              locations.extend(field(group, "Location", "location", default=[]) or [])
+          if not locations:
+              keys = ", ".join(sorted(str(k) for k in records.keys())) if isinstance(records, dict) else "unavailable"
+              raise SystemExit(f"CWA response has no township locations; records keys: {keys}")
+
+          taoyuan = next(
+              (item for item in locations if field(item, "LocationName", "locationName") in ("桃園區", "桃园区")),
+              None,
+          )
+          if taoyuan is None:
+              raise SystemExit("CWA weekly dataset did not include 桃園區.")
+
+          weather_elements = field(taoyuan, "WeatherElement", "weatherElement", default=[]) or []
+          elements = {
+              field(item, "ElementName", "elementName"): item
+              for item in weather_elements
+          }
+          required = ["最高溫度", "最低溫度", "天氣現象", "12小時降雨機率"]
+          missing = [name for name in required if name not in elements]
+          if missing:
+              available = ", ".join(str(k) for k in elements.keys())
+              raise SystemExit(f"Missing weather elements: {', '.join(missing)}. Available: {available}")
+
+          # Emit schema-only diagnostics (never weather values or the API key).
+          print("CWA location fields:", ", ".join(sorted(str(k) for k in taoyuan.keys())))
+          print("CWA element names:", ", ".join(str(k) for k in elements.keys()))
+          for diagnostic_name in required:
+              diagnostic_slots = field(elements[diagnostic_name], "Time", "time", default=[]) or []
+              if diagnostic_slots:
+                  first_slot = diagnostic_slots[0]
+                  diagnostic_values = field(first_slot, "ElementValue", "elementValue", default=[]) or []
+                  print("Schema", diagnostic_name, "slot keys:", ", ".join(sorted(str(k) for k in first_slot.keys())))
+                  if diagnostic_values:
+                      print("Schema", diagnostic_name, "value keys:", ", ".join(sorted(str(k) for k in diagnostic_values[0].keys())))
+
+          tz = ZoneInfo("Asia/Taipei")
+          daily = defaultdict(dict)
+
+          def parse_value(element):
+              result = []
+              for slot in field(element, "Time", "time", default=[]) or []:
+                  start = field(slot, "StartTime", "startTime", "DataTime", "dataTime")
+                  values = field(slot, "ElementValue", "elementValue", default=[]) or []
+                  if not start or not values:
+                      continue
+                  try:
+                      parsed = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                      if parsed.tzinfo is None:
+                          parsed = parsed.replace(tzinfo=tz)
+                      day = parsed.astimezone(tz).date().isoformat()
+                  except (ValueError, TypeError):
+                      continue
+                  # CWA elementValue is keyed by the element-specific name
+                  # (e.g. MaxTemperature / Weather / ProbabilityOfPrecipitation),
+                  # and each item commonly wraps the actual scalar in Value.
+                  def scalar(node):
+                      if isinstance(node, dict):
+                          for key in ("Value", "value", "ParameterName", "parameterName"):
+                              if key in node:
+                                  found = scalar(node[key])
+                                  if found not in (None, "", "-", "X"):
+                                      return found
+                          for key, child in node.items():
+                              if key not in ("Unit", "unit", "Measures", "measures"):
+                                  found = scalar(child)
+                                  if found not in (None, "", "-", "X"):
+                                      return found
+                          return None
+                      if isinstance(node, list):
+                          for child in node:
+                              found = scalar(child)
+                              if found not in (None, "", "-", "X"):
+                                  return found
+                          return None
+                      return node if isinstance(node, (str, int, float)) else None
+
+                  value = scalar(values[0])
+                  if value in (None, "", "-", "X"):
+                      continue
+                  result.append((day, str(value)))
+              return result
+
+          mapping = {
+              "最高溫度": "max",
+              "最低溫度": "min",
+              "天氣現象": "weather",
+              "12小時降雨機率": "pop",
+          }
+          for element_name, target in mapping.items():
+              for day, value in parse_value(elements[element_name]):
+                  daily[day][target] = value
+
+          print("Parsed dates by field:", {name: len(parse_value(elements[name])) for name in required})
+          usable = [(day, data) for day, data in sorted(daily.items()) if "max" in data and "min" in data]
+          if len(usable) < 7:
+              raise SystemExit(f"Only {len(usable)} dates have both max/min temperatures; expected at least 7.")
+          if not any(data.get("weather") for _, data in usable):
+              raise SystemExit("No weather phenomenon values found in the 7-day forecast.")
+          if not any(data.get("pop") for _, data in usable):
+              raise SystemExit("No 12-hour precipitation probability values found in the forecast.")
+
+          print("CWA weekly forecast API validation: PASS")
+          print("Dataset:", dataset_id, "(Taoyuan weekly township forecast)")
+          print("Townships returned:", len(locations))
+          print("Validated township: 桃園區")
+          print("Forecast dates with max/min:", len(usable))
+          print("Seven-day range:", usable[0][0], "through", usable[6][0])
+          print("Weather and 12-hour precipitation fields: present")
+          print("API key: present (value intentionally not logged)")
+          PY
