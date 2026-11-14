@@ -216,7 +216,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View clockBlock;
     private View weeklyWeatherView;
-    private boolean hasWeeklyWeatherData;\n    /** CWA-derived forecasts require explicit source attribution in the weather UI. */\n    private boolean weatherFromCwa;
+    private boolean hasWeeklyWeatherData;
+    /** CWA-derived forecasts require explicit source attribution in the weather UI. */
+    private boolean weatherFromCwa;
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
     private TextView weeklyWeatherHeading;
