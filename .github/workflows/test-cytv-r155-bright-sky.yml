@@ -92,6 +92,18 @@ jobs:
               available = ", ".join(str(k) for k in elements.keys())
               raise SystemExit(f"Missing weather elements: {', '.join(missing)}. Available: {available}")
 
+          # Emit schema-only diagnostics (never weather values or the API key).
+          print("CWA location fields:", ", ".join(sorted(str(k) for k in taoyuan.keys())))
+          print("CWA element names:", ", ".join(str(k) for k in elements.keys()))
+          for diagnostic_name in required:
+              diagnostic_slots = field(elements[diagnostic_name], "Time", "time", default=[]) or []
+              if diagnostic_slots:
+                  first_slot = diagnostic_slots[0]
+                  diagnostic_values = field(first_slot, "ElementValue", "elementValue", default=[]) or []
+                  print("Schema", diagnostic_name, "slot keys:", ", ".join(sorted(str(k) for k in first_slot.keys())))
+                  if diagnostic_values:
+                      print("Schema", diagnostic_name, "value keys:", ", ".join(sorted(str(k) for k in diagnostic_values[0].keys())))
+
           tz = ZoneInfo("Asia/Taipei")
           daily = defaultdict(dict)
 
@@ -125,6 +137,7 @@ jobs:
               for day, value in parse_value(elements[element_name]):
                   daily[day][target] = value
 
+          print("Parsed dates by field:", {name: len(parse_value(elements[name])) for name in required})
           usable = [(day, data) for day, data in sorted(daily.items()) if "max" in data and "min" in data]
           if len(usable) < 7:
               raise SystemExit(f"Only {len(usable)} dates have both max/min temperatures; expected at least 7.")
