@@ -1,4 +1,4 @@
-name: CYTV R155 7Timer API Validation
+name: CYTV R155 Bright Sky API Validation and Build
 
 on:
   push:
@@ -20,43 +20,55 @@ permissions:
   contents: read
 
 jobs:
-  validate-7timer:
+  validate-bright-sky:
     runs-on: ubuntu-latest
     steps:
-      - name: Query 7Timer CIVIL Light for Taoyuan
+      - name: Query Bright Sky forecast for Taoyuan
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --max-time 25 \
-            'https://www.7timer.info/bin/api.pl?lon=121.31&lat=24.99&product=civillight&output=json' \
-            -o /tmp/7timer.json
           python3 - <<'PY'
-          import json
-          from datetime import datetime
-          from pathlib import Path
+          from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
+          import urllib.request
 
-          payload = json.loads(Path('/tmp/7timer.json').read_text(encoding='utf-8'))
-          assert payload.get('product') == 'civillight', 'Unexpected product'
-          days = payload.get('dataseries')
-          assert isinstance(days, list) and len(days) >= 7, 'Fewer than seven forecast days'
-          for item in days[:7]:
-              date = str(item.get('date', ''))
-              datetime.strptime(date, '%Y%m%d')
-              weather = item.get('weather')
-              assert isinstance(weather, str) and weather, 'Missing weather code'
-              temps = item.get('temp2m')
-              assert isinstance(temps, dict), 'Missing temp2m object'
-              assert isinstance(temps.get('max'), (int, float)), 'Missing daily maximum'
-              assert isinstance(temps.get('min'), (int, float)), 'Missing daily minimum'
-              assert temps['max'] >= temps['min'], 'Maximum below minimum'
-          print('7Timer CIVIL Light schema OK; validated first seven forecast days.')
-          print('Provider init:', payload.get('init', 'unknown'))
-          print('First forecast date:', days[0]['date'])
-          print('Last validated date:', days[6]['date'])
+          tz = ZoneInfo('Asia/Taipei')
+          start = datetime.now(tz).date()
+          end = start + timedelta(days=8)
+          url = (
+              'https://api.brightsky.dev/weather'
+              f'?lat=24.99&lon=121.31&date={start.isoformat()}'
+              f'&last_date={end.isoformat()}&tz=Asia%2FTaipei&units=dwd'
+          )
+          req = urllib.request.Request(url, headers={'User-Agent': 'CYTV-R155-personal-weather-test'})
+          with urllib.request.urlopen(req, timeout=30) as response:
+              import json
+              payload = json.loads(response.read().decode('utf-8'))
+          records = payload.get('weather')
+          assert isinstance(records, list) and records, 'Bright Sky returned no weather records'
+          daily = {}
+          for item in records:
+              stamp = item.get('timestamp')
+              temp = item.get('temperature')
+              if not stamp or not isinstance(temp, (int, float)):
+                  continue
+              moment = datetime.fromisoformat(stamp.replace('Z', '+00:00')).astimezone(tz)
+              key = moment.date().isoformat()
+              bucket = daily.setdefault(key, {'high': temp, 'low': temp, 'count': 0})
+              bucket['high'] = max(bucket['high'], temp)
+              bucket['low'] = min(bucket['low'], temp)
+              bucket['count'] += 1
+          usable = [(day, value) for day, value in sorted(daily.items()) if value['count'] > 0]
+          assert len(usable) >= 7, f'Bright Sky forecast has only {len(usable)} usable Taiwan-local days'
+          print('Bright Sky forecast API schema OK for Taoyuan.')
+          print('Sources returned:', len(payload.get('sources', [])))
+          print('Forecast days with temperatures:', len(usable))
+          print('Validated dates:', usable[0][0], 'through', usable[6][0])
+          print('First-day high/low:', usable[0][1]['high'], usable[0][1]['low'])
           PY
 
   build:
     runs-on: ubuntu-latest
-    needs: validate-7timer
+    needs: validate-bright-sky
     steps:
       - name: Checkout
         uses: actions/checkout@v4
