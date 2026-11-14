@@ -15,13 +15,13 @@ import android.view.View;
 public final class GlowParticlesView extends View {
     private static final int PARTICLES = 22;
     private static final long FRAME_DELAY_MS = 64L;
-    // R137 used 2x scaling; R138 returns the particle field to its original 1x size.
-    private static final float EFFECT_SCALE = 1.0f;
-    // Increase the radius spread by another 50% over R137.
-    private static final float SIZE_VARIATION_SCALE = 2.25f;
-    // Keep the existing horizontal placement and move the field 50dp lower.
-    private static final float OFFSET_X_DP = 30.0f;
-    private static final float OFFSET_Y_DP = 50.0f;
+    // Enlarge the R138 particle field by 100% (2x overall scale).
+    private static final float EFFECT_SCALE = 2.0f;
+    // Increase the R138 particle radius spread by a further 50%.
+    private static final float SIZE_VARIATION_SCALE = 3.375f;
+    // Move the particle field 70dp right and 100dp down.
+    private static final float OFFSET_X_DP = 70.0f;
+    private static final float OFFSET_Y_DP = 100.0f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float[] seeds = new float[PARTICLES * 4];
@@ -125,7 +125,7 @@ public final class GlowParticlesView extends View {
                     + .32f * (float) Math.sin(glowPhase * .43f + i));
             float pulse = .14f + .86f * pulseWave;
 
-            // Widen the individual size differences while keeping the particle field at 1x scale.
+            // Preserve the soft firefly character while widening individual size differences.
             float radiusFactor = 1.30f + (seeds[p + 3] - .95f) * SIZE_VARIATION_SCALE;
             float radius = Math.max(.55f, radiusFactor) * density;
             int alpha = Math.min(155, Math.max(9, (int) (seeds[p + 2] * 190f * pulse)));
