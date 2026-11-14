@@ -125,15 +125,71 @@ public final class WidgetShelfActivity extends Activity {
     }
 
     private void pickWidget() {
+        final List<AppWidgetProviderInfo> providers = widgetManager.getInstalledProviders();
+        final ArrayList<AppWidgetProviderInfo> thirdParty = new ArrayList<>();
+        final ArrayList<String> labels = new ArrayList<>();
+        for (AppWidgetProviderInfo info : providers) {
+            if (info == null || info.provider == null
+                    || getPackageName().equals(info.provider.getPackageName())) continue;
+            thirdParty.add(info);
+            CharSequence label = info.loadLabel(getPackageManager());
+            String name = label == null ? info.provider.getClassName() : label.toString();
+            labels.add(name);
+        }
+        if (thirdParty.isEmpty()) {
+            Toast.makeText(this, "目前沒有找到已安裝的第三方小工具提供者", Toast.LENGTH_LONG).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("選擇第三方小工具")
+                .setItems(labels.toArray(new String[0]), (dialog, which) ->
+                        bindProvider(thirdParty.get(which)))
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void bindProvider(AppWidgetProviderInfo info) {
         pendingWidgetId = widgetHost.allocateAppWidgetId();
-        Intent pick = new Intent(AppWidgetManager.ACTION_APPWIDGET_PICK);
-        pick.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
+        boolean bound;
         try {
-            startActivityForResult(pick, REQUEST_PICK_WIDGET);
+            bound = widgetManager.bindAppWidgetIdIfAllowed(pendingWidgetId, info.provider);
+        } catch (RuntimeException e) {
+            bound = false;
+        }
+        if (bound) {
+            configureOrCommit(pendingWidgetId);
+            return;
+        }
+        Intent bind = new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND);
+        bind.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
+        bind.putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider);
+        try {
+            startActivityForResult(bind, REQUEST_PICK_WIDGET);
         } catch (Exception e) {
-            widgetHost.deleteAppWidgetId(pendingWidgetId);
-            pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
-            Toast.makeText(this, "此電視系統無法開啟小工具選擇器", Toast.LENGTH_LONG).show();
+            deletePending(pendingWidgetId);
+            Toast.makeText(this, "系統無法授權此小工具", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void configureOrCommit(int id) {
+        AppWidgetProviderInfo info = widgetManager.getAppWidgetInfo(id);
+        if (info == null) {
+            deletePending(id);
+            Toast.makeText(this, "無法取得所選小工具資訊", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (info.configure != null) {
+            Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
+            configure.setComponent(info.configure);
+            configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+            try {
+                startActivityForResult(configure, REQUEST_CONFIGURE_WIDGET);
+            } catch (Exception e) {
+                deletePending(id);
+                Toast.makeText(this, "無法開啟小工具設定畫面", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            commitWidget(id);
         }
     }
 
@@ -141,31 +197,11 @@ public final class WidgetShelfActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_PICK_WIDGET) {
-            int id = data == null ? pendingWidgetId
-                    : data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
-            if (resultCode != RESULT_OK || id == AppWidgetManager.INVALID_APPWIDGET_ID) {
-                deletePending(id);
-                return;
-            }
-            pendingWidgetId = id;
-            AppWidgetProviderInfo info = widgetManager.getAppWidgetInfo(id);
-            if (info == null) {
-                deletePending(id);
-                Toast.makeText(this, "無法取得所選小工具資訊", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (info.configure != null) {
-                Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
-                configure.setComponent(info.configure);
-                configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
-                try {
-                    startActivityForResult(configure, REQUEST_CONFIGURE_WIDGET);
-                } catch (Exception e) {
-                    deletePending(id);
-                    Toast.makeText(this, "無法開啟小工具設定畫面", Toast.LENGTH_SHORT).show();
-                }
+            int id = pendingWidgetId;
+            if (resultCode == RESULT_OK && id != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                configureOrCommit(id);
             } else {
-                commitWidget(id);
+                deletePending(id);
             }
             return;
         }
