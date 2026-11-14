@@ -1350,6 +1350,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 hostView.setFocusableInTouchMode(false);
                 hostView.setClickable(true);
                 hostView.setBackgroundColor(Color.TRANSPARENT);
+                hostView.setOnLongClickListener(v -> {
+                    showDesktopWidgetActions(id, info, hostView);
+                    return true;
+                });
+                float widgetScaleX = prefs.getFloat("widget_scale_x_" + id, 1.0f);
+                float widgetScaleY = prefs.getFloat("widget_scale_y_" + id, 1.0f);
+                hostView.setScaleX(widgetScaleX);
+                hostView.setScaleY(widgetScaleY);
                 int cellHeight = desktopWidgetDp(128);
                 int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
                 int widgetHeight = Math.max(desktopWidgetDp(76), Math.min(desktopWidgetDp(126), providerHeight));
@@ -1393,6 +1401,65 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         desktopWidgetSection.setVisibility(valid.isEmpty() ? View.GONE : View.VISIBLE);
         desktopWidgetGrid.requestLayout();
+    }
+
+    private void showDesktopWidgetActions(int id, AppWidgetProviderInfo info, AppWidgetHostView hostView) {
+        ArrayList<String> actions = new ArrayList<>();
+        if (info.configure != null) actions.add("編輯小工具");
+        actions.add("調整大小");
+        actions.add("移除小工具");
+        new AlertDialog.Builder(this).setTitle("小工具管理")
+                .setItems(actions.toArray(new String[0]), (dialog, which) -> {
+                    String action = actions.get(which);
+                    if ("編輯小工具".equals(action)) {
+                        Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
+                        configure.setComponent(info.configure);
+                        configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+                        try { startActivity(configure); }
+                        catch (Exception e) { Toast.makeText(this, "無法開啟小工具編輯畫面", Toast.LENGTH_SHORT).show(); }
+                    } else if ("調整大小".equals(action)) {
+                        SharedPreferences prefs = getSharedPreferences("cytv_desktop_widgets", MODE_PRIVATE);
+                        LinearLayout panel = new LinearLayout(this);
+                        panel.setOrientation(LinearLayout.VERTICAL);
+                        panel.setPadding(desktopWidgetDp(20), desktopWidgetDp(12), desktopWidgetDp(20), desktopWidgetDp(8));
+                        SeekBar width = new SeekBar(this);
+                        width.setMax(150);
+                        width.setProgress(Math.round(prefs.getFloat("widget_scale_x_" + id, 1f) * 100) - 50);
+                        SeekBar height = new SeekBar(this);
+                        height.setMax(150);
+                        height.setProgress(Math.round(prefs.getFloat("widget_scale_y_" + id, 1f) * 100) - 50);
+                        panel.addView(new TextView(this) {{ setText("寬度比例"); setTextColor(Color.WHITE); }});
+                        panel.addView(width);
+                        panel.addView(new TextView(this) {{ setText("高度比例"); setTextColor(Color.WHITE); }});
+                        panel.addView(height);
+                        new AlertDialog.Builder(this).setTitle("調整小工具大小").setView(panel)
+                                .setNegativeButton("取消", null)
+                                .setPositiveButton("套用", (d, w) -> {
+                                    float sx = (width.getProgress() + 50) / 100f;
+                                    float sy = (height.getProgress() + 50) / 100f;
+                                    prefs.edit().putFloat("widget_scale_x_" + id, sx)
+                                            .putFloat("widget_scale_y_" + id, sy).apply();
+                                    hostView.setScaleX(sx);
+                                    hostView.setScaleY(sy);
+                                }).show();
+                    } else {
+                        new AlertDialog.Builder(this).setTitle("移除小工具")
+                                .setMessage("要從 CYTV 桌面移除此小工具嗎？")
+                                .setNegativeButton("取消", null)
+                                .setPositiveButton("移除", (d, w) -> {
+                                    SharedPreferences prefs = getSharedPreferences("cytv_desktop_widgets", MODE_PRIVATE);
+                                    String raw = prefs.getString("widget_slots", "[]");
+                                    try {
+                                        JSONArray slots = new JSONArray(raw);
+                                        for (int i = 0; i < slots.length(); i++) if (slots.optInt(i, 0) == id) slots.put(i, 0);
+                                        prefs.edit().putString("widget_slots", slots.toString()).apply();
+                                    } catch (Exception ignored) { }
+                                    try { desktopWidgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
+                                    prefs.edit().remove("widget_scale_x_" + id).remove("widget_scale_y_" + id).apply();
+                                    renderDesktopWidgets();
+                                }).show();
+                    }
+                }).show();
     }
 
     @Override
