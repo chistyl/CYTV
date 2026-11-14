@@ -149,11 +149,21 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir publish
-          cp feed/cwa-weekly.json feed/README.md publish/
           cd publish
           git init
-          git checkout -b weather-data
-          git add cwa-weekly.json README.md
-          git commit -m "data: refresh CWA nationwide weekly forecast"
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin weather-data
+          if git ls-remote --exit-code --heads origin weather-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin weather-data
+            git checkout -b weather-data FETCH_HEAD
+          else
+            git checkout --orphan weather-data
+          fi
+          cp ../feed/cwa-weekly.json ./cwa-weekly.json
+          cp ../feed/README.md ./README.md
+          git add cwa-weekly.json README.md
+          if git diff --cached --quiet; then
+            echo "CWA feed is unchanged; no publication commit needed."
+          else
+            git commit -m "data: refresh CWA nationwide weekly forecast"
+            git push origin weather-data
+          fi
