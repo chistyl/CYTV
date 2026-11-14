@@ -1252,6 +1252,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void setupDesktopWidgets() {
         desktopWidgetSection = findViewById(R.id.desktopWidgetSection);
         if (desktopWidgetSection == null) return;
+        updateDesktopWidgetSpacing();
         desktopWidgetManager = AppWidgetManager.getInstance(this);
         desktopWidgetHost = new AppWidgetHost(this, CYTV_WIDGET_HOST_ID);
         LinearLayout header = (LinearLayout) desktopWidgetSection.getChildAt(0);
@@ -1282,6 +1283,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private int desktopWidgetDp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    /** Reserve the fixed weather-card frame so it never overlaps the widget shelf. */
+    private void updateDesktopWidgetSpacing() {
+        if (desktopWidgetSection == null) return;
+        boolean weatherEnabled = getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                .getBoolean("enabled", false);
+        ViewGroup.LayoutParams raw = desktopWidgetSection.getLayoutParams();
+        if (raw instanceof LinearLayout.LayoutParams) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) raw;
+            int target = desktopWidgetDp(weatherEnabled ? 210 : 8);
+            if (lp.topMargin != target) {
+                lp.topMargin = target;
+                desktopWidgetSection.setLayoutParams(lp);
+            }
+        }
     }
 
     private void renderDesktopWidgets() {
@@ -4335,6 +4352,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void refreshWeeklyWeatherVisibility() {
+        updateDesktopWidgetSpacing();
         if (weeklyWeatherView == null) return;
         configureWeatherInteraction();
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
