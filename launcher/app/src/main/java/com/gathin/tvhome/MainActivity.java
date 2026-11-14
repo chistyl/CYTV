@@ -7606,6 +7606,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
         if (packages.isEmpty()) {
             Toast.makeText(this, "沒有可添加的 APP", Toast.LENGTH_SHORT).show();
+            showFolderContents(folder, false);
             return;
         }
         boolean[] unused = new boolean[packages.size()];
@@ -7626,7 +7627,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 edit.putStringSet("system_folder_excluded", systemExcluded).apply();
                 break;
             }
-            reloadApps(false);
+            showFolderContents(folder, false);
         });
     }
 
@@ -8878,6 +8879,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
         if (packages.isEmpty()) {
             Toast.makeText(this, "沒有可添加的 APP", Toast.LENGTH_SHORT).show();
+            showFolderContents("系統", true);
             return;
         }
         boolean[] unused = new boolean[packages.size()];
@@ -8905,7 +8907,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 edit.apply();
                 break;
             }
-            reloadApps(false);
+            showFolderContents("系統", true);
         });
     }
 
