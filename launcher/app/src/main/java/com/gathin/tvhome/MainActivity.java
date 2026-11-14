@@ -4377,6 +4377,61 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
+    /**
+     * Third-level weekly forecast fallback: 7Timer! CIVIL Light.
+     * Personal-use fallback only; this forecast is never used as live observation.
+     */
+    private void fetch7TimerForecast(double lat, double lon, String place) throws Exception {
+        String endpoint = "https://www.7timer.info/bin/api.pl?lon=" + lon + "&lat=" + lat
+                + "&product=civillight&output=json";
+        JSONObject response = getJson(endpoint);
+        if (!"civillight".equalsIgnoreCase(response.optString("product", "")))
+            throw new IOException("7Timer 回傳的預報類型不正確");
+        JSONArray series = response.optJSONArray("dataseries");
+        if (series == null || series.length() < 7)
+            throw new IOException("7Timer 預報資料不足七天");
+        JSONArray dates = new JSONArray(), codes = new JSONArray(), highs = new JSONArray(), lows = new JSONArray();
+        for (int i = 0; i < 7; i++) {
+            JSONObject day = series.optJSONObject(i);
+            if (day == null) throw new IOException("7Timer 每日資料格式錯誤");
+            String rawDate = day.optString("date", "");
+            if (rawDate.length() != 8) throw new IOException("7Timer 日期格式錯誤");
+            String date = rawDate.substring(0, 4) + "-" + rawDate.substring(4, 6) + "-" + rawDate.substring(6, 8);
+            JSONObject temp = day.optJSONObject("temp2m");
+            if (temp == null || !temp.has("max") || !temp.has("min"))
+                throw new IOException("7Timer 溫度資料不完整");
+            double high = temp.optDouble("max", Double.NaN);
+            double low = temp.optDouble("min", Double.NaN);
+            if (Double.isNaN(high) || Double.isInfinite(high) || Double.isNaN(low)
+                    || Double.isInfinite(low) || high < low)
+                throw new IOException("7Timer 溫度數值無效");
+            dates.put(date);
+            codes.put(sevenTimerWeatherToWmo(day.optString("weather", "cloudy")));
+            highs.put(Math.round(high * 10.0) / 10.0);
+            lows.put(Math.round(low * 10.0) / 10.0);
+        }
+        weatherHandler.post(() -> {
+            renderWeeklyWeather(dates, codes, highs, lows, null, place);
+            if (openWeeklyForecastAfterRefresh) {
+                openWeeklyForecastAfterRefresh = false;
+                showWeeklyForecastDialog(dates, codes, highs, lows, null, place);
+            }
+        });
+    }
+
+    private int sevenTimerWeatherToWmo(String weather) {
+        String s = weather == null ? "cloudy" : weather.toLowerCase(Locale.ROOT);
+        if (s.contains("ts")) return 95;
+        if (s.contains("snow") && s.contains("rain")) return 66;
+        if (s.contains("snow")) return 71;
+        if (s.contains("rain") || s.contains("shower")) return 61;
+        if (s.contains("fog") || s.contains("humid")) return 45;
+        if (s.contains("cloudy") || s.contains("mcloudy")) return 3;
+        if (s.contains("pcloudy")) return 2;
+        if (s.contains("clear")) return 0;
+        return 3;
+    }
+
     private int metNoSymbolToWmo(String symbol) {
         String s = symbol.toLowerCase(Locale.ROOT);
         if (s.contains("thunder")) return 95;
@@ -4409,9 +4464,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 try {
                     fetchMetNoForecast(lat, lon, place);
                     return;
-                } catch (Exception fallbackError) {
-                    fallbackError.addSuppressed(primaryError);
-                    throw new IOException("主要與備援天氣服務皆無法連線：" + fallbackError.getMessage(), fallbackError);
+                } catch (Exception secondError) {
+                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying 7Timer third-level forecast fallback", secondError);
+                    try {
+                        fetch7TimerForecast(lat, lon, place);
+                        return;
+                    } catch (Exception thirdError) {
+                        thirdError.addSuppressed(secondError);
+                        thirdError.addSuppressed(primaryError);
+                        throw new IOException("三組天氣預報服務皆無法連線：" + thirdError.getMessage(), thirdError);
+                    }
                 }
             }
             JSONObject daily = response.getJSONObject("daily");
