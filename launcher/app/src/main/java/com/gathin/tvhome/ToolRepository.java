@@ -24,6 +24,7 @@ import java.util.List;
 final class ToolRepository {
     private static final String PREFS = "cytv_tool_center";
     private static final String KEY_ITEMS = "items";
+    private static final String KEY_ITEMS_BACKUP = "items_backup";
     private static final String KEY_COLUMNS = "columns";
     private static final String KEY_ROWS = "rows";
     private static final String KEY_ICON_SIZE = "icon_size";
@@ -74,8 +75,35 @@ final class ToolRepository {
     }
 
     synchronized List<Tool> getTools() {
+        String raw = readString(KEY_ITEMS, "[]");
+        ArrayList<Tool> parsed = parseTools(raw);
+        if (parsed != null) return parsed;
+
+        // Recover the last known-good list if the primary preference was truncated or malformed.
+        String backup = readString(KEY_ITEMS_BACKUP, "[]");
+        ArrayList<Tool> recovered = parseTools(backup);
+        if (recovered != null) {
+            preferences.edit().putString(KEY_ITEMS, backup).commit();
+            return recovered;
+        }
+
+        // Keep the launcher usable even if both copies are damaged. Do not overwrite the
+        // backup here; the next explicit user edit will establish a fresh valid snapshot.
+        return new ArrayList<>();
+    }
+
+    private String readString(String key, String fallback) {
+        try {
+            return preferences.getString(key, fallback);
+        } catch (ClassCastException wrongType) {
+            return null;
+        }
+    }
+
+    private ArrayList<Tool> parseTools(String raw) {
+        if (raw == null) return null;
         ArrayList<Tool> result = new ArrayList<>();
-        String raw = preferences.getString(KEY_ITEMS, "[]");
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
         try {
             JSONArray array = new JSONArray(raw);
             for (int i = 0; i < array.length(); i++) {
@@ -84,12 +112,14 @@ final class ToolRepository {
                 String pkg = item.optString("package", "");
                 String activity = item.optString("activity", "");
                 if (TextUtils.isEmpty(pkg) || TextUtils.isEmpty(activity)) continue;
+                String key = pkg + "/" + activity;
+                if (!seen.add(key)) continue;
                 result.add(new Tool(pkg, activity, item.optString("label", pkg),
                         item.optInt("position", i), item.optString("icon", ""),
                         item.optString("category", "未分類")));
             }
-        } catch (JSONException ignored) {
-            // A corrupt preference must not prevent the launcher from opening.
+        } catch (JSONException malformed) {
+            return null;
         }
         Collections.sort(result, (a, b) -> Integer.compare(a.position, b.position));
         return result;
@@ -271,7 +301,13 @@ final class ToolRepository {
             }
             array.put(item);
         }
-        return preferences.edit().putString(KEY_ITEMS, array.toString()).commit();
+        String next = array.toString();
+        String current = readString(KEY_ITEMS, null);
+        SharedPreferences.Editor editor = preferences.edit();
+        if (parseTools(current) != null) {
+            editor.putString(KEY_ITEMS_BACKUP, current);
+        }
+        return editor.putString(KEY_ITEMS, next).commit();
     }
 
     private static int clamp(int value, int min, int max) {
