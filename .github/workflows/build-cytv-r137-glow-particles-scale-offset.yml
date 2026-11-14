@@ -6,14 +6,14 @@ on:
       - feature/glow-particles-scale-offset-r137
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r137-left-glow-particles.yml'
+      - '.github/workflows/build-cytv-r137-glow-particles-scale-offset.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - feature/left-glow-particles-r136
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r137-left-glow-particles.yml'
+      - '.github/workflows/build-cytv-r137-glow-particles-scale-offset.yml'
   workflow_dispatch:
 
 permissions:
