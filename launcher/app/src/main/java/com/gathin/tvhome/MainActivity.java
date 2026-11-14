@@ -4848,7 +4848,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
                 dateView.setTextSize(12);
-                dateView.setAutoSizeTextTypeUniformWithConfiguration(8, 10, 1,
+                dateView.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 dateView.setMaxLines(1);
                 dateView.setGravity(Gravity.CENTER);
@@ -4913,7 +4913,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 precipitation.setTextSize(10);
                 precipitation.setGravity(Gravity.CENTER);
                 // Rain probability also adapts to the available column width instead of clipping.
-                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
+                precipitation.setAutoSizeTextTypeUniformWithConfiguration(8, 10, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 precipitation.setMaxLines(2);
                 dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
