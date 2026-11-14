@@ -19,9 +19,12 @@ public final class GlowParticlesView extends View {
     private static final float EFFECT_SCALE = 1.28f;
     // Increase the R138 particle radius spread by a further 50%.
     private static final float SIZE_VARIATION_SCALE = 3.375f;
-    // Move the particle field 160dp right and 200dp down.
+    // Keep the R145 anchor position unchanged: 160dp right and 200dp down.
     private static final float OFFSET_X_DP = 160.0f;
     private static final float OFFSET_Y_DP = 200.0f;
+    // Expand the particle field while preserving its upper-left anchor.
+    private static final float ZONE_WIDTH_RATIO = 0.62f;
+    private static final float ZONE_HEIGHT_RATIO = 0.82f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float[] seeds = new float[PARTICLES * 4];
@@ -100,13 +103,15 @@ public final class GlowParticlesView extends View {
 
         long now = SystemClock.uptimeMillis();
         float density = getResources().getDisplayMetrics().density;
-        float zoneW = getWidth() * .47f;
-        float zoneH = getHeight() * .66f;
+        float zoneW = getWidth() * ZONE_WIDTH_RATIO;
+        float zoneH = getHeight() * ZONE_HEIGHT_RATIO;
 
         canvas.save();
         canvas.translate(OFFSET_X_DP * density, OFFSET_Y_DP * density);
         canvas.scale(EFFECT_SCALE, EFFECT_SCALE);
-        canvas.clipRect(0f, 0f, zoneW, zoneH);
+        // Do not apply a smaller local clip rectangle here. The expanded field
+        // can use the full View drawing area, preventing its outer glow from
+        // being cut off at the former zoneW/zoneH boundary.
 
         for (int i = 0; i < PARTICLES; i++) {
             int p = i * 4;
