@@ -174,14 +174,21 @@ public final class ToolCenterActivity extends Activity {
             labels[i] = String.valueOf(info.loadLabel(pm));
             checked[i] = repository.contains(info.activityInfo.packageName, info.activityInfo.name);
         }
+        boolean[] original = checked.clone();
         new AlertDialog.Builder(this).setTitle("新增工具")
-                .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> {
-                    ResolveInfo info = apps.get(which);
-                    if (isChecked) repository.add(info.activityInfo.packageName, info.activityInfo.name, labels[which]);
-                    else repository.remove(info.activityInfo.packageName, info.activityInfo.name);
+                .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
+                .setPositiveButton("完成", (dialog, which) -> {
+                    for (int i = 0; i < apps.size(); i++) {
+                        ResolveInfo info = apps.get(i);
+                        if (checked[i] && !original[i]) {
+                            repository.add(info.activityInfo.packageName, info.activityInfo.name, labels[i]);
+                        } else if (!checked[i] && original[i]) {
+                            repository.remove(info.activityInfo.packageName, info.activityInfo.name);
+                        }
+                    }
+                    renderTools();
                 })
-                .setPositiveButton("完成", (dialog, which) -> renderTools())
-                .setNegativeButton("取消", (dialog, which) -> renderTools())
+                .setNegativeButton("取消", (dialog, which) -> { })
                 .show();
     }
 
@@ -198,11 +205,26 @@ public final class ToolCenterActivity extends Activity {
     }
 
     private void showLayoutSettings() {
-        String[] columns = {"3 欄", "4 欄", "5 欄", "6 欄", "7 欄", "8 欄"};
-        String[] rows = {"1 列", "2 列", "3 列", "4 列", "5 列"};
-        new AlertDialog.Builder(this).setTitle("工具中心欄數")
-                .setSingleChoiceItems(columns, repository.getColumns() - 3, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle("工具中心欄列設定")
+                .setItems(new String[]{"欄數：" + repository.getColumns(), "列數：" + repository.getRows()}, (dialog, which) -> {
+                    if (which == 0) chooseColumns();
+                    else chooseRows();
+                }).show();
+    }
+
+    private void chooseColumns() {
+        String[] values = {"3 欄", "4 欄", "5 欄", "6 欄", "7 欄", "8 欄"};
+        new AlertDialog.Builder(this).setTitle("選擇欄數")
+                .setSingleChoiceItems(values, repository.getColumns() - 3, (d, which) -> {
                     repository.setColumns(which + 3); d.dismiss(); renderTools();
+                }).setNegativeButton("取消", null).show();
+    }
+
+    private void chooseRows() {
+        String[] values = {"1 列", "2 列", "3 列", "4 列", "5 列"};
+        new AlertDialog.Builder(this).setTitle("選擇列數")
+                .setSingleChoiceItems(values, repository.getRows() - 1, (d, which) -> {
+                    repository.setRows(which + 1); d.dismiss(); renderTools();
                 }).setNegativeButton("取消", null).show();
     }
 
