@@ -4891,6 +4891,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } catch (Exception ignored) { }
         }
         panel.addView(forecast, new LinearLayout.LayoutParams(-1, -2));
+        addWeatherAttribution(panel);
 
         final android.widget.ImageView backdropBlur = installFolderBackdropBlur();
         if (backdropBlur != null) {
