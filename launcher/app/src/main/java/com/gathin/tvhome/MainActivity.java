@@ -1350,9 +1350,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 hostView.setFocusableInTouchMode(false);
                 hostView.setClickable(true);
                 hostView.setBackgroundColor(Color.TRANSPARENT);
-                int cellHeight = desktopWidgetDp(142);
+                int cellHeight = desktopWidgetDp(128);
                 int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
-                int widgetHeight = Math.max(desktopWidgetDp(76), Math.min(desktopWidgetDp(132), providerHeight));
+                int widgetHeight = Math.max(desktopWidgetDp(76), Math.min(desktopWidgetDp(126), providerHeight));
                 card.addView(hostView, new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, Math.min(cellHeight, widgetHeight)));
                 cell = card;
@@ -1366,7 +1366,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams(
                     GridLayout.spec(index / columns, 1f), GridLayout.spec(index % columns, 1f));
             lp.width = 0;
-            lp.height = desktopWidgetDp(150);
+            lp.height = desktopWidgetDp(136);
             lp.setMargins(desktopWidgetDp(9), desktopWidgetDp(7),
                     desktopWidgetDp(9), desktopWidgetDp(7));
             desktopWidgetGrid.addView(cell, lp);
