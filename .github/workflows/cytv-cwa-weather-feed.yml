@@ -17,7 +17,7 @@ jobs:
   publish-cwa-feed:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch and validate CWA nationwide weekly forecast
+      - name: Fetch and validate CWA county weekly forecasts
         env:
           CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
         run: |
@@ -25,6 +25,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import time
           import urllib.parse
           import urllib.request
           from datetime import datetime
@@ -34,43 +35,25 @@ jobs:
           if not key:
               raise SystemExit("CWA_API_KEY is missing; refusing to publish an empty feed.")
 
-          dataset = "F-D0047-093"
-          query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
-          url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset}?{query}"
-          req = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Feed/1.0"})
-          with urllib.request.urlopen(req, timeout=90) as response:
-              if response.status != 200:
-                  raise SystemExit(f"CWA HTTP {response.status}")
-              payload = json.loads(response.read().decode("utf-8"))
-
-          if str(payload.get("success", "")).lower() != "true":
-              raise SystemExit("CWA did not return success=true.")
-
-          records = payload.get("records") or payload.get("Records") or {}
-          roots = records.get("Locations") or records.get("locations") or []
-
-          locations = []
-          def walk(node):
-              if isinstance(node, dict):
-                  if ("LocationName" in node or "locationName" in node) and (
-                      "WeatherElement" in node or "weatherElement" in node
-                  ):
-                      locations.append(node)
-                  for value in node.values():
-                      if isinstance(value, (dict, list)):
-                          walk(value)
-              elif isinstance(node, list):
-                  for value in node:
-                      walk(value)
-          walk(roots)
-
-          if len(locations) < 300:
-              raise SystemExit(f"Nationwide dataset returned only {len(locations)} townships; expected at least 300.")
+          # Official CWA F-D0047 one-week township datasets (22 counties/cities).
+          datasets = {
+              "F-D0047-003": "宜蘭縣", "F-D0047-007": "桃園市",
+              "F-D0047-011": "新竹縣", "F-D0047-015": "苗栗縣",
+              "F-D0047-019": "彰化縣", "F-D0047-023": "南投縣",
+              "F-D0047-027": "雲林縣", "F-D0047-031": "嘉義縣",
+              "F-D0047-035": "屏東縣", "F-D0047-039": "臺東縣",
+              "F-D0047-043": "花蓮縣", "F-D0047-047": "澎湖縣",
+              "F-D0047-051": "基隆市", "F-D0047-055": "新竹市",
+              "F-D0047-059": "嘉義市", "F-D0047-063": "臺北市",
+              "F-D0047-067": "高雄市", "F-D0047-071": "新北市",
+              "F-D0047-075": "臺中市", "F-D0047-079": "臺南市",
+              "F-D0047-083": "連江縣", "F-D0047-087": "金門縣",
+          }
 
           def get(obj, *keys, default=None):
-              for key in keys:
-                  if isinstance(obj, dict) and key in obj:
-                      return obj[key]
+              for k in keys:
+                  if isinstance(obj, dict) and k in obj:
+                      return obj[k]
               return default
 
           def scalar(node):
@@ -94,7 +77,24 @@ jobs:
                   return None
               return node if isinstance(node, (str, int, float)) else None
 
-          def count_days(location, element_name):
+          def locations_from(payload):
+              records = get(payload, "records", "Records", default={}) or {}
+              roots = get(records, "Locations", "locations", default=[]) or []
+              found = []
+              def walk(node):
+                  if isinstance(node, dict):
+                      if get(node, "LocationName", "locationName") and get(node, "WeatherElement", "weatherElement") is not None:
+                          found.append(node)
+                      for value in node.values():
+                          if isinstance(value, (dict, list)):
+                              walk(value)
+                  elif isinstance(node, list):
+                      for value in node:
+                          walk(value)
+              walk(roots)
+              return found
+
+          def usable_days(location, element_name):
               elements = get(location, "WeatherElement", "weatherElement", default=[]) or []
               element = next((e for e in elements if get(e, "ElementName", "elementName") == element_name), None)
               if not element:
@@ -114,30 +114,52 @@ jobs:
                       continue
               return days
 
-          # Verify a representative Taoyuan township has a usable 7-day temperature range.
-          sample = next((x for x in locations if get(x, "LocationName", "locationName") == "桃園區"), None)
-          if sample is None:
-              raise SystemExit("Nationwide feed does not contain 桃園區.")
-          high_days = count_days(sample, "最高溫度")
-          low_days = count_days(sample, "最低溫度")
-          if len(high_days & low_days) < 7:
-              raise SystemExit("桃園區 does not contain seven usable max/min forecast dates.")
+          bundle = {
+              "source": "交通部中央氣象署",
+              "license": "政府資料開放授權條款-第1版",
+              "datasetType": "F-D0047 weekly township forecast",
+              "generatedAt": datetime.now(ZoneInfo("Asia/Taipei")).isoformat(),
+              "datasets": {},
+          }
+
+          total_locations = 0
+          for dataset_id, county in datasets.items():
+              query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
+              url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{query}"
+              req = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Feed/1.0"})
+              with urllib.request.urlopen(req, timeout=75) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"CWA HTTP {response.status} for {dataset_id}")
+                  payload = json.loads(response.read().decode("utf-8"))
+              if str(get(payload, "success", "Success", default="")).lower() != "true":
+                  raise SystemExit(f"CWA did not return success=true for {dataset_id}")
+              locations = locations_from(payload)
+              if not locations:
+                  raise SystemExit(f"No township locations returned for {county} ({dataset_id})")
+              sample = locations[0]
+              high = usable_days(sample, "最高溫度")
+              low = usable_days(sample, "最低溫度")
+              if len(high & low) < 7:
+                  raise SystemExit(f"{county} ({dataset_id}) sample township lacks seven max/min dates")
+              bundle["datasets"][dataset_id] = payload
+              total_locations += len(locations)
+              print(f"Validated {county}: {len(locations)} townships, 7-day temperatures present")
+              time.sleep(0.2)
 
           os.makedirs("feed", exist_ok=True)
           with open("feed/cwa-weekly.json", "w", encoding="utf-8") as f:
-              json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+              json.dump(bundle, f, ensure_ascii=False, separators=(",", ":"))
           with open("feed/README.md", "w", encoding="utf-8") as f:
               f.write(
                   "# CYTV CWA Weekly Weather Feed\n\n"
-                  "Source: Taiwan Central Weather Administration (CWA), dataset F-D0047-093.\n\n"
+                  "Source: Taiwan Central Weather Administration (CWA), F-D0047 one-week township datasets.\n\n"
                   "License: Government Data Open License, Version 1.\n\n"
                   "Attribution: 交通部中央氣象署\n\n"
-                  "This file is refreshed by GitHub Actions. The CWA API key is never included.\n"
+                  "The feed is refreshed by GitHub Actions every six hours. The CWA API key is never included.\n"
               )
-          print("CWA nationwide weekly feed validation: PASS")
-          print("Dataset:", dataset)
-          print("Townships:", len(locations))
-          print("Taoyuan District usable max/min days:", len(high_days & low_days))
+          print("CWA county weekly feed validation: PASS")
+          print("Datasets:", len(bundle["datasets"]))
+          print("Townships:", total_locations)
           print("API key present; value not logged.")
           PY
 
