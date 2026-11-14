@@ -34,13 +34,13 @@ public final class ToolCenterActivity extends Activity {
     private ToolRepository repository;
     private LinearLayout root;
     private GridLayout grid;
-    private TextView empty;
+    private TextView empty;\n    private ToolIconProvider iconProvider;
     private final float density() { return getResources().getDisplayMetrics().density; }
     private int dp(int value) { return Math.round(value * density()); }
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        repository = new ToolRepository(this);
+        repository = new ToolRepository(this);\n        iconProvider = new ToolIconProvider(this);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
         build();
@@ -48,7 +48,7 @@ public final class ToolCenterActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (repository != null && root != null) renderTools();
+        if (repository != null && root != null) {\n            repository.refreshInstalledEntries(getPackageManager());\n            renderTools();\n        }
     }
 
     private void build() {
@@ -98,7 +98,7 @@ public final class ToolCenterActivity extends Activity {
         List<ToolRepository.Tool> tools = repository.getTools();
         empty.setVisibility(tools.isEmpty() ? View.VISIBLE : View.GONE);
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
-        int cellWidth = Math.max(dp(110), screenWidth / columns);
+        int cellWidth = Math.max(dp(110), screenWidth / columns);\n        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);\n        int cellHeight = Math.max(dp(112), availableHeight / repository.getRows());
         for (ToolRepository.Tool tool : tools) {
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
@@ -114,13 +114,7 @@ public final class ToolCenterActivity extends Activity {
 
             ImageView icon = new ImageView(this);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            try {
-                icon.setImageDrawable(getPackageManager().getActivityIcon(
-                        new ComponentName(tool.packageName, tool.activityName)));
-            } catch (Exception unavailable) {
-                try { icon.setImageDrawable(getPackageManager().getApplicationIcon(tool.packageName)); }
-                catch (Exception ignored) { icon.setImageResource(R.drawable.ic_apps); }
-            }
+            icon.setImageDrawable(iconProvider.load(tool, repository.getIconMode()));
             int iconSize = dp(54 * repository.getIconSize() / 100);
             tile.addView(icon, new LinearLayout.LayoutParams(iconSize, iconSize));
             if (repository.isShowNames()) {
@@ -142,7 +136,7 @@ public final class ToolCenterActivity extends Activity {
             });
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = cellWidth;
-            lp.height = dp(132);
+            lp.height = cellHeight;
             lp.setMargins(dp(6), dp(6), dp(6), dp(6));
             grid.addView(tile, lp);
         }
@@ -205,11 +199,53 @@ public final class ToolCenterActivity extends Activity {
     }
 
     private void showLayoutSettings() {
-        new AlertDialog.Builder(this).setTitle("工具中心欄列設定")
-                .setItems(new String[]{"欄數：" + repository.getColumns(), "列數：" + repository.getRows()}, (dialog, which) -> {
+        new AlertDialog.Builder(this).setTitle("工具中心設定")
+                .setItems(new String[]{"欄數：" + repository.getColumns(), "列數：" + repository.getRows(),
+                        "圖示風格：" + iconModeLabel(repository.getIconMode()),
+                        "圖示大小：" + repository.getIconSize() + "%",
+                        "顯示工具名稱：" + (repository.isShowNames() ? "開啟" : "關閉")}, (dialog, which) -> {
                     if (which == 0) chooseColumns();
-                    else chooseRows();
+                    else if (which == 1) chooseRows();
+                    else if (which == 2) chooseIconMode();
+                    else if (which == 3) chooseIconSize();
+                    else toggleNames();
                 }).show();
+    }
+
+    private String iconModeLabel(ToolRepository.IconMode mode) {
+        if (mode == ToolRepository.IconMode.ORIGINAL) return "原始圖示";
+        if (mode == ToolRepository.IconMode.CYTV_MINIMAL) return "CYTV 簡約風格";
+        return "CYTV 智慧風格";
+    }
+
+    private void chooseIconMode() {
+        String[] labels = {"CYTV 智慧風格", "原始圖示", "CYTV 簡約風格"};
+        ToolRepository.IconMode[] modes = {ToolRepository.IconMode.CYTV_SMART,
+                ToolRepository.IconMode.ORIGINAL, ToolRepository.IconMode.CYTV_MINIMAL};
+        new AlertDialog.Builder(this).setTitle("選擇工具圖示風格")
+                .setSingleChoiceItems(labels, repository.getIconMode().ordinal(), (dialog, which) -> {
+                    repository.setIconMode(modes[which]);
+                    dialog.dismiss();
+                    renderTools();
+                }).setNegativeButton("取消", null).show();
+    }
+
+    private void chooseIconSize() {
+        String[] values = {"60%", "80%", "100%", "120%", "140%", "160%"};
+        int[] sizes = {60, 80, 100, 120, 140, 160};
+        int selected = 2;
+        for (int i = 0; i < sizes.length; i++) if (sizes[i] == repository.getIconSize()) selected = i;
+        new AlertDialog.Builder(this).setTitle("選擇圖示大小")
+                .setSingleChoiceItems(values, selected, (dialog, which) -> {
+                    repository.setIconSize(sizes[which]);
+                    dialog.dismiss();
+                    renderTools();
+                }).setNegativeButton("取消", null).show();
+    }
+
+    private void toggleNames() {
+        repository.setShowNames(!repository.isShowNames());
+        renderTools();
     }
 
     private void chooseColumns() {
