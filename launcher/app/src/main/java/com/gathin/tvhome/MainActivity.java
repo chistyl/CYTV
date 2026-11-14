@@ -614,16 +614,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
-            // Align the compact daily card slightly inward from the clock edge, matching the approved layout.
+            // Both day and week modes share one immutable anchor under the clock.
+            // Only the content width/height adapts; changing display mode never nudges the card.
             SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
             boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
-            lp.leftMargin = clockPos[0] - rootPos[0] + (dailyMode ? (int) (25 * density) : 0);
-            // Daily mode uses the compact reference width; weekly mode retains its existing width.
+            lp.leftMargin = clockPos[0] - rootPos[0];
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            lp.width = Math.round(availableWidth * (dailyMode ? 0.32f : 0.60f));
+            float widthRatio = dailyMode ? 0.32f : 0.60f;
+            lp.width = Math.min(availableWidth, Math.max((int) ((dailyMode ? 280 : 520) * density),
+                    Math.round(availableWidth * widthRatio)));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
-            weeklyWeatherView.setMinimumHeight((int)(112 * density));
+            weeklyWeatherView.setMinimumHeight((int) ((dailyMode ? 112 : 148) * density));
             weeklyWeatherView.setLayoutParams(lp);
         };
         clockBlock.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
