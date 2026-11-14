@@ -436,21 +436,43 @@ public final class ToolCenterActivity extends Activity {
             checked[i] = repository.contains(info.activityInfo.packageName, info.activityInfo.name);
         }
         boolean[] original = checked.clone();
-        new AlertDialog.Builder(this).setTitle("新增工具")
-                .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("完成", (dialog, which) -> {
+        View returnFocus = getCurrentFocus();
+        boolean[] committed = {false};
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(selectionTitle(checked))
+                .setMultiChoiceItems(labels, checked, (dialogInterface, which, isChecked) -> {
+                    checked[which] = isChecked;
+                    ((AlertDialog) dialogInterface).setTitle(selectionTitle(checked));
+                })
+                .setPositiveButton("完成", (dialogInterface, which) -> {
+                    int changed = 0;
                     for (int i = 0; i < apps.size(); i++) {
                         ResolveInfo info = apps.get(i);
                         if (checked[i] && !original[i]) {
-                            repository.add(info.activityInfo.packageName, info.activityInfo.name, labels[i]);
+                            if (repository.add(info.activityInfo.packageName, info.activityInfo.name, labels[i])) changed++;
                         } else if (!checked[i] && original[i]) {
-                            repository.remove(info.activityInfo.packageName, info.activityInfo.name);
+                            if (repository.remove(info.activityInfo.packageName, info.activityInfo.name)) changed++;
                         }
                     }
+                    committed[0] = true;
                     renderTools();
+                    Toast.makeText(this, "已更新 " + changed + " 個工具捷徑", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("取消", (dialog, which) -> { })
-                .show();
+                .setNegativeButton("取消", null)
+                .create();
+        dialog.setOnDismissListener(ignored -> {
+            if (returnFocus != null && returnFocus.isShown()) {
+                returnFocus.post(() -> {
+                    if (returnFocus.isShown()) returnFocus.requestFocus();
+                });
+            }
+        });
+        dialog.show();
+    }
+
+    private String selectionTitle(boolean[] selected) {
+        int count = 0;
+        for (boolean value : selected) if (value) count++;
+        return "新增工具（已選 " + count + " 個）";
     }
 
     private void addUnique(List<ResolveInfo> target, List<ResolveInfo> source) {
