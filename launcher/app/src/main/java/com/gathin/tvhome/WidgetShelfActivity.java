@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.GridLayout;
 import android.widget.NumberPicker;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
