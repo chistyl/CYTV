@@ -7625,6 +7625,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     if (isPreinstalledSystemApp(info)) systemExcluded.add(pkg);
                 } catch (PackageManager.NameNotFoundException ignored) { }
                 edit.putStringSet("system_folder_excluded", systemExcluded).apply();
+                // Rebuild the desktop immediately so the newly assigned app disappears behind the folder dialog.
+                reloadApps(false);
                 break;
             }
             showFolderContents(folder, false);
@@ -8905,6 +8907,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     edit.putStringSet("folder_apps_" + folder, members);
                 }
                 edit.apply();
+                // Rebuild the desktop immediately so the newly assigned app disappears behind the system folder dialog.
+                reloadApps(false);
                 break;
             }
             showFolderContents("系統", true);
