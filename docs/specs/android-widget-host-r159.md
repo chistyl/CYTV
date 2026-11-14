@@ -32,7 +32,7 @@
 
 ## Weather card frame rule
 - Shared position anchor: below the clock block, same x/y in both modes.
-- Shared frame: width is calculated from available TV display space once using a fixed ratio and clamped bounds; height is fixed at 170dp.
+- Shared frame: width is calculated from available TV display space once using a fixed ratio and clamped bounds; height is fixed at 180dp.
 - Day mode uses the larger icon and temperature presentation within the frame.
 - Week mode uses seven compact columns with adaptive text and icon sizing within the same frame.
 - Both modes use the same CYTV weather-card surface. No mode-specific width or height changes.
