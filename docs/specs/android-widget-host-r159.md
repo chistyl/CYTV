@@ -18,6 +18,7 @@
 6. Preserve native bind/configure flow, host IDs, saved widget IDs, and provider RemoteViews.
 7. Keep the weather card on one fixed desktop anchor and one fixed device-adaptive frame in both「一天」and「一週」modes. The selected mode may adapt inner typography, icon scale and spacing only; it must not change the card's x/y position, width or height.
 8. Keep weather rendering out of the measured app-grid layout so enabling, refreshing or switching forecast mode does not resize the desktop app grid or widget shelf.
+9. Place the widget shelf before the weighted app grid so it remains visible on desktop. When weather is enabled, reserve the fixed weather-card area above the widget shelf to prevent overlap; when disabled, collapse that reserved gap.
 
 ## Acceptance checks
 - Desktop visibly displays the widget section and its add/manage controls.
@@ -36,6 +37,8 @@
 - Day mode uses the larger icon and temperature presentation within the frame.
 - Week mode uses seven compact columns with adaptive text and icon sizing within the same frame.
 - Both modes use the same CYTV weather-card surface. No mode-specific width or height changes.
+- Fixed frame height is 200dp. The widget shelf follows the weather card with a reserved 210dp top gap while weather is enabled; otherwise it uses the normal compact top margin.
+- Widget shelf is laid out before the weighted app grid, so the weighted grid cannot consume its space or push the shelf off-screen.
 
 ## Explicit remaining validation
 - Build/CI can validate compilation and unit tests, not TV firmware widget bind permission UI, individual provider RemoteViews, or every widget's D-pad behavior.
