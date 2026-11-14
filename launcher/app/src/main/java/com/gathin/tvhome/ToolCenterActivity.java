@@ -210,7 +210,10 @@ public final class ToolCenterActivity extends Activity {
         root.addView(pager, pagerLp);
 
         empty = text("目前尚未新增工具\n請選擇右上方「新增工具 +」", 18, 0xFFADB8C6);
+        empty.setId(View.generateViewId());
         empty.setGravity(Gravity.CENTER);
+        empty.setFocusable(true);
+        empty.setClickable(true);
         root.addView(empty, new LinearLayout.LayoutParams(-1, dp(110)));
         setContentView(root);
         renderTools();
@@ -238,6 +241,23 @@ public final class ToolCenterActivity extends Activity {
         empty.setText(allTools.isEmpty()
                 ? "目前尚未新增工具\n請選擇右上方「新增工具 +」"
                 : "找不到符合的工具");
+        // Route D-pad focus to a visible empty-state action instead of a stale, removed tile.
+        if (tools.isEmpty()) {
+            categoryFilterButton.setNextFocusDownId(empty.getId());
+            empty.setNextFocusUpId(categoryFilterButton.getId());
+            empty.setNextFocusDownId(allTools.isEmpty()
+                    ? addToolButton.getId() : searchInput.getId());
+            empty.setOnClickListener(v -> {
+                if (allTools.isEmpty()) showInstalledApps();
+                else searchInput.requestFocus();
+            });
+            previousPageButton.setNextFocusUpId(empty.getId());
+            nextPageButton.setNextFocusUpId(empty.getId());
+        } else {
+            empty.setOnClickListener(null);
+            empty.setNextFocusUpId(View.NO_ID);
+            empty.setNextFocusDownId(View.NO_ID);
+        }
         int rows = repository.getRows();
         int pageSize = Math.max(1, columns * rows);
         int pageCount = Math.max(1, (tools.size() + pageSize - 1) / pageSize);
