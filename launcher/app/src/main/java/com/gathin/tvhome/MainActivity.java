@@ -1367,7 +1367,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             for (int id : valid) cleaned.put(id);
             prefs.edit().putString("widget_ids", cleaned.toString()).apply();
         }
-        desktopWidgetSection.setVisibility(valid.isEmpty() ? View.GONE : View.VISIBLE);
+        if (valid.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("尚未新增小工具  ·  按上方「新增小工具 +」開始");
+            empty.setTextColor(0xFF9AA6B5);
+            empty.setTextSize(13);
+            empty.setGravity(Gravity.CENTER_VERTICAL);
+            empty.setPadding(desktopWidgetDp(12), 0, 0, 0);
+            desktopWidgetGrid.addView(empty, new GridLayout.LayoutParams(
+                    GridLayout.spec(0), GridLayout.spec(0, 1f)));
+        }
+        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+        View scroll = desktopWidgetSection.getChildAt(1);
+        if (scroll instanceof ScrollView) {
+            ((ScrollView) scroll).getLayoutParams().height = desktopWidgetDp(rows * 130);
+            ((ScrollView) scroll).requestLayout();
+        }
+        desktopWidgetSection.setVisibility(View.VISIBLE);
         desktopWidgetGrid.requestLayout();
     }
 
