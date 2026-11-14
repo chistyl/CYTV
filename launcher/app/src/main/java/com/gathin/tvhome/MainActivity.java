@@ -4735,14 +4735,62 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.requestFocus();
     }
 
+    /**
+     * Weather endpoints occasionally stall during TLS negotiation on older Android TV network stacks.
+     * Use bounded retries for transient transport/server failures, without changing device DNS or TLS policy.
+     * All calls run on weatherExecutor, so the short backoff never blocks the UI thread.
+     */
     private JSONObject getJson(String address) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setRequestMethod("GET"); c.setConnectTimeout(12000); c.setReadTimeout(12000);
-        c.setRequestProperty("Accept", "application/json");
-        try (InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-            byte[] buf = new byte[4096]; int n; while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            return new JSONObject(out.toString("UTF-8"));
-        } finally { c.disconnect(); }
+        final int maxAttempts = 3;
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            HttpURLConnection c = null;
+            try {
+                c = (HttpURLConnection) new URL(address).openConnection();
+                c.setRequestMethod("GET");
+                c.setConnectTimeout(18000);
+                c.setReadTimeout(18000);
+                c.setUseCaches(false);
+                c.setInstanceFollowRedirects(true);
+                c.setRequestProperty("Accept", "application/json");
+                c.setRequestProperty("Cache-Control", "no-cache");
+                c.setRequestProperty("Connection", "close");
+                c.setRequestProperty("User-Agent", "CYTV-Weather/1.1 (Android TV launcher)");
+                int status = c.getResponseCode();
+                if (status < 200 || status >= 300) {
+                    IOException httpError = new IOException("天氣服務 HTTP " + status);
+                    // Retry rate limits and temporary server errors, but not permanent client errors.
+                    if (status != 429 && status < 500) throw httpError;
+                    lastError = httpError;
+                } else {
+                    try (InputStream in = c.getInputStream();
+                         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                        byte[] buf = new byte[4096];
+                        int n;
+                        while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                        return new JSONObject(out.toString("UTF-8"));
+                    }
+                }
+            } catch (Exception e) {
+                lastError = e;
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            } finally {
+                if (c != null) c.disconnect();
+            }
+            if (attempt < maxAttempts) {
+                try {
+                    Thread.sleep(attempt * 1500L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw interrupted;
+                }
+            }
+        }
+        if (lastError != null) throw lastError;
+        throw new IOException("天氣服務連線失敗");
     }
 
     private void showWeatherError(String message) {
