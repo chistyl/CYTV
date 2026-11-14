@@ -1299,66 +1299,89 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (desktopWidgetGrid == null || desktopWidgetManager == null || desktopWidgetHost == null) return;
         desktopWidgetGrid.removeAllViews();
         SharedPreferences prefs = getSharedPreferences("cytv_desktop_widgets", MODE_PRIVATE);
-        String raw = prefs.getString("widget_ids", "[]");
-        ArrayList<Integer> ids = new ArrayList<>();
-        ArrayList<Integer> valid = new ArrayList<>();
-        try {
-            JSONArray saved = new JSONArray(raw);
-            for (int i = 0; i < saved.length(); i++) {
-                int id = saved.optInt(i, AppWidgetManager.INVALID_APPWIDGET_ID);
-                if (id != AppWidgetManager.INVALID_APPWIDGET_ID && !ids.contains(id)) ids.add(id);
-            }
-        } catch (Exception ignored) { }
-
         int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
         int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+        int slotCount = columns * rows;
+        ArrayList<Integer> slots = new ArrayList<>();
+        String slotRaw = prefs.getString("widget_slots", null);
+        if (slotRaw != null) {
+            try {
+                JSONArray saved = new JSONArray(slotRaw);
+                for (int i = 0; i < saved.length(); i++) slots.add(saved.optInt(i, 0));
+            } catch (Exception ignored) { }
+        } else {
+            // Migrate R160-R162 compact widget IDs to the first fixed zones.
+            try {
+                JSONArray saved = new JSONArray(prefs.getString("widget_ids", "[]"));
+                for (int i = 0; i < saved.length(); i++) {
+                    int id = saved.optInt(i, AppWidgetManager.INVALID_APPWIDGET_ID);
+                    if (id != AppWidgetManager.INVALID_APPWIDGET_ID && id > 0 && !slots.contains(id)) slots.add(id);
+                }
+            } catch (Exception ignored) { }
+        }
+        while (slots.size() < slotCount) slots.add(0);
+
         desktopWidgetGrid.setColumnCount(columns);
+        desktopWidgetGrid.setRowCount(rows);
         desktopWidgetGrid.setUseDefaultMargins(false);
-
-        for (int id : ids) {
-            AppWidgetProviderInfo info = desktopWidgetManager.getAppWidgetInfo(id);
-            if (info == null) {
+        ArrayList<Integer> valid = new ArrayList<>();
+        for (int index = 0; index < slotCount; index++) {
+            int id = slots.get(index);
+            AppWidgetProviderInfo info = id > 0 ? desktopWidgetManager.getAppWidgetInfo(id) : null;
+            if (id > 0 && info == null) {
                 try { desktopWidgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
-                continue;
+                slots.set(index, 0);
+                id = 0;
             }
-            valid.add(id);
 
-            // R161: blend the provider's widget into the CYTV desktop.
-            // Keep the host container transparent; desktop spacing replaces the outer card.
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setGravity(Gravity.CENTER);
-            card.setPadding(0, 0, 0, 0);
-            card.setBackgroundColor(Color.TRANSPARENT);
-            card.setElevation(0f);
-            card.setFocusable(false);
+            View cell;
+            if (id > 0) {
+                valid.add(id);
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setGravity(Gravity.CENTER);
+                card.setPadding(0, 0, 0, 0);
+                card.setBackgroundColor(Color.TRANSPARENT);
+                card.setElevation(0f);
+                card.setFocusable(false);
 
-            AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
-            hostView.setFocusable(true);
-            hostView.setFocusableInTouchMode(false);
-            hostView.setClickable(true);
-            hostView.setBackgroundColor(Color.TRANSPARENT);
-            int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
-            int widgetHeight = Math.max(desktopWidgetDp(100), Math.min(desktopWidgetDp(260), providerHeight));
-            card.addView(hostView, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, widgetHeight));
+                AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
+                hostView.setFocusable(true);
+                hostView.setFocusableInTouchMode(false);
+                hostView.setClickable(true);
+                hostView.setBackgroundColor(Color.TRANSPARENT);
+                int cellHeight = desktopWidgetDp(128);
+                int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
+                int widgetHeight = Math.max(desktopWidgetDp(76), Math.min(desktopWidgetDp(126), providerHeight));
+                card.addView(hostView, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, Math.min(cellHeight, widgetHeight)));
+                cell = card;
+            } else {
+                // Keep the empty zone's exact grid footprint; a neighbor must never stretch into it.
+                View emptyZone = new View(this);
+                emptyZone.setBackgroundColor(Color.TRANSPARENT);
+                cell = emptyZone;
+            }
 
-            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams(
+                    GridLayout.spec(index / columns, 1f), GridLayout.spec(index % columns, 1f));
             lp.width = 0;
-            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            lp.height = desktopWidgetDp(136);
             lp.setMargins(desktopWidgetDp(9), desktopWidgetDp(7),
                     desktopWidgetDp(9), desktopWidgetDp(7));
-            desktopWidgetGrid.addView(card, lp);
+            desktopWidgetGrid.addView(cell, lp);
         }
 
-        if (valid.size() != ids.size()) {
-            JSONArray cleaned = new JSONArray();
-            for (int id : valid) cleaned.put(id);
-            prefs.edit().putString("widget_ids", cleaned.toString()).apply();
+        // Keep overflow slots saved when the configured grid is temporarily smaller than the widget count.
+        JSONArray slotArray = new JSONArray();
+        JSONArray idsArray = new JSONArray();
+        for (int id : slots) {
+            slotArray.put(id);
+            if (id > 0) idsArray.put(id);
         }
+        prefs.edit().putString("widget_slots", slotArray.toString())
+                .putString("widget_ids", idsArray.toString()).apply();
 
-        // Row count controls the visible widget workspace; overflow remains vertically scrollable.
         View scroll = desktopWidgetSection.getChildAt(0);
         if (scroll instanceof ScrollView) {
             ViewGroup.LayoutParams scrollLp = scroll.getLayoutParams();
@@ -1368,7 +1391,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 scroll.setLayoutParams(scrollLp);
             }
         }
-        // Empty desktop space is kept completely clear; the empty-state message belongs only in management.
         desktopWidgetSection.setVisibility(valid.isEmpty() ? View.GONE : View.VISIBLE);
         desktopWidgetGrid.requestLayout();
     }
