@@ -146,7 +146,7 @@
                 android:value="User-enabled YouTube playback monitoring for SponsorBlock skipping" />
         </service>
 
-        <activity
+        <activity\n            android:name=".ToolCenterActivity"\n            android:exported="false"\n            android:excludeFromRecents="true"\n            android:screenOrientation="landscape" />\n\n        <activity
             android:name=".LauncherSettingsActivity"
             android:exported="false"
             android:excludeFromRecents="true"
