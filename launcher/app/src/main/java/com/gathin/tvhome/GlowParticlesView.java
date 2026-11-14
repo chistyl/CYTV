@@ -15,12 +15,12 @@ import android.view.View;
 public final class GlowParticlesView extends View {
     private static final int PARTICLES = 22;
     private static final long FRAME_DELAY_MS = 64L;
-    // Enlarge the R138 particle field by 100% (2x overall scale).
-    private static final float EFFECT_SCALE = 2.0f;
+    // Reduce the R139 particle field by 20% (from 2.0x to 1.6x).
+    private static final float EFFECT_SCALE = 1.6f;
     // Increase the R138 particle radius spread by a further 50%.
     private static final float SIZE_VARIATION_SCALE = 3.375f;
-    // Move the particle field 70dp right and 100dp down.
-    private static final float OFFSET_X_DP = 70.0f;
+    // Move the particle field 100dp right; keep the vertical offset at 100dp.
+    private static final float OFFSET_X_DP = 100.0f;
     private static final float OFFSET_Y_DP = 100.0f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
