@@ -92,6 +92,22 @@ final class ToolRepository {
         return new ArrayList<>();
     }
 
+    private int readInt(String key, int fallback) {
+        try {
+            return preferences.getInt(key, fallback);
+        } catch (ClassCastException wrongType) {
+            return fallback;
+        }
+    }
+
+    private boolean readBoolean(String key, boolean fallback) {
+        try {
+            return preferences.getBoolean(key, fallback);
+        } catch (ClassCastException wrongType) {
+            return fallback;
+        }
+    }
+
     private String readString(String key, String fallback) {
         try {
             return preferences.getString(key, fallback);
@@ -193,7 +209,7 @@ final class ToolRepository {
     }
 
     synchronized int getColumns() {
-        return clamp(preferences.getInt(KEY_COLUMNS, DEFAULT_COLUMNS), MIN_COLUMNS, MAX_COLUMNS);
+        return clamp(readInt(KEY_COLUMNS, DEFAULT_COLUMNS), MIN_COLUMNS, MAX_COLUMNS);
     }
 
     synchronized boolean setColumns(int columns) {
@@ -202,7 +218,7 @@ final class ToolRepository {
     }
 
     synchronized int getRows() {
-        return clamp(preferences.getInt(KEY_ROWS, DEFAULT_ROWS), MIN_ROWS, MAX_ROWS);
+        return clamp(readInt(KEY_ROWS, DEFAULT_ROWS), MIN_ROWS, MAX_ROWS);
     }
 
     synchronized boolean setRows(int rows) {
@@ -211,7 +227,7 @@ final class ToolRepository {
     }
 
     synchronized int getIconSize() {
-        return clamp(preferences.getInt(KEY_ICON_SIZE, DEFAULT_ICON_SIZE), 60, 160);
+        return clamp(readInt(KEY_ICON_SIZE, DEFAULT_ICON_SIZE), 60, 160);
     }
 
     synchronized boolean setIconSize(int percent) {
@@ -220,7 +236,7 @@ final class ToolRepository {
     }
 
     synchronized boolean isShowNames() {
-        return preferences.getBoolean(KEY_SHOW_NAMES, true);
+        return readBoolean(KEY_SHOW_NAMES, true);
     }
 
     synchronized boolean setShowNames(boolean show) {
@@ -228,7 +244,7 @@ final class ToolRepository {
     }
 
     synchronized IconMode getIconMode() {
-        String value = preferences.getString(KEY_ICON_MODE, IconMode.CYTV_SMART.name());
+        String value = readString(KEY_ICON_MODE, IconMode.CYTV_SMART.name());
         try {
             return IconMode.valueOf(value);
         } catch (IllegalArgumentException ignored) {
@@ -242,7 +258,8 @@ final class ToolRepository {
     }
 
     synchronized String getLastFocusedTool() {
-        return preferences.getString(KEY_LAST_FOCUSED_TOOL, "");
+        String value = readString(KEY_LAST_FOCUSED_TOOL, "");
+        return value == null ? "" : value;
     }
 
     synchronized void setLastFocusedTool(String key) {
@@ -250,7 +267,7 @@ final class ToolRepository {
     }
 
     synchronized int getCurrentPage() {
-        return Math.max(0, preferences.getInt(KEY_CURRENT_PAGE, 0));
+        return Math.max(0, readInt(KEY_CURRENT_PAGE, 0));
     }
 
     synchronized void setCurrentPage(int page) {
