@@ -495,7 +495,7 @@
                     android:layout_height="32dp"
                     android:layout_marginStart="8dp"
                     android:gravity="center"
-                    android:background="@drawable/top_button"
+                    android:background="#FF16434B"
                     android:text="管理"
                     android:textColor="#FFFFFFFF"
                     android:textSize="12sp"
