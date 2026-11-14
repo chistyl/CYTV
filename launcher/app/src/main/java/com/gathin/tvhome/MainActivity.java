@@ -4465,6 +4465,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return 3;
     }
 
+    /**
+     * CWA township feed only covers Taiwan and its outlying islands.
+     * Keep overseas locations on the global Open-Meteo -> MET Norway chain.
+     */
+    private boolean isWithinCwaCoverage(double lat, double lon) {
+        boolean mainIsland = lat >= 21.8 && lat <= 25.5 && lon >= 119.8 && lon <= 122.1;
+        boolean penghu = lat >= 23.0 && lat <= 23.9 && lon >= 119.2 && lon <= 119.9;
+        boolean kinmen = lat >= 24.3 && lat <= 24.6 && lon >= 118.1 && lon <= 118.6;
+        boolean matsu = lat >= 25.8 && lat <= 26.5 && lon >= 119.8 && lon <= 120.2;
+        return mainIsland || penghu || kinmen || matsu;
+    }
+
     private void fetchForecast(double lat, double lon, String place) {
         try {
             if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
@@ -4484,7 +4496,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     fetchMetNoForecast(lat, lon, place);
                     return;
                 } catch (Exception secondError) {
-                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying CWA third-level forecast fallback", secondError);
+                    if (!isWithinCwaCoverage(lat, lon)) {
+                        secondError.addSuppressed(primaryError);
+                        throw new IOException("Open-Meteo 與 MET Norway 皆無法連線；CWA 僅支援台灣地區", secondError);
+                    }
+                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying Taiwan-only CWA third-level forecast fallback", secondError);
                     try {
                         fetchCwaForecast(lat, lon, place);
                         return;
