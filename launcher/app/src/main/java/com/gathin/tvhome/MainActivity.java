@@ -1323,24 +1323,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             valid.add(id);
 
-            // Keep the CYTV outer frame, but render only the provider's actual widget view.
-            // No app title, launch shortcut, add/manage/remove controls or placeholder is shown on Home.
+            // R161: blend the provider's widget into the CYTV desktop.
+            // Keep the host container transparent; desktop spacing replaces the outer card.
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setGravity(Gravity.CENTER);
-            card.setPadding(desktopWidgetDp(6), desktopWidgetDp(6),
-                    desktopWidgetDp(6), desktopWidgetDp(6));
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(0xD91A202A);
-            bg.setCornerRadius(desktopWidgetDp(13));
-            bg.setStroke(Math.max(1, desktopWidgetDp(1)), 0x334CA6AD);
-            card.setBackground(bg);
+            card.setPadding(0, 0, 0, 0);
+            card.setBackgroundColor(Color.TRANSPARENT);
+            card.setElevation(0f);
             card.setFocusable(false);
 
             AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
             hostView.setFocusable(true);
             hostView.setFocusableInTouchMode(false);
             hostView.setClickable(true);
+            hostView.setBackgroundColor(Color.TRANSPARENT);
             int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
             int widgetHeight = Math.max(desktopWidgetDp(100), Math.min(desktopWidgetDp(260), providerHeight));
             card.addView(hostView, new LinearLayout.LayoutParams(
@@ -1350,8 +1347,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lp.width = 0;
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
             lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            lp.setMargins(desktopWidgetDp(5), desktopWidgetDp(4),
-                    desktopWidgetDp(5), desktopWidgetDp(4));
+            lp.setMargins(desktopWidgetDp(9), desktopWidgetDp(7),
+                    desktopWidgetDp(9), desktopWidgetDp(7));
             desktopWidgetGrid.addView(card, lp);
         }
 
