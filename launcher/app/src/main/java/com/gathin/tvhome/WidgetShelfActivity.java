@@ -641,7 +641,7 @@ public final class WidgetShelfActivity extends Activity {
                         Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
                         configure.setComponent(info.configure);
                         configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
-                        try { startActivityForResult(configure, REQUEST_CONFIGURE_WIDGET); }
+                        try { startActivity(configure); }
                         catch (Exception e) {
                             Toast.makeText(this, "無法開啟此小工具的編輯畫面", Toast.LENGTH_SHORT).show();
                         }
