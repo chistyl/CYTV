@@ -36,3 +36,5 @@
 - [ ] 遙控器可進入 Widget 並操作其原生控制項。
 - [ ] 720p／1080p 下 Widget 與 APP 區域不重疊。
 - [ ] 天氣卡片一天／一週切換時位置與尺寸固定。
+
+- CI workflow 已納入 R159 基底分支，以便此 Draft PR 的 pull_request 事件可啟動建置。
