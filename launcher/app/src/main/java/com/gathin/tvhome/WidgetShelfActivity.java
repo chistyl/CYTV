@@ -16,6 +16,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ImageView;
+import android.widget.NumberPicker;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -93,12 +95,18 @@ public final class WidgetShelfActivity extends Activity {
 
         Button add = button("新增小工具 +");
         add.setOnClickListener(v -> pickWidget());
-        header.addView(add, new LinearLayout.LayoutParams(dp(210), dp(48)));
+        header.addView(add, new LinearLayout.LayoutParams(dp(190), dp(48)));
+
+        Button layout = button("欄列設定");
+        layout.setOnClickListener(v -> showLayoutSettings());
+        LinearLayout.LayoutParams layoutLp = new LinearLayout.LayoutParams(dp(140), dp(48));
+        layoutLp.leftMargin = dp(10);
+        header.addView(layout, layoutLp);
 
         Button back = button("返回桌面");
         back.setOnClickListener(v -> finish());
-        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(dp(170), dp(48));
-        backLp.leftMargin = dp(12);
+        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(dp(150), dp(48));
+        backLp.leftMargin = dp(10);
         header.addView(back, backLp);
         page.addView(header);
 
@@ -127,25 +135,137 @@ public final class WidgetShelfActivity extends Activity {
     private void pickWidget() {
         final List<AppWidgetProviderInfo> providers = widgetManager.getInstalledProviders();
         final ArrayList<AppWidgetProviderInfo> thirdParty = new ArrayList<>();
-        final ArrayList<String> labels = new ArrayList<>();
         for (AppWidgetProviderInfo info : providers) {
             if (info == null || info.provider == null
                     || getPackageName().equals(info.provider.getPackageName())) continue;
             thirdParty.add(info);
-            CharSequence label = info.loadLabel(getPackageManager());
-            String name = label == null ? info.provider.getClassName() : label.toString();
-            labels.add(name);
         }
         if (thirdParty.isEmpty()) {
             Toast.makeText(this, "目前沒有找到已安裝的第三方小工具提供者", Toast.LENGTH_LONG).show();
             return;
         }
-        new AlertDialog.Builder(this)
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(8), dp(8), dp(8), dp(8));
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        scroll.addView(list);
+        for (AppWidgetProviderInfo info : thirdParty) {
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.HORIZONTAL);
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setPadding(dp(10), dp(8), dp(10), dp(8));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xFF202936);
+            bg.setCornerRadius(dp(12));
+            bg.setStroke(dp(1), 0x334CA6AD);
+            item.setBackground(bg);
+
+            ImageView icon = new ImageView(this);
+            try {
+                icon.setImageDrawable(getPackageManager().getApplicationIcon(info.provider.getPackageName()));
+            } catch (Exception ignored) {
+                icon.setImageResource(android.R.drawable.sym_def_app_icon);
+            }
+            item.addView(icon, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+            LinearLayout labels = new LinearLayout(this);
+            labels.setOrientation(LinearLayout.VERTICAL);
+            labels.setGravity(Gravity.CENTER_VERTICAL);
+            TextView name = text(String.valueOf(info.loadLabel(getPackageManager())), 16, Color.WHITE);
+            TextView packageName = text(info.provider.getPackageName(), 11, 0xFF9AA6B5);
+            labels.addView(name);
+            labels.addView(packageName);
+            LinearLayout.LayoutParams labelsLp = new LinearLayout.LayoutParams(0, dp(56), 1);
+            labelsLp.leftMargin = dp(12);
+            item.addView(labels, labelsLp);
+
+            Button launch = button("啟動 APP");
+            launch.setTextSize(12);
+            launch.setOnClickListener(v -> {
+                Intent app = getPackageManager().getLaunchIntentForPackage(info.provider.getPackageName());
+                if (app != null) startActivity(app);
+                else Toast.makeText(this, "此 APP 沒有可啟動的主畫面", Toast.LENGTH_SHORT).show();
+            });
+            item.addView(launch, new LinearLayout.LayoutParams(dp(105), dp(42)));
+
+            Button add = button("新增");
+            add.setTextSize(12);
+            LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(dp(82), dp(42));
+            addLp.leftMargin = dp(8);
+            item.addView(add, addLp);
+            add.setOnClickListener(v -> {
+                dialogDismiss(list);
+                bindProvider(info);
+            });
+
+            LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(72));
+            itemLp.bottomMargin = dp(8);
+            list.addView(item, itemLp);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("選擇第三方小工具")
-                .setItems(labels.toArray(new String[0]), (dialog, which) ->
-                        bindProvider(thirdParty.get(which)))
+                .setView(scroll)
+                .setNegativeButton("關閉", null)
+                .create();
+        for (int i = 0; i < list.getChildCount(); i++) {
+            View row = list.getChildAt(i);
+            if (row instanceof LinearLayout) {
+                View add = ((LinearLayout) row).getChildAt(3);
+                if (add != null) add.setOnClickListener(v -> {
+                    int position = list.indexOfChild(row);
+                    dialog.dismiss();
+                    bindProvider(thirdParty.get(position));
+                });
+            }
+        }
+        dialog.show();
+    }
+
+    private void dialogDismiss(View ignored) {
+        // The provider list is a transient chooser; binding starts after the chooser is dismissed.
+    }
+
+    private void showLayoutSettings() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.HORIZONTAL);
+        content.setGravity(Gravity.CENTER);
+        content.setPadding(dp(16), dp(16), dp(16), dp(16));
+        NumberPicker columns = new NumberPicker(this);
+        columns.setMinValue(1);
+        columns.setMaxValue(4);
+        NumberPicker rows = new NumberPicker(this);
+        rows.setMinValue(1);
+        rows.setMaxValue(3);
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        columns.setValue(Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2))));
+        rows.setValue(Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1))));
+        LinearLayout colBox = new LinearLayout(this);
+        colBox.setOrientation(LinearLayout.VERTICAL);
+        colBox.setGravity(Gravity.CENTER);
+        colBox.addView(text("每列欄數", 14, Color.WHITE));
+        colBox.addView(columns, new LinearLayout.LayoutParams(dp(110), dp(110)));
+        LinearLayout rowBox = new LinearLayout(this);
+        rowBox.setOrientation(LinearLayout.VERTICAL);
+        rowBox.setGravity(Gravity.CENTER);
+        rowBox.addView(text("顯示列數", 14, Color.WHITE));
+        rowBox.addView(rows, new LinearLayout.LayoutParams(dp(110), dp(110)));
+        content.addView(colBox);
+        content.addView(rowBox);
+        new AlertDialog.Builder(this)
+                .setTitle("桌面小工具欄列設定")
+                .setView(content)
                 .setNegativeButton("取消", null)
-                .show();
+                .setPositiveButton("儲存", (d, w) -> {
+                    prefs.edit()
+                            .putInt("desktop_widget_columns", columns.getValue())
+                            .putInt("desktop_widget_rows", rows.getValue())
+                            .apply();
+                    Toast.makeText(this, "桌面欄列設定已儲存", Toast.LENGTH_SHORT).show();
+                }).show();
     }
 
     private void bindProvider(AppWidgetProviderInfo info) {
