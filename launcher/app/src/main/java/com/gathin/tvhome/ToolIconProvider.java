@@ -16,6 +16,9 @@ import android.graphics.drawable.GradientDrawable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.security.MessageDigest;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Offline icon presentation for Tool Center. The two CYTV modes are deterministic local
@@ -36,6 +39,9 @@ final class ToolIconProvider {
         if (cached.isFile()) {
             android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeFile(cached.getAbsolutePath());
             if (bitmap != null) return new BitmapDrawable(context.getResources(), bitmap);
+            // A truncated cache must not permanently block regeneration.
+            //noinspection ResultOfMethodCallIgnored
+            cached.delete();
         }
 
         Drawable original;
@@ -60,6 +66,31 @@ final class ToolIconProvider {
             // Cache is an optimization only; the generated bitmap remains usable in memory.
         }
         return new BitmapDrawable(context.getResources(), rendered);
+    }
+
+    /**
+     * Keep only the two locally generated styles for currently selected, installed tools.
+     * Cache keys include package lastUpdateTime, so older icon versions are pruned as well.
+     */
+    void pruneCache(List<ToolRepository.Tool> tools) {
+        if (cacheDir == null || !cacheDir.isDirectory()) return;
+        Set<String> active = new HashSet<>();
+        if (tools != null) {
+            for (ToolRepository.Tool tool : tools) {
+                if (tool == null) continue;
+                active.add(key(tool, ToolRepository.IconMode.CYTV_SMART) + ".png");
+                active.add(key(tool, ToolRepository.IconMode.CYTV_MINIMAL) + ".png");
+            }
+        }
+        File[] files = cacheDir.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isFile() && file.getName().endsWith(".png")
+                    && !active.contains(file.getName())) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
+        }
     }
 
     private Bitmap render(Drawable source, ToolRepository.IconMode mode) {
