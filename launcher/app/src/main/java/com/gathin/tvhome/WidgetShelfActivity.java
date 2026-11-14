@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
+import android.widget.GridLayout;
 import android.widget.NumberPicker;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -230,31 +231,103 @@ public final class WidgetShelfActivity extends Activity {
     }
 
     private void showLayoutSettings() {
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        int initialColumns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        int initialRows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+
         LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.HORIZONTAL);
-        content.setGravity(Gravity.CENTER);
-        content.setPadding(dp(16), dp(16), dp(16), dp(16));
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(20), dp(12), dp(20), dp(12));
+
+        LinearLayout controls = new LinearLayout(this);
+        controls.setOrientation(LinearLayout.HORIZONTAL);
+        controls.setGravity(Gravity.CENTER);
         NumberPicker columns = new NumberPicker(this);
         columns.setMinValue(1);
         columns.setMaxValue(4);
+        columns.setWrapSelectorWheel(false);
+        columns.setValue(initialColumns);
         NumberPicker rows = new NumberPicker(this);
         rows.setMinValue(1);
         rows.setMaxValue(3);
-        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        columns.setValue(Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2))));
-        rows.setValue(Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1))));
+        rows.setWrapSelectorWheel(false);
+        rows.setValue(initialRows);
+
         LinearLayout colBox = new LinearLayout(this);
         colBox.setOrientation(LinearLayout.VERTICAL);
         colBox.setGravity(Gravity.CENTER);
         colBox.addView(text("每列欄數", 14, Color.WHITE));
-        colBox.addView(columns, new LinearLayout.LayoutParams(dp(110), dp(110)));
+        colBox.addView(columns, new LinearLayout.LayoutParams(dp(112), dp(104)));
         LinearLayout rowBox = new LinearLayout(this);
         rowBox.setOrientation(LinearLayout.VERTICAL);
         rowBox.setGravity(Gravity.CENTER);
         rowBox.addView(text("顯示列數", 14, Color.WHITE));
-        rowBox.addView(rows, new LinearLayout.LayoutParams(dp(110), dp(110)));
-        content.addView(colBox);
-        content.addView(rowBox);
+        rowBox.addView(rows, new LinearLayout.LayoutParams(dp(112), dp(104)));
+        controls.addView(colBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        controls.addView(rowBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        content.addView(controls);
+
+        TextView summary = text("", 13, 0xFFB9C7D5);
+        summary.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams summaryLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
+        summaryLp.topMargin = dp(4);
+        content.addView(summary, summaryLp);
+
+        GridLayout preview = new GridLayout(this);
+        preview.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        preview.setUseDefaultMargins(false);
+        preview.setPadding(dp(4), dp(4), dp(4), dp(4));
+        preview.setBackground(makePreviewPanel());
+        LinearLayout.LayoutParams previewLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(190));
+        previewLp.topMargin = dp(6);
+        content.addView(preview, previewLp);
+
+        TextView note = text("預覽會依欄數與列數即時排列；儲存後套用至桌面。", 12, 0xFF8F9BAA);
+        note.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(34));
+        content.addView(note, noteLp);
+
+        Runnable refreshPreview = () -> {
+            int cols = columns.getValue();
+            int rowCount = rows.getValue();
+            summary.setText("桌面配置：" + cols + " 欄 × " + rowCount + " 列");
+            preview.removeAllViews();
+            preview.setColumnCount(cols);
+            preview.setRowCount(rowCount);
+            int total = cols * rowCount;
+            for (int i = 0; i < total; i++) {
+                LinearLayout tile = new LinearLayout(this);
+                tile.setOrientation(LinearLayout.VERTICAL);
+                tile.setGravity(Gravity.CENTER);
+                GradientDrawable tileBg = new GradientDrawable();
+                tileBg.setColor(0x332D4654);
+                tileBg.setCornerRadius(dp(9));
+                tileBg.setStroke(dp(1), 0x664CA6AD);
+                tile.setBackground(tileBg);
+                TextView icon = text("◫", 22, 0xFFB8D7DC);
+                icon.setGravity(Gravity.CENTER);
+                tile.addView(icon, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+                TextView label = text("小工具 " + (i + 1), 10, 0xFFB9C7D5);
+                label.setGravity(Gravity.CENTER);
+                tile.addView(label, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(24)));
+                GridLayout.LayoutParams cell = new GridLayout.LayoutParams(
+                        GridLayout.spec(i / cols, 1f), GridLayout.spec(i % cols, 1f));
+                cell.width = 0;
+                cell.height = 0;
+                cell.setMargins(dp(4), dp(4), dp(4), dp(4));
+                preview.addView(tile, cell);
+            }
+            preview.requestLayout();
+        };
+        columns.setOnValueChangedListener((picker, oldValue, newValue) -> refreshPreview.run());
+        rows.setOnValueChangedListener((picker, oldValue, newValue) -> refreshPreview.run());
+        refreshPreview.run();
+
         new AlertDialog.Builder(this)
                 .setTitle("桌面小工具欄列設定")
                 .setView(content)
@@ -266,6 +339,14 @@ public final class WidgetShelfActivity extends Activity {
                             .apply();
                     Toast.makeText(this, "桌面欄列設定已儲存", Toast.LENGTH_SHORT).show();
                 }).show();
+    }
+
+    private android.graphics.drawable.Drawable makePreviewPanel() {
+        GradientDrawable panel = new GradientDrawable();
+        panel.setColor(0xFF171D27);
+        panel.setCornerRadius(dp(12));
+        panel.setStroke(dp(1), 0x334CA6AD);
+        return panel;
     }
 
     private void bindProvider(AppWidgetProviderInfo info) {
