@@ -3,7 +3,7 @@ name: CYTV R142 Firefly Glow Position Build
 on:
   push:
     branches:
-      - feature/glow-particles-position-r142
+      - feature/glow-particles-size-position-r141
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r142-firefly-position.yml'
