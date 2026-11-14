@@ -19,9 +19,9 @@ public final class GlowParticlesView extends View {
     private static final float EFFECT_SCALE = 1.28f;
     // Increase the R138 particle radius spread by a further 50%.
     private static final float SIZE_VARIATION_SCALE = 3.375f;
-    // Move the particle field 160dp right and 150dp down.
+    // Move the particle field 160dp right and 180dp down.
     private static final float OFFSET_X_DP = 160.0f;
-    private static final float OFFSET_Y_DP = 150.0f;
+    private static final float OFFSET_Y_DP = 180.0f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float[] seeds = new float[PARTICLES * 4];
