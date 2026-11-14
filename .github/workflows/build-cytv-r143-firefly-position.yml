@@ -10,7 +10,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feature/glow-particles-position-r143
+      - feature/glow-particles-position-r142
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r143-firefly-position.yml'
