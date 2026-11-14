@@ -15,6 +15,9 @@ import android.view.View;
 public final class GlowParticlesView extends View {
     private static final int PARTICLES = 22;
     private static final long FRAME_DELAY_MS = 72L;
+    private static final float EFFECT_SCALE = 2.0f;
+    private static final float SIZE_VARIATION_SCALE = 1.5f;
+    private static final float OFFSET_DP = 30.0f;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float[] seeds = new float[PARTICLES * 4];
     private boolean active;
@@ -79,6 +82,9 @@ public final class GlowParticlesView extends View {
         float zoneW = w * .47f;
         float zoneH = h * .66f;
         canvas.save();
+        float density = getResources().getDisplayMetrics().density;
+        canvas.translate(OFFSET_DP * density, OFFSET_DP * density);
+        canvas.scale(EFFECT_SCALE, EFFECT_SCALE);
         canvas.clipRect(0f, 0f, zoneW, zoneH);
         for (int i = 0; i < PARTICLES; i++) {
             int p = i * 4;
@@ -86,12 +92,14 @@ public final class GlowParticlesView extends View {
             float x = seeds[p] * zoneW + (float) Math.sin(phase) * (5f + (i % 4) * 2f);
             float y = seeds[p + 1] * zoneH + (float) Math.cos(phase * .73f) * (4f + (i % 3) * 2f);
             float pulse = .30f + .70f * (0.5f + 0.5f * (float) Math.sin(phase * 1.4f));
-            float radius = (seeds[p + 3] + .35f) * getResources().getDisplayMetrics().density;
+            // Keep the original average dot size while widening the radius spread by 50%.
+            float radiusFactor = 1.30f + (seeds[p + 3] - .95f) * SIZE_VARIATION_SCALE;
+            float radius = radiusFactor * density;
             int alpha = Math.min(150, Math.max(12, (int) (seeds[p + 2] * 170f * pulse)));
             paint.setColor((alpha << 24) | 0x00E9F5FF);
             canvas.drawCircle(x, y, radius * 2.5f, paint);
             paint.setColor((Math.min(205, alpha + 35) << 24) | 0x00FFFFFF);
-            canvas.drawCircle(x, y, Math.max(.65f * getResources().getDisplayMetrics().density, radius * .55f), paint);
+            canvas.drawCircle(x, y, Math.max(.65f * density, radius * .55f), paint);
         }
         canvas.restore();
     }
