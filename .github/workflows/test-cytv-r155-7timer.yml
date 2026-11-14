@@ -1,0 +1,55 @@
+name: CYTV R155 7Timer API Validation
+
+on:
+  push:
+    branches:
+      - feature/weather-third-fallback-r155
+    paths:
+      - '.github/workflows/test-cytv-r155-7timer.yml'
+      - 'launcher/**'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - fix/weather-metno-fallback-r154
+    paths:
+      - '.github/workflows/test-cytv-r155-7timer.yml'
+      - 'launcher/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-7timer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query 7Timer CIVIL Light for Taoyuan
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 25 \
+            'https://www.7timer.info/bin/api.pl?lon=121.31&lat=24.99&product=civillight&output=json' \
+            -o /tmp/7timer.json
+          python3 - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+
+          payload = json.loads(Path('/tmp/7timer.json').read_text(encoding='utf-8'))
+          assert payload.get('product') == 'civillight', 'Unexpected product'
+          days = payload.get('dataseries')
+          assert isinstance(days, list) and len(days) >= 7, 'Fewer than seven forecast days'
+          for item in days[:7]:
+              date = str(item.get('date', ''))
+              datetime.strptime(date, '%Y%m%d')
+              weather = item.get('weather')
+              assert isinstance(weather, str) and weather, 'Missing weather code'
+              temps = item.get('temp2m')
+              assert isinstance(temps, dict), 'Missing temp2m object'
+              assert isinstance(temps.get('max'), (int, float)), 'Missing daily maximum'
+              assert isinstance(temps.get('min'), (int, float)), 'Missing daily minimum'
+              assert temps['max'] >= temps['min'], 'Maximum below minimum'
+          print('7Timer CIVIL Light schema OK; validated first seven forecast days.')
+          print('Provider init:', payload.get('init', 'unknown'))
+          print('First forecast date:', days[0]['date'])
+          print('Last validated date:', days[6]['date'])
+          PY
