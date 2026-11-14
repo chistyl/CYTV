@@ -1255,14 +1255,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateDesktopWidgetSpacing();
         desktopWidgetManager = AppWidgetManager.getInstance(this);
         desktopWidgetHost = new AppWidgetHost(this, CYTV_WIDGET_HOST_ID);
-        LinearLayout header = (LinearLayout) desktopWidgetSection.getChildAt(0);
-        if (header != null && header.getChildCount() >= 2) {
-            header.getChildAt(1).setOnClickListener(v ->
-                    startActivity(new Intent(this, WidgetShelfActivity.class)));
-            header.getChildAt(2).setOnClickListener(v ->
-                    startActivity(new Intent(this, WidgetShelfActivity.class)));
-        }
-        View scroll = desktopWidgetSection.getChildAt(1);
+        // Desktop is display-only: all add/manage/remove controls live in WidgetShelfActivity.
+        View scroll = desktopWidgetSection.getChildAt(0);
         if (scroll instanceof ScrollView) {
             View child = ((ScrollView) scroll).getChildAt(0);
             if (child instanceof GridLayout) desktopWidgetGrid = (GridLayout) child;
@@ -1315,8 +1309,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (id != AppWidgetManager.INVALID_APPWIDGET_ID && !ids.contains(id)) ids.add(id);
             }
         } catch (Exception ignored) { }
+
         int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
         desktopWidgetGrid.setColumnCount(columns);
+        desktopWidgetGrid.setUseDefaultMargins(false);
+
         for (int id : ids) {
             AppWidgetProviderInfo info = desktopWidgetManager.getAppWidgetInfo(id);
             if (info == null) {
@@ -1324,52 +1322,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 continue;
             }
             valid.add(id);
+
+            // Keep the CYTV outer frame, but render only the provider's actual widget view.
+            // No app title, launch shortcut, add/manage/remove controls or placeholder is shown on Home.
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(desktopWidgetDp(9), desktopWidgetDp(7), desktopWidgetDp(9), desktopWidgetDp(8));
+            card.setGravity(Gravity.CENTER);
+            card.setPadding(desktopWidgetDp(6), desktopWidgetDp(6),
+                    desktopWidgetDp(6), desktopWidgetDp(6));
             GradientDrawable bg = new GradientDrawable();
             bg.setColor(0xD91A202A);
             bg.setCornerRadius(desktopWidgetDp(13));
             bg.setStroke(Math.max(1, desktopWidgetDp(1)), 0x334CA6AD);
             card.setBackground(bg);
-
-            LinearLayout titleRow = new LinearLayout(this);
-            titleRow.setGravity(Gravity.CENTER_VERTICAL);
-            ImageView appIcon = new ImageView(this);
-            try { appIcon.setImageDrawable(getPackageManager().getApplicationIcon(info.provider.getPackageName())); }
-            catch (Exception ignored) { appIcon.setImageResource(android.R.drawable.sym_def_app_icon); }
-            titleRow.addView(appIcon, new LinearLayout.LayoutParams(desktopWidgetDp(24), desktopWidgetDp(24)));
-            TextView title = new TextView(this);
-            CharSequence label = info.loadLabel(getPackageManager());
-            title.setText(label == null ? info.provider.getPackageName() : label);
-            title.setTextColor(Color.WHITE);
-            title.setTextSize(13);
-            title.setSingleLine(true);
-            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, desktopWidgetDp(30), 1);
-            titleLp.leftMargin = desktopWidgetDp(7);
-            titleRow.addView(title, titleLp);
-            TextView launch = new TextView(this);
-            launch.setText("啟動");
-            launch.setTextColor(0xFF9BDCE0);
-            launch.setTextSize(12);
-            launch.setGravity(Gravity.CENTER);
-            launch.setFocusable(true);
-            launch.setClickable(true);
-            launch.setPadding(desktopWidgetDp(8), 0, desktopWidgetDp(8), 0);
-            launch.setOnClickListener(v -> {
-                Intent app = getPackageManager().getLaunchIntentForPackage(info.provider.getPackageName());
-                if (app != null) open(app);
-                else Toast.makeText(this, "此小工具 APP 沒有可啟動的主畫面", Toast.LENGTH_SHORT).show();
-            });
-            titleRow.addView(launch, new LinearLayout.LayoutParams(desktopWidgetDp(48), desktopWidgetDp(30)));
-            card.addView(titleRow);
+            card.setFocusable(false);
 
             AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
             hostView.setFocusable(true);
             hostView.setFocusableInTouchMode(false);
-            int widgetHeight = Math.max(desktopWidgetDp(82), Math.min(desktopWidgetDp(122),
-                    info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(100)));
+            hostView.setClickable(true);
+            int providerHeight = info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(120);
+            int widgetHeight = Math.max(desktopWidgetDp(100), Math.min(desktopWidgetDp(260), providerHeight));
             card.addView(hostView, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, widgetHeight));
 
@@ -1377,31 +1350,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lp.width = 0;
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
             lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            lp.setMargins(desktopWidgetDp(5), desktopWidgetDp(4), desktopWidgetDp(5), desktopWidgetDp(4));
+            lp.setMargins(desktopWidgetDp(5), desktopWidgetDp(4),
+                    desktopWidgetDp(5), desktopWidgetDp(4));
             desktopWidgetGrid.addView(card, lp);
         }
+
         if (valid.size() != ids.size()) {
             JSONArray cleaned = new JSONArray();
             for (int id : valid) cleaned.put(id);
             prefs.edit().putString("widget_ids", cleaned.toString()).apply();
         }
-        if (valid.isEmpty()) {
-            TextView empty = new TextView(this);
-            empty.setText("尚未新增小工具  ·  按上方「新增小工具 +」開始");
-            empty.setTextColor(0xFF9AA6B5);
-            empty.setTextSize(13);
-            empty.setGravity(Gravity.CENTER_VERTICAL);
-            empty.setPadding(desktopWidgetDp(12), 0, 0, 0);
-            desktopWidgetGrid.addView(empty, new GridLayout.LayoutParams(
-                    GridLayout.spec(0), GridLayout.spec(0, 1f)));
-        }
-        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
-        View scroll = desktopWidgetSection.getChildAt(1);
+
+        // Row count controls the visible widget workspace; overflow remains vertically scrollable.
+        View scroll = desktopWidgetSection.getChildAt(0);
         if (scroll instanceof ScrollView) {
-            ((ScrollView) scroll).getLayoutParams().height = desktopWidgetDp(rows * 130);
-            ((ScrollView) scroll).requestLayout();
+            ViewGroup.LayoutParams scrollLp = scroll.getLayoutParams();
+            int targetHeight = desktopWidgetDp(rows * 150);
+            if (scrollLp.height != targetHeight) {
+                scrollLp.height = targetHeight;
+                scroll.setLayoutParams(scrollLp);
+            }
         }
-        desktopWidgetSection.setVisibility(View.VISIBLE);
+        // Empty desktop space is kept completely clear; the empty-state message belongs only in management.
+        desktopWidgetSection.setVisibility(valid.isEmpty() ? View.GONE : View.VISIBLE);
         desktopWidgetGrid.requestLayout();
     }
 
