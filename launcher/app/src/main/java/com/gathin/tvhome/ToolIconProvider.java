@@ -27,7 +27,7 @@ final class ToolIconProvider {
 
     ToolIconProvider(Context context) {
         this.context = context.getApplicationContext();
-        cacheDir = new File(this.context.getCacheDir(), "cytv-tool-icons");
+        cacheDir = new File(this.context.getFilesDir(), "cytv-tool-icons");
         if (!cacheDir.exists()) cacheDir.mkdirs();
     }
 
