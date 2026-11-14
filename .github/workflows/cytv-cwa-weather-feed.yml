@@ -210,7 +210,8 @@ jobs:
               )
           print("CWA county weekly feed validation: PASS")
           print("Datasets:", len(datasets))
-          print("Townships returned:", total_locations)\n          print("Townships with normalized 7-day forecasts:", valid_locations)
+          print("Townships returned:", total_locations)
+          print("Townships with normalized 7-day forecasts:", valid_locations)
           print("API key present; value not logged.")
           PY
 
