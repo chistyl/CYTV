@@ -1,7 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.SharedPreferences;\nimport android.content.ComponentName;\nimport android.content.pm.PackageManager;
 import android.text.TextUtils;
 
 import org.json.JSONArray;
@@ -85,6 +85,29 @@ final class ToolRepository {
         }
         Collections.sort(result, (a, b) -> Integer.compare(a.position, b.position));
         return result;
+    }
+
+    synchronized void refreshInstalledEntries(PackageManager packageManager) {
+        ArrayList<Tool> refreshed = new ArrayList<>();
+        boolean changed = false;
+        for (Tool tool : getTools()) {
+            try {
+                android.content.pm.ActivityInfo info = packageManager.getActivityInfo(
+                        new ComponentName(tool.packageName, tool.activityName), 0);
+                if (!info.enabled || !info.exported) {
+                    changed = true;
+                    continue;
+                }
+                String label = info.loadLabel(packageManager).toString();
+                if (!TextUtils.equals(label, tool.label)) changed = true;
+                refreshed.add(new Tool(tool.packageName, tool.activityName, label,
+                        refreshed.size(), tool.cachedIconPath));
+            } catch (PackageManager.NameNotFoundException | RuntimeException missing) {
+                // The app was removed or its launcher activity is no longer available.
+                changed = true;
+            }
+        }
+        if (changed) saveTools(refreshed);
     }
 
     synchronized boolean contains(String packageName, String activityName) {
