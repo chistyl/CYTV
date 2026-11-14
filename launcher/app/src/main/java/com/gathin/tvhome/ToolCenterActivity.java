@@ -9,11 +9,14 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Independent, full-screen tool shelf. It deliberately does not reuse the Home app grid:
@@ -35,6 +39,8 @@ public final class ToolCenterActivity extends Activity {
     private LinearLayout root;
     private GridLayout grid;
     private TextView empty;
+    private EditText searchInput;
+    private String searchQuery = "";
     private ToolIconProvider iconProvider;
     private final float density() { return getResources().getDisplayMetrics().density; }
     private int dp(int value) { return Math.round(value * density()); }
@@ -77,8 +83,33 @@ public final class ToolCenterActivity extends Activity {
         root.addView(header);
 
         TextView hint = text("只加入本機已安裝的應用程式；移除工具捷徑不會解除安裝 APP。", 13, 0xFF9AA6B5);
-        hint.setPadding(0, dp(2), 0, dp(14));
+        hint.setPadding(0, dp(2), 0, dp(10));
         root.addView(hint);
+
+        searchInput = new EditText(this);
+        searchInput.setSingleLine(true);
+        searchInput.setTextSize(16);
+        searchInput.setTextColor(Color.WHITE);
+        searchInput.setHintTextColor(0xFF8995A4);
+        searchInput.setHint("搜尋工具名稱");
+        searchInput.setPadding(dp(16), 0, dp(16), 0);
+        GradientDrawable searchBackground = new GradientDrawable();
+        searchBackground.setColor(0xFF202936);
+        searchBackground.setCornerRadius(dp(12));
+        searchBackground.setStroke(dp(1), 0x334CA6AD);
+        searchInput.setBackground(searchBackground);
+        root.addView(searchInput, new LinearLayout.LayoutParams(-1, dp(48)));
+        LinearLayout.LayoutParams searchMargin = (LinearLayout.LayoutParams) searchInput.getLayoutParams();
+        searchMargin.bottomMargin = dp(12);
+        searchInput.setLayoutParams(searchMargin);
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s == null ? "" : s.toString().trim();
+                renderTools();
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -100,8 +131,19 @@ public final class ToolCenterActivity extends Activity {
         grid.removeAllViews();
         int columns = repository.getColumns();
         grid.setColumnCount(columns);
-        List<ToolRepository.Tool> tools = repository.getTools();
+        List<ToolRepository.Tool> allTools = repository.getTools();
+        List<ToolRepository.Tool> tools = new ArrayList<>();
+        String query = searchQuery.toLowerCase(Locale.ROOT);
+        for (ToolRepository.Tool tool : allTools) {
+            if (query.isEmpty() || tool.label.toLowerCase(Locale.ROOT).contains(query)
+                    || tool.packageName.toLowerCase(Locale.ROOT).contains(query)) {
+                tools.add(tool);
+            }
+        }
         empty.setVisibility(tools.isEmpty() ? View.VISIBLE : View.GONE);
+        empty.setText(allTools.isEmpty()
+                ? "目前尚未新增工具\n請選擇右上方「新增工具 +」"
+                : "找不到符合的工具");
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
         int cellWidth = Math.max(dp(64), (screenWidth - dp(12 * columns)) / columns);
         int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);
