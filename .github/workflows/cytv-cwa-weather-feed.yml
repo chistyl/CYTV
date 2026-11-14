@@ -16,6 +16,7 @@ permissions:
 jobs:
   publish-cwa-feed:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Fetch and validate CWA county weekly forecasts
         env:
@@ -127,7 +128,7 @@ jobs:
               query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
               url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{query}"
               req = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Feed/1.0"})
-              with urllib.request.urlopen(req, timeout=75) as response:
+              with urllib.request.urlopen(req, timeout=25) as response:
                   if response.status != 200:
                       raise SystemExit(f"CWA HTTP {response.status} for {dataset_id}")
                   payload = json.loads(response.read().decode("utf-8"))
@@ -143,7 +144,7 @@ jobs:
                   raise SystemExit(f"{county} ({dataset_id}) sample township lacks seven max/min dates")
               bundle["datasets"][dataset_id] = payload
               total_locations += len(locations)
-              print(f"Validated {county}: {len(locations)} townships, 7-day temperatures present")
+              print(f"Validated {county}: {len(locations)} townships, 7-day temperatures present", flush=True)
               time.sleep(0.2)
 
           os.makedirs("feed", exist_ok=True)
