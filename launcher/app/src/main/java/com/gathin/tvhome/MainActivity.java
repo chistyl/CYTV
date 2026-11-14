@@ -4076,7 +4076,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // PopupWindow must finish detaching before the wallpaper Dialog is created.
         // Posting avoids overlapping window-token transitions on Android 9 TV firmware.
         addSettingsMenuRow(rows, popup, "影像輪播", () -> root.post(this::showWallpaperPicker));
-        addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
+        addSettingsMenuRow(rows, popup, "新增工具 +", () -> {\n            popup.dismiss();\n            startActivity(new Intent(this, ToolCenterActivity.class));\n        });\n        addSettingsMenuRow(rows, popup, "應用分類 +", this::showCreateFolderDialog);
         addSettingsMenuRow(rows, popup, "YouTube 助手", () -> {
             popup.dismiss();
             startActivity(new Intent(this, YouTubeAssistantActivity.class));
