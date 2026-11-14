@@ -1,0 +1,159 @@
+name: CYTV CWA Taiwan Weekly Weather Feed
+
+on:
+  push:
+    branches:
+      - feature/weather-third-fallback-r155
+    paths:
+      - '.github/workflows/cytv-cwa-weather-feed.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-cwa-feed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and validate CWA nationwide weekly forecast
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          key = os.environ.get("CWA_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("CWA_API_KEY is missing; refusing to publish an empty feed.")
+
+          dataset = "F-D0047-093"
+          query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
+          url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset}?{query}"
+          req = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Feed/1.0"})
+          with urllib.request.urlopen(req, timeout=90) as response:
+              if response.status != 200:
+                  raise SystemExit(f"CWA HTTP {response.status}")
+              payload = json.loads(response.read().decode("utf-8"))
+
+          if str(payload.get("success", "")).lower() != "true":
+              raise SystemExit("CWA did not return success=true.")
+
+          records = payload.get("records") or payload.get("Records") or {}
+          roots = records.get("Locations") or records.get("locations") or []
+
+          locations = []
+          def walk(node):
+              if isinstance(node, dict):
+                  if ("LocationName" in node or "locationName" in node) and (
+                      "WeatherElement" in node or "weatherElement" in node
+                  ):
+                      locations.append(node)
+                  for value in node.values():
+                      if isinstance(value, (dict, list)):
+                          walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      walk(value)
+          walk(roots)
+
+          if len(locations) < 300:
+              raise SystemExit(f"Nationwide dataset returned only {len(locations)} townships; expected at least 300.")
+
+          def get(obj, *keys, default=None):
+              for key in keys:
+                  if isinstance(obj, dict) and key in obj:
+                      return obj[key]
+              return default
+
+          def scalar(node):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      if k.lower() in ("value", "parametername"):
+                          result = scalar(v)
+                          if result not in (None, "", "-", "X"):
+                              return result
+                  for k, v in node.items():
+                      if k.lower() not in ("unit", "measures"):
+                          result = scalar(v)
+                          if result not in (None, "", "-", "X"):
+                              return result
+                  return None
+              if isinstance(node, list):
+                  for v in node:
+                      result = scalar(v)
+                      if result not in (None, "", "-", "X"):
+                          return result
+                  return None
+              return node if isinstance(node, (str, int, float)) else None
+
+          def count_days(location, element_name):
+              elements = get(location, "WeatherElement", "weatherElement", default=[]) or []
+              element = next((e for e in elements if get(e, "ElementName", "elementName") == element_name), None)
+              if not element:
+                  return set()
+              days = set()
+              for slot in get(element, "Time", "time", default=[]) or []:
+                  start = get(slot, "StartTime", "startTime", "DataTime", "dataTime")
+                  values = get(slot, "ElementValue", "elementValue", default=[]) or []
+                  if not start or not scalar(values):
+                      continue
+                  try:
+                      dt = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+                      if dt.tzinfo is None:
+                          dt = dt.replace(tzinfo=ZoneInfo("Asia/Taipei"))
+                      days.add(dt.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat())
+                  except ValueError:
+                      continue
+              return days
+
+          # Verify a representative Taoyuan township has a usable 7-day temperature range.
+          sample = next((x for x in locations if get(x, "LocationName", "locationName") == "桃園區"), None)
+          if sample is None:
+              raise SystemExit("Nationwide feed does not contain 桃園區.")
+          high_days = count_days(sample, "最高溫度")
+          low_days = count_days(sample, "最低溫度")
+          if len(high_days & low_days) < 7:
+              raise SystemExit("桃園區 does not contain seven usable max/min forecast dates.")
+
+          os.makedirs("feed", exist_ok=True)
+          with open("feed/cwa-weekly.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+          with open("feed/README.md", "w", encoding="utf-8") as f:
+              f.write(
+                  "# CYTV CWA Weekly Weather Feed\n\n"
+                  "Source: Taiwan Central Weather Administration (CWA), dataset F-D0047-093.\n\n"
+                  "License: Government Data Open License, Version 1.\n\n"
+                  "Attribution: 交通部中央氣象署\n\n"
+                  "This file is refreshed by GitHub Actions. The CWA API key is never included.\n"
+              )
+          print("CWA nationwide weekly feed validation: PASS")
+          print("Dataset:", dataset)
+          print("Townships:", len(locations))
+          print("Taoyuan District usable max/min days:", len(high_days & low_days))
+          print("API key present; value not logged.")
+          PY
+
+      - name: Publish public feed branch (without API credentials)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir publish
+          cp feed/cwa-weekly.json feed/README.md publish/
+          cd publish
+          git init
+          git checkout -b weather-data
+          git add cwa-weekly.json README.md
+          git commit -m "data: refresh CWA nationwide weekly forecast"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin weather-data
