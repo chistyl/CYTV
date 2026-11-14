@@ -209,7 +209,7 @@ jobs:
                   "The feed is refreshed by GitHub Actions every six hours. The CWA API key is never included.\n"
               )
           print("CWA county weekly feed validation: PASS")
-          print("Datasets:", len(bundle["datasets"]))
+          print("Datasets:", len(datasets))
           print("Townships returned:", total_locations)\n          print("Townships with normalized 7-day forecasts:", valid_locations)
           print("API key present; value not logged.")
           PY
