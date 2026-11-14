@@ -516,23 +516,13 @@ public final class WidgetShelfActivity extends Activity {
     }
 
     private void normalizeSlotsToGrid() {
+        // Keep each widget's original coordinate when the visible grid shrinks.
+        // Slots outside the current row/column range remain persisted and reappear
+        // at the same coordinate when the user expands the grid again.
         List<Integer> slots = readSlots();
         int count = configuredSlotCount();
-        ArrayList<Integer> normalized = new ArrayList<>();
-        for (int i = 0; i < count; i++) normalized.add(0);
-        ArrayList<Integer> overflow = new ArrayList<>();
-        for (int i = 0; i < slots.size(); i++) {
-            int id = slots.get(i);
-            if (id <= 0) continue;
-            if (i < count && normalized.get(i) == 0) normalized.set(i, id);
-            else overflow.add(id);
-        }
-        for (int id : overflow) {
-            int target = normalized.indexOf(0);
-            if (target < 0) normalized.add(id);
-            else normalized.set(target, id);
-        }
-        saveSlots(normalized);
+        while (slots.size() < count) slots.add(0);
+        saveSlots(slots);
     }
 
     private List<Integer> readIds() {
