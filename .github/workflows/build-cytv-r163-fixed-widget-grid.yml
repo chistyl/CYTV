@@ -11,7 +11,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feature/desktop-widget-polish-r161
+      - feature/widget-layout-live-preview-r162
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r163-fixed-widget-grid.yml'
