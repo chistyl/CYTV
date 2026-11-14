@@ -545,6 +545,8 @@ public final class WidgetShelfActivity extends Activity {
         int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
         int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
         int count = columns * rows;
+        widgetList.setClipChildren(true);
+        widgetList.setClipToPadding(true);
         widgetList.setColumnCount(columns);
         widgetList.setRowCount(rows);
         List<Integer> slots = readSlots();
@@ -600,6 +602,8 @@ public final class WidgetShelfActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
+        card.setClipChildren(true);
+        card.setClipToPadding(true);
         card.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable background = new GradientDrawable();
         background.setColor(0xFF202936);
