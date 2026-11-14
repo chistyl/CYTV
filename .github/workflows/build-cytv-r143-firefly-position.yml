@@ -1,19 +1,19 @@
-name: CYTV R144 Firefly Glow Position Build
+name: CYTV R145 Firefly Glow Position Build
 
 on:
   push:
     branches:
-      - feature/glow-particles-position-r144
+      - feature/glow-particles-position-r145
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r143-firefly-position.yml'
+      - '.github/workflows/build-cytv-r144-firefly-position.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feature/glow-particles-position-r143
+      - feature/glow-particles-position-r144
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r143-firefly-position.yml'
+      - '.github/workflows/build-cytv-r144-firefly-position.yml'
   workflow_dispatch:
 
 permissions:
@@ -38,13 +38,13 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R144-debug.apk
-          zip -r release/CYTV-R144-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R145-debug.apk
+          zip -r release/CYTV-R145-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R144-APK-and-Source
+          name: CYTV-R145-APK-and-Source
           path: |
-            release/CYTV-R144-debug.apk
-            release/CYTV-R144-Source.zip
+            release/CYTV-R145-debug.apk
+            release/CYTV-R145-Source.zip
           if-no-files-found: error
