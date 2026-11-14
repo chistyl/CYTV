@@ -3,6 +3,10 @@ package com.gathin.tvhome;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
@@ -74,6 +78,7 @@ import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.HorizontalScrollView;
@@ -175,6 +180,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppAdapter adapter;
     private RecyclerView grid;
     private FrameLayout root;
+    // Native third-party widgets hosted directly in the Home desktop (R159).
+    private static final int CYTV_WIDGET_HOST_ID = 0x43595456;
+    private AppWidgetManager desktopWidgetManager;
+    private AppWidgetHost desktopWidgetHost;
+    private LinearLayout desktopWidgetSection;
+    private GridLayout desktopWidgetGrid;
     private WallpaperPlayer wallpaperPlayer;
     private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
@@ -781,6 +792,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Order savedOrder = Order.load(Order.file(this));
         adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
         grid.setAdapter(adapter);
+        setupDesktopWidgets();
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -1235,6 +1247,130 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Build the inline widget shelf on the existing desktop; hidden when no widgets are configured. */
+    private void setupDesktopWidgets() {
+        desktopWidgetSection = findViewById(R.id.desktopWidgetSection);
+        if (desktopWidgetSection == null) return;
+        desktopWidgetManager = AppWidgetManager.getInstance(this);
+        desktopWidgetHost = new AppWidgetHost(this, CYTV_WIDGET_HOST_ID);
+        LinearLayout header = (LinearLayout) desktopWidgetSection.getChildAt(0);
+        if (header != null && header.getChildCount() >= 2) {
+            header.getChildAt(1).setOnClickListener(v ->
+                    startActivity(new Intent(this, WidgetShelfActivity.class)));
+            header.getChildAt(2).setOnClickListener(v ->
+                    startActivity(new Intent(this, WidgetShelfActivity.class)));
+        }
+        View scroll = desktopWidgetSection.getChildAt(1);
+        if (scroll instanceof ScrollView) {
+            View child = ((ScrollView) scroll).getChildAt(0);
+            if (child instanceof GridLayout) desktopWidgetGrid = (GridLayout) child;
+        }
+        renderDesktopWidgets();
+    }
+
+    private void startDesktopWidgetListening() {
+        if (desktopWidgetHost == null) return;
+        try { desktopWidgetHost.startListening(); } catch (RuntimeException ignored) { }
+        renderDesktopWidgets();
+    }
+
+    private void stopDesktopWidgetListening() {
+        if (desktopWidgetHost == null) return;
+        try { desktopWidgetHost.stopListening(); } catch (RuntimeException ignored) { }
+    }
+
+    private int desktopWidgetDp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void renderDesktopWidgets() {
+        if (desktopWidgetGrid == null || desktopWidgetManager == null || desktopWidgetHost == null) return;
+        desktopWidgetGrid.removeAllViews();
+        SharedPreferences prefs = getSharedPreferences("cytv_desktop_widgets", MODE_PRIVATE);
+        String raw = prefs.getString("widget_ids", "[]");
+        ArrayList<Integer> ids = new ArrayList<>();
+        ArrayList<Integer> valid = new ArrayList<>();
+        try {
+            JSONArray saved = new JSONArray(raw);
+            for (int i = 0; i < saved.length(); i++) {
+                int id = saved.optInt(i, AppWidgetManager.INVALID_APPWIDGET_ID);
+                if (id != AppWidgetManager.INVALID_APPWIDGET_ID && !ids.contains(id)) ids.add(id);
+            }
+        } catch (Exception ignored) { }
+        int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        desktopWidgetGrid.setColumnCount(columns);
+        for (int id : ids) {
+            AppWidgetProviderInfo info = desktopWidgetManager.getAppWidgetInfo(id);
+            if (info == null) {
+                try { desktopWidgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
+                continue;
+            }
+            valid.add(id);
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(desktopWidgetDp(9), desktopWidgetDp(7), desktopWidgetDp(9), desktopWidgetDp(8));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xD91A202A);
+            bg.setCornerRadius(desktopWidgetDp(13));
+            bg.setStroke(Math.max(1, desktopWidgetDp(1)), 0x334CA6AD);
+            card.setBackground(bg);
+
+            LinearLayout titleRow = new LinearLayout(this);
+            titleRow.setGravity(Gravity.CENTER_VERTICAL);
+            ImageView appIcon = new ImageView(this);
+            try { appIcon.setImageDrawable(getPackageManager().getApplicationIcon(info.provider.getPackageName())); }
+            catch (Exception ignored) { appIcon.setImageResource(android.R.drawable.sym_def_app_icon); }
+            titleRow.addView(appIcon, new LinearLayout.LayoutParams(desktopWidgetDp(24), desktopWidgetDp(24)));
+            TextView title = new TextView(this);
+            CharSequence label = info.loadLabel(getPackageManager());
+            title.setText(label == null ? info.provider.getPackageName() : label);
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(13);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, desktopWidgetDp(30), 1);
+            titleLp.leftMargin = desktopWidgetDp(7);
+            titleRow.addView(title, titleLp);
+            TextView launch = new TextView(this);
+            launch.setText("啟動");
+            launch.setTextColor(0xFF9BDCE0);
+            launch.setTextSize(12);
+            launch.setGravity(Gravity.CENTER);
+            launch.setFocusable(true);
+            launch.setClickable(true);
+            launch.setPadding(desktopWidgetDp(8), 0, desktopWidgetDp(8), 0);
+            launch.setOnClickListener(v -> {
+                Intent app = getPackageManager().getLaunchIntentForPackage(info.provider.getPackageName());
+                if (app != null) open(app);
+                else Toast.makeText(this, "此小工具 APP 沒有可啟動的主畫面", Toast.LENGTH_SHORT).show();
+            });
+            titleRow.addView(launch, new LinearLayout.LayoutParams(desktopWidgetDp(48), desktopWidgetDp(30)));
+            card.addView(titleRow);
+
+            AppWidgetHostView hostView = desktopWidgetHost.createView(this, id, info);
+            hostView.setFocusable(true);
+            hostView.setFocusableInTouchMode(false);
+            int widgetHeight = Math.max(desktopWidgetDp(82), Math.min(desktopWidgetDp(122),
+                    info.minHeight > 0 ? desktopWidgetDp(info.minHeight) : desktopWidgetDp(100)));
+            card.addView(hostView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, widgetHeight));
+
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = 0;
+            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            lp.setMargins(desktopWidgetDp(5), desktopWidgetDp(4), desktopWidgetDp(5), desktopWidgetDp(4));
+            desktopWidgetGrid.addView(card, lp);
+        }
+        if (valid.size() != ids.size()) {
+            JSONArray cleaned = new JSONArray();
+            for (int id : valid) cleaned.put(id);
+            prefs.edit().putString("widget_ids", cleaned.toString()).apply();
+        }
+        desktopWidgetSection.setVisibility(valid.isEmpty() ? View.GONE : View.VISIBLE);
+        desktopWidgetGrid.requestLayout();
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -1247,12 +1383,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         updateClockVisibility();
         tileRefresh.onStart();
+        startDesktopWidgetListening();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         resumed = true;
+        renderDesktopWidgets();
         if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
@@ -1583,6 +1721,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         handler.removeCallbacks(clockCheck);
         stopped = true;
         tileRefresh.onStop();
+        stopDesktopWidgetListening();
     }
 
     /**
