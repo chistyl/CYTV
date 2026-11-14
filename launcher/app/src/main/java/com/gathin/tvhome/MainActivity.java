@@ -4370,6 +4370,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lows.put(Math.round(entry.getValue()[1] * 10.0) / 10.0);
         }
         if (dates.length() < 7) throw new IOException("備援天氣資料不足七天");
+        weatherFromCwa = false;
         weatherHandler.post(() -> {
             renderWeeklyWeather(dates, codes, highs, lows, null, place);
             if (openWeeklyForecastAfterRefresh) {
@@ -4500,6 +4501,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("預報資料不足七天，請稍後重試");
+            weatherFromCwa = false;
             weatherHandler.post(() -> {
                 renderWeeklyWeather(dates, codes, highs, lows, rain, place);
                 if (openWeeklyForecastAfterRefresh) {
