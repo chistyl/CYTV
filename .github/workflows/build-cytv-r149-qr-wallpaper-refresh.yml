@@ -1,0 +1,50 @@
+name: CYTV R149 QR Wallpaper Gallery Refresh Build
+
+on:
+  push:
+    branches:
+      - feature/qr-wallpaper-gallery-refresh-r149
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r149-qr-wallpaper-refresh.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - feature/disable-login-verification-r148
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r149-qr-wallpaper-refresh.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run unit tests and build debug APK
+        working-directory: launcher
+        run: ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Package APK and complete source
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R149-debug.apk
+          zip -r release/CYTV-R149-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
+      - name: Upload deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R149-APK-and-Source
+          path: |
+            release/CYTV-R149-debug.apk
+            release/CYTV-R149-Source.zip
+          if-no-files-found: error
