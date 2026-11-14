@@ -623,7 +623,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lp.width = Math.min(availableWidth, Math.max((int) (360 * density),
                     Math.min((int) (680 * density), preferredWidth)));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
-            lp.height = (int) (180 * density);
+            lp.height = (int) (200 * density);
             weeklyWeatherView.setMinimumHeight(lp.height);
             weeklyWeatherView.setLayoutParams(lp);
         };
