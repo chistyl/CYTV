@@ -1,7 +1,8 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
-import android.content.SharedPreferences;\nimport android.content.ComponentName;\nimport android.content.pm.PackageManager;
+import android.content.SharedPreferences;
+import android.content.ComponentName;\nimport android.content.pm.PackageManager;
 import android.text.TextUtils;
 
 import org.json.JSONArray;
