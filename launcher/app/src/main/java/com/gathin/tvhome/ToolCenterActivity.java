@@ -46,6 +46,7 @@ public final class ToolCenterActivity extends Activity {
     private TextView pageInfo;
     private Button previousPageButton;
     private Button nextPageButton;
+    private Button addToolButton;
     private Button categoryFilterButton;
     private int currentPage;
     private EditText searchInput;
@@ -133,9 +134,10 @@ public final class ToolCenterActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = text("工具中心", 27, Color.WHITE);
         header.addView(title, new LinearLayout.LayoutParams(0, dp(54), 1));
-        Button add = actionButton("新增工具 +");
-        add.setOnClickListener(v -> showInstalledApps());
-        header.addView(add, new LinearLayout.LayoutParams(dp(190), dp(48)));
+        addToolButton = actionButton("新增工具 +");
+        addToolButton.setId(View.generateViewId());
+        addToolButton.setOnClickListener(v -> showInstalledApps());
+        header.addView(addToolButton, new LinearLayout.LayoutParams(dp(190), dp(48)));
         Button settings = actionButton("欄列設定");
         settings.setOnClickListener(v -> showLayoutSettings());
         LinearLayout.LayoutParams settingsLp = new LinearLayout.LayoutParams(dp(150), dp(48));
@@ -461,7 +463,6 @@ public final class ToolCenterActivity extends Activity {
         }
         boolean[] original = checked.clone();
         View returnFocus = getCurrentFocus();
-        boolean[] committed = {false};
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(selectionTitle(checked))
                 .setMultiChoiceItems(labels, checked, (dialogInterface, which, isChecked) -> {
                     checked[which] = isChecked;
@@ -477,7 +478,6 @@ public final class ToolCenterActivity extends Activity {
                             if (repository.remove(info.activityInfo.packageName, info.activityInfo.name)) changed++;
                         }
                     }
-                    committed[0] = true;
                     // The picker can remain open while another app is uninstalled or disabled.
                     // Reconcile against PackageManager before drawing the committed selection.
                     repository.refreshInstalledEntries(getPackageManager());
@@ -486,10 +486,33 @@ public final class ToolCenterActivity extends Activity {
                 })
                 .setNegativeButton("取消", null)
                 .create();
+        dialog.setOnShowListener(ignored -> {
+            // Keep the long multi-choice list as the primary D-pad focus target. Its native
+            // ListView handles scrolling; only the boundary transitions are redirected.
+            android.widget.ListView list = dialog.getListView();
+            if (list != null) {
+                list.setFocusable(true);
+                list.setFocusableInTouchMode(true);
+                int listId = list.getId();
+                Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button negative = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                if (positive != null) {
+                    list.setNextFocusDownId(positive.getId());
+                    positive.setNextFocusUpId(listId);
+                }
+                if (negative != null) {
+                    list.setNextFocusUpId(negative.getId());
+                    negative.setNextFocusDownId(listId);
+                }
+                list.requestFocus();
+            }
+        });
         dialog.setOnDismissListener(ignored -> {
-            if (returnFocus != null && returnFocus.isShown()) {
-                returnFocus.post(() -> {
-                    if (returnFocus.isShown()) returnFocus.requestFocus();
+            View target = returnFocus != null && returnFocus.isShown()
+                    ? returnFocus : addToolButton;
+            if (target != null && target.isShown()) {
+                target.post(() -> {
+                    if (target.isShown()) target.requestFocus();
                 });
             }
         });
