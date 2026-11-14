@@ -6,14 +6,14 @@ on:
       - feature/enable-login-verification-r147
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r147-firefly-range.yml'
+      - '.github/workflows/build-cytv-r147-login-verification.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - feature/glow-particles-range-r146
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r147-firefly-range.yml'
+      - '.github/workflows/build-cytv-r147-login-verification.yml'
   workflow_dispatch:
 
 permissions:
