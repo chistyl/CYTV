@@ -6255,7 +6255,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final TextView[] qrActionRef = new TextView[1];
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
             // 保留「影像設定」頁面在下層；QR 視窗關閉或完成上傳後直接回到此頁。
-            showQrWallpaperTransferDialog(dialog, qrActionRef[0]);
+            showQrWallpaperTransferDialog(dialog, qrActionRef[0], () -> {
+                // Keep the unsaved wallpaper choices, then rebuild the picker so newly imported
+                // QR photos appear in the custom gallery immediately without manual exit/re-entry.
+                preserveWallpaperDraftOnDismiss[0] = true;
+                dialog.dismiss();
+                handler.postDelayed(this::showWallpaperPicker, 120);
+            });
         });
         qrActionRef[0] = qrAction;
         TextView chooseAction = addRoundedAction(choices, "選擇圖片", () -> {
@@ -6953,7 +6959,8 @@ private GradientDrawable roundSurface(int color, float radius) {
     }
 
     /** 手機掃描 QR Code 後，在同一個 Wi-Fi 網路上傳多張圖片至自訂圖片庫。 */
-    private void showQrWallpaperTransferDialog(Dialog settingsDialog, View returnFocus) {
+    private void showQrWallpaperTransferDialog(Dialog settingsDialog, View returnFocus,
+                                               Runnable refreshGalleryAfterUpload) {
         final Dialog dialog = new Dialog(this);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);        panel.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -7021,8 +7028,11 @@ private GradientDrawable roundSurface(int color, float radius) {
                 Toast.makeText(MainActivity.this,
                         "照片上傳完成，成功匯入 " + qrImportedCount[0] + " 張；目前桌布不變。",
                         Toast.LENGTH_LONG).show();
-                // 完成整批上傳後關閉 QR 視窗；下層的影像設定頁仍保持原狀。
+                // 完成整批上傳後關閉 QR 視窗，並即時重建下層圖片庫，讓新照片立刻出現。
                 dialog.dismiss();
+                if (qrImportedCount[0] > 0 && refreshGalleryAfterUpload != null) {
+                    handler.post(refreshGalleryAfterUpload);
+                }
             }
         });
         server.start();
