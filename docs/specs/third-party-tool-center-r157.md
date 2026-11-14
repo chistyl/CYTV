@@ -63,3 +63,28 @@ Generated icons are presentation assets only. Never modify the third-party app p
 - Test Android 9 and representative Android 10-15+ devices/TV firmware.
 - Test D-pad navigation, app add/remove, duplicates, uninstall/update refresh, offline icon cache, restart persistence, and layout changes.
 - This document records the agreed scope; it does not claim that application code or APK has already been implemented.
+
+
+## Weather-aware desktop layout and grid behavior (追加需求)
+The Tool Center and the existing desktop must remain visually stable when weather information is displayed in either one-day or one-week mode.
+
+### Weather display states to account for
+- Compact / collapsed weather card.
+- One-day weather information expanded.
+- Seven-day weather information expanded or opened in its forecast dialog.
+
+### Layout rules
+1. Do not hard-code a fixed grid height based only on the default 5 x 2 setting. Measure the actual safe content viewport after the weather presentation state and screen dimensions are known.
+2. Keep the Tool Center's saved columns/rows as the user's preferred layout. Compute the number of currently visible rows from available height; allow vertical scrolling only when the configured tools exceed the visible area.
+3. When the one-day weather card is visible on the desktop, reserve a non-overlapping safe region for it. Tool cards must not be covered by the weather card; preserve their size and focus geometry where possible. If space is insufficient, reflow the tool grid within the remaining safe viewport rather than drawing underneath the weather information.
+4. When the seven-day forecast is opened as a modal/dialog, do not leave an interactive Tool Center grid visible or focusable behind it. The forecast dialog owns focus until dismissed. On return, restore the previous screen, grid scroll position, selected tool, and D-pad focus.
+5. When switching between collapsed, one-day, and one-week weather states, recompute layout after the final measured dimensions are available. Avoid layout thrashing, clipped cards, overlapping focus/glass highlights, and unexpected jumps in the focused item.
+6. The weather panel's own seven-day columns are independent from Tool Center columns. Never reuse the Tool Center's configurable column count to lay out weather forecast days.
+7. Keep the existing desktop weather overlay behavior and the R156 weather rendering/fallback logic unchanged. This R157 work only needs to respect the weather panel's occupied area and focus/modal state.
+8. Test with weather disabled, compact card, one-day display, seven-day card, and seven-day forecast dialog, including 720p and 1080p TV resolutions and D-pad navigation.
+
+### Acceptance criteria
+- No tool tile or focus highlight is obscured by the one-day weather card.
+- Seven-day weather forecast remains its own seven-day layout and does not distort Tool Center grid settings.
+- Opening and closing the forecast does not reset the user's selected tool, order, configured columns/rows, or focus.
+- No overlap, inaccessible bottom row, or focus trap occurs when weather display mode changes.
