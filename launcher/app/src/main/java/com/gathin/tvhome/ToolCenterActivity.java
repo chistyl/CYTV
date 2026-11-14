@@ -209,6 +209,9 @@ public final class ToolCenterActivity extends Activity {
         int columns = repository.getColumns();
         grid.setColumnCount(columns);
         List<ToolRepository.Tool> allTools = repository.getTools();
+        // Keep offline icon files bounded to the currently selected and installed tools.
+        // This also removes obsolete icon versions after app updates and removed shortcuts.
+        iconProvider.pruneCache(allTools);
         List<ToolRepository.Tool> tools = new ArrayList<>();
         String query = searchQuery.toLowerCase(Locale.ROOT);
         for (ToolRepository.Tool tool : allTools) {
