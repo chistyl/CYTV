@@ -1354,8 +1354,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 hostView.setFocusableInTouchMode(false);
                 hostView.setClickable(true);
                 hostView.setBackgroundColor(Color.TRANSPARENT);
+                final int widgetIdForActions = id;
+                final AppWidgetProviderInfo widgetInfoForActions = info;
+                final AppWidgetHostView widgetHostForActions = hostView;
                 hostView.setOnLongClickListener(v -> {
-                    showDesktopWidgetActions(id, info, hostView);
+                    showDesktopWidgetActions(widgetIdForActions, widgetInfoForActions, widgetHostForActions);
                     return true;
                 });
                 float widgetScaleX = prefs.getFloat("widget_scale_x_" + id, 1.0f);
