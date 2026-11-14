@@ -39,6 +39,10 @@ public final class ToolCenterActivity extends Activity {
     private LinearLayout root;
     private GridLayout grid;
     private TextView empty;
+    private TextView pageInfo;
+    private Button previousPageButton;
+    private Button nextPageButton;
+    private int currentPage;
     private EditText searchInput;
     private String searchQuery = "";
     private String focusedToolKey = "";
@@ -51,6 +55,7 @@ public final class ToolCenterActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         repository = new ToolRepository(this);
+        currentPage = repository.getCurrentPage();
         iconProvider = new ToolIconProvider(this);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
@@ -109,6 +114,8 @@ public final class ToolCenterActivity extends Activity {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchQuery = s == null ? "" : s.toString().trim();
+                currentPage = 0;
+                repository.setCurrentPage(0);
                 renderTools();
             }
             @Override public void afterTextChanged(Editable s) { }
@@ -126,6 +133,22 @@ public final class ToolCenterActivity extends Activity {
         grid.setUseDefaultMargins(false);
         scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        LinearLayout pager = new LinearLayout(this);
+        pager.setGravity(Gravity.CENTER);
+        pager.setOrientation(LinearLayout.HORIZONTAL);
+        previousPageButton = actionButton("上一頁");
+        previousPageButton.setOnClickListener(v -> changePage(-1));
+        pager.addView(previousPageButton, new LinearLayout.LayoutParams(dp(150), dp(44)));
+        pageInfo = text("1 / 1", 15, Color.WHITE);
+        pageInfo.setGravity(Gravity.CENTER);
+        pager.addView(pageInfo, new LinearLayout.LayoutParams(dp(130), dp(44)));
+        nextPageButton = actionButton("下一頁");
+        nextPageButton.setOnClickListener(v -> changePage(1));
+        pager.addView(nextPageButton, new LinearLayout.LayoutParams(dp(150), dp(44)));
+        LinearLayout.LayoutParams pagerLp = new LinearLayout.LayoutParams(-1, dp(50));
+        pagerLp.topMargin = dp(6);
+        root.addView(pager, pagerLp);
 
         empty = text("目前尚未新增工具\n請選擇右上方「新增工具 +」", 18, 0xFFADB8C6);
         empty.setGravity(Gravity.CENTER);
@@ -153,11 +176,22 @@ public final class ToolCenterActivity extends Activity {
         empty.setText(allTools.isEmpty()
                 ? "目前尚未新增工具\n請選擇右上方「新增工具 +」"
                 : "找不到符合的工具");
+        int rows = repository.getRows();
+        int pageSize = Math.max(1, columns * rows);
+        int pageCount = Math.max(1, (tools.size() + pageSize - 1) / pageSize);
+        currentPage = Math.max(0, Math.min(currentPage, pageCount - 1));
+        repository.setCurrentPage(currentPage);
+        int fromIndex = Math.min(currentPage * pageSize, tools.size());
+        int toIndex = Math.min(fromIndex + pageSize, tools.size());
+        List<ToolRepository.Tool> pageTools = new ArrayList<>(tools.subList(fromIndex, toIndex));
+        if (pageInfo != null) pageInfo.setText((currentPage + 1) + " / " + pageCount);
+        if (previousPageButton != null) previousPageButton.setEnabled(currentPage > 0);
+        if (nextPageButton != null) nextPageButton.setEnabled(currentPage < pageCount - 1);
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
         int cellWidth = Math.max(dp(64), (screenWidth - dp(12 * columns)) / columns);
-        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);
-        int cellHeight = Math.max(dp(112), availableHeight / repository.getRows());
-        for (ToolRepository.Tool tool : tools) {
+        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(280);
+        int cellHeight = Math.max(dp(96), availableHeight / rows);
+        for (ToolRepository.Tool tool : pageTools) {
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setGravity(Gravity.CENTER);
@@ -214,7 +248,7 @@ public final class ToolCenterActivity extends Activity {
         }
         String restoreKey = !focusedToolKey.isEmpty()
                 ? focusedToolKey : repository.getLastFocusedTool();
-        if (!restoringFocus && !tools.isEmpty()) {
+        if (!restoringFocus && !pageTools.isEmpty()) {
             restoringFocus = true;
             grid.post(() -> {
                 View target = null;
@@ -230,6 +264,28 @@ public final class ToolCenterActivity extends Activity {
                 restoringFocus = false;
             });
         }
+    }
+
+    private void changePage(int offset) {
+        int columns = repository.getColumns();
+        int rows = repository.getRows();
+        int pageSize = Math.max(1, columns * rows);
+        int filteredCount = 0;
+        String query = searchQuery.toLowerCase(Locale.ROOT);
+        for (ToolRepository.Tool tool : repository.getTools()) {
+            if ((selectedCategory.equals("全部") || selectedCategory.equals(tool.category))
+                    && (query.isEmpty() || tool.label.toLowerCase(Locale.ROOT).contains(query)
+                    || tool.packageName.toLowerCase(Locale.ROOT).contains(query))) {
+                filteredCount++;
+            }
+        }
+        int pageCount = Math.max(1, (filteredCount + pageSize - 1) / pageSize);
+        int next = Math.max(0, Math.min(currentPage + offset, pageCount - 1));
+        if (next == currentPage) return;
+        currentPage = next;
+        repository.setCurrentPage(currentPage);
+        focusedToolKey = "";
+        renderTools();
     }
 
     private void showCategoryFilter(Button button) {
