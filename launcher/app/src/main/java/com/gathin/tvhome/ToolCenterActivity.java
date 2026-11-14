@@ -464,6 +464,9 @@ public final class ToolCenterActivity extends Activity {
                         }
                     }
                     committed[0] = true;
+                    // The picker can remain open while another app is uninstalled or disabled.
+                    // Reconcile against PackageManager before drawing the committed selection.
+                    repository.refreshInstalledEntries(getPackageManager());
                     renderTools();
                     Toast.makeText(this, "已更新 " + changed + " 個工具捷徑", Toast.LENGTH_SHORT).show();
                 })
