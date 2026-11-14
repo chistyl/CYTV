@@ -56,7 +56,14 @@ public final class ToolCenterActivity extends Activity {
     private boolean packageReceiverRegistered;
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            if (repository == null || root == null) return;
+            if (repository == null || root == null || intent == null) return;
+            // During an in-place app update Android temporarily sends PACKAGE_REMOVED while
+            // the package is being replaced. Do not interpret that temporary gap as an uninstall,
+            // otherwise the user's shortcut would be deleted before PACKAGE_ADDED arrives.
+            if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())
+                    && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                return;
+            }
             repository.refreshInstalledEntries(getPackageManager());
             renderTools();
         }
