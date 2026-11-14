@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.GridLayout;
 import android.widget.NumberPicker;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -544,6 +545,8 @@ public final class WidgetShelfActivity extends Activity {
         int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
         int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
         int count = columns * rows;
+        widgetList.setClipChildren(true);
+        widgetList.setClipToPadding(true);
         widgetList.setColumnCount(columns);
         widgetList.setRowCount(rows);
         List<Integer> slots = readSlots();
@@ -599,6 +602,8 @@ public final class WidgetShelfActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
+        card.setClipChildren(true);
+        card.setClipToPadding(true);
         card.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable background = new GradientDrawable();
         background.setColor(0xFF202936);
@@ -606,21 +611,78 @@ public final class WidgetShelfActivity extends Activity {
         background.setStroke(dp(1), 0x664CA6AD);
         card.setBackground(background);
 
-        TextView label = text(String.valueOf(info.loadLabel(getPackageManager())), 14, Color.WHITE);
-        label.setGravity(Gravity.CENTER);
-        card.addView(label, new LinearLayout.LayoutParams(-1, dp(30)));
-
         AppWidgetHostView hostView = widgetHost.createView(this, id, info);
         hostView.setFocusable(true);
         hostView.setFocusableInTouchMode(false);
         int requestedHeight = info.minHeight > 0 ? Math.round(info.minHeight * density) : dp(120);
-        int height = Math.max(dp(72), Math.min(dp(150), requestedHeight));
+        int height = Math.max(dp(72), Math.min(dp(190), requestedHeight));
         card.addView(hostView, new LinearLayout.LayoutParams(-1, height));
-
-        Button remove = button("移除");
-        remove.setOnClickListener(v -> confirmRemove(id, info));
-        card.addView(remove, new LinearLayout.LayoutParams(dp(100), dp(36)));
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        float scaleX = prefs.getFloat("widget_scale_x_" + id, 1.0f);
+        float scaleY = prefs.getFloat("widget_scale_y_" + id, 1.0f);
+        hostView.setScaleX(scaleX);
+        hostView.setScaleY(scaleY);
+        View.OnLongClickListener manage = v -> {
+            showWidgetActions(id, info, hostView);
+            return true;
+        };
+        card.setOnLongClickListener(manage);
+        hostView.setOnLongClickListener(manage);
+        card.setOnClickListener(v -> {
+            Toast.makeText(this, "長按小工具可編輯、調整大小或移除", Toast.LENGTH_SHORT).show();
+        });
         widgetList.addView(card, cellParams(index, columns));
+    }
+
+    private void showWidgetActions(int id, AppWidgetProviderInfo info, AppWidgetHostView hostView) {
+        String[] actions = info.configure != null
+                ? new String[]{"編輯小工具", "調整大小", "移除小工具"}
+                : new String[]{"調整大小", "移除小工具"};
+        new AlertDialog.Builder(this)
+                .setTitle("小工具管理")
+                .setItems(actions, (dialog, which) -> {
+                    String action = actions[which];
+                    if ("編輯小工具".equals(action)) {
+                        Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
+                        configure.setComponent(info.configure);
+                        configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+                        try { startActivity(configure); }
+                        catch (Exception e) {
+                            Toast.makeText(this, "無法開啟此小工具的編輯畫面", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if ("調整大小".equals(action)) {
+                        showWidgetSizeDialog(id, hostView);
+                    } else {
+                        confirmRemove(id, info);
+                    }
+                }).show();
+    }
+
+    private void showWidgetSizeDialog(int id, AppWidgetHostView hostView) {
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(12), dp(20), dp(8));
+        SeekBar width = new SeekBar(this);
+        width.setMax(150);
+        width.setProgress(Math.round(prefs.getFloat("widget_scale_x_" + id, 1.0f) * 100) - 50);
+        SeekBar height = new SeekBar(this);
+        height.setMax(150);
+        height.setProgress(Math.round(prefs.getFloat("widget_scale_y_" + id, 1.0f) * 100) - 50);
+        panel.addView(text("寬度比例", 14, Color.WHITE));
+        panel.addView(width, new LinearLayout.LayoutParams(-1, dp(48)));
+        panel.addView(text("高度比例", 14, Color.WHITE));
+        panel.addView(height, new LinearLayout.LayoutParams(-1, dp(48)));
+        new AlertDialog.Builder(this).setTitle("調整小工具大小")
+                .setView(panel).setNegativeButton("取消", null)
+                .setPositiveButton("套用", (d, w) -> {
+                    float sx = (width.getProgress() + 50) / 100f;
+                    float sy = (height.getProgress() + 50) / 100f;
+                    prefs.edit().putFloat("widget_scale_x_" + id, sx)
+                            .putFloat("widget_scale_y_" + id, sy).apply();
+                    hostView.setScaleX(sx);
+                    hostView.setScaleY(sy);
+                }).show();
     }
 
     private void confirmRemove(int id, AppWidgetProviderInfo info) {
