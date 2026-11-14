@@ -30,6 +30,7 @@ final class ToolRepository {
     private static final String KEY_SHOW_NAMES = "show_names";
     private static final String KEY_ICON_MODE = "icon_mode";
     private static final String KEY_LAST_FOCUSED_TOOL = "last_focused_tool";
+    private static final String KEY_CURRENT_PAGE = "current_page";
 
     static final int MIN_COLUMNS = 3;
     static final int MAX_COLUMNS = 8;
@@ -216,6 +217,14 @@ final class ToolRepository {
 
     synchronized void setLastFocusedTool(String key) {
         preferences.edit().putString(KEY_LAST_FOCUSED_TOOL, key == null ? "" : key).apply();
+    }
+
+    synchronized int getCurrentPage() {
+        return Math.max(0, preferences.getInt(KEY_CURRENT_PAGE, 0));
+    }
+
+    synchronized void setCurrentPage(int page) {
+        preferences.edit().putInt(KEY_CURRENT_PAGE, Math.max(0, page)).apply();
     }
 
     synchronized boolean setCategory(String packageName, String activityName, String category) {
