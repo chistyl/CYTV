@@ -4426,8 +4426,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (s.contains("snow")) return 71;
         if (s.contains("rain") || s.contains("shower")) return 61;
         if (s.contains("fog") || s.contains("humid")) return 45;
-        if (s.contains("cloudy") || s.contains("mcloudy")) return 3;
         if (s.contains("pcloudy")) return 2;
+        if (s.contains("mcloudy") || s.equals("cloudy")) return 3;
         if (s.contains("clear")) return 0;
         return 3;
     }
