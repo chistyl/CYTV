@@ -49,13 +49,16 @@ final class ToolRepository {
         final String label;
         final int position;
         final String cachedIconPath;
+        final String category;
 
-        Tool(String packageName, String activityName, String label, int position, String cachedIconPath) {
+        Tool(String packageName, String activityName, String label, int position,
+                String cachedIconPath, String category) {
             this.packageName = packageName;
             this.activityName = activityName;
             this.label = label;
             this.position = position;
             this.cachedIconPath = cachedIconPath;
+            this.category = category == null || category.trim().isEmpty() ? "未分類" : category;
         }
 
         String key() {
@@ -81,7 +84,8 @@ final class ToolRepository {
                 String activity = item.optString("activity", "");
                 if (TextUtils.isEmpty(pkg) || TextUtils.isEmpty(activity)) continue;
                 result.add(new Tool(pkg, activity, item.optString("label", pkg),
-                        item.optInt("position", i), item.optString("icon", "")));
+                        item.optInt("position", i), item.optString("icon", ""),
+                        item.optString("category", "未分類")));
             }
         } catch (JSONException ignored) {
             // A corrupt preference must not prevent the launcher from opening.
@@ -104,7 +108,7 @@ final class ToolRepository {
                 String label = info.loadLabel(packageManager).toString();
                 if (!TextUtils.equals(label, tool.label)) changed = true;
                 refreshed.add(new Tool(tool.packageName, tool.activityName, label,
-                        refreshed.size(), tool.cachedIconPath));
+                        refreshed.size(), tool.cachedIconPath, tool.category));
             } catch (PackageManager.NameNotFoundException | RuntimeException missing) {
                 // The app was removed or its launcher activity is no longer available.
                 changed = true;
@@ -125,7 +129,7 @@ final class ToolRepository {
                 || contains(packageName, activityName)) return false;
         ArrayList<Tool> tools = new ArrayList<>(getTools());
         tools.add(new Tool(packageName, activityName,
-                TextUtils.isEmpty(label) ? packageName : label, tools.size(), ""));
+                TextUtils.isEmpty(label) ? packageName : label, tools.size(), "", "未分類"));
         return saveTools(tools);
     }
 
@@ -214,6 +218,33 @@ final class ToolRepository {
         preferences.edit().putString(KEY_LAST_FOCUSED_TOOL, key == null ? "" : key).apply();
     }
 
+    synchronized boolean setCategory(String packageName, String activityName, String category) {
+        if (TextUtils.isEmpty(category)) return false;
+        ArrayList<Tool> tools = new ArrayList<>(getTools());
+        boolean found = false;
+        for (int i = 0; i < tools.size(); i++) {
+            Tool tool = tools.get(i);
+            if ((packageName + "/" + activityName).equals(tool.key())) {
+                tools.set(i, new Tool(tool.packageName, tool.activityName, tool.label,
+                        tool.position, tool.cachedIconPath, category.trim()));
+                found = true;
+                break;
+            }
+        }
+        return found && saveTools(tools);
+    }
+
+    synchronized List<String> getCategories() {
+        ArrayList<String> categories = new ArrayList<>();
+        categories.add("未分類");
+        for (Tool tool : getTools()) {
+            if (!categories.contains(tool.category)) categories.add(tool.category);
+        }
+        Collections.sort(categories);
+        if (categories.remove("未分類")) categories.add(0, "未分類");
+        return categories;
+    }
+
     private boolean saveTools(List<Tool> tools) {
         JSONArray array = new JSONArray();
         for (int i = 0; i < tools.size(); i++) {
@@ -225,6 +256,7 @@ final class ToolRepository {
                 item.put("label", tool.label);
                 item.put("position", i);
                 item.put("icon", tool.cachedIconPath);
+                item.put("category", tool.category);
             } catch (JSONException ignored) {
                 continue;
             }
