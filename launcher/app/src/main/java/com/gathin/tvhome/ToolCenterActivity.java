@@ -103,7 +103,7 @@ public final class ToolCenterActivity extends Activity {
         List<ToolRepository.Tool> tools = repository.getTools();
         empty.setVisibility(tools.isEmpty() ? View.VISIBLE : View.GONE);
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
-        int cellWidth = Math.max(dp(110), screenWidth / columns);
+        int cellWidth = Math.max(dp(64), (screenWidth - dp(12 * columns)) / columns);
         int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);
         int cellHeight = Math.max(dp(112), availableHeight / repository.getRows());
         for (ToolRepository.Tool tool : tools) {
@@ -118,6 +118,13 @@ public final class ToolCenterActivity extends Activity {
             bg.setCornerRadius(dp(16));
             bg.setStroke(dp(1), 0x22FFFFFF);
             tile.setBackground(bg);
+            tile.setOnFocusChangeListener((view, focused) -> {
+                GradientDrawable state = new GradientDrawable();
+                state.setColor(focused ? 0xFF263D49 : 0xFF202936);
+                state.setCornerRadius(dp(16));
+                state.setStroke(dp(focused ? 2 : 1), focused ? 0xFF4CA6AD : 0x22FFFFFF);
+                view.setBackground(state);
+            });
 
             ImageView icon = new ImageView(this);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
