@@ -614,18 +614,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.getLocationInWindow(rootPos);
             clockBlock.getLocationInWindow(clockPos);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) weeklyWeatherView.getLayoutParams();
-            // Both day and week modes share one immutable anchor under the clock.
-            // Only the content width/height adapts; changing display mode never nudges the card.
-            SharedPreferences weatherPrefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
-            boolean dailyMode = "day".equals(weatherPrefs.getString("display_mode", "week"));
+            // Day and week modes share one fixed card frame: the clock is the only position anchor.
+            // Device resolution determines the frame once; display mode only changes the content inside it.
             lp.leftMargin = clockPos[0] - rootPos[0];
             int rightInset = (int) (56 * density);
             int availableWidth = Math.max(0, root.getWidth() - lp.leftMargin - rightInset);
-            float widthRatio = dailyMode ? 0.32f : 0.60f;
-            lp.width = Math.min(availableWidth, Math.max((int) ((dailyMode ? 280 : 520) * density),
-                    Math.round(availableWidth * widthRatio)));
+            int preferredWidth = Math.round(availableWidth * 0.60f);
+            lp.width = Math.min(availableWidth, Math.max((int) (360 * density),
+                    Math.min((int) (680 * density), preferredWidth)));
             lp.topMargin = clockPos[1] - rootPos[1] + clockBlock.getHeight() + (int) (10 * density);
-            weeklyWeatherView.setMinimumHeight((int) ((dailyMode ? 112 : 148) * density));
+            lp.height = (int) (170 * density);
+            weeklyWeatherView.setMinimumHeight(lp.height);
             weeklyWeatherView.setLayoutParams(lp);
         };
         clockBlock.addOnLayoutChangeListener((v, l, t, rr, b, ol, ot, orr, ob) -> placeWeatherOverlay.run());
@@ -4719,7 +4718,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // This prevents any forecast refresh/scroll container update from replacing or clipping it.
         boolean dailyMode = "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
                 .getString("display_mode", "week"));
-        weeklyWeatherView.setBackgroundResource(dailyMode ? android.R.color.transparent : R.drawable.v17_weather_card);
+        weeklyWeatherView.setBackgroundResource(R.drawable.v17_weather_card);
         if (weeklyWeatherHeading != null) {
             weeklyWeatherHeading.setText(TraditionalText.toTraditional(
                     (dailyMode ? "天氣預報・" : "一週天氣・")
@@ -4739,7 +4738,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // 單日模式採透明無邊框呈現：圖示在左，文字資訊在右。
             FrameLayout iconFrame = new FrameLayout(this);
             LinearLayout.LayoutParams iconFrameLp = new LinearLayout.LayoutParams(
-                    0, (int)(80*density), 4f);
+                    0, (int)(72*density), 4f);
             iconFrameLp.rightMargin = (int)(8*density);
             dailyContent.addView(iconFrame, iconFrameLp);
             iconFrame.setTranslationX(0f);
@@ -4757,7 +4756,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             TextView condition = new TextView(this);
             condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
             condition.setTextColor(0xFFF5F6FA);
-            condition.setTextSize(22);
+            condition.setTextSize(19);
             condition.setMaxLines(1);
             details.addView(condition, new LinearLayout.LayoutParams(-1, -2));
 
@@ -4786,9 +4785,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             temperature.setText(coloredTemperature);
             temperature.setTextColor(Color.WHITE);
-            temperature.setTextSize(32);
+            temperature.setTextSize(28);
             temperature.setMaxLines(1);
-            temperature.setAutoSizeTextTypeUniformWithConfiguration(22, 32, 1,
+            temperature.setAutoSizeTextTypeUniformWithConfiguration(20, 28, 1,
                     android.util.TypedValue.COMPLEX_UNIT_SP);
             LinearLayout.LayoutParams temperatureLp = new LinearLayout.LayoutParams(-1, -2);
             temperatureLp.topMargin = (int)(2*density);
@@ -4798,7 +4797,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             precipitation.setText(TraditionalText.toTraditional("降雨 "
                     + (rain != null && !rain.isNull(0) ? rain.optInt(0) + "%" : "--")));
             precipitation.setTextColor(0xFFD5D9E0);
-            precipitation.setTextSize(16);
+            precipitation.setTextSize(13);
             precipitation.setMaxLines(1);
             LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
             precipitationLp.topMargin = (int)(2*density);
@@ -4844,12 +4843,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 LinearLayout dayColumn = new LinearLayout(this);
                 dayColumn.setOrientation(LinearLayout.VERTICAL);
                 dayColumn.setGravity(Gravity.CENTER);
-                dayColumn.setPadding((int)(2*density), (int)(5*density), (int)(2*density), (int)(5*density));
+                dayColumn.setPadding((int)(1*density), (int)(2*density), (int)(1*density), (int)(2*density));
                 TextView dateView = new TextView(this);
                 dateView.setText(day);
                 dateView.setTextColor(Color.WHITE);
-                dateView.setTextSize(14);
-                dateView.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                dateView.setTextSize(12);
+                dateView.setAutoSizeTextTypeUniformWithConfiguration(8, 10, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 dateView.setMaxLines(1);
                 dateView.setGravity(Gravity.CENTER);
@@ -4858,18 +4857,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // Use our own opaque vector-style drawing instead of system emoji fonts.
                 // Emoji glyph palettes vary by Android TV vendor and may render as translucent tiles.
                 View iconView = new WeeklyWeatherIconView(this, code);
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(50*density));
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(-1, (int)(36*density));
                 iconLp.topMargin = (int)(2*density);
                 dayColumn.addView(iconView, iconLp);
 
                 TextView condition = new TextView(this);
                 condition.setText(TraditionalText.toTraditional(weatherLabel(code)));
                 condition.setTextColor(0xFFE8EBF0);
-                condition.setTextSize(13);
+                condition.setTextSize(11);
                 condition.setGravity(Gravity.CENTER);
                 // Let the label shrink slightly when each of the seven forecast columns is narrow.
                 // Keep up to two lines so the full Traditional Chinese condition remains readable.
-                condition.setAutoSizeTextTypeUniformWithConfiguration(10, 13, 1,
+                condition.setAutoSizeTextTypeUniformWithConfiguration(9, 11, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 condition.setMaxLines(2);
                 dayColumn.addView(condition, new LinearLayout.LayoutParams(-1, -2));
@@ -4899,8 +4898,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 temperature.setText(coloredTemperature);
                 temperature.setTextColor(Color.WHITE);
-                temperature.setTextSize(14);
-                temperature.setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1,
+                temperature.setTextSize(11);
+                temperature.setAutoSizeTextTypeUniformWithConfiguration(9, 11, 1,
                         android.util.TypedValue.COMPLEX_UNIT_SP);
                 temperature.setMaxLines(1);
                 temperature.setGravity(Gravity.CENTER);
@@ -4911,7 +4910,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView precipitation = new TextView(this);
                 precipitation.setText(TraditionalText.toTraditional("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
                 precipitation.setTextColor(0xFFD5D9E0);
-                precipitation.setTextSize(12);
+                precipitation.setTextSize(10);
                 precipitation.setGravity(Gravity.CENTER);
                 // Rain probability also adapts to the available column width instead of clipping.
                 precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
