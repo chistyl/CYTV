@@ -1,5 +1,12 @@
 name: CYTV R160 Desktop Widget Layout Build
 on:
+  push:
+    branches:
+      - feature/desktop-widget-layout-r160
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r160-desktop-widget-layout.yml'
+      - 'docs/specs/desktop-widget-layout-r160.md'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
