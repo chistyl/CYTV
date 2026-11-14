@@ -478,11 +478,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (!ActivationGate.isActivated(this)) {
-            startActivity(new android.content.Intent(this, ActivationActivity.class));
-            finish();
-            return;
-        }
+        // R148: activation/login verification is disabled; launch directly to the main desktop.
         CrashDiagnostics.install(this);
         CrashDiagnostics.stage(this, "launcher:onCreate");
         setContentView(R.layout.activity_main);
