@@ -30,6 +30,15 @@
         android:layout_height="match_parent"
         android:alpha="0" />
 
+    <!-- Low-cost animated light particles above the left ambient glow; kept below interactive content. -->
+    <com.gathin.tvhome.GlowParticlesView
+        android:id="@+id/glowParticles"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:clickable="false"
+        android:focusable="false" />
+
     <!-- Race-weekend panel (a theme's race_calendar, see RaceWeekend): in the free space under the clock,
          shown only from shortly before a weekend's first session until the race is over. Updated once a
          minute with the clock, never animated. -->

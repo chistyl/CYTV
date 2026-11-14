@@ -178,6 +178,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
     private View ambient;
+    /** Subtle particles layered over the left ambient glow; animation runs only while Home is visible. */
+    private GlowParticlesView glowParticles;
     private TextView heroName;
     /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
     private View hero;
@@ -537,6 +539,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
+        glowParticles = findViewById(R.id.glowParticles);
+        glowParticles.setActive(false);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
@@ -1246,6 +1250,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -1540,6 +1545,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        if (glowParticles != null) glowParticles.setActive(false);
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
         RemoteKeys.release(this);
@@ -2154,6 +2160,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         boolean customWallpaperActive = isCustomWallpaperActive();
+        if (glowParticles != null) glowParticles.setActive(ambientGlow && !customWallpaperActive);
         if (customWallpaperActive) {
             ambient.animate().cancel();
             ambient.setAlpha(0f);
@@ -2439,6 +2446,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void showGlowOnly(int position) {
         int color = adapter.ambientColorAt(position);
+        if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -2464,6 +2472,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void hideHero() {
+        if (glowParticles != null) glowParticles.setActive(false);
         if (!heroShown) return;
         stopAmbientAnimation();
         hero.animate().cancel();
