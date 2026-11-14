@@ -172,6 +172,12 @@
              No screenOrientation: a translucent activity may not request one on Android 8.0 (API 26),
              which throws IllegalStateException in onCreate (#1122); a TV is landscape anyway. -->
         <activity
+            android:name=".WidgetShelfActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="桌面小工具" />
+
+        <activity
             android:name=".QuickSettingsActivity"
             android:exported="false"
             android:taskAffinity=""
