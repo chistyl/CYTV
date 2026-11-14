@@ -4427,7 +4427,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             String icon = item.optString("icon", "");
             String condition = item.optString("condition", "");
             int code = brightSkyConditionToWmo(icon, condition);
-            if (!dailyCodes.containsKey(day) || code >= 95 || (code >= 61 && code < 95))
+            if (!dailyCodes.containsKey(day)
+                    || brightSkyConditionPriority(code) > brightSkyConditionPriority(dailyCodes.get(day)))
                 dailyCodes.put(day, code);
             if (item.has("precipitation_probability") && !item.isNull("precipitation_probability")) {
                 int probability = item.optInt("precipitation_probability", -1);
@@ -4454,6 +4455,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
             }
         });
+    }
+
+    private int brightSkyConditionPriority(int code) {
+        if (code >= 95) return 6;
+        if (code >= 71 && code <= 86) return 5;
+        if (code >= 66 && code <= 69) return 4;
+        if (code >= 61 && code <= 65) return 3;
+        if (code == 45 || code == 48) return 2;
+        if (code == 2 || code == 3) return 1;
+        return 0;
     }
 
     private int brightSkyConditionToWmo(String icon, String condition) {
