@@ -2,12 +2,16 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -49,6 +53,14 @@ public final class ToolCenterActivity extends Activity {
     private String selectedCategory = "全部";
     private boolean restoringFocus;
     private ToolIconProvider iconProvider;
+    private boolean packageReceiverRegistered;
+    private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (repository == null || root == null) return;
+            repository.refreshInstalledEntries(getPackageManager());
+            renderTools();
+        }
+    };
     private final float density() { return getResources().getDisplayMetrics().density; }
     private int dp(int value) { return Math.round(value * density()); }
 
@@ -64,10 +76,43 @@ public final class ToolCenterActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        registerPackageChangeReceiver();
         if (repository != null && root != null) {
             repository.refreshInstalledEntries(getPackageManager());
             renderTools();
         }
+    }
+
+    @Override protected void onPause() {
+        unregisterPackageChangeReceiver();
+        super.onPause();
+    }
+
+    private void registerPackageChangeReceiver() {
+        if (packageReceiverRegistered) return;
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        filter.addAction(Intent.ACTION_PACKAGE_FULLY_REMOVED);
+        filter.addDataScheme("package");
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(packageChanges, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(packageChanges, filter);
+        }
+        packageReceiverRegistered = true;
+    }
+
+    private void unregisterPackageChangeReceiver() {
+        if (!packageReceiverRegistered) return;
+        try {
+            unregisterReceiver(packageChanges);
+        } catch (IllegalArgumentException ignored) {
+            // Defensive: lifecycle callbacks can race with receiver teardown on some TV firmware.
+        }
+        packageReceiverRegistered = false;
     }
 
     private void build() {
