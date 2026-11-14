@@ -4481,9 +4481,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     fetchMetNoForecast(lat, lon, place);
                     return;
                 } catch (Exception secondError) {
-                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying 7Timer third-level forecast fallback", secondError);
+                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying CWA third-level forecast fallback", secondError);
                     try {
-                        fetch7TimerForecast(lat, lon, place);
+                        fetchCwaForecast(lat, lon, place);
                         return;
                     } catch (Exception thirdError) {
                         thirdError.addSuppressed(secondError);
@@ -4628,7 +4628,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             precipitationLp.topMargin = (int)(2*density);
             details.addView(precipitation, precipitationLp);
 
-            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));\n            addWeatherAttribution(weeklyWeatherDays);
+            weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));
+            addWeatherAttribution(weeklyWeatherDays);
             weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
             if (!weatherHiddenByScroll) {
                 final android.view.ViewTreeObserver observer = weeklyWeatherView.getViewTreeObserver();
@@ -4746,7 +4747,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 forecast.addView(dayColumn, columnLp);
             } catch (Exception ignored) { }
         }
-        weeklyWeatherDays.addView(forecast, new LinearLayout.LayoutParams(-1, -2));\n        addWeatherAttribution(weeklyWeatherDays);
+        weeklyWeatherDays.addView(forecast, new LinearLayout.LayoutParams(-1, -2));
+        addWeatherAttribution(weeklyWeatherDays);
         weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
         // Wait for Android's next completed measure/layout pass. A plain post() can run before
         // the newly visible wrap-content overlay has been measured, leaving it at stale coordinates
