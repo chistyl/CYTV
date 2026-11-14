@@ -105,7 +105,10 @@ final class ToolIconProvider {
     }
 
     private String key(ToolRepository.Tool tool, ToolRepository.IconMode mode) {
-        long updated = 0L;\n        try { updated = context.getPackageManager().getPackageInfo(tool.packageName, 0).lastUpdateTime; }\n        catch (Exception ignored) { }\n        String raw = tool.packageName + "|" + tool.activityName + "|" + updated + "|" + mode.name();
+        long updated = 0L;
+        try { updated = context.getPackageManager().getPackageInfo(tool.packageName, 0).lastUpdateTime; }
+        catch (Exception ignored) { }
+        String raw = tool.packageName + "|" + tool.activityName + "|" + updated + "|" + mode.name();
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(raw.getBytes("UTF-8"));
             StringBuilder result = new StringBuilder();
