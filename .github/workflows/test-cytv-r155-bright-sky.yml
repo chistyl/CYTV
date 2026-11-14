@@ -1,4 +1,4 @@
-name: CYTV R155 7Timer API Validation and Build
+name: CYTV R155 CWA Weekly Forecast API Validation
 
 on:
   push:
@@ -6,106 +6,137 @@ on:
       - feature/weather-third-fallback-r155
     paths:
       - '.github/workflows/test-cytv-r155-bright-sky.yml'
-      - 'launcher/**'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - fix/weather-metno-fallback-r154
     paths:
       - '.github/workflows/test-cytv-r155-bright-sky.yml'
-      - 'launcher/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate-7timer:
+  validate-cwa-weekly:
     runs-on: ubuntu-latest
     steps:
-      - name: Query 7Timer CIVIL forecast for Taoyuan
+      - name: Validate CWA Taoyuan weekly forecast API
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from datetime import datetime, timedelta, timezone
-          from zoneinfo import ZoneInfo
           import json
+          import os
+          import urllib.error
+          import urllib.parse
           import urllib.request
+          from collections import defaultdict
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
 
-          tz = ZoneInfo('Asia/Taipei')
-          url = 'https://www.7timer.info/bin/api.pl?lon=121.31&lat=24.99&product=civil&output=json'
-          req = urllib.request.Request(url, headers={'User-Agent': 'CYTV-R155-weather-validation'})
-          with urllib.request.urlopen(req, timeout=30) as response:
-              assert response.status == 200, f'Unexpected HTTP status: {response.status}'
-              payload = json.loads(response.read().decode('utf-8'))
+          api_key = os.environ.get("CWA_API_KEY", "").strip()
+          if not api_key:
+              raise SystemExit("CWA_API_KEY GitHub Secret is missing or empty.")
 
-          assert isinstance(payload, dict), '7Timer response is not a JSON object'
-          assert payload.get('product') == 'civil', f"Unexpected product: {payload.get('product')}"
-          series = payload.get('dataseries')
-          assert isinstance(series, list) and len(series) >= 20, (
-              f'Insufficient forecast records: {len(series) if isinstance(series, list) else "missing"}'
+          dataset_id = "F-D0047-007"
+          params = urllib.parse.urlencode({
+              "Authorization": api_key,
+              "format": "JSON",
+          })
+          url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{params}"
+          request = urllib.request.Request(
+              url,
+              headers={"User-Agent": "CYTV-Weather-Validation/1.0"},
           )
 
-          init = str(payload.get('init', ''))
           try:
-              init_utc = datetime.strptime(init, '%Y%m%d%H').replace(tzinfo=timezone.utc)
-          except ValueError as exc:
-              raise AssertionError(f'Unexpected 7Timer init timestamp: {init!r}') from exc
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"CWA returned HTTP {response.status}.")
+                  payload = json.loads(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as exc:
+              raise SystemExit(f"CWA API request failed: HTTP {exc.code}. Check CWA_API_KEY and dataset access.") from None
+          except urllib.error.URLError as exc:
+              raise SystemExit(f"CWA API network error: {exc.reason}") from None
 
-          daily = {}
-          for item in series:
-              if not isinstance(item, dict):
-                  continue
-              temp = item.get('temp2m')
-              hour = item.get('timepoint')
-              if not isinstance(temp, (int, float)) or not isinstance(hour, (int, float)):
-                  continue
-              local_day = (init_utc + timedelta(hours=hour)).astimezone(tz).date().isoformat()
-              bucket = daily.setdefault(local_day, {'high': temp, 'low': temp, 'samples': 0})
-              bucket['high'] = max(bucket['high'], temp)
-              bucket['low'] = min(bucket['low'], temp)
-              bucket['samples'] += 1
+          if str(payload.get("success", "")).lower() != "true":
+              # Do not print the response body: it may contain request details.
+              raise SystemExit("CWA API did not return success=true.")
 
-          usable = sorted(daily.items())
-          assert len(usable) >= 7, (
-              f'7Timer returned only {len(usable)} Taiwan-local days with temperature data'
-          )
-          first = usable[0][1]
-          print('7Timer CIVIL API OK for Taoyuan (24.99, 121.31).')
-          print('Forecast records:', len(series))
-          print('Usable Taiwan-local forecast days:', len(usable))
-          print('Validated first 7 days:', usable[0][0], 'through', usable[6][0])
-          print('First available day high/low:', first['high'], first['low'])
-          print('Example weather code:', series[0].get('weather'))
-          print('Precipitation field:', series[0].get('prec_type'), series[0].get('prec_amount'))
+          records = payload.get("records") or {}
+          locations_groups = records.get("locations") or []
+          if not locations_groups:
+              raise SystemExit("CWA response has no records.locations.")
+
+          locations = []
+          for group in locations_groups:
+              locations.extend(group.get("location") or [])
+
+          taoyuan = next((item for item in locations if item.get("locationName") == "桃園區"), None)
+          if taoyuan is None:
+              raise SystemExit("CWA weekly dataset did not include 桃園區.")
+
+          elements = {
+              item.get("elementName"): item
+              for item in (taoyuan.get("weatherElement") or [])
+          }
+          required = ["最高溫度", "最低溫度", "天氣現象", "12小時降雨機率"]
+          missing = [name for name in required if name not in elements]
+          if missing:
+              raise SystemExit("CWA response is missing required weather elements: " + ", ".join(missing))
+
+          tz = ZoneInfo("Asia/Taipei")
+          daily = defaultdict(dict)
+
+          def parse_value(element, field):
+              result = []
+              for slot in element.get("time") or []:
+                  start = slot.get("startTime")
+                  values = slot.get("elementValue") or []
+                  if not start or not values:
+                      continue
+                  try:
+                      day = datetime.fromisoformat(start).astimezone(tz).date().isoformat()
+                  except ValueError:
+                      continue
+                  value = values[0].get("value")
+                  if value in (None, "", "-", "X"):
+                      continue
+                  result.append((day, value))
+              return result
+
+          for day, value in parse_value(elements["最高溫度"], "max"):
+              daily[day]["max"] = value
+          for day, value in parse_value(elements["最低溫度"], "min"):
+              daily[day]["min"] = value
+          for day, value in parse_value(elements["天氣現象"], "weather"):
+              daily[day]["weather"] = value
+          for day, value in parse_value(elements["12小時降雨機率"], "pop"):
+              daily[day]["pop"] = value
+
+          usable = [
+              (day, data) for day, data in sorted(daily.items())
+              if "max" in data and "min" in data
+          ]
+          if len(usable) < 7:
+              raise SystemExit(
+                  f"CWA data has only {len(usable)} dates with both max/min temperature; expected at least 7."
+              )
+
+          if not any(data.get("weather") for _, data in usable):
+              raise SystemExit("No weather phenomenon values found in the 7-day forecast.")
+          if not any(data.get("pop") for _, data in usable):
+              raise SystemExit("No 12-hour precipitation probability values found in the forecast.")
+
+          print("CWA weekly forecast API validation: PASS")
+          print("Dataset:", dataset_id, "(Taoyuan weekly township forecast)")
+          print("Townships returned:", len(locations))
+          print("Validated township: 桃園區")
+          print("Forecast dates with max/min:", len(usable))
+          print("Seven-day range:", usable[0][0], "through", usable[6][0])
+          print("Sample first day max/min:", usable[0][1]["max"], "/", usable[0][1]["min"], "°C")
+          print("Weather and 12-hour precipitation fields: present")
+          print("API key: present (value intentionally not logged)")
           PY
-
-  build:
-    runs-on: ubuntu-latest
-    needs: validate-7timer
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Run unit tests and build debug APK
-        working-directory: launcher
-        run: ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon
-      - name: Package APK and complete source
-        run: |
-          mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/app-debug.apk release/CYTV-R155-debug.apk
-          zip -r release/CYTV-R155-Source.zip . -x '.git/*' '*/.git/*' '*/build/*' '*/.gradle/*' 'release/*' '*/local.properties' '*/.idea/*'
-      - name: Upload deliverables
-        uses: actions/upload-artifact@v4
-        with:
-          name: CYTV-R155-APK-and-Source
-          path: |
-            release/CYTV-R155-debug.apk
-            release/CYTV-R155-Source.zip
-          if-no-files-found: error
