@@ -95,35 +95,46 @@ jobs:
               walk(roots)
               return found
 
-          def usable_days(location, element_name):
+          def parse_time(value):
+              try:
+                  dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      dt = dt.replace(tzinfo=ZoneInfo("Asia/Taipei"))
+                  return dt.astimezone(ZoneInfo("Asia/Taipei"))
+              except (TypeError, ValueError):
+                  return None
+
+          def element_slots(location, element_name):
               elements = get(location, "WeatherElement", "weatherElement", default=[]) or []
               element = next((e for e in elements if get(e, "ElementName", "elementName") == element_name), None)
               if not element:
-                  return set()
-              days = set()
+                  return []
+              result = []
               for slot in get(element, "Time", "time", default=[]) or []:
                   start = get(slot, "StartTime", "startTime", "DataTime", "dataTime")
                   values = get(slot, "ElementValue", "elementValue", default=[]) or []
-                  if not start or not scalar(values):
-                      continue
-                  try:
-                      dt = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
-                      if dt.tzinfo is None:
-                          dt = dt.replace(tzinfo=ZoneInfo("Asia/Taipei"))
-                      days.add(dt.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat())
-                  except ValueError:
-                      continue
-              return days
+                  dt = parse_time(start)
+                  value = scalar(values)
+                  if dt and value not in (None, "", "-", "X"):
+                      result.append((dt.date().isoformat(), value))
+              return result
+
+          def number(value):
+              try:
+                  return float(str(value).replace("%", "").strip())
+              except (TypeError, ValueError):
+                  return None
 
           bundle = {
               "source": "交通部中央氣象署",
               "license": "政府資料開放授權條款-第1版",
               "datasetType": "F-D0047 weekly township forecast",
               "generatedAt": datetime.now(ZoneInfo("Asia/Taipei")).isoformat(),
-              "datasets": {},
+              "locations": [],
           }
 
           total_locations = 0
+          valid_locations = 0
           for dataset_id, county in datasets.items():
               query = urllib.parse.urlencode({"Authorization": key, "format": "JSON"})
               url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{query}"
@@ -134,18 +145,57 @@ jobs:
                   payload = json.loads(response.read().decode("utf-8"))
               if str(get(payload, "success", "Success", default="")).lower() != "true":
                   raise SystemExit(f"CWA did not return success=true for {dataset_id}")
-              locations = locations_from(payload)
-              if not locations:
+              raw_locations = locations_from(payload)
+              if not raw_locations:
                   raise SystemExit(f"No township locations returned for {county} ({dataset_id})")
-              sample = locations[0]
-              high = usable_days(sample, "最高溫度")
-              low = usable_days(sample, "最低溫度")
-              if len(high & low) < 7:
-                  raise SystemExit(f"{county} ({dataset_id}) sample township lacks seven max/min dates")
-              bundle["datasets"][dataset_id] = payload
-              total_locations += len(locations)
-              print(f"Validated {county}: {len(locations)} townships, 7-day temperatures present", flush=True)
+
+              county_valid = 0
+              for loc in raw_locations:
+                  daily = {}
+                  fields = {
+                      "high": "最高溫度",
+                      "low": "最低溫度",
+                      "weather": "天氣現象",
+                      "rainProbability": "12小時降雨機率",
+                  }
+                  for output_key, element_name in fields.items():
+                      for day, raw_value in element_slots(loc, element_name):
+                          entry = daily.setdefault(day, {"date": day, "high": None, "low": None,
+                                                         "weather": None, "rainProbability": None})
+                          if output_key in ("high", "low", "rainProbability"):
+                              value = number(raw_value)
+                              if value is None:
+                                  continue
+                              if output_key == "high":
+                                  entry["high"] = value if entry["high"] is None else max(entry["high"], value)
+                              elif output_key == "low":
+                                  entry["low"] = value if entry["low"] is None else min(entry["low"], value)
+                              else:
+                                  entry["rainProbability"] = value if entry["rainProbability"] is None else max(entry["rainProbability"], value)
+                          elif entry["weather"] is None:
+                              entry["weather"] = str(raw_value)
+
+                  forecast = [daily[k] for k in sorted(daily)
+                              if daily[k]["high"] is not None and daily[k]["low"] is not None][:7]
+                  total_locations += 1
+                  if len(forecast) >= 7:
+                      county_valid += 1
+                      valid_locations += 1
+                      bundle["locations"].append({
+                          "county": county,
+                          "name": get(loc, "LocationName", "locationName", default=""),
+                          "geocode": get(loc, "Geocode", "geocode", default=""),
+                          "latitude": number(get(loc, "Latitude", "latitude")),
+                          "longitude": number(get(loc, "Longitude", "longitude")),
+                          "forecast": forecast,
+                      })
+              if county_valid == 0:
+                  raise SystemExit(f"{county} ({dataset_id}) produced no normalized seven-day township forecasts")
+              print(f"Validated {county}: {len(raw_locations)} townships, {county_valid} normalized seven-day forecasts", flush=True)
               time.sleep(0.2)
+
+          if valid_locations < 300:
+              raise SystemExit(f"Only {valid_locations} townships have normalized seven-day forecasts; expected at least 300.")
 
           os.makedirs("feed", exist_ok=True)
           with open("feed/cwa-weekly.json", "w", encoding="utf-8") as f:
@@ -160,7 +210,7 @@ jobs:
               )
           print("CWA county weekly feed validation: PASS")
           print("Datasets:", len(bundle["datasets"]))
-          print("Townships:", total_locations)
+          print("Townships returned:", total_locations)\n          print("Townships with normalized 7-day forecasts:", valid_locations)
           print("API key present; value not logged.")
           PY
 
