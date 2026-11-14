@@ -4378,65 +4378,72 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Third-level weekly forecast fallback: DWD Bright Sky (MOSMIX forecast).
-     * Bright Sky forecast coverage is global but sparser outside Germany; validate
-     * seven usable Taiwan-local forecast days before rendering. Never used as live observation.
+     * Third-level weekly forecast fallback: 7Timer! CIVIL (global GFS-based forecast).
+     * Aggregate forecast timepoints into Taiwan-local daily high/low temperatures.
+     * 7Timer provides precipitation type/amount, not probability; keep probability unknown.
      */
-    private void fetchBrightSkyForecast(double lat, double lon, String place) throws Exception {
-        java.text.SimpleDateFormat requestDate = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        requestDate.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Taipei"));
-        java.util.Calendar calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Taipei"), Locale.US);
-        String firstDate = requestDate.format(calendar.getTime());
-        calendar.add(java.util.Calendar.DAY_OF_YEAR, 8);
-        String lastDate = requestDate.format(calendar.getTime());
-        String endpoint = "https://api.brightsky.dev/weather?lat=" + lat + "&lon=" + lon
-                + "&date=" + firstDate + "&last_date=" + lastDate
-                + "&tz=Asia%2FTaipei&units=dwd";
+    private void fetch7TimerForecast(double lat, double lon, String place) throws Exception {
+        String endpoint = "https://www.7timer.info/bin/api.pl?lon=" + lon + "&lat=" + lat
+                + "&product=civil&output=json";
         JSONObject response = getJson(endpoint);
-        JSONArray records = response.optJSONArray("weather");
-        if (records == null || records.length() == 0)
-            throw new IOException("Bright Sky 沒有回傳桃園預報資料");
-        java.text.SimpleDateFormat timestampParser = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US);
+        if (!"civil".equalsIgnoreCase(response.optString("product", "")))
+            throw new IOException("7Timer 回傳的預報產品不正確");
+        JSONArray series = response.optJSONArray("dataseries");
+        if (series == null || series.length() < 20)
+            throw new IOException("7Timer 沒有回傳足夠的預報資料");
+
+        java.text.SimpleDateFormat initParser = new java.text.SimpleDateFormat("yyyyMMddHH", Locale.US);
+        initParser.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        java.util.Date initDate;
+        try {
+            initDate = initParser.parse(response.optString("init", ""));
+        } catch (Exception e) {
+            throw new IOException("7Timer 預報初始化時間格式錯誤", e);
+        }
+        if (initDate == null) throw new IOException("7Timer 預報初始化時間不存在");
+
         java.text.SimpleDateFormat localDayFormat = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
         localDayFormat.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Taipei"));
-        java.util.LinkedHashMap<String, double[]> dailyValues = new java.util.LinkedHashMap<>();
+        java.util.TreeMap<String, double[]> dailyValues = new java.util.TreeMap<>();
         java.util.HashMap<String, Integer> dailyCodes = new java.util.HashMap<>();
-        java.util.HashMap<String, Integer> dailyRain = new java.util.HashMap<>();
-        for (int i = 0; i < records.length(); i++) {
-            JSONObject item = records.optJSONObject(i);
+        java.util.HashMap<String, Integer> dailyCodePriority = new java.util.HashMap<>();
+
+        for (int i = 0; i < series.length(); i++) {
+            JSONObject item = series.optJSONObject(i);
             if (item == null) continue;
-            java.util.Date timestamp;
-            try {
-                timestamp = timestampParser.parse(item.optString("timestamp", ""));
-            } catch (Exception ignored) {
-                continue;
+            int timepoint = item.optInt("timepoint", -1);
+            double temp = item.optDouble("temp2m", Double.NaN);
+            if (timepoint < 0 || Double.isNaN(temp) || Double.isInfinite(temp)) continue;
+
+            java.util.Calendar forecastTime = java.util.Calendar.getInstance(
+                    java.util.TimeZone.getTimeZone("UTC"), Locale.US);
+            forecastTime.setTime(initDate);
+            forecastTime.add(java.util.Calendar.HOUR_OF_DAY, timepoint);
+            String day = localDayFormat.format(forecastTime.getTime());
+
+            double[] range = dailyValues.get(day);
+            if (range == null) {
+                range = new double[]{temp, temp};
+                dailyValues.put(day, range);
+            } else {
+                range[0] = Math.max(range[0], temp);
+                range[1] = Math.min(range[1], temp);
             }
-            if (timestamp == null) continue;
-            String day = localDayFormat.format(timestamp);
-            double temp = item.optDouble("temperature", Double.NaN);
-            if (!Double.isNaN(temp) && !Double.isInfinite(temp)) {
-                double[] range = dailyValues.get(day);
-                if (range == null) {
-                    range = new double[]{temp, temp};
-                    dailyValues.put(day, range);
-                } else {
-                    range[0] = Math.max(range[0], temp);
-                    range[1] = Math.min(range[1], temp);
-                }
-            }
-            String icon = item.optString("icon", "");
-            String condition = item.optString("condition", "");
-            int code = brightSkyConditionToWmo(icon, condition);
-            if (!dailyCodes.containsKey(day)
-                    || brightSkyConditionPriority(code) > brightSkyConditionPriority(dailyCodes.get(day)))
+
+            String weather = item.optString("weather", "");
+            int code = sevenTimerWeatherToWmo(weather);
+            int priority = sevenTimerWeatherPriority(code);
+            if (!dailyCodePriority.containsKey(day) || priority > dailyCodePriority.get(day)) {
                 dailyCodes.put(day, code);
-            if (item.has("precipitation_probability") && !item.isNull("precipitation_probability")) {
-                int probability = item.optInt("precipitation_probability", -1);
-                if (probability >= 0) dailyRain.put(day, Math.max(dailyRain.containsKey(day) ? dailyRain.get(day) : 0, probability));
+                dailyCodePriority.put(day, priority);
             }
         }
-        if (dailyValues.size() < 7) throw new IOException("Bright Sky 桃園預報可用資料不足七天");
-        JSONArray dates = new JSONArray(), codes = new JSONArray(), highs = new JSONArray(), lows = new JSONArray(), rain = new JSONArray();
+
+        if (dailyValues.size() < 7)
+            throw new IOException("7Timer 桃園預報可用資料不足七天");
+
+        JSONArray dates = new JSONArray(), codes = new JSONArray();
+        JSONArray highs = new JSONArray(), lows = new JSONArray(), rain = new JSONArray();
         int count = 0;
         for (Map.Entry<String, double[]> entry : dailyValues.entrySet()) {
             if (count++ >= 7) break;
@@ -4445,9 +4452,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             codes.put(dailyCodes.containsKey(day) ? dailyCodes.get(day) : 3);
             highs.put(Math.round(entry.getValue()[0] * 10.0) / 10.0);
             lows.put(Math.round(entry.getValue()[1] * 10.0) / 10.0);
-            rain.put(dailyRain.containsKey(day) ? dailyRain.get(day) : JSONObject.NULL);
+            // 7Timer reports precipitation category/amount, not probability percentage.
+            rain.put(JSONObject.NULL);
         }
-        if (dates.length() < 7) throw new IOException("Bright Sky 桃園預報日期不足七天");
+        if (dates.length() < 7)
+            throw new IOException("7Timer 桃園預報日期不足七天");
+
         weatherHandler.post(() -> {
             renderWeeklyWeather(dates, codes, highs, lows, rain, place);
             if (openWeeklyForecastAfterRefresh) {
@@ -4457,7 +4467,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
-    private int brightSkyConditionPriority(int code) {
+    private int sevenTimerWeatherToWmo(String weather) {
+        String value = weather == null ? "" : weather.toLowerCase(Locale.ROOT);
+        if (value.contains("tsrain") || value.startsWith("ts")) return 95;
+        if (value.contains("snow")) return value.contains("rain") ? 66 : 71;
+        if (value.contains("rain") || value.contains("shower")) return 61;
+        if (value.contains("humid")) return 45;
+        if (value.contains("cloudy")) return 3;
+        if (value.contains("mcloudy") || value.contains("pcloudy")) return 2;
+        if (value.contains("clear")) return 0;
+        if (value.contains("windy")) return 3;
+        return 3;
+    }
+
+    private int sevenTimerWeatherPriority(int code) {
         if (code >= 95) return 6;
         if (code >= 71 && code <= 86) return 5;
         if (code >= 66 && code <= 69) return 4;
@@ -4465,20 +4488,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (code == 45 || code == 48) return 2;
         if (code == 2 || code == 3) return 1;
         return 0;
-    }
-
-    private int brightSkyConditionToWmo(String icon, String condition) {
-        String value = ((icon == null ? "" : icon) + " " + (condition == null ? "" : condition)).toLowerCase(Locale.ROOT);
-        if (value.contains("thunderstorm")) return 95;
-        if (value.contains("hail")) return 96;
-        if (value.contains("sleet")) return 68;
-        if (value.contains("snow")) return 71;
-        if (value.contains("rain")) return 61;
-        if (value.contains("fog")) return 45;
-        if (value.contains("partly-cloudy")) return 2;
-        if (value.contains("cloudy")) return 3;
-        if (value.contains("clear")) return 0;
-        return 3;
     }
 
     private int metNoSymbolToWmo(String symbol) {
@@ -4514,9 +4523,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     fetchMetNoForecast(lat, lon, place);
                     return;
                 } catch (Exception secondError) {
-                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying DWD Bright Sky third-level forecast fallback", secondError);
+                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying 7Timer third-level forecast fallback", secondError);
                     try {
-                        fetchBrightSkyForecast(lat, lon, place);
+                        fetch7TimerForecast(lat, lon, place);
                         return;
                     } catch (Exception thirdError) {
                         thirdError.addSuppressed(secondError);
