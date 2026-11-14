@@ -34,13 +34,15 @@ public final class ToolCenterActivity extends Activity {
     private ToolRepository repository;
     private LinearLayout root;
     private GridLayout grid;
-    private TextView empty;\n    private ToolIconProvider iconProvider;
+    private TextView empty;
+    private ToolIconProvider iconProvider;
     private final float density() { return getResources().getDisplayMetrics().density; }
     private int dp(int value) { return Math.round(value * density()); }
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        repository = new ToolRepository(this);\n        iconProvider = new ToolIconProvider(this);
+        repository = new ToolRepository(this);
+        iconProvider = new ToolIconProvider(this);
         getWindow().setStatusBarColor(Color.BLACK);
         getWindow().setNavigationBarColor(Color.BLACK);
         build();
@@ -48,7 +50,10 @@ public final class ToolCenterActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (repository != null && root != null) {\n            repository.refreshInstalledEntries(getPackageManager());\n            renderTools();\n        }
+        if (repository != null && root != null) {
+            repository.refreshInstalledEntries(getPackageManager());
+            renderTools();
+        }
     }
 
     private void build() {
@@ -98,7 +103,9 @@ public final class ToolCenterActivity extends Activity {
         List<ToolRepository.Tool> tools = repository.getTools();
         empty.setVisibility(tools.isEmpty() ? View.VISIBLE : View.GONE);
         int screenWidth = getResources().getDisplayMetrics().widthPixels - dp(56);
-        int cellWidth = Math.max(dp(110), screenWidth / columns);\n        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);\n        int cellHeight = Math.max(dp(112), availableHeight / repository.getRows());
+        int cellWidth = Math.max(dp(110), screenWidth / columns);
+        int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(210);
+        int cellHeight = Math.max(dp(112), availableHeight / repository.getRows());
         for (ToolRepository.Tool tool : tools) {
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
