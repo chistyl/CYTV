@@ -1321,6 +1321,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         while (slots.size() < slotCount) slots.add(0);
 
+        desktopWidgetGrid.setClipChildren(true);
+        desktopWidgetGrid.setClipToPadding(true);
         desktopWidgetGrid.setColumnCount(columns);
         desktopWidgetGrid.setRowCount(rows);
         desktopWidgetGrid.setUseDefaultMargins(false);
@@ -1341,6 +1343,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 card.setOrientation(LinearLayout.VERTICAL);
                 card.setGravity(Gravity.CENTER);
                 card.setPadding(0, 0, 0, 0);
+                card.setClipChildren(true);
+                card.setClipToPadding(true);
                 card.setBackgroundColor(Color.TRANSPARENT);
                 card.setElevation(0f);
                 card.setFocusable(false);
