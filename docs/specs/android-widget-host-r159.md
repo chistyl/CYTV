@@ -12,10 +12,16 @@
 3. Provider picker rows show the provider application's icon and name, with separate「啟動 APP」and「新增」actions.
 4. Add user-configurable widget grid columns (1–4) and visible rows (1–3); persist preferences.
 5. Use CYTV dark surfaces, teal accent, compact typography, and focusable remote controls.
+6. Keep the weather card anchored at one fixed position below the clock for both「一天」and「一週」modes; adapt only its content width and minimum height.
+7. Keep the weather overlay outside the app-grid measurement so enabling/disabling weather never changes the clock or weather anchor. Place the widget shelf below the app grid so it cannot cover the weather card.
+8. Keep the weather mode's daily/week layout responsive to available screen width, with a compact one-day card and a wider seven-day forecast.
 6. Preserve native bind/configure flow, host IDs, saved widget IDs, and provider RemoteViews.
 
 ## Acceptance checks
 - Desktop visibly displays the widget section and its add/manage controls.
+- Toggling weather enabled/disabled does not move the clock or weather card anchor.
+- Switching「一天／一週」keeps the weather card's top-left anchor fixed while its content width/height adapts.
+- Widget shelf is below the app grid and does not overlap the weather overlay.
 - After adding a widget, its RemoteViews render on Home without opening a separate screen.
 - Provider list displays app icons and has an app launch action.
 - Column/row settings persist after leaving and reopening the widget screen.
