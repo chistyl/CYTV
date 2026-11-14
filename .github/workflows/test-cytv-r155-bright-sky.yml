@@ -41,15 +41,9 @@ jobs:
               raise SystemExit("CWA_API_KEY GitHub Secret is missing or empty.")
 
           dataset_id = "F-D0047-007"
-          params = urllib.parse.urlencode({
-              "Authorization": api_key,
-              "format": "JSON",
-          })
+          params = urllib.parse.urlencode({"Authorization": api_key, "format": "JSON"})
           url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/{dataset_id}?{params}"
-          request = urllib.request.Request(
-              url,
-              headers={"User-Agent": "CYTV-Weather-Validation/1.0"},
-          )
+          request = urllib.request.Request(url, headers={"User-Agent": "CYTV-Weather-Validation/1.0"})
 
           try:
               with urllib.request.urlopen(request, timeout=45) as response:
@@ -61,70 +55,79 @@ jobs:
           except urllib.error.URLError as exc:
               raise SystemExit(f"CWA API network error: {exc.reason}") from None
 
-          if str(payload.get("success", "")).lower() != "true":
-              # Do not print the response body: it may contain request details.
+          def field(obj, *names, default=None):
+              for name in names:
+                  if isinstance(obj, dict) and name in obj:
+                      return obj[name]
+              return default
+
+          if str(field(payload, "success", "Success", default="")).lower() != "true":
               raise SystemExit("CWA API did not return success=true.")
 
-          records = payload.get("records") or {}
-          locations_groups = records.get("locations") or []
-          if not locations_groups:
-              raise SystemExit("CWA response has no records.locations.")
-
+          records = field(payload, "records", "Records", default={}) or {}
+          # F-D0047 township datasets use PascalCase: Locations/Location.
+          groups = field(records, "Locations", "locations", default=[]) or []
           locations = []
-          for group in locations_groups:
-              locations.extend(group.get("location") or [])
+          for group in groups:
+              locations.extend(field(group, "Location", "location", default=[]) or [])
+          if not locations:
+              keys = ", ".join(sorted(str(k) for k in records.keys())) if isinstance(records, dict) else "unavailable"
+              raise SystemExit(f"CWA response has no township locations; records keys: {keys}")
 
-          taoyuan = next((item for item in locations if item.get("locationName") == "桃園區"), None)
+          taoyuan = next(
+              (item for item in locations if field(item, "LocationName", "locationName") in ("桃園區", "桃园区")),
+              None,
+          )
           if taoyuan is None:
               raise SystemExit("CWA weekly dataset did not include 桃園區.")
 
+          weather_elements = field(taoyuan, "WeatherElement", "weatherElement", default=[]) or []
           elements = {
-              item.get("elementName"): item
-              for item in (taoyuan.get("weatherElement") or [])
+              field(item, "ElementName", "elementName"): item
+              for item in weather_elements
           }
           required = ["最高溫度", "最低溫度", "天氣現象", "12小時降雨機率"]
           missing = [name for name in required if name not in elements]
           if missing:
-              raise SystemExit("CWA response is missing required weather elements: " + ", ".join(missing))
+              available = ", ".join(str(k) for k in elements.keys())
+              raise SystemExit(f"Missing weather elements: {', '.join(missing)}. Available: {available}")
 
           tz = ZoneInfo("Asia/Taipei")
           daily = defaultdict(dict)
 
-          def parse_value(element, field):
+          def parse_value(element):
               result = []
-              for slot in element.get("time") or []:
-                  start = slot.get("startTime")
-                  values = slot.get("elementValue") or []
+              for slot in field(element, "Time", "time", default=[]) or []:
+                  start = field(slot, "StartTime", "startTime", "DataTime", "dataTime")
+                  values = field(slot, "ElementValue", "elementValue", default=[]) or []
                   if not start or not values:
                       continue
                   try:
-                      day = datetime.fromisoformat(start).astimezone(tz).date().isoformat()
-                  except ValueError:
+                      parsed = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                      if parsed.tzinfo is None:
+                          parsed = parsed.replace(tzinfo=tz)
+                      day = parsed.astimezone(tz).date().isoformat()
+                  except (ValueError, TypeError):
                       continue
-                  value = values[0].get("value")
+                  value = field(values[0], "value", "Value", "ParameterName", "parameterName")
                   if value in (None, "", "-", "X"):
                       continue
-                  result.append((day, value))
+                  result.append((day, str(value)))
               return result
 
-          for day, value in parse_value(elements["最高溫度"], "max"):
-              daily[day]["max"] = value
-          for day, value in parse_value(elements["最低溫度"], "min"):
-              daily[day]["min"] = value
-          for day, value in parse_value(elements["天氣現象"], "weather"):
-              daily[day]["weather"] = value
-          for day, value in parse_value(elements["12小時降雨機率"], "pop"):
-              daily[day]["pop"] = value
+          mapping = {
+              "最高溫度": "max",
+              "最低溫度": "min",
+              "天氣現象": "weather",
+              "12小時降雨機率": "pop",
+          }
+          for element_name, target in mapping.items():
+              for day, value in parse_value(elements[element_name]):
+                  daily[day][target] = value
 
-          usable = [
-              (day, data) for day, data in sorted(daily.items())
-              if "max" in data and "min" in data
-          ]
+          usable = [(day, data) for day, data in sorted(daily.items()) if "max" in data and "min" in data]
           if len(usable) < 7:
-              raise SystemExit(
-                  f"CWA data has only {len(usable)} dates with both max/min temperature; expected at least 7."
-              )
-
+              raise SystemExit(f"Only {len(usable)} dates have both max/min temperatures; expected at least 7.")
           if not any(data.get("weather") for _, data in usable):
               raise SystemExit("No weather phenomenon values found in the 7-day forecast.")
           if not any(data.get("pop") for _, data in usable):
@@ -136,7 +139,6 @@ jobs:
           print("Validated township: 桃園區")
           print("Forecast dates with max/min:", len(usable))
           print("Seven-day range:", usable[0][0], "through", usable[6][0])
-          print("Sample first day max/min:", usable[0][1]["max"], "/", usable[0][1]["min"], "°C")
           print("Weather and 12-hour precipitation fields: present")
           print("API key: present (value intentionally not logged)")
           PY
