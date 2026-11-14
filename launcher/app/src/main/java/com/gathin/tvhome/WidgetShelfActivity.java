@@ -43,9 +43,10 @@ public final class WidgetShelfActivity extends Activity {
 
     private AppWidgetManager widgetManager;
     private AppWidgetHost widgetHost;
-    private LinearLayout widgetList;
+    private GridLayout widgetList;
     private TextView emptyState;
     private int pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
+    private int pendingWidgetSlotIndex = -1;
     private float density;
 
     private int dp(int value) {
@@ -95,7 +96,7 @@ public final class WidgetShelfActivity extends Activity {
         header.addView(title, new LinearLayout.LayoutParams(0, dp(56), 1));
 
         Button add = button("新增小工具 +");
-        add.setOnClickListener(v -> pickWidget());
+        add.setOnClickListener(v -> pickWidget(firstEmptySlot()));
         header.addView(add, new LinearLayout.LayoutParams(dp(190), dp(48)));
 
         Button layout = button("欄列設定");
@@ -117,8 +118,9 @@ public final class WidgetShelfActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        widgetList = new LinearLayout(this);
-        widgetList.setOrientation(LinearLayout.VERTICAL);
+        widgetList = new GridLayout(this);
+        widgetList.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        widgetList.setUseDefaultMargins(false);
         widgetList.setPadding(dp(4), dp(4), dp(4), dp(20));
         scroll.addView(widgetList, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -133,7 +135,22 @@ public final class WidgetShelfActivity extends Activity {
         setContentView(page);
     }
 
-    private void pickWidget() {
+    private int firstEmptySlot() {
+        List<Integer> slots = readSlots();
+        int columns = Math.max(1, Math.min(4, getSharedPreferences(PREFS, MODE_PRIVATE).getInt("desktop_widget_columns", 2)));
+        int rows = Math.max(1, Math.min(3, getSharedPreferences(PREFS, MODE_PRIVATE).getInt("desktop_widget_rows", 1)));
+        for (int i = 0; i < columns * rows; i++) {
+            if (i >= slots.size() || slots.get(i) == 0) return i;
+        }
+        return -1;
+    }
+
+    private void pickWidget(int targetSlot) {
+        if (targetSlot < 0) {
+            Toast.makeText(this, "目前配置已沒有空白分區，請先調整欄列或移除小工具", Toast.LENGTH_LONG).show();
+            return;
+        }
+        pendingWidgetSlotIndex = targetSlot;
         final List<AppWidgetProviderInfo> providers = widgetManager.getInstalledProviders();
         final ArrayList<AppWidgetProviderInfo> thirdParty = new ArrayList<>();
         for (AppWidgetProviderInfo info : providers) {
@@ -337,6 +354,8 @@ public final class WidgetShelfActivity extends Activity {
                             .putInt("desktop_widget_columns", columns.getValue())
                             .putInt("desktop_widget_rows", rows.getValue())
                             .apply();
+                    normalizeSlotsToGrid();
+                    renderWidgets();
                     Toast.makeText(this, "桌面欄列設定已儲存", Toast.LENGTH_SHORT).show();
                 }).show();
     }
@@ -422,9 +441,19 @@ public final class WidgetShelfActivity extends Activity {
             deletePending(id);
             return;
         }
-        List<Integer> ids = readIds();
-        if (!ids.contains(id)) ids.add(id);
-        saveIds(ids);
+        List<Integer> slots = readSlots();
+        int slotCount = configuredSlotCount();
+        while (slots.size() < slotCount) slots.add(0);
+        int target = pendingWidgetSlotIndex;
+        if (target < 0 || target >= slotCount || slots.get(target) != 0) target = firstEmptySlot();
+        if (target < 0) {
+            deletePending(id);
+            Toast.makeText(this, "沒有可用的固定分區", Toast.LENGTH_LONG).show();
+            return;
+        }
+        slots.set(target, id);
+        saveSlots(slots);
+        pendingWidgetSlotIndex = -1;
         pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
         renderWidgets();
         Toast.makeText(this, "已新增：" + info.loadLabel(getPackageManager()), Toast.LENGTH_SHORT).show();
@@ -437,18 +466,76 @@ public final class WidgetShelfActivity extends Activity {
         pendingWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     }
 
-    private List<Integer> readIds() {
+    private int configuredSlotCount() {
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+        return columns * rows;
+    }
+
+    private List<Integer> readSlots() {
+        ArrayList<Integer> slots = new ArrayList<>();
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String raw = prefs.getString("widget_slots", null);
+        if (raw != null) {
+            try {
+                JSONArray array = new JSONArray(raw);
+                for (int i = 0; i < array.length(); i++) slots.add(array.optInt(i, 0));
+                return slots;
+            } catch (Exception ignored) { }
+        }
+        for (int id : readLegacyIds()) slots.add(id);
+        return slots;
+    }
+
+    private List<Integer> readLegacyIds() {
         ArrayList<Integer> ids = new ArrayList<>();
         String raw = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_IDS, "[]");
         try {
             JSONArray array = new JSONArray(raw);
             for (int i = 0; i < array.length(); i++) {
                 int id = array.optInt(i, AppWidgetManager.INVALID_APPWIDGET_ID);
-                if (id != AppWidgetManager.INVALID_APPWIDGET_ID && !ids.contains(id)) ids.add(id);
+                if (id != AppWidgetManager.INVALID_APPWIDGET_ID && id > 0 && !ids.contains(id)) ids.add(id);
             }
-        } catch (Exception ignored) {
-            // Corrupt preference data is treated as an empty widget shelf.
+        } catch (Exception ignored) { }
+        return ids;
+    }
+
+    private void saveSlots(List<Integer> slots) {
+        JSONArray slotArray = new JSONArray();
+        JSONArray idsArray = new JSONArray();
+        for (Integer id : slots) {
+            slotArray.put(id == null ? 0 : id);
+            if (id != null && id > 0) idsArray.put(id);
         }
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putString("widget_slots", slotArray.toString())
+                .putString(KEY_IDS, idsArray.toString()).apply();
+    }
+
+    private void normalizeSlotsToGrid() {
+        List<Integer> slots = readSlots();
+        int count = configuredSlotCount();
+        ArrayList<Integer> normalized = new ArrayList<>();
+        for (int i = 0; i < count; i++) normalized.add(0);
+        ArrayList<Integer> overflow = new ArrayList<>();
+        for (int i = 0; i < slots.size(); i++) {
+            int id = slots.get(i);
+            if (id <= 0) continue;
+            if (i < count && normalized.get(i) == 0) normalized.set(i, id);
+            else overflow.add(id);
+        }
+        for (int id : overflow) {
+            int target = normalized.indexOf(0);
+            if (target < 0) normalized.add(id);
+            else normalized.set(target, id);
+        }
+        saveSlots(normalized);
+    }
+
+    private List<Integer> readIds() {
+        ArrayList<Integer> ids = new ArrayList<>();
+        for (int id : readSlots()) if (id > 0 && !ids.contains(id)) ids.add(id);
         return ids;
     }
 
@@ -461,54 +548,87 @@ public final class WidgetShelfActivity extends Activity {
     private void renderWidgets() {
         if (widgetList == null) return;
         widgetList.removeAllViews();
-        List<Integer> ids = readIds();
-        ArrayList<Integer> valid = new ArrayList<>();
-        for (int id : ids) {
-            AppWidgetProviderInfo info = widgetManager.getAppWidgetInfo(id);
-            if (info == null) {
+        android.content.SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        int columns = Math.max(1, Math.min(4, prefs.getInt("desktop_widget_columns", 2)));
+        int rows = Math.max(1, Math.min(3, prefs.getInt("desktop_widget_rows", 1)));
+        int count = columns * rows;
+        widgetList.setColumnCount(columns);
+        widgetList.setRowCount(rows);
+        List<Integer> slots = readSlots();
+        while (slots.size() < count) slots.add(0);
+        for (int i = 0; i < count; i++) {
+            int id = slots.get(i);
+            AppWidgetProviderInfo info = id > 0 ? widgetManager.getAppWidgetInfo(id) : null;
+            if (id > 0 && info == null) {
                 try { widgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
-                continue;
+                slots.set(i, 0);
+                id = 0;
             }
-            valid.add(id);
-            addWidgetCard(id, info);
+            if (id > 0) addWidgetCard(id, info, i, columns);
+            else addEmptyZone(i, columns);
         }
-        if (valid.size() != ids.size()) saveIds(valid);
-        emptyState.setVisibility(valid.isEmpty() ? View.VISIBLE : View.GONE);
+        saveSlots(slots);
+        emptyState.setVisibility(View.GONE);
+        widgetList.requestLayout();
     }
 
-    private void addWidgetCard(int id, AppWidgetProviderInfo info) {
+    private GridLayout.LayoutParams cellParams(int index, int columns) {
+        GridLayout.LayoutParams lp = new GridLayout.LayoutParams(
+                GridLayout.spec(index / columns, 1f), GridLayout.spec(index % columns, 1f));
+        lp.width = 0;
+        lp.height = dp(220);
+        lp.setMargins(dp(6), dp(6), dp(6), dp(6));
+        return lp;
+    }
+
+    private void addEmptyZone(int index, int columns) {
+        LinearLayout zone = new LinearLayout(this);
+        zone.setOrientation(LinearLayout.VERTICAL);
+        zone.setGravity(Gravity.CENTER);
+        zone.setFocusable(true);
+        zone.setClickable(true);
+        zone.setPadding(dp(10), dp(10), dp(10), dp(10));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0x332D4654);
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), 0x664CA6AD);
+        zone.setBackground(bg);
+        TextView symbol = text("＋", 32, 0xFF78BFC5);
+        symbol.setGravity(Gravity.CENTER);
+        zone.addView(symbol);
+        TextView label = text("分區 " + (index + 1) + "\n新增小工具", 13, 0xFFB9C7D5);
+        label.setGravity(Gravity.CENTER);
+        zone.addView(label);
+        zone.setOnClickListener(v -> pickWidget(index));
+        widgetList.addView(zone, cellParams(index, columns));
+    }
+
+    private void addWidgetCard(int id, AppWidgetProviderInfo info, int index, int columns) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(12), dp(14), dp(14));
+        card.setGravity(Gravity.CENTER);
+        card.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable background = new GradientDrawable();
         background.setColor(0xFF202936);
-        background.setCornerRadius(dp(16));
-        background.setStroke(dp(1), 0x334CA6AD);
+        background.setCornerRadius(dp(14));
+        background.setStroke(dp(1), 0x664CA6AD);
         card.setBackground(background);
 
-        LinearLayout bar = new LinearLayout(this);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        TextView label = text(String.valueOf(info.loadLabel(getPackageManager())), 16, Color.WHITE);
-        bar.addView(label, new LinearLayout.LayoutParams(0, dp(42), 1));
-        Button remove = button("移除");
-        remove.setOnClickListener(v -> confirmRemove(id, info));
-        bar.addView(remove, new LinearLayout.LayoutParams(dp(100), dp(40)));
-        card.addView(bar);
+        TextView label = text(String.valueOf(info.loadLabel(getPackageManager())), 14, Color.WHITE);
+        label.setGravity(Gravity.CENTER);
+        card.addView(label, new LinearLayout.LayoutParams(-1, dp(30)));
 
         AppWidgetHostView hostView = widgetHost.createView(this, id, info);
         hostView.setFocusable(true);
         hostView.setFocusableInTouchMode(false);
-        int requestedHeight = info.minHeight > 0 ? Math.round(info.minHeight * density) : dp(180);
-        int height = Math.max(dp(120), Math.min(dp(360), requestedHeight));
-        LinearLayout.LayoutParams widgetLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, height);
-        widgetLp.topMargin = dp(8);
-        card.addView(hostView, widgetLp);
+        int requestedHeight = info.minHeight > 0 ? Math.round(info.minHeight * density) : dp(120);
+        int height = Math.max(dp(72), Math.min(dp(150), requestedHeight));
+        card.addView(hostView, new LinearLayout.LayoutParams(-1, height));
 
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        cardLp.bottomMargin = dp(14);
-        widgetList.addView(card, cardLp);
+        Button remove = button("移除");
+        remove.setOnClickListener(v -> confirmRemove(id, info));
+        card.addView(remove, new LinearLayout.LayoutParams(dp(100), dp(36)));
+        widgetList.addView(card, cellParams(index, columns));
     }
 
     private void confirmRemove(int id, AppWidgetProviderInfo info) {
@@ -517,9 +637,11 @@ public final class WidgetShelfActivity extends Activity {
                 .setMessage("要從 CYTV 桌面移除「" + info.loadLabel(getPackageManager()) + "」嗎？不會解除安裝原 APP。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("移除", (dialog, which) -> {
-                    List<Integer> ids = readIds();
-                    ids.remove(Integer.valueOf(id));
-                    saveIds(ids);
+                    List<Integer> slots = readSlots();
+                    for (int i = 0; i < slots.size(); i++) {
+                        if (slots.get(i) == id) slots.set(i, 0);
+                    }
+                    saveSlots(slots);
                     try { widgetHost.deleteAppWidgetId(id); } catch (RuntimeException ignored) { }
                     renderWidgets();
                 }).show();
