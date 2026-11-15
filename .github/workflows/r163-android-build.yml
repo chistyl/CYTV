@@ -1,0 +1,85 @@
+name: CYTV R163 Android Build
+
+on:
+  push:
+    branches:
+      - feature/dynamic-wallpaper-themes-r163
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cytv-r163-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compile and unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate dynamic wallpaper catalog
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("app/src/main/assets/dynamic_wallpaper_themes.json")
+          catalog = json.loads(path.read_text(encoding="utf-8"))
+          videos = catalog.get("videos", [])
+          themes = catalog.get("themes", [])
+          video_ids = [item.get("id") for item in videos]
+          assert len(themes) == 9, f"Expected 9 themes, found {len(themes)}"
+          assert len(video_ids) == len(set(video_ids)), "Duplicate video IDs found"
+          known_ids = set(video_ids)
+          for theme in themes:
+              ids = theme.get("videoIds", [])
+              assert ids, f"Theme has no videos: {theme.get('id')}"
+              missing = set(ids) - known_ids
+              assert not missing, f"Unknown video IDs in {theme.get('id')}: {sorted(missing)}"
+          for video in videos:
+              assert video.get("streamUrl", "").startswith("https://"), f"Invalid stream URL: {video.get('id')}"
+          print(f"Validated {len(videos)} unique videos across {len(themes)} themes")
+          PY
+
+      - name: Build debug APK and run unit tests
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+
+
+      - name: Package complete source
+        working-directory: .
+        run: |
+          zip -r CYTV-R163-source.zip . \
+            -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
+               '*/local.properties' '*.iml'
+
+      - name: Upload complete source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R163-source
+          path: CYTV-R163-source.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R163-debug
+          path: launcher/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
