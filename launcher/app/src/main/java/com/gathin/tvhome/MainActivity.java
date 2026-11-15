@@ -6274,6 +6274,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ? wallpaperPrefs.getBoolean("wallpaper_draft_module_enabled", false)
                 : wallpaperPrefs.getBoolean("wallpaper_module_enabled", false)};
         final int[] draftTheme = {hasWallpaperDraft ? wallpaperPrefs.getInt("wallpaper_draft_theme", 1) : wallpaperPrefs.getInt("builtin_wallpaper", 0)};
+        final String[] draftDynamicTheme = {hasWallpaperDraft
+                ? wallpaperPrefs.getString("wallpaper_draft_dynamic_theme", "")
+                : wallpaperPrefs.getString("dynamic_wallpaper_theme_id", "")};
+        final boolean[] draftDynamicActive = {hasWallpaperDraft
+                ? wallpaperPrefs.getBoolean("wallpaper_draft_dynamic_active", false)
+                : wallpaperPrefs.getBoolean("dynamic_wallpaper_enabled", false)};
+        final TextView[] customHeadingRef = new TextView[1];
+        final Runnable[] refreshDynamicBordersRef = new Runnable[1];
         final boolean[] draftRandom = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_random", false) : wallpaperPrefs.getBoolean("builtin_random_play", false)};
         final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
                 : (!wallpaperPrefs.getString("custom_wallpaper_file", "").isEmpty() || !wallpaperPrefs.getString("custom_wallpaper_uri", "").isEmpty())};
@@ -6291,6 +6299,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             java.util.Set<String> paths = new java.util.HashSet<>();
             for (File file : draftCustomSelection) if (file != null && file.isFile()) paths.add(file.getAbsolutePath());
             wallpaperPrefs.edit().putInt("wallpaper_draft_theme", draftTheme[0])
+                    .putString("wallpaper_draft_dynamic_theme", draftDynamicTheme[0])
+                    .putBoolean("wallpaper_draft_dynamic_active", draftDynamicActive[0])
                     .putBoolean("wallpaper_draft_random", draftRandom[0])
                     .putBoolean("wallpaper_draft_custom_active", draftCustomActive[0])
                     .putString("wallpaper_draft_custom_mode", draftCustomMode[0])
@@ -6299,6 +6309,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         final Runnable clearWallpaperDraft = () -> wallpaperPrefs.edit()
                 .remove("wallpaper_draft_theme").remove("wallpaper_draft_random")
+                .remove("wallpaper_draft_dynamic_theme").remove("wallpaper_draft_dynamic_active")
                 .remove("wallpaper_draft_custom_active").remove("wallpaper_draft_custom_mode")
                 .remove("wallpaper_draft_module_enabled").remove("wallpaper_draft_custom_selection").apply();
         // 取消或意外關閉設定視窗時，丟棄所有暫存；只有啟動系統選圖器時才保留草稿。
@@ -6415,11 +6426,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             v.setPadding((int)(12*density), 0, (int)(12*density), 0);
         });
         defaultHeading.setOnClickListener(v -> {
-            draftCustomActive[0] = false; draftRandom[0] = false;
+            draftCustomActive[0] = false; draftRandom[0] = false; draftDynamicActive[0] = false;
             persistWallpaperDraft.run();
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
+            dynamicHeading.setText("○  動態圖片");
         });
         LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         defaultHeadingLp.topMargin = (int)(5*density);
@@ -6564,6 +6576,138 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
             }
         }
+        // R163：動態圖片沿用預設圖片的三欄 16:9 九宮格，不建立獨立設定頁。
+        DynamicWallpaperCatalog dynamicCatalogForPicker = DynamicWallpaperCatalog.load(this);
+        final List<DynamicWallpaperCatalog.Theme> dynamicThemes = dynamicCatalogForPicker.themes();
+        final View[] dynamicThemeItems = new View[dynamicThemes.size()];
+        TextView dynamicHeading = new TextView(this);
+        dynamicHeading.setText((draftDynamicActive[0] ? "◉  " : "○  ") + "動態圖片");
+        dynamicHeading.setTextColor(0xFFF5F6FA);
+        dynamicHeading.setTextSize(16);
+        dynamicHeading.setGravity(Gravity.CENTER_VERTICAL);
+        dynamicHeading.setPadding((int)(12*density), 0, (int)(12*density), 0);
+        dynamicHeading.setFocusable(true);
+        dynamicHeading.setFocusableInTouchMode(true);
+        dynamicHeading.setClickable(true);
+        dynamicHeading.setDefaultFocusHighlightEnabled(false);
+        dynamicHeading.setId(View.generateViewId());
+        dynamicHeading.setOnFocusChangeListener((v, focused) -> {
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(focused ? 0xFF203846 : Color.TRANSPARENT);
+            bg.setCornerRadius(10 * density);
+            if (focused) bg.setStroke(Math.max(2, (int)(2*density)), 0xFF80CBC4);
+            v.setBackground(bg);
+        });
+        LinearLayout.LayoutParams dynamicHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        dynamicHeadingLp.topMargin = (int)(8*density);
+        dynamicHeadingLp.bottomMargin = (int)(5*density);
+        choices.addView(dynamicHeading, dynamicHeadingLp);
+        Runnable refreshDynamicBorders = () -> {
+            for (int i = 0; i < dynamicThemeItems.length; i++) {
+                View item = dynamicThemeItems[i];
+                if (item == null) continue;
+                boolean selected = dynamicThemes.get(i).id.equals(draftDynamicTheme[0]);
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(0xFF1B2735);
+                bg.setCornerRadius(12*density);
+                bg.setStroke(selected ? Math.max(2, (int)(2*density))
+                                : (item.hasFocus() ? Math.max(2, (int)(2*density)) : 0),
+                        selected ? 0xFF56C5B7 : 0xFF80CBC4);
+                item.setBackground(bg);
+                item.setElevation(item.hasFocus() ? 3*density : 0f);
+            }
+        };
+        refreshDynamicBordersRef[0] = refreshDynamicBorders;
+        Runnable activateDynamicCategory = () -> {
+            if (dynamicThemes.isEmpty()) {
+                Toast.makeText(this, "動態圖片主題資料暫時無法載入", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            draftDynamicActive[0] = true;
+            draftCustomActive[0] = false;
+            draftRandom[0] = false;
+            if (draftDynamicTheme[0].isEmpty()) draftDynamicTheme[0] = dynamicThemes.get(0).id;
+            persistWallpaperDraft.run();
+            defaultHeading.setText("○  預設圖片");
+            dynamicHeading.setText("◉  動態圖片");
+            if (customHeadingRef[0] != null) customHeadingRef[0].setText("○  自訂圖片");
+            refreshDynamicBorders.run();
+        };
+        dynamicHeading.setOnClickListener(v -> activateDynamicCategory.run());
+        dynamicHeading.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        for (int row = 0; row < (dynamicThemes.size() + columnsCount - 1) / columnsCount; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < columnsCount; col++) {
+                final int index = row * columnsCount + col;
+                if (index >= dynamicThemes.size()) {
+                    View empty = new View(this);
+                    LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
+                    if (col < columnsCount - 1) emptyLp.rightMargin = thumbnailGap;
+                    rowLayout.addView(empty, emptyLp);
+                    continue;
+                }
+                DynamicWallpaperCatalog.Theme theme = dynamicThemes.get(index);
+                LinearLayout item = new LinearLayout(this);
+                item.setGravity(Gravity.CENTER);
+                item.setFocusable(true);
+                item.setFocusableInTouchMode(true);
+                item.setClickable(true);
+                item.setDefaultFocusHighlightEnabled(false);
+                item.setId(View.generateViewId());
+                dynamicThemeItems[index] = item;
+                TextView label = new TextView(this);
+                label.setText(theme.name);
+                label.setTextColor(0xFFF5F6FA);
+                label.setTextSize(17);
+                label.setGravity(Gravity.CENTER);
+                label.setMaxLines(2);
+                label.setShadowLayer(8f, 0f, 2f, Color.BLACK);
+                label.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
+                item.addView(label, new LinearLayout.LayoutParams(-1, -1));
+                item.setOnFocusChangeListener((v, focused) -> refreshDynamicBorders.run());
+                item.setOnClickListener(v -> {
+                    draftDynamicTheme[0] = theme.id;
+                    activateDynamicCategory.run();
+                    persistWallpaperDraft.run();
+                    for (int i = 0; i < thumbnailImages.length; i++)
+                        if (thumbnailImages[i] != null) setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
+                });
+                item.setOnKeyListener((v, keyCode, event) -> {
+                    if ((keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                            && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                        v.performClick();
+                        return true;
+                    }
+                    return false;
+                });
+                LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(thumbnailWidth, thumbnailHeight);
+                if (col < columnsCount - 1) itemLp.rightMargin = thumbnailGap;
+                rowLayout.addView(item, itemLp);
+            }
+            choices.addView(rowLayout, new LinearLayout.LayoutParams(-1, thumbnailHeight));
+            if (row < (dynamicThemes.size() + columnsCount - 1) / columnsCount - 1) {
+                View gap = new View(this);
+                choices.addView(gap, new LinearLayout.LayoutParams(1, (int)(5*density)));
+            }
+        }
+        refreshDynamicBorders.run();
+        defaultHeading.setNextFocusDownId(dynamicHeading.getId());
+        dynamicHeading.setNextFocusUpId(defaultHeading.getId());
+        if (dynamicThemeItems.length > 0 && dynamicThemeItems[0] != null)
+            dynamicHeading.setNextFocusDownId(dynamicThemeItems[0].getId());
+        if (dynamicThemeItems.length > 0 && dynamicThemeItems[dynamicThemeItems.length - 1] != null)
+            dynamicThemeItems[dynamicThemeItems.length - 1].setNextFocusDownId(View.NO_ID);
+
         final TextView[] qrActionRef = new TextView[1];
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
             // 保留「影像設定」頁面在下層；QR 視窗關閉或完成上傳後直接回到此頁。
@@ -6603,6 +6747,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // 自訂圖片庫：QR Code 與檔案選擇器匯入的圖片都集中顯示於此區。
         TextView customHeading = new TextView(this);
+        customHeadingRef[0] = customHeading;
         customHeading.setText((customWallpaperActive ? "◉  " : "○  ") + "自訂圖片");
         customHeading.setTextColor(0xFFF5F6FA);
         customHeading.setTextSize(16);
@@ -6627,9 +6772,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (savedCustom.isEmpty()) savedCustom = CustomWallpaperLibrary.list(this);
             if (!savedCustom.isEmpty()) {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
-                draftCustomActive[0] = true; draftRandom[0] = false;
+                draftCustomActive[0] = true; draftRandom[0] = false; draftDynamicActive[0] = false;
+                draftDynamicActive[0] = false;
+                dynamicHeading.setText("○  動態圖片");
                 persistWallpaperDraft.run();
                 customHeading.setText("◉  自訂圖片");
+                dynamicHeading.setText("○  動態圖片");
                 defaultHeading.setText("○  預設圖片");
                 for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                     setWallpaperThumbnailBorder(thumbnailImages[i], false, false);
@@ -6660,6 +6808,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         customHeadingLp.bottomMargin = (int)(5*density);
         choices.addView(customHeading, customHeadingLp);
         chooseAction.setNextFocusDownId(customHeading.getId());
+        dynamicHeading.setNextFocusDownId(qrAction.getId());
+        qrAction.setNextFocusUpId(dynamicThemeItems.length > 0 ? dynamicThemeItems[dynamicThemeItems.length - 1].getId() : dynamicHeading.getId());
         List<File> customImages = CustomWallpaperLibrary.list(this);
         if (customImages.size() > CustomWallpaperLibrary.MAX_ITEMS)
             customImages = new ArrayList<>(customImages.subList(0, CustomWallpaperLibrary.MAX_ITEMS));
@@ -6972,7 +7122,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             String savedCustomMode = WallpaperRotation.validMode(draftCustomMode[0]) ? draftCustomMode[0] : "random";
             CustomWallpaperLibrary.setSelected(this, draftCustomSelection, savedCustomMode);
             SharedPreferences.Editor editor = wallpaperPrefs.edit();
-            if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
+            if (draftDynamicActive[0] && !draftDynamicTheme[0].isEmpty()) {
+                editor.putBoolean("dynamic_wallpaper_enabled", true)
+                        .putString("dynamic_wallpaper_theme_id", draftDynamicTheme[0])
+                        .putBoolean("custom_wallpaper_enabled", false)
+                        .putBoolean("builtin_random_play", false)
+                        .remove("custom_wallpaper_uri").remove("custom_wallpaper_file");
+            } else if (draftCustomActive[0] && !allCustomWallpapers.isEmpty()) {
+                editor.putBoolean("dynamic_wallpaper_enabled", false)
+                        .remove("dynamic_wallpaper_theme_id");
                 String currentCustomPath = wallpaperPrefs.getString("custom_wallpaper_current", "");
                 boolean currentStillExists = false;
                 for (File candidate : allCustomWallpapers) {
@@ -6985,7 +7143,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .remove("custom_wallpaper_uri").remove("builtin_wallpaper")
                         .putBoolean("builtin_random_play", false);
             } else {
-                editor.putInt("builtin_wallpaper", draftTheme[0])
+                editor.putBoolean("dynamic_wallpaper_enabled", false)
+                        .remove("dynamic_wallpaper_theme_id")
+                        .putInt("builtin_wallpaper", draftTheme[0])
                         .putBoolean("builtin_random_play", draftRandom[0])
                         .putBoolean("custom_wallpaper_enabled", false)
                         .putLong("builtin_wallpaper_changed", System.currentTimeMillis())
