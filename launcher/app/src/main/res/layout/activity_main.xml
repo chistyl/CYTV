@@ -458,7 +458,7 @@
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
         android:layout_width="352dp"
-        android:layout_height="wrap_content"
+        android:layout_height="80dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="80dp"
         android:layout_marginBottom="72dp"
@@ -488,9 +488,9 @@
 
         <LinearLayout
             android:layout_width="260dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
-            android:gravity="start">
+            android:gravity="center_vertical|start">
 
             <TextView
                 android:id="@+id/mediaPlayerMode"
