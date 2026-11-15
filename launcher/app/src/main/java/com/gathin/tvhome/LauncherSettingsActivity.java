@@ -129,7 +129,7 @@ public final class LauncherSettingsActivity extends Activity {
         connectChoiceRows(columnChoices, rowChoices);
         connectChoiceRows(rowChoices, dockChoices);
         connectChoiceRows(dockChoices, clockChoices);
-        mediaPlayerEnabled = choices.getBoolean("media_player_enabled", true);
+        mediaPlayerEnabled = choices.getBoolean("media_player_enabled", false);
         mediaPlayerChoice = findViewById(R.id.mediaPlayerChoice);
         clockChoices[clockChoices.length - 1].setNextFocusDownId(mediaPlayerChoice.getId());
         mediaPlayerChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
