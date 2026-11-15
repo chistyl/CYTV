@@ -6,14 +6,14 @@ on:
       - feature/remove-weather-attribution-r159
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r159-metno-hide-rain.yml'
+      - '.github/workflows/build-cytv-r159-remove-weather-attribution.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - feature/weather-metno-hide-rain-r158
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r159-metno-hide-rain.yml'
+      - '.github/workflows/build-cytv-r159-remove-weather-attribution.yml'
   workflow_dispatch:
 
 permissions:
