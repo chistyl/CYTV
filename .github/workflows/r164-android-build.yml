@@ -1,16 +1,16 @@
-name: CYTV R166 Android Build
+name: CYTV R167 Android Build
 
 on:
   push:
     branches:
-      - fix/aerial-original-categories-and-video-previews-r166
+      - feature/nine-curated-aerial-themes-r167
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r166-build
+  group: cytv-r167-build
   cancel-in-progress: true
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
           videos = catalog.get("videos", [])
           themes = catalog.get("themes", [])
           video_ids = [item.get("id") for item in videos]
-          assert len(themes) == 4, f"Expected 4 original Aerial categories, found {len(themes)}"
+          assert len(themes) == 9, f"Expected 9 curated Aerial themes, found {len(themes)}"
           assert len(video_ids) == len(set(video_ids)), "Duplicate video IDs found"
           known_ids = set(video_ids)
           for theme in themes:
@@ -54,11 +54,27 @@ jobs:
               assert not missing, f"Unknown video IDs in {theme.get('id')}: {sorted(missing)}"
           for video in videos:
               assert video.get("streamUrl", "").startswith("https://"), f"Invalid stream URL: {video.get('id')}"
-          expected = {"cities": 30, "landscapes": 41, "space": 22, "underwater": 21}
+          expected = {
+              "ice-glacier": 9, "mountain-forest": 14, "canyon-wilderness": 18,
+              "aurora-night": 2, "earth-at-night": 2, "global-flight": 17,
+              "coral-reef": 2, "ocean-life": 15, "kelp-forest": 2
+          }
           actual = {theme["id"]: len(theme["videoIds"]) for theme in themes}
-          assert actual == expected, f"Unexpected category distribution: {actual}"
+          assert actual == expected, f"Unexpected curated theme distribution: {actual}"
+          video_by_id = {item["id"]: item for item in videos}
+          for theme in themes:
+              for video_id in theme["videoIds"]:
+                  source_category = video_by_id[video_id].get("sourceCategory")
+                  assert source_category != "cities", f"City video assigned to theme {theme['id']}"
+                  expected_category = {
+                      "ice-glacier": "landscapes", "mountain-forest": "landscapes", "canyon-wilderness": "landscapes",
+                      "aurora-night": "space", "earth-at-night": "space", "global-flight": "space",
+                      "coral-reef": "underwater", "ocean-life": "underwater", "kelp-forest": "underwater"
+                  }[theme["id"]]
+                  assert source_category == expected_category, f"Cross-category assignment: {video_id}"
           assert len(videos) == 114, f"Expected 114 source videos, found {len(videos)}"
-          print(f"Validated {len(videos)} unique videos across original categories: {actual}")
+          assert all(item.get("sourceCategory") != "cities" or not item.get("themeIds") for item in videos), "City videos must not appear in themes"
+          print(f"Validated {len(videos)} source videos, 9 curated non-city themes: {actual}")
           PY
 
       - name: Build debug APK and run unit tests
@@ -68,14 +84,14 @@ jobs:
       - name: Package complete source
         working-directory: .
         run: |
-          zip -r CYTV-R166-source.zip . \
+          zip -r CYTV-R167-source.zip . \
             -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
                '*/local.properties' '*.iml'
 
       - name: Upload complete source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R166-source
+          name: CYTV-R167-source
           path: CYTV-R166-source.zip
           if-no-files-found: error
           retention-days: 14
@@ -83,7 +99,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R166-debug
+          name: CYTV-R167-debug
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
