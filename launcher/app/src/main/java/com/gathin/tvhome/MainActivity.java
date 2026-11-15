@@ -389,6 +389,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** R165: active media sessions are observed only while Home is in front. */
     private MediaSessionMonitor mediaSessionMonitor;
     private View mediaPlayerSurface;
+    /** Player visibility follows the dock row's upper-edge clipping state. */
+    private boolean mediaPlayerHiddenByDockScroll;
     private ImageView mediaPlayerArtwork;
     private TextView mediaPlayerTitle;
     private TextView mediaPlayerArtist;
@@ -918,6 +920,57 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         // R165: media player stays anchored to the screen; app-grid scrolling must not move it.
+        // R165: keep the player anchored beside the dock. Hide it at the exact same
+        // moment dock tiles are clipped by the grid's upper edge (child top < 0).
+        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            private void syncDockVisibility(RecyclerView rv) {
+                if (mediaPlayerSurface == null) return;
+                boolean clipped = false;
+                if (!singleRow) {
+                    boolean found = false;
+                    for (int i = 0; i < rv.getChildCount(); i++) {
+                        View child = rv.getChildAt(i);
+                        int position = rv.getChildAdapterPosition(child);
+                        if (position != RecyclerView.NO_POSITION && position < COLUMNS) {
+                            found = true;
+                            if (child.getTop() < 0) clipped = true;
+                        }
+                    }
+                    if (!found && rv.canScrollVertically(-1)) clipped = true;
+                }
+                mediaPlayerHiddenByDockScroll = clipped;
+                if (mediaPlayerSurface.getVisibility() != View.GONE) {
+                    mediaPlayerSurface.setVisibility(clipped ? View.INVISIBLE : View.VISIBLE);
+                }
+            }
+            @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                syncDockVisibility(rv);
+            }
+            @Override public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+                if (state == RecyclerView.SCROLL_STATE_IDLE) syncDockVisibility(rv);
+            }
+        });
+        grid.post(() -> {
+            if (mediaPlayerSurface != null && grid != null) {
+                // Evaluate the initial/restored dock position as well as live scroll events.
+                boolean clipped = false;
+                if (!singleRow) {
+                    boolean found = false;
+                    for (int i = 0; i < grid.getChildCount(); i++) {
+                        View child = grid.getChildAt(i);
+                        int position = grid.getChildAdapterPosition(child);
+                        if (position != RecyclerView.NO_POSITION && position < COLUMNS) {
+                            found = true;
+                            if (child.getTop() < 0) clipped = true;
+                        }
+                    }
+                    if (!found && grid.canScrollVertically(-1)) clipped = true;
+                }
+                mediaPlayerHiddenByDockScroll = clipped;
+                if (mediaPlayerSurface.getVisibility() != View.GONE)
+                    mediaPlayerSurface.setVisibility(clipped ? View.INVISIBLE : View.VISIBLE);
+            }
+        });
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -1711,7 +1764,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
         mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
                 ? "❚❚" : "▶");
-        mediaPlayerSurface.setVisibility(View.VISIBLE);
+        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
     }
 
