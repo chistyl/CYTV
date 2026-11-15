@@ -38,6 +38,8 @@ public final class LauncherSettingsActivity extends Activity {
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
     private final TextView[] clockChoices = new TextView[CLOCK_FORMATS.length];
     private TextView openOnStartChoice;
+    private TextView mediaPlayerChoice;
+    private boolean mediaPlayerEnabled;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -126,6 +128,17 @@ public final class LauncherSettingsActivity extends Activity {
         connectChoiceRows(columnChoices, rowChoices);
         connectChoiceRows(rowChoices, dockChoices);
         connectChoiceRows(dockChoices, clockChoices);
+        clockChoices[clockChoices.length - 1].setNextFocusDownId(mediaPlayerChoice.getId());
+        mediaPlayerChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+        mediaPlayerEnabled = choices.getBoolean("media_player_enabled", true);
+        mediaPlayerChoice = findViewById(R.id.mediaPlayerChoice);
+        mediaPlayerChoice.setOnClickListener(v -> {
+            mediaPlayerEnabled = !mediaPlayerEnabled;
+            choices.edit().putBoolean("media_player_enabled", mediaPlayerEnabled).apply();
+            changed();
+            refreshMediaPlayerChoice();
+        });
+        refreshMediaPlayerChoice();
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
@@ -134,11 +147,17 @@ public final class LauncherSettingsActivity extends Activity {
         refresh();
         connectSettingsVertical(reorderChoice, config.launcherSettingsButton, columnChoices[0]);
         if (openOnStartChoice.getVisibility() == View.VISIBLE) {
-            clockChoices[clockChoices.length - 1].setNextFocusDownId(openOnStartChoice.getId());
-            openOnStartChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+            mediaPlayerChoice.setNextFocusDownId(openOnStartChoice.getId());
+            openOnStartChoice.setNextFocusUpId(mediaPlayerChoice.getId());
         }
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    private void refreshMediaPlayerChoice() {
+        mediaPlayerChoice.setText(getString(R.string.media_player_state,
+                getString(mediaPlayerEnabled ? R.string.on : R.string.off)));
+        mediaPlayerChoice.setSelected(mediaPlayerEnabled);
     }
 
     private void connectChoiceRows(TextView[] upper, TextView[] lower) {
