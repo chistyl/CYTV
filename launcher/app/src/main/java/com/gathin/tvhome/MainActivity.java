@@ -6607,10 +6607,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (focused) bg.setStroke(Math.max(2, (int)(2*density)), 0xFF80CBC4);
             v.setBackground(bg);
         });
-        LinearLayout.LayoutParams dynamicHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
-        dynamicHeadingLp.topMargin = (int)(8*density);
-        dynamicHeadingLp.bottomMargin = (int)(5*density);
-        choices.addView(dynamicHeading, dynamicHeadingLp);
+        // R163 UI：動態主題區不顯示標題列，只呈現九宮格縮圖。
+        dynamicHeading.setVisibility(View.GONE);
+        dynamicHeading.setFocusable(false);
+        dynamicHeading.setClickable(false);
         Runnable refreshDynamicBorders = () -> {
             for (int i = 0; i < dynamicThemeItems.length; i++) {
                 View item = dynamicThemeItems[i];
@@ -6680,18 +6680,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setBackgroundColor(0xFF263746);
                 tileContent.addView(preview, new FrameLayout.LayoutParams(-1, -1));
-                TextView label = new TextView(this);
-                label.setText(theme.name);
-                label.setTextColor(0xFFF5F6FA);
-                label.setTextSize(17);
-                label.setGravity(Gravity.CENTER);
-                label.setMaxLines(2);
-                label.setShadowLayer(8f, 0f, 2f, Color.BLACK);
-                label.setBackgroundColor(0x660B1420);
-                label.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                FrameLayout.LayoutParams labelLp = new FrameLayout.LayoutParams(-1,
-                        (int)(42*density), Gravity.BOTTOM);
-                tileContent.addView(label, labelLp);
                 if (dynamicWallpaperThumbnailLoader == null)
                     dynamicWallpaperThumbnailLoader = new DynamicWallpaperThumbnailLoader();
                 List<DynamicWallpaperCatalog.Video> previewVideos = dynamicCatalogForPicker.videosFor(theme);
@@ -6739,9 +6727,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             tile.setNextFocusLeftId(col == 0 ? tile.getId() : dynamicThemeItems[i - 1].getId());
             tile.setNextFocusRightId(col == columnsCount - 1 || i + 1 >= dynamicThemeItems.length
                     ? tile.getId() : dynamicThemeItems[i + 1].getId());
-            tile.setNextFocusUpId(row == 0
-                    ? dynamicHeading.getId()
-                    : dynamicThemeItems[Math.min(dynamicThemeItems.length - 1, i - columnsCount)].getId());
+            if (row == 0) {
+                int previousDefault = Math.min(thumbnailItems.length - 1,
+                        columnsCount * (rowsCount - 1) + col);
+                tile.setNextFocusUpId(previousDefault >= 0 && thumbnailItems[previousDefault] != null
+                        ? thumbnailItems[previousDefault].getId() : defaultHeading.getId());
+            } else {
+                tile.setNextFocusUpId(dynamicThemeItems[Math.min(dynamicThemeItems.length - 1,
+                        i - columnsCount)].getId());
+            }
             tile.setNextFocusDownId(i + columnsCount < dynamicThemeItems.length
                     ? dynamicThemeItems[i + columnsCount].getId() : View.NO_ID);
         }
@@ -7214,14 +7208,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
-            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(dynamicHeading.getId());
+            if (thumbnailItems[i] != null && dynamicThemeItems.length > 0 && dynamicThemeItems[0] != null)
+                thumbnailItems[i].setNextFocusDownId(dynamicThemeItems[0].getId());
         }
-        if (thumbnailItems.length > 0 && thumbnailItems[thumbnailItems.length - 1] != null)
-            dynamicHeading.setNextFocusUpId(thumbnailItems[thumbnailItems.length - 1].getId());
         if (dynamicThemeItems.length > 0 && dynamicThemeItems[dynamicThemeItems.length - 1] != null)
             dynamicThemeItems[dynamicThemeItems.length - 1].setNextFocusDownId(qrAction.getId());
         qrAction.setNextFocusUpId(dynamicThemeItems.length > 0
-                ? dynamicThemeItems[dynamicThemeItems.length - 1].getId() : dynamicHeading.getId());
+                ? dynamicThemeItems[dynamicThemeItems.length - 1].getId() : chooseAction.getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(customHeading.getId());
