@@ -4411,24 +4411,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         JSONArray dates = new JSONArray(), codes = new JSONArray();
         JSONArray highs = new JSONArray(), lows = new JSONArray(), rain = new JSONArray();
-        boolean hasRainProbability = false;
         for (int i = 0; i < 7; i++) {
             JSONObject day = forecast.optJSONObject(i);
             if (day == null || !day.has("high") || !day.has("low"))
                 throw new IOException("中央氣象署七天溫度資料不完整");
+            if (day.isNull("rainProbability") || !day.has("rainProbability"))
+                throw new IOException("中央氣象署七天降雨機率資料不完整");
             dates.put(day.optString("date", ""));
             codes.put(cwaWeatherToWmo(day.optString("weather", "")));
             highs.put(day.optDouble("high"));
             lows.put(day.optDouble("low"));
-            if (day.isNull("rainProbability") || !day.has("rainProbability")) {
-                rain.put(JSONObject.NULL);
-            } else {
-                rain.put(day.optDouble("rainProbability"));
-                hasRainProbability = true;
-            }
+            rain.put(day.optDouble("rainProbability"));
         }
-        if (!hasRainProbability)
-            throw new IOException("中央氣象署目前沒有可用的降雨機率資料");
 
         weatherFromCwa = true;
         weatherHandler.post(() -> {
@@ -4521,11 +4515,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
-            // Keep each city's weather card provider-atomic: never fill a missing field
-            // from another provider. If this provider returns a truncated rain series,
-            // reject this complete snapshot and fall back to the next provider instead.
-            if (rain != null && rain.length() < 7)
+            // Keep each city's weather card provider-atomic: all seven days must have
+            // precipitation probabilities from this provider. Never mix providers or
+            // render a partially populated rain row; reject incomplete data as one snapshot.
+            if (rain == null || rain.length() < 7)
                 throw new IOException("Open-Meteo 降雨資料不足七天");
+            for (int i = 0; i < 7; i++) {
+                if (rain.isNull(i))
+                    throw new IOException("Open-Meteo 第 " + (i + 1) + " 天降雨機率資料缺漏");
+            }
 
             weatherFromCwa = false;
             weatherHandler.post(() -> {
