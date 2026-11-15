@@ -583,6 +583,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerToggle.setFocusable(true);
         mediaPlayerToggle.setFocusableInTouchMode(true);
         mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
+        // The circular album thumbnail directly opens the app that owns the active media session.
+        mediaPlayerArtwork.setFocusable(true);
+        mediaPlayerArtwork.setFocusableInTouchMode(true);
+        mediaPlayerArtwork.setOnClickListener(v -> openCurrentMediaApp());
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
         findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
         mediaPlayerToggle.setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
