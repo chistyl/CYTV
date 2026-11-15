@@ -4411,6 +4411,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         JSONArray dates = new JSONArray(), codes = new JSONArray();
         JSONArray highs = new JSONArray(), lows = new JSONArray(), rain = new JSONArray();
+        boolean hasRainProbability = false;
         for (int i = 0; i < 7; i++) {
             JSONObject day = forecast.optJSONObject(i);
             if (day == null || !day.has("high") || !day.has("low"))
@@ -4419,9 +4420,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             codes.put(cwaWeatherToWmo(day.optString("weather", "")));
             highs.put(day.optDouble("high"));
             lows.put(day.optDouble("low"));
-            if (day.isNull("rainProbability")) rain.put(JSONObject.NULL);
-            else rain.put(day.optDouble("rainProbability"));
+            if (day.isNull("rainProbability") || !day.has("rainProbability")) {
+                rain.put(JSONObject.NULL);
+            } else {
+                rain.put(day.optDouble("rainProbability"));
+                hasRainProbability = true;
+            }
         }
+        if (!hasRainProbability)
+            throw new IOException("中央氣象署目前沒有可用的降雨機率資料");
 
         weatherFromCwa = true;
         weatherHandler.post(() -> {
