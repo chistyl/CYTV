@@ -487,6 +487,18 @@
             android:visibility="gone" />
 
         <TextView
+            android:id="@+id/mediaPlayerSource"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:gravity="center_vertical"
+            android:textColor="#CCFFFFFF"
+            android:textSize="12sp"
+            android:focusable="true"
+            android:clickable="true"
+            android:visibility="gone"
+            android:contentDescription="@string/media_player_switch_source" />
+
+        <TextView
             android:id="@+id/mediaPlayerTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
