@@ -29,7 +29,7 @@ final class MediaSessionMonitor {
     private MediaSessionManager.OnActiveSessionsChangedListener sessionsListener;
     private final List<MediaController> observed = new ArrayList<>();
     private final List<MediaController> candidates = new ArrayList<>();
-    private int selectedIndex = 0;
+    private String selectedPackage;
     private boolean running;
 
     MediaSessionMonitor(Context context, Listener listener) {
@@ -74,7 +74,7 @@ final class MediaSessionMonitor {
         }
         observed.clear();
         candidates.clear();
-        selectedIndex = 0;
+        selectedPackage = null;
         sessionsListener = null;
         manager = null;
     }
@@ -130,27 +130,35 @@ final class MediaSessionMonitor {
             }
         }
         if (candidates.isEmpty()) {
-            selectedIndex = 0;
+            selectedPackage = null;
             publish(null);
             return;
         }
-        if (selectedIndex >= candidates.size()) selectedIndex = 0;
-        long bestScore = Long.MIN_VALUE;
-        int bestIndex = 0;
-        for (int i = 0; i < candidates.size(); i++) {
-            PlaybackState state = candidates.get(i).getPlaybackState();
-            int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
-            long priority = playback == PlaybackState.STATE_PLAYING ? 3L
-                    : playback == PlaybackState.STATE_BUFFERING ? 2L
-                    : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
-            long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
-            long score = priority * 1_000_000_000_000_000L + recency;
-            if (score > bestScore) { bestScore = score; bestIndex = i; }
+        MediaController selected = findSelected();
+        if (selected == null) {
+            long bestScore = Long.MIN_VALUE;
+            for (MediaController controller : candidates) {
+                PlaybackState state = controller.getPlaybackState();
+                int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
+                long priority = playback == PlaybackState.STATE_PLAYING ? 3L
+                        : playback == PlaybackState.STATE_BUFFERING ? 2L
+                        : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
+                long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
+                long score = priority * 1_000_000_000_000_000L + recency;
+                if (score > bestScore) { bestScore = score; selected = controller; }
+            }
+            if (selected == null) selected = candidates.get(0);
+            selectedPackage = selected.getPackageName();
         }
-        // Preserve a user's explicit source selection while it remains in the active list.
-        if (selectedIndex == 0) selectedIndex = bestIndex;
-        MediaController selected = candidates.get(selectedIndex);
         publish(selected, selected.getMetadata(), selected.getPlaybackState());
+    }
+
+    private MediaController findSelected() {
+        if (selectedPackage == null) return null;
+        for (MediaController controller : candidates) {
+            if (selectedPackage.equals(controller.getPackageName())) return controller;
+        }
+        return null;
     }
 
     int getSessionCount() {
@@ -159,9 +167,11 @@ final class MediaSessionMonitor {
 
     void selectNextSource() {
         if (candidates.size() < 2) return;
-        selectedIndex = (selectedIndex + 1) % candidates.size();
-        MediaController selected = candidates.get(selectedIndex);
-        publish(selected, selected.getMetadata(), selected.getPlaybackState());
+        MediaController current = findSelected();
+        int index = current == null ? -1 : candidates.indexOf(current);
+        MediaController next = candidates.get((index + 1) % candidates.size());
+        selectedPackage = next.getPackageName();
+        publish(next, next.getMetadata(), next.getPlaybackState());
     }
 
     private void publish(MediaController controller) {
