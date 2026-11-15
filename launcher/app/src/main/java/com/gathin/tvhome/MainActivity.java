@@ -393,6 +393,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView mediaPlayerTitle;
     private TextView mediaPlayerArtist;
     private TextView mediaPlayerMode;
+    private TextView mediaPlayerSource;
     private View mediaPlayerControls;
     private TextView mediaPlayerToggle;
     private MediaController currentMediaController;
@@ -546,6 +547,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
         mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
         mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
+        mediaPlayerSource = findViewById(R.id.mediaPlayerSource);
+        mediaPlayerSource.setOnClickListener(v -> {
+            if (mediaSessionMonitor != null) mediaSessionMonitor.selectNextSource();
+        });
         mediaPlayerControls = (View) findViewById(R.id.mediaPlayerPrevious).getParent();
         mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
         mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
@@ -1575,6 +1580,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
                 currentMediaController = controller;
                 renderMediaPlayer(controller, metadata, state);
+                updateMediaPlayerSourceControl();
                 android.content.SharedPreferences media = getSharedPreferences(
                         Config.SETTINGS_NAME, MODE_PRIVATE);
                 android.content.SharedPreferences.Editor edit = media.edit();
@@ -1601,6 +1607,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         mediaSessionMonitor.start();
+    }
+
+    private void updateMediaPlayerSourceControl() {
+        if (mediaPlayerSource == null) return;
+        int count = mediaSessionMonitor == null ? 0 : mediaSessionMonitor.getSessionCount();
+        mediaPlayerSource.setVisibility(count > 1 ? View.VISIBLE : View.GONE);
+        if (count > 1) {
+            mediaPlayerSource.setText(getString(R.string.media_player_source_count, count));
+        }
     }
 
     private void renderMediaPlayer(MediaController controller, android.media.MediaMetadata metadata,
