@@ -6706,12 +6706,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         refreshDynamicBorders.run();
-        defaultHeading.setNextFocusDownId(dynamicHeading.getId());
-        dynamicHeading.setNextFocusUpId(defaultHeading.getId());
+        defaultHeading.setNextFocusDownId(thumbnailItems.length > 0 && thumbnailItems[0] != null
+                ? thumbnailItems[0].getId() : dynamicHeading.getId());
+        dynamicHeading.setNextFocusUpId(thumbnailItems.length > 0 && thumbnailItems[thumbnailItems.length - 1] != null
+                ? thumbnailItems[thumbnailItems.length - 1].getId() : defaultHeading.getId());
         if (dynamicThemeItems.length > 0 && dynamicThemeItems[0] != null)
             dynamicHeading.setNextFocusDownId(dynamicThemeItems[0].getId());
-        if (dynamicThemeItems.length > 0 && dynamicThemeItems[dynamicThemeItems.length - 1] != null)
-            dynamicThemeItems[dynamicThemeItems.length - 1].setNextFocusDownId(View.NO_ID);
+        for (int i = 0; i < dynamicThemeItems.length; i++) {
+            View tile = dynamicThemeItems[i];
+            if (tile == null) continue;
+            int row = i / columnsCount;
+            int col = i % columnsCount;
+            tile.setNextFocusLeftId(col == 0 ? tile.getId() : dynamicThemeItems[i - 1].getId());
+            tile.setNextFocusRightId(col == columnsCount - 1 || i + 1 >= dynamicThemeItems.length
+                    ? tile.getId() : dynamicThemeItems[i + 1].getId());
+            tile.setNextFocusUpId(row == 0
+                    ? dynamicHeading.getId()
+                    : dynamicThemeItems[Math.min(dynamicThemeItems.length - 1, i - columnsCount)].getId());
+            tile.setNextFocusDownId(i + columnsCount < dynamicThemeItems.length
+                    ? dynamicThemeItems[i + columnsCount].getId() : View.NO_ID);
+        }
 
         final TextView[] qrActionRef = new TextView[1];
         TextView qrAction = addRoundedAction(choices, "QR Code 掃碼傳圖", () -> {
@@ -7181,9 +7195,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // 匯入與恢復操作列已放在預設圖片與自訂圖片之間。\n        // 主題圖片下方保留 QR 傳圖、選擇圖片與恢復預設三項功能；不再顯示取消／儲存。
         // Every tile in the last row (themes 7-9) must reach the action buttons.
         for (int i = columnsCount * (rowsCount - 1); i < thumbnailItems.length; i++) {
-            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(qrAction.getId());
+            if (thumbnailItems[i] != null) thumbnailItems[i].setNextFocusDownId(dynamicHeading.getId());
         }
-        qrAction.setNextFocusUpId(thumbnailItems[7].getId());
+        if (thumbnailItems.length > 0 && thumbnailItems[thumbnailItems.length - 1] != null)
+            dynamicHeading.setNextFocusUpId(thumbnailItems[thumbnailItems.length - 1].getId());
+        if (dynamicThemeItems.length > 0 && dynamicThemeItems[dynamicThemeItems.length - 1] != null)
+            dynamicThemeItems[dynamicThemeItems.length - 1].setNextFocusDownId(qrAction.getId());
+        qrAction.setNextFocusUpId(dynamicThemeItems.length > 0
+                ? dynamicThemeItems[dynamicThemeItems.length - 1].getId() : dynamicHeading.getId());
         qrAction.setNextFocusDownId(chooseAction.getId());
         chooseAction.setNextFocusUpId(qrAction.getId());
         chooseAction.setNextFocusDownId(customHeading.getId());
