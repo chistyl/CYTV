@@ -493,6 +493,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private java.util.Map<Integer, String> homeHoldAppKeys = java.util.Collections.emptyMap();
 
     @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == android.view.KeyEvent.KEYCODE_DPAD_UP
+                && mediaPlayerSurface != null
+                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            View child = focused;
+            while (child != null && child.getParent() != grid) {
+                android.view.ViewParent parent = child.getParent();
+                child = parent instanceof View ? (View) parent : null;
+            }
+            if (grid != null && child != null
+                    && grid.getChildAdapterPosition(child) >= 0
+                    && grid.getChildAdapterPosition(child) < COLUMNS) {
+                View previous = findViewById(R.id.mediaPlayerPrevious);
+                if (previous != null && previous.isShown() && previous.requestFocus()) {
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // R156: login/activation verification disabled; open the desktop directly.
