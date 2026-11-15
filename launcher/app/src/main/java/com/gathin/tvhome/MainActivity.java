@@ -6434,6 +6434,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
             if (dynamicHeadingRef[0] != null) dynamicHeadingRef[0].setText("○  動態圖片");
+            if (customHeadingRef[0] != null) customHeadingRef[0].setText("○  自訂圖片");
         });
         LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         defaultHeadingLp.topMargin = (int)(5*density);
