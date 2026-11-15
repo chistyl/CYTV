@@ -176,6 +176,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
+    /** R163: isolated remote-video layer; the existing still-image WallpaperPlayer remains authoritative fallback. */
+    private DynamicWallpaperPlayer dynamicWallpaperPlayer;
+    private DynamicWallpaperCatalog dynamicWallpaperCatalog;
     private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
     private View ambient;
@@ -1300,6 +1303,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         sky.update();
         wallpaperPlayer.start();
+        startDynamicWallpaperIfEnabled();
         videoCarousel.resumeAfterWake();
         // Let the first Home frame render before touching network-bound services after standby.
         enforceEthernetAdFilterPolicy();
@@ -1539,6 +1543,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
+    /** Starts the optional dynamic wallpaper only when its saved category is enabled. */
+    private void startDynamicWallpaperIfEnabled() {
+        SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
+        if (!prefs.getBoolean("dynamic_wallpaper_enabled", false)) return;
+        String themeId = prefs.getString("dynamic_wallpaper_theme_id", "");
+        if (TextUtils.isEmpty(themeId)) return;
+
+        if (dynamicWallpaperCatalog == null) {
+            dynamicWallpaperCatalog = DynamicWallpaperCatalog.load(this);
+        }
+        DynamicWallpaperCatalog.Theme selected = null;
+        for (DynamicWallpaperCatalog.Theme theme : dynamicWallpaperCatalog.themes()) {
+            if (theme.id.equals(themeId)) {
+                selected = theme;
+                break;
+            }
+        }
+        if (selected == null) {
+            Log.w("CYTV.DynamicPlayer", "Saved dynamic theme is missing: " + themeId);
+            return;
+        }
+        if (dynamicWallpaperPlayer == null) {
+            dynamicWallpaperPlayer = new DynamicWallpaperPlayer(this, root,
+                    new DynamicWallpaperPlayer.Listener() {
+                        @Override public void onPlaybackError(String message) {
+                            Log.w("CYTV.DynamicPlayer", message);
+                            // The static WallpaperPlayer image is already underneath the video layer.
+                        }
+                        @Override public void onFirstFrame() {
+                            Log.i("CYTV.DynamicPlayer", "First video frame rendered for " + themeId);
+                        }
+                    });
+        }
+        dynamicWallpaperPlayer.playTheme(dynamicWallpaperCatalog, selected);
+        dynamicWallpaperPlayer.start();
+    }
+
     private void restartIdleClock() {
         root.removeCallbacks(showIdleClock);
         if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
@@ -1556,6 +1597,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        if (dynamicWallpaperPlayer != null) dynamicWallpaperPlayer.stop();
         videoCarousel.pause();
         stopAmbientAnimation();
         hero.animate().cancel();
@@ -1632,6 +1674,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        if (dynamicWallpaperPlayer != null) dynamicWallpaperPlayer.release();
         videoCarousel.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
