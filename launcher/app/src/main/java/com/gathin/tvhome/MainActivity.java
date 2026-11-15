@@ -494,30 +494,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private java.util.Map<Integer, String> homeHoldAppKeys = java.util.Collections.emptyMap();
 
     @Override
-    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
-        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN
-                && event.getKeyCode() == android.view.KeyEvent.KEYCODE_DPAD_UP
-                && mediaPlayerSurface != null
-                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
-            View focused = getCurrentFocus();
-            View child = focused;
-            while (child != null && child.getParent() != grid) {
-                android.view.ViewParent parent = child.getParent();
-                child = parent instanceof View ? (View) parent : null;
-            }
-            if (grid != null && child != null
-                    && grid.getChildAdapterPosition(child) >= 0
-                    && grid.getChildAdapterPosition(child) < COLUMNS) {
-                View previous = findViewById(R.id.mediaPlayerPrevious);
-                if (previous != null && previous.isShown() && previous.requestFocus()) {
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // R156: login/activation verification disabled; open the desktop directly.
@@ -1961,6 +1937,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // R165: allow the remote's UP key from the dock row to enter the media controls.
+        if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP
+                && mediaPlayerSurface != null
+                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            View child = focused;
+            while (child != null && child.getParent() != grid) {
+                android.view.ViewParent parent = child.getParent();
+                child = parent instanceof View ? (View) parent : null;
+            }
+            int dockPosition = child == null || grid == null ? -1
+                    : grid.getChildAdapterPosition(child);
+            if (dockPosition >= 0 && dockPosition < COLUMNS) {
+                View previous = findViewById(R.id.mediaPlayerPrevious);
+                if (previous != null && previous.isShown() && previous.requestFocus()) return true;
+            }
+        }
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window, so their
         // "hold:" entries run here too or nowhere. Only while resumed: onPause releases Home's holds, and a DOWN
         // taken after that would arm one nothing releases.
