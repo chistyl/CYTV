@@ -228,7 +228,7 @@ final class DynamicWallpaperPlayer {
         String summary = "所有影片來源均無法播放；已嘗試 " + failedSourceCount
                 + " 個來源，主題：" + activeThemeId + "。最後錯誤：" + reason;
         Log.e(TAG, summary + "；" + detail);
-        notifyError(summary + "。請匯出 CYTV 動態桌布診斷紀錄");
+        notifyError(summary + "\n\n" + detail);
     }
 
     private void advanceToNextVideo() {
