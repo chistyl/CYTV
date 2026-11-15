@@ -63,6 +63,7 @@ import android.text.style.StyleSpan;
 import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.util.TypedValue;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
