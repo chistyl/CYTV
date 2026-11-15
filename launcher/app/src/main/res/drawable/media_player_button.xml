@@ -15,7 +15,7 @@
     <item>
         <shape android:shape="oval">
             <solid android:color="#E6263447" />
-            <stroke android:width="1dp" android:color="#334FFFFFF" />
+            <stroke android:width="1dp" android:color="#33FFFFFF" />
         </shape>
     </item>
 </selector>
