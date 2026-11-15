@@ -1298,7 +1298,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
-        startMediaSessionMonitor();
+        boolean mediaPlayerEnabled = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", true);
+        if (mediaPlayerEnabled) {
+            startMediaSessionMonitor();
+        } else {
+            // The setting can be switched off while this Activity is paused in Launcher Settings.
+            // Clear the old session immediately so a stale floating panel cannot remain on Home.
+            currentMediaController = null;
+            if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+            if (mediaPlayerSource != null) mediaPlayerSource.setVisibility(View.GONE);
+        }
         if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
