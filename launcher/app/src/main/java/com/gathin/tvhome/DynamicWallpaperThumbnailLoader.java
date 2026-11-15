@@ -84,7 +84,11 @@ final class DynamicWallpaperThumbnailLoader {
                         + ": " + error.getMessage());
                 // Try another encoding of this same Aerial video.
             } finally {
-                try { retriever.release(); } catch (RuntimeException ignored) { }
+                try {
+                    retriever.release();
+                } catch (IOException | RuntimeException ignored) {
+                    // Releasing a retriever must not mask the extraction result.
+                }
             }
         }
         Log.e("CYTV.DynamicThumb", "No usable preview frame for video " + video.id
