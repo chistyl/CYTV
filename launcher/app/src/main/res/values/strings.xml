@@ -75,6 +75,11 @@
     <string name="off">Off</string>
     <string name="media_player_label">媒體播放器</string>
     <string name="media_player_state">媒體播放器：%1$s</string>
+    <string name="media_player_permission_title">啟用媒體播放器</string>
+    <string name="media_player_permission_message">CYTV 需要通知存取權，才能讀取音樂、影片及直播 APP 的媒體工作階段資訊。CYTV 不會讀取或顯示一般通知內容。</string>
+    <string name="media_player_permission_open">前往授權設定</string>
+    <string name="media_player_permission_unavailable">此裝置無法開啟通知存取設定，請至系統設定手動授權。</string>
+    <string name="later">稍後</string>
     <string name="enable">Enable</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="home_key_name">Home button</string>
