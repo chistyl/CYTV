@@ -553,6 +553,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         mediaPlayerControls = (View) findViewById(R.id.mediaPlayerPrevious).getParent();
         mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
+        // The floating panel is a click target, not a D-pad stop: keep focus on actionable controls.
+        mediaPlayerSurface.setFocusable(false);
+        mediaPlayerSurface.setFocusableInTouchMode(false);
+        mediaPlayerSource.setFocusable(true);
+        mediaPlayerSource.setFocusableInTouchMode(true);
+        View mediaPrevious = findViewById(R.id.mediaPlayerPrevious);
+        View mediaNext = findViewById(R.id.mediaPlayerNext);
+        mediaPrevious.setFocusable(true);
+        mediaPrevious.setFocusableInTouchMode(true);
+        mediaNext.setFocusable(true);
+        mediaNext.setFocusableInTouchMode(true);
+        mediaPlayerToggle.setFocusable(true);
+        mediaPlayerToggle.setFocusableInTouchMode(true);
         mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
         findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
