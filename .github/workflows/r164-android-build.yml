@@ -1,16 +1,16 @@
-name: CYTV R164 Android Build
+name: CYTV R165 Android Build
 
 on:
   push:
     branches:
-      - fix/dynamic-wallpaper-texture-layer-r164
+      - fix/dynamic-wallpaper-empty-preview-fallback-r165
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r164-build
+  group: cytv-r165-build
   cancel-in-progress: true
 
 jobs:
@@ -64,22 +64,22 @@ jobs:
       - name: Package complete source
         working-directory: .
         run: |
-          zip -r CYTV-R164-source.zip . \
+          zip -r CYTV-R165-source.zip . \
             -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
                '*/local.properties' '*.iml'
 
       - name: Upload complete source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R164-source
-          path: CYTV-R164-source.zip
+          name: CYTV-R165-source
+          path: CYTV-R165-source.zip
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R164-debug
+          name: CYTV-R165-debug
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
