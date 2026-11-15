@@ -140,9 +140,6 @@ public final class LauncherSettingsActivity extends Activity {
             refreshMediaPlayerChoice();
         });
         refreshMediaPlayerChoice();
-        if (mediaPlayerEnabled && !hasMediaNotificationAccess()) {
-            mediaPlayerChoice.post(this::showMediaNotificationAccessPrompt);
-        }
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
