@@ -570,6 +570,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
         mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
+        // R165: explicitly clip album artwork to the rounded background outline on TV devices.
+        mediaPlayerArtwork.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
+        mediaPlayerArtwork.setClipToOutline(true);
         mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
         mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
         mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
