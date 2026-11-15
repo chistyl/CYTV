@@ -162,6 +162,7 @@ final class WallpaperPlayer {
         caption = !moduleEnabled || names.isEmpty() ? null : makeCaption(context, root);
         if (moduleEnabled && ((customWallpaperEnabled() && !CustomWallpaperLibrary.selected(context).isEmpty())
                 || preferences.getInt("builtin_wallpaper", 0) > 0
+                || preferences.getBoolean("dynamic_wallpaper_enabled", false)
                 || preferences.getString("custom_wallpaper_uri", null) != null
                 || preferences.getString("custom_wallpaper_file", null) != null
                 || (config.wallpaperEnabled && !files.isEmpty()))) {
