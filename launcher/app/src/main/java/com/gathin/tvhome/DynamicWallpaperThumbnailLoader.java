@@ -66,7 +66,10 @@ final class DynamicWallpaperThumbnailLoader {
                 retriever.setDataSource(url, headers);
                 Bitmap frame = retriever.getFrameAtTime(1_000_000L,
                         MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                if (frame == null) continue;
+                if (frame == null) {
+                    Log.w("CYTV.DynamicThumb", "No frame returned for " + video.id + " from " + url);
+                    continue;
+                }
                 int width = frame.getWidth();
                 int height = frame.getHeight();
                 if (width <= 0 || height <= 0) { frame.recycle(); continue; }
