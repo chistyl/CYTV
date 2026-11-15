@@ -178,6 +178,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WallpaperPlayer wallpaperPlayer;
     /** R163: isolated remote-video layer; the existing still-image WallpaperPlayer remains authoritative fallback. */
     private DynamicWallpaperPlayer dynamicWallpaperPlayer;
+    private DynamicWallpaperThumbnailLoader dynamicWallpaperThumbnailLoader;
     private DynamicWallpaperCatalog dynamicWallpaperCatalog;
     private YouTubeVideoCarousel videoCarousel;
     private GlassView glass;
@@ -1676,6 +1677,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         if (dynamicWallpaperPlayer != null) dynamicWallpaperPlayer.release();
+        if (dynamicWallpaperThumbnailLoader != null) dynamicWallpaperThumbnailLoader.close();
         videoCarousel.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -6670,6 +6672,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setDefaultFocusHighlightEnabled(false);
                 item.setId(View.generateViewId());
                 dynamicThemeItems[index] = item;
+                FrameLayout tileContent = new FrameLayout(this);
+                tileContent.setBackgroundColor(0xFF263746);
+                item.addView(tileContent, new LinearLayout.LayoutParams(-1, -1));
+                ImageView preview = new ImageView(this);
+                preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                preview.setBackgroundColor(0xFF263746);
+                tileContent.addView(preview, new FrameLayout.LayoutParams(-1, -1));
                 TextView label = new TextView(this);
                 label.setText(theme.name);
                 label.setTextColor(0xFFF5F6FA);
@@ -6677,8 +6686,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 label.setGravity(Gravity.CENTER);
                 label.setMaxLines(2);
                 label.setShadowLayer(8f, 0f, 2f, Color.BLACK);
+                label.setBackgroundColor(0x660B1420);
                 label.setPadding((int)(6*density), (int)(6*density), (int)(6*density), (int)(6*density));
-                item.addView(label, new LinearLayout.LayoutParams(-1, -1));
+                FrameLayout.LayoutParams labelLp = new FrameLayout.LayoutParams(-1,
+                        (int)(42*density), Gravity.BOTTOM);
+                tileContent.addView(label, labelLp);
+                if (dynamicWallpaperThumbnailLoader == null)
+                    dynamicWallpaperThumbnailLoader = new DynamicWallpaperThumbnailLoader();
+                List<DynamicWallpaperCatalog.Video> previewVideos = dynamicCatalogForPicker.videosFor(theme);
+                if (!previewVideos.isEmpty())
+                    dynamicWallpaperThumbnailLoader.load(previewVideos.get(0), preview);
                 item.setOnFocusChangeListener((v, focused) -> refreshDynamicBorders.run());
                 item.setOnClickListener(v -> {
                     draftDynamicTheme[0] = theme.id;
