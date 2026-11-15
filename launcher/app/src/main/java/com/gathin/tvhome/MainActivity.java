@@ -919,58 +919,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.post(grid::requestLayout);
         }
 
-        // R165: media player stays anchored to the screen; app-grid scrolling must not move it.
-        // R165: keep the player anchored beside the dock. Hide it at the exact same
-        // moment dock tiles are clipped by the grid's upper edge (child top < 0).
+        // R165: keep the media player fixed at its desktop position.
+        // Match the weekly-weather panel: hide on downward grid scrolling and restore only at the top.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            private void syncDockVisibility(RecyclerView rv) {
-                if (mediaPlayerSurface == null) return;
-                boolean clipped = false;
-                if (!singleRow) {
-                    boolean found = false;
-                    for (int i = 0; i < rv.getChildCount(); i++) {
-                        View child = rv.getChildAt(i);
-                        int position = rv.getChildAdapterPosition(child);
-                        if (position != RecyclerView.NO_POSITION && position < COLUMNS) {
-                            found = true;
-                            if (child.getTop() < 0) clipped = true;
-                        }
-                    }
-                    if (!found && rv.canScrollVertically(-1)) clipped = true;
-                }
-                mediaPlayerHiddenByDockScroll = clipped;
+            private void hidePlayerForGrid() {
+                if (mediaPlayerSurface == null || mediaPlayerHiddenByDockScroll) return;
+                mediaPlayerHiddenByDockScroll = true;
                 if (mediaPlayerSurface.getVisibility() != View.GONE) {
-                    mediaPlayerSurface.setVisibility(clipped ? View.INVISIBLE : View.VISIBLE);
+                    mediaPlayerSurface.setVisibility(View.INVISIBLE);
+                }
+            }
+            private void restorePlayerAtTop(RecyclerView rv) {
+                if (mediaPlayerSurface == null || !mediaPlayerHiddenByDockScroll
+                        || rv.canScrollVertically(-1)) return;
+                mediaPlayerHiddenByDockScroll = false;
+                if (mediaPlayerSurface.getVisibility() != View.GONE) {
+                    mediaPlayerSurface.setVisibility(View.VISIBLE);
                 }
             }
             @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                syncDockVisibility(rv);
+                if (dy > 0) hidePlayerForGrid();
+                else if (dy < 0) restorePlayerAtTop(rv);
             }
             @Override public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
-                if (state == RecyclerView.SCROLL_STATE_IDLE) syncDockVisibility(rv);
+                if (state == RecyclerView.SCROLL_STATE_IDLE) restorePlayerAtTop(rv);
             }
         });
-        grid.post(() -> {
-            if (mediaPlayerSurface != null && grid != null) {
-                // Evaluate the initial/restored dock position as well as live scroll events.
-                boolean clipped = false;
-                if (!singleRow) {
-                    boolean found = false;
-                    for (int i = 0; i < grid.getChildCount(); i++) {
-                        View child = grid.getChildAt(i);
-                        int position = grid.getChildAdapterPosition(child);
-                        if (position != RecyclerView.NO_POSITION && position < COLUMNS) {
-                            found = true;
-                            if (child.getTop() < 0) clipped = true;
-                        }
-                    }
-                    if (!found && grid.canScrollVertically(-1)) clipped = true;
-                }
-                mediaPlayerHiddenByDockScroll = clipped;
-                if (mediaPlayerSurface.getVisibility() != View.GONE)
-                    mediaPlayerSurface.setVisibility(clipped ? View.INVISIBLE : View.VISIBLE);
-            }
-        });
+        // Start visible regardless of RecyclerView's restored offset, matching weekly weather behavior.
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
