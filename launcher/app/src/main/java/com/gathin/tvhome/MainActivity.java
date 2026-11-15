@@ -6683,16 +6683,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tileContent.setClipToOutline(true);
                 item.addView(tileContent, new LinearLayout.LayoutParams(-1, -1));
                 ImageView preview = new ImageView(this);
-                // R165: show a guaranteed on-device preview immediately. Remote MOV frame
-                // extraction is best-effort only and must never leave a blank theme tile.
-                final int[] dynamicPreviewFallbacks = {
-                        R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
-                        R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
-                        R.drawable.wallpaper_theme_05, R.drawable.wallpaper_theme_06,
-                        R.drawable.wallpaper_theme_07, R.drawable.wallpaper_theme_08,
-                        R.drawable.wallpaper_theme_09
-                };
-                preview.setImageResource(dynamicPreviewFallbacks[index]);
+                // R166: use only a real frame from this category's Aerial video.
+                // Do not substitute unrelated static wallpaper artwork.
+                preview.setImageDrawable(null);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 preview.setBackgroundColor(Color.TRANSPARENT);
                 preview.setClipToOutline(true);

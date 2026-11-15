@@ -40,7 +40,7 @@ final class DynamicWallpaperThumbnailLoader {
             return;
         }
         workers.execute(() -> {
-            Bitmap frame = extractFrame(video.streamUrl);
+            Bitmap frame = extractFrame(video);
             if (frame == null || closed) return;
             cache.put(video.id, frame);
             main.post(() -> {
@@ -51,33 +51,38 @@ final class DynamicWallpaperThumbnailLoader {
         });
     }
 
-    private Bitmap extractFrame(String url) {
-        if (url == null || url.isEmpty()) return null;
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try {
-            retriever.setDataSource(url, Collections.emptyMap());
-            Bitmap frame = retriever.getFrameAtTime(1_000_000L,
-                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-            if (frame == null) return null;
-            int width = frame.getWidth();
-            int height = frame.getHeight();
-            if (width <= 0 || height <= 0) {
-                frame.recycle();
-                return null;
+    private Bitmap extractFrame(DynamicWallpaperCatalog.Video video) {
+        if (video == null) return null;
+        String[] urls = { video.streamUrl, video.hevcUrl, video.uhdUrl };
+        for (String url : urls) {
+            if (url == null || url.isEmpty()) continue;
+            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+            try {
+                java.util.Map<String, String> headers = new java.util.HashMap<>();
+                headers.put("User-Agent", "CYTV-Aerial-Preview/1.0");
+                headers.put("Accept", "*/*");
+                retriever.setDataSource(url, headers);
+                Bitmap frame = retriever.getFrameAtTime(1_000_000L,
+                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                if (frame == null) continue;
+                int width = frame.getWidth();
+                int height = frame.getHeight();
+                if (width <= 0 || height <= 0) { frame.recycle(); continue; }
+                float scale = Math.min((float) PREVIEW_WIDTH / width,
+                        (float) PREVIEW_HEIGHT / height);
+                if (scale >= 1f) return frame;
+                Bitmap scaled = Bitmap.createScaledBitmap(frame,
+                        Math.max(1, Math.round(width * scale)),
+                        Math.max(1, Math.round(height * scale)), true);
+                if (scaled != frame) frame.recycle();
+                return scaled;
+            } catch (RuntimeException ignored) {
+                // Try another encoding of this same Aerial video.
+            } finally {
+                try { retriever.release(); } catch (IOException | RuntimeException ignored) { }
             }
-            float scale = Math.min((float) PREVIEW_WIDTH / width,
-                    (float) PREVIEW_HEIGHT / height);
-            if (scale >= 1f) return frame;
-            Bitmap scaled = Bitmap.createScaledBitmap(frame,
-                    Math.max(1, Math.round(width * scale)),
-                    Math.max(1, Math.round(height * scale)), true);
-            if (scaled != frame) frame.recycle();
-            return scaled;
-        } catch (RuntimeException error) {
-            return null;
-        } finally {
-            try { retriever.release(); } catch (IOException | RuntimeException ignored) { }
         }
+        return null;
     }
 
     void close() {

@@ -1,11 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "source": {
     "project": "pengchujin/aerial-tv",
     "file": "app/src/main/assets/aerials.json",
     "catalogUrl": "https://sylvan.apple.com/Aerials/resources-16.tar",
     "videoCount": 114,
-    "licenseNote": "Aerial source-code license does not grant rights to redistribute Apple video assets. Stream remote URLs only after terms review; do not bundle video files."
+    "classification": "Original Aerial categories; no cross-category reassignment.",
+    "licenseNote": "Do not bundle Apple video assets; stream remote URLs only after terms review."
   },
   "playbackDefaults": {
     "preferredFormat": "2k-avc",
@@ -15,9 +16,9 @@
   },
   "themes": [
     {
-      "id": "city_skyline",
-      "name": "城市天際",
-      "description": "城市夜景、天際線與都會航拍",
+      "id": "cities",
+      "name": "城市航拍",
+      "description": "全球城市天際線與地標建築",
       "videoIds": [
         "92E48DE9-13A1-4172-B560-29B4668A87EE",
         "A5AAFF5D-8887-42BB-8AFD-867EF557ED85",
@@ -52,60 +53,28 @@
       ]
     },
     {
-      "id": "ocean_islands",
-      "name": "海洋島嶼",
-      "description": "海洋生態、珊瑚礁、島嶼與熱帶海域",
+      "id": "landscapes",
+      "name": "自然地景",
+      "description": "國家公園、山脈、冰川、海岸與自然地貌",
       "videoIds": [
-        "83C65C90-270C-4490-9C69-F51FE03D7F06",
-        "BA4ECA11-592F-4727-9221-D2A32A16EB28",
-        "F07CC61B-30FC-4614-BDAD-3240B61F6793",
-        "6143116D-03BB-485E-864E-A8CF58ACF6F1",
-        "1088217C-1410-4CF7-BDE9-8F573A4DBCD9",
-        "2B30E324-E4FF-4CC1-BA45-A958C2D2B2EC",
-        "E580E5A5-0888-4BE8-A4CA-F74A18A643C3",
-        "4F881F8B-A7D9-4FDB-A917-17BF6AC5A589",
+        "2F52E34C-39D4-4AB1-9025-8F7141FAA720",
+        "9CCB8297-E9F5-4699-AE1F-890CFBD5E29C",
+        "B8F204CE-6024-49AB-85F9-7CA2F6DCD226",
+        "D5E76230-81A3-4F65-A1BA-51B8CADED625",
         "3D729CFC-9000-48D3-A052-C5BD5B7A6842",
+        "EE01F02D-1413-436C-AB05-410F224A5B7B",
         "258A6797-CC13-4C3A-AB35-4F25CA3BF474",
-        "D5CFB2FF-5F8C-4637-816B-3E42FC1229B8",
-        "EC3DC957-D4C2-4732-AACE-7D0C0F390EC8",
+        "044AD56C-A107-41B2-90CC-E60CCACFBCF5",
         "499995FA-E51A-4ACE-8DFD-BDF8AFF6C943",
-        "581A4F1A-2B6D-468C-A1BE-6F473F06D10B",
-        "687D03A2-18A5-4181-8E85-38F3A13409B9",
-        "537A4DAB-83B0-4B66-BCD1-05E5DBB4A268",
+        "B876B645-3955-420E-99DF-60139E451CF3",
+        "AFA22C08-A486-4CE8-9A13-E355B6C38559",
+        "F0236EC5-EE72-4058-A6CE-1F7D2E8253BF",
         "82BD33C9-B6D2-47E7-9C42-AA3B7758921A",
         "12E0343D-2CD9-48EA-AB57-4D680FB6D0C7",
-        "DD47D8E1-CB66-4C12-BFEA-2ADB0D8D1E2E",
-        "27A37B0F-738D-4644-A7A4-E33E7A6C1175",
-        "149E7795-DBDA-4F5D-B39A-14712F841118",
-        "8C31B06F-91A4-4F7C-93ED-56146D7F48B9",
-        "82175C1F-153C-4EC8-AE37-2860EA828004",
-        "58C75C62-3290-47B8-849C-56A583173570",
-        "EB3F48E7-D30F-4079-858F-1A61331D5026",
-        "C7AD3D0A-7EDF-412C-A237-B3C9D27381A1",
-        "3716DD4B-01C0-4F5B-8DD6-DB771EC472FB",
-        "CE9B5D5B-B6E7-47C5-8C04-59BF182E98FB",
-        "C6DC4E54-1130-44F8-AF6F-A551D8E8A181"
-      ]
-    },
-    {
-      "id": "mountain_forest",
-      "name": "山岳森林",
-      "description": "山脈、森林、國家公園與高山地貌",
-      "videoIds": [
-        "7719B48A-2005-4011-9280-2F64EEC6FD91",
-        "E556BBC5-D0A0-4DB1-AC77-BC76E4A526F4",
-        "D5E76230-81A3-4F65-A1BA-51B8CADED625",
-        "737E9E24-49BE-4104-9B72-F352DE1AD2BF",
-        "63C042F0-90EF-4A95-B7CC-CC9A64BF8421",
-        "12318CCB-3F78-43B7-A854-EFDCCE5312CD",
-        "499995FA-E51A-4ACE-8DFD-BDF8AFF6C943",
-        "3C4678E4-4D3D-4A40-8817-77752AEA62EB",
-        "B876B645-3955-420E-99DF-60139E451CF3",
-        "87060EC2-D006-4102-98CC-3005C68BB343",
-        "2F72BC1E-3D76-456C-81EB-842EBA488C27",
-        "12E0343D-2CD9-48EA-AB57-4D680FB6D0C7",
-        "EB3F48E7-D30F-4079-858F-1A61331D5026",
+        "001C94AE-2BA4-4E77-A202-F7DE60E8B1C8",
+        "22162A9B-DB90-4517-867C-C676BC3E8E95",
         "E334A6D2-7145-47C8-9B00-C20DED08B2D5",
+        "DD266E1F-5DF2-4CDB-A2EB-26CE35664657",
         "F9F918CD-E15F-4F01-A326-84A44650C5C9",
         "AE0115AE-C53B-4DB9-B12F-CA4B7B630CC9",
         "8002C4C8-C611-4894-A068-3D3A3C03472A",
@@ -123,149 +92,18 @@
         "DDE50C77-B7CB-4488-9EB1-D1B13BF21FFE",
         "0C747C29-4BF8-43F6-A5CC-2E012E555341",
         "E54D5AFE-F362-4D48-A20D-F2C21D2B5330",
-        "E161929C-0819-4BC2-8359-550C081C7D54",
-        "3954A7C4-51EC-4ABC-ABA3-6757AC91C7CF"
-      ]
-    },
-    {
-      "id": "lakes_rivers",
-      "name": "湖泊河流",
-      "description": "湖泊、河流、瀑布與峽谷水系",
-      "videoIds": [
-        "2F52E34C-39D4-4AB1-9025-8F7141FAA720",
-        "A5AAFF5D-8887-42BB-8AFD-867EF557ED85",
-        "737E9E24-49BE-4104-9B72-F352DE1AD2BF",
-        "EE01F02D-1413-436C-AB05-410F224A5B7B",
-        "12318CCB-3F78-43B7-A854-EFDCCE5312CD",
-        "F604AF56-EA77-4960-AEF7-82533CC1A8B3",
-        "3C4678E4-4D3D-4A40-8817-77752AEA62EB",
-        "87060EC2-D006-4102-98CC-3005C68BB343",
-        "58754319-8709-4AB0-8674-B34F04E7FFE2",
-        "4AD99907-9E76-408D-A7FC-8429FF014201",
-        "7F4C26C2-67C2-4C3A-8F07-8A7BF6148C97",
-        "85CE77BF-3413-4A7B-9B0F-732E96229A73",
-        "E334A6D2-7145-47C8-9B00-C20DED08B2D5",
-        "DD266E1F-5DF2-4CDB-A2EB-26CE35664657",
-        "F9F918CD-E15F-4F01-A326-84A44650C5C9",
-        "AE0115AE-C53B-4DB9-B12F-CA4B7B630CC9",
-        "8002C4C8-C611-4894-A068-3D3A3C03472A",
-        "B004358B-5A27-42E5-B49E-93FC100B2371",
-        "25A6CFB2-3570-4448-B114-244A4E454B7A",
-        "E5799A24-1949-4E66-A17B-B5EB05F28C5D",
-        "E487C6EF-B3FB-427B-A2BE-8CBA60F902F0",
-        "4109D42A-D717-46A7-A9A2-FE53A82B25C0",
-        "DDE50C77-B7CB-4488-9EB1-D1B13BF21FFE",
-        "E54D5AFE-F362-4D48-A20D-F2C21D2B5330",
-        "8590D0C5-E344-4FAC-A39A-FD7BC652AEDA",
-        "E161929C-0819-4BC2-8359-550C081C7D54",
-        "3954A7C4-51EC-4ABC-ABA3-6757AC91C7CF"
-      ]
-    },
-    {
-      "id": "natural_landscapes",
-      "name": "自然地景",
-      "description": "沙漠、平原、冰川以外的廣闊自然地貌",
-      "videoIds": [
-        "9CCB8297-E9F5-4699-AE1F-890CFBD5E29C",
-        "D5E76230-81A3-4F65-A1BA-51B8CADED625",
-        "044AD56C-A107-41B2-90CC-E60CCACFBCF5",
-        "B876B645-3955-420E-99DF-60139E451CF3",
-        "AFA22C08-A486-4CE8-9A13-E355B6C38559",
-        "F0236EC5-EE72-4058-A6CE-1F7D2E8253BF",
-        "001C94AE-2BA4-4E77-A202-F7DE60E8B1C8",
-        "22162A9B-DB90-4517-867C-C676BC3E8E95",
-        "258A6797-CC13-4C3A-AB35-4F25CA3BF474",
-        "82BD33C9-B6D2-47E7-9C42-AA3B7758921A"
-      ]
-    },
-    {
-      "id": "coastal_views",
-      "name": "海岸風光",
-      "description": "海岸線、海灣、海岬與海浪",
-      "videoIds": [
-        "83C65C90-270C-4490-9C69-F51FE03D7F06",
-        "7719B48A-2005-4011-9280-2F64EEC6FD91",
-        "2F52E34C-39D4-4AB1-9025-8F7141FAA720",
-        "92E48DE9-13A1-4172-B560-29B4668A87EE",
-        "A837FA8C-C643-4705-AE92-074EFDD067F7",
-        "E556BBC5-D0A0-4DB1-AC77-BC76E4A526F4",
-        "1088217C-1410-4CF7-BDE9-8F573A4DBCD9",
-        "9680B8EB-CE2A-4395-AF41-402801F4D6A6",
-        "63C042F0-90EF-4A95-B7CC-CC9A64BF8421",
-        "F439B0A7-D18C-4B14-9681-6520E6A74FE9",
-        "3D729CFC-9000-48D3-A052-C5BD5B7A6842",
-        "EE01F02D-1413-436C-AB05-410F224A5B7B",
-        "12318CCB-3F78-43B7-A854-EFDCCE5312CD",
-        "D5CFB2FF-5F8C-4637-816B-3E42FC1229B8",
-        "3E94AE98-EAF2-4B09-96E3-452F46BC114E",
-        "581A4F1A-2B6D-468C-A1BE-6F473F06D10B",
-        "87060EC2-D006-4102-98CC-3005C68BB343",
-        "687D03A2-18A5-4181-8E85-38F3A13409B9",
-        "64D11DAB-3B57-4F14-AD2F-E59A9282FA44",
-        "537A4DAB-83B0-4B66-BCD1-05E5DBB4A268",
-        "2F72BC1E-3D76-456C-81EB-842EBA488C27",
-        "12E0343D-2CD9-48EA-AB57-4D680FB6D0C7",
-        "29BDF297-EB43-403A-8719-A78DA11A2948",
-        "27A37B0F-738D-4644-A7A4-E33E7A6C1175",
-        "149E7795-DBDA-4F5D-B39A-14712F841118",
-        "8C31B06F-91A4-4F7C-93ED-56146D7F48B9",
-        "82175C1F-153C-4EC8-AE37-2860EA828004",
-        "58C75C62-3290-47B8-849C-56A583173570",
-        "EB3F48E7-D30F-4079-858F-1A61331D5026",
-        "C7AD3D0A-7EDF-412C-A237-B3C9D27381A1",
-        "C6DC4E54-1130-44F8-AF6F-A551D8E8A181",
-        "0C747C29-4BF8-43F6-A5CC-2E012E555341",
-        "E161929C-0819-4BC2-8359-550C081C7D54",
-        "3954A7C4-51EC-4ABC-ABA3-6757AC91C7CF"
-      ]
-    },
-    {
-      "id": "world_architecture",
-      "name": "世界建築",
-      "description": "城市地標、橋梁、塔樓與代表性建築",
-      "videoIds": [
-        "92E48DE9-13A1-4172-B560-29B4668A87EE",
-        "A5AAFF5D-8887-42BB-8AFD-867EF557ED85",
-        "72B4390D-DF1D-4D51-B179-229BBAEFFF2C",
-        "9680B8EB-CE2A-4395-AF41-402801F4D6A6",
-        "F604AF56-EA77-4960-AEF7-82533CC1A8B3",
-        "3E94AE98-EAF2-4B09-96E3-452F46BC114E",
-        "DE851E6D-C2BE-4D9F-AB54-0F9CE994DC51",
-        "E991AC0C-F272-44D8-88F3-05F44EDFE3AE",
-        "640DFB00-FBB9-45DA-9444-9F663859F4BC",
-        "58754319-8709-4AB0-8674-B34F04E7FFE2",
-        "4AD99907-9E76-408D-A7FC-8429FF014201",
-        "EE533FBD-90AE-419A-AD13-D7A60E2015D6",
-        "7F4C26C2-67C2-4C3A-8F07-8A7BF6148C97",
-        "3FFA2A97-7D28-49EA-AA39-5BC9051B2745",
-        "85CE77BF-3413-4A7B-9B0F-732E96229A73",
-        "29BDF297-EB43-403A-8719-A78DA11A2948"
-      ]
-    },
-    {
-      "id": "ice_snow",
-      "name": "冰雪世界",
-      "description": "極地、冰川、冰峽灣與雪地景觀",
-      "videoIds": [
-        "2F52E34C-39D4-4AB1-9025-8F7141FAA720",
-        "B8F204CE-6024-49AB-85F9-7CA2F6DCD226",
-        "737E9E24-49BE-4104-9B72-F352DE1AD2BF",
-        "EE01F02D-1413-436C-AB05-410F224A5B7B",
-        "03EC0F5E-CCA8-4E0A-9FEC-5BD1CE151182",
-        "C7AD3D0A-7EDF-412C-A237-B3C9D27381A1",
-        "C6DC4E54-1130-44F8-AF6F-A551D8E8A181",
-        "DDE50C77-B7CB-4488-9EB1-D1B13BF21FFE",
-        "E54D5AFE-F362-4D48-A20D-F2C21D2B5330",
         "8ACF5D77-B22C-416F-B12A-72FB35E2834F",
         "F9518D54-04A7-4793-8666-CFC114D73CE5",
         "8590D0C5-E344-4FAC-A39A-FD7BC652AEDA",
+        "E161929C-0819-4BC2-8359-550C081C7D54",
+        "3954A7C4-51EC-4ABC-ABA3-6757AC91C7CF",
         "2F17FCCE-6CCA-4AFA-A08A-C50BF9812DA5"
       ]
     },
     {
-      "id": "dream_aerial",
-      "name": "夢幻航拍",
-      "description": "太空視角、夜間地球與跨洲航拍",
+      "id": "space",
+      "name": "地球航行",
+      "description": "夜間地球、洲際航行與極光視角",
       "videoIds": [
         "7719B48A-2005-4011-9280-2F64EEC6FD91",
         "009BA758-7060-4479-8EE8-FB9B40C8FB97",
@@ -290,6 +128,34 @@
         "B1B5DDC5-73C8-4920-8133-BACCE38A08DE",
         "81337355-E156-4242-AAF4-711768D30A54"
       ]
+    },
+    {
+      "id": "underwater",
+      "name": "水下世界",
+      "description": "海洋生態、珊瑚礁與海洋生物",
+      "videoIds": [
+        "83C65C90-270C-4490-9C69-F51FE03D7F06",
+        "BA4ECA11-592F-4727-9221-D2A32A16EB28",
+        "F07CC61B-30FC-4614-BDAD-3240B61F6793",
+        "6143116D-03BB-485E-864E-A8CF58ACF6F1",
+        "2B30E324-E4FF-4CC1-BA45-A958C2D2B2EC",
+        "E580E5A5-0888-4BE8-A4CA-F74A18A643C3",
+        "EC3DC957-D4C2-4732-AACE-7D0C0F390EC8",
+        "581A4F1A-2B6D-468C-A1BE-6F473F06D10B",
+        "687D03A2-18A5-4181-8E85-38F3A13409B9",
+        "537A4DAB-83B0-4B66-BCD1-05E5DBB4A268",
+        "DD47D8E1-CB66-4C12-BFEA-2ADB0D8D1E2E",
+        "27A37B0F-738D-4644-A7A4-E33E7A6C1175",
+        "149E7795-DBDA-4F5D-B39A-14712F841118",
+        "8C31B06F-91A4-4F7C-93ED-56146D7F48B9",
+        "82175C1F-153C-4EC8-AE37-2860EA828004",
+        "58C75C62-3290-47B8-849C-56A583173570",
+        "EB3F48E7-D30F-4079-858F-1A61331D5026",
+        "C7AD3D0A-7EDF-412C-A237-B3C9D27381A1",
+        "3716DD4B-01C0-4F5B-8DD6-DB771EC472FB",
+        "CE9B5D5B-B6E7-47C5-8C04-59BF182E98FB",
+        "C6DC4E54-1130-44F8-AF6F-A551D8E8A181"
+      ]
     }
   ],
   "videos": [
@@ -302,8 +168,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/SE_A016_C009_SDR_20190717_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/SE_A016_C009_HDR_20190717_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -315,9 +180,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A114_C001_0305OT_v10_SDR_FINAL_22062018_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A114_C001_0305OT_v10_HDR_FINAL_22062018_Bert_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -329,9 +192,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G002_C002_PSNK_v03_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G002_C002_PSNK_v03_HDR_PS_20180925_HDR_4K_tuned.mov",
       "themeIds": [
-        "lakes_rivers",
-        "coastal_views",
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -343,7 +204,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT026_363A_103NC_E1027_KOREA_JAPAN_NIGHT_v18_SDR_PS_20180907_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT026_363A_103NC_E1027_KOREA_JAPAN_NIGHT_v18_HDR_PS_20180907_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -355,7 +216,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A001_C007_SDR_20190717_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A001_C007_HDR_20190719_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -367,9 +228,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A008_C004_ALTB_ED_FROM_FLAME_RETIME_v46_SDR_PS_20180917_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A008_C004_ALTB_ED_FROM_FLAME_RETIME_v46_HDR_PS_20180917_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "coastal_views",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -381,9 +240,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L007_C007_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L007_C007_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -395,8 +252,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT312_162NC_139M_1041_AFRICA_NIGHT_v14_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT312_162NC_139M_1041_AFRICA_NIGHT_v14_HDR_FINAL_20180706_HDR_4K_HEVC.mov",
       "themeIds": [
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -408,7 +264,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C002_C005_PSNK_v05_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C002_C005_PSNK_v05_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -420,7 +276,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G004_C010_PSNK_v04_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G004_C010_PSNK_v04_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -432,7 +288,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A004_C003_SDR_20190719_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A004_C003_HDR_20190719_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -444,7 +300,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A005_C009_PSNK_ALT_v09_SDR_PS_201809134_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A005_C009_PSNK_ALT_v09_HDR_PS_20180914_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -456,9 +312,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A009_C001_010181A_v09_SDR_PS_FINAL_20180725_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A009_C001_010181A_v09_HDR_PS_FINAL_20180725_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -470,7 +324,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A011_C003_DGRN_LNFIX_STAB_v57_SDR_PS_20181002_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A011_C003_DGRN_LNFIX_STAB_v57_HDR_PS_20181002_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -482,7 +336,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/KP_A010_C002_SDR_20190717_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/KP_A010_C002_HDR_20190717_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -494,7 +348,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N013_C004_PS_v01_SDR_PS_20180925_F1970F7193_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N013_C004_PS_v01_HDR_PS_20180925_F1970F7193_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -506,7 +360,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_113NC_396B_1105_ITALY_v03_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_113NC_396B_1105_ITALY_TO_ASIA_v03_HDR_PS_20180824_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -518,7 +372,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A006_C004_v01_SDR_FINAL_PS_20180730_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A006_C004_v01_HDR_FINAL_PS_20180730_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -530,9 +384,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A105_C002_v06_SDR_FINAL_25062018_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A105_C002_v06_HDR_FINAL_25062018_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -544,8 +396,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A013_C012_0122D6_CC_v01_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A013_C012_0122D6_CC_v01_HDR_PS_FINAL_20180710_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -557,7 +408,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A018_C029_SDR_20190812_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A018_C029_HDR_20190812_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -569,8 +420,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C007_C004_PSNK_v02_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C007_C004_PSNK_v02_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -582,10 +432,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT314_139M_170NC_NORTH_AMERICA_AURORA__COMP_v22_SDR_20181206_v12CC_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT314_139M_170NC_NORTH_AMERICA_AURORA__COMP_v22_HDR_20181206_v12CC_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "ice_snow",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -597,7 +444,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A006_C008_PSNK_ALL_LOGOS_v10_SDR_PS_FINAL_20180801_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A006_C008_PSNK_ALL_LOGOS_v10_HDR_PS_FINAL_20180801_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -609,9 +456,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D011_C010_PSNK_DENOISE_v19_SDR_PS_20180914_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D011_C010_PSNK_DENOISE_v19_HDR_PS_20180914_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "coastal_views",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -623,9 +468,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A001_C004_1207W5_v23_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A001_C004_1207W5_v23_HDR_FINAL_20180706_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -637,8 +480,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A083_C002_1130KZ_v04_SDR_PS_FINAL_20180725_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A083_C002_1130KZ_v04_HDR_PS_FINAL_20180725_HDR_4K_HEVC.mov",
       "themeIds": [
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -650,7 +492,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A002_C009_SDR_20190730_ALT01_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A002_C009_HDR_20190730_ALT02_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -662,8 +504,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT308_139K_142NC_CARIBBEAN_DAY_v09_SDR_FINAL_22062018_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT308_139K_142NC_CARIBBEAN_DAY_v09_HDR_PS_FINAL_22062018_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -675,8 +516,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H012_C009_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H012_C009_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "landscapes"
       ]
     },
     {
@@ -688,9 +528,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G010_C006_PSNK_NOSUN_v12_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GL_G010_C006_PSNK_NOSUN_v12_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "lakes_rivers",
-        "coastal_views",
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -702,10 +540,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT306_139NC_139J_3066_CALI_TO_VEGAS_v08_SDR_PS_20180824_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT306_139NC_139J_3066_CALI_TO_VEGAS_v08_HDR_PS_20180824_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -717,7 +552,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N008_C009_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N008_C009_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -729,7 +564,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A009_C009_PSNK_v02_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LA_A009_C009_PSNK_v02_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -741,9 +576,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L012_c002_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L012_C002_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -755,8 +588,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H004_C009_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H004_C009_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -768,9 +600,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A108_C001_v09_SDR_FINAL_22062018_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A108_C001_v09_HDR_PS_FINAL_22062018_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -782,7 +612,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_117NC_401C_1037_IRELAND_TO_ASIA_v48_SDR_PS_FINAL_20180725_F0F6300_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_117NC_401C_1037_IRELAND_TO_ASIA_v48_HDR_PS_FINAL_20180725_F0F6300_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -794,7 +624,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D008_C010_PSNK_v21_SDR_PS_20180914_F0F16157_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D008_C010_PSNK_v21_HDR_PS_20180914_F0F16157_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -806,7 +636,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C003_C003_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C003_C003_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -818,7 +648,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/PA_A010_C007_SDR_20190717_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/conform_PA_A010_C007_HDR_2019070_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -830,7 +660,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_B005_C011_PSNK_v16_SDR_PS_20180914_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_B005_C011_PSNK_v16_HDR_PS_20180914_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -842,8 +672,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H005_C012_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H005_C012_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -855,7 +684,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_113NC_396B_1105_CHINA_v04_SDR_FINAL_20180706_F900F2700_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT329_113NC_396B_1105_CHINA_v04_HDR_FINAL_20180706_F900F2700_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -867,9 +696,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A015_C018_0128ZS_v03_SDR_PS_FINAL_20180709__SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A015_C018_0128ZS_v03_HDR_PS_FINAL_20180710_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "coastal_views",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -881,9 +708,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A050_C004_1027V8_v16_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A050_C004_1027V8_v16_HDR_FINAL_20180706_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -895,7 +720,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D002_C003_PSNK_v04_SDR_PS_20180914_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D002_C003_PSNK_v04_HDR_PS_20180914_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -907,8 +732,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C007_C011_PSNK_v02_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_CH_C007_C011_PSNK_v02_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -920,8 +744,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A012_C031_SDR_20190726_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A012_C031_HDR_20190726_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -933,7 +756,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A105_C003_0212CT_FLARE_v10_SDR_PS_FINAL_20180711_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A105_C003_0212CT_FLARE_v10_HDR_PS_FINAL_20180711_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -945,7 +768,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LW_L001_C003__PSNK_DENOISE_v04_SDR_PS_FINAL_20180803_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LW_L001_C003__PSNK_DENOISE_v04_HDR_PS_FINAL_20180803_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -957,7 +780,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_H004_C010_PSNK_v08_SDR_PS_20181009_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_H004_C010_PSNK_v08_HDR_PS_20181009_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -969,10 +792,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A351_C001_v06_SDR_PS_20180725_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A351_C001_v06_HDR_PS_FINAL_20180725_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -984,8 +804,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A014_C008_SDR_20190719_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A014_C008_HDR_20190719_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -997,8 +816,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A001_C001_120530_v04_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A001_C001_120530_v04_HDR_FINAL_20180706_HDR_4K_HEVC.mov",
       "themeIds": [
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -1010,8 +828,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A006_C003_1219EE_CC_v01_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A006_C003_1219EE_CC_v01_HDR_PS_FINAL_20180710_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1023,8 +840,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D001_C001_PSNK_v06_SDR_PS_20180824_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D001_C001_PSNK_v06_HDR_PS_20180824_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1036,8 +852,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A014_C023_SDR_20190717_F240F3709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/BO_A014_C023_HDR_20190717_F240F3709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1049,8 +864,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N008_C003_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N008_C003_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1062,8 +876,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT110_112NC_364D_1054_AURORA_ANTARTICA__COMP_FINAL_v34_PS_SDR_20181107_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT110_112NC_364D_1054_AURORA_ANTARTICA__COMP_FINAL_v34_PS_HDR_20181107_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ice_snow",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -1075,9 +888,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L010_C006_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L010_C006_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1089,9 +900,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_1223LV_FLARE_v21_SDR_PS_FINAL_20180709_F0F5700_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_1223LV_FLARE_v21_HDR_PS_FINAL_20180710_F0F5700_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1103,9 +912,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A103_C002_0205DG_v12_SDR_FINAL_20180706_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A103_C002_0205DG_v12_HDR_FINAL_20180706_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "coastal_views",
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -1117,7 +924,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N003_C006_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_N003_C006_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -1129,7 +936,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C001_C005_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C001_C005_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -1141,8 +948,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A008_C007_011550_CC_v01_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A008_C007_011550_CC_v01_HDR_PS_FINAL_20180710_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1154,7 +960,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT307_136NC_134K_8277_NY_NIGHT_01_v25_SDR_PS_20180907_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT307_136NC_134K_8277_NY_NIGHT_01_v25_HDR_PS_20180907_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -1166,9 +972,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L004_C011_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_L004_C011_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1180,8 +984,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H004_C007_PS_v02_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H004_C007_PS_v02_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -1193,7 +996,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/HK_H004_C013_4K_SDR_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/HK_H004_C013_4K_HDR_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -1205,8 +1008,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_DB_D001_C005_COMP_PSNK_v12_HDR_PS_20180912_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1218,9 +1020,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A012_C014_1223PT_v53_SDR_PS_FINAL_20180709_F0F8700_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A012_C014_1223PT_v53_HDR_PS_FINAL_20180710_F0F8700_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "lakes_rivers",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1232,9 +1032,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H007_C003_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_H007_C003_PS_v01_HDR_PS_20180925_HDR_4K_tuned.mov",
       "themeIds": [
-        "ocean_islands",
-        "mountain_forest",
-        "coastal_views"
+        "landscapes"
       ]
     },
     {
@@ -1246,7 +1044,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_H004_C008_PSNK_v19_SDR_PS_20180914_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_HK_H004_C008_PSNK_v19_HDR_PS_20180914_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline"
+        "cities"
       ]
     },
     {
@@ -1258,9 +1056,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A007_C017_01156B_v02_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_A007_C017_01156B_v02_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "city_skyline",
-        "coastal_views",
-        "world_architecture"
+        "cities"
       ]
     },
     {
@@ -1272,7 +1068,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LW_L001_C006_PSNK_DENOISE_v02_SDR_PS_FINAL_20180709_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_LW_L001_C006_PSNK_DENOISE_v02_HDR_FINAL_20180709_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -1284,7 +1080,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT060_117NC_363D_1034_AUSTRALIA_v35_SDR_PS_FINAL_20180731_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_GMT060_117NC_363D_1034_AUSTRALIA_v35_HDR_PS_FINAL_20180831_HDR_4K_HEVC.mov",
       "themeIds": [
-        "dream_aerial"
+        "space"
       ]
     },
     {
@@ -1296,7 +1092,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C004_C003_PS_v01_SDR_PS_20180925_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/comp_C004_C003_PS_v01_HDR_PS_20180925_HDR_4K_HEVC.mov",
       "themeIds": [
-        "natural_landscapes"
+        "landscapes"
       ]
     },
     {
@@ -1308,7 +1104,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_WH_D004_L014_SDR_20191031_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_WH_D004_L014_HDR_20191031_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -1320,8 +1116,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/DL_B002_C011_SDR_20191122_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/DL_B002_C011_HDR_20191122_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1333,8 +1128,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_TH_803_A001_8_SDR_20191031_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_TH_803_A001_8_HDR_20191031_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1346,8 +1140,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_TH_804_A001_8_SDR_20191031_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_TH_804_A001_8_HDR_20191031_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1359,8 +1152,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/RS_A008_C010_SDR_20191218_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/RS_A008_C010_HDR_20191218_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1372,8 +1164,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/MEX_A006_C008_SDR_20190923_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/MEX_A006_C008_HDR_20190923_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1385,9 +1176,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_CA_A016_C002_SDR_20191114_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_CA_A016_C002_HDR_20191114_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "mountain_forest",
-        "coastal_views"
+        "underwater"
       ]
     },
     {
@@ -1399,9 +1188,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_AK_A003_C014_SDR_20191113_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/g201_AK_A003_C014_HDR_20191028_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views",
-        "ice_snow"
+        "underwater"
       ]
     },
     {
@@ -1413,7 +1200,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/FK_U009_C004_SDR_20191220_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/FK_U009_C004_HDR_20191220_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -1425,7 +1212,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/CR_A009_C007_SDR_20191113_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/CR_A009_C007_HDR_20191113_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands"
+        "underwater"
       ]
     },
     {
@@ -1437,9 +1224,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/AK_A004_C012_SDR_20191217_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/AK_A004_C012_HDR_20191217_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ocean_islands",
-        "coastal_views",
-        "ice_snow"
+        "underwater"
       ]
     },
     {
@@ -1451,8 +1236,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G007_C004_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G007_C004_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1464,7 +1248,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G008_C015_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G008_C015_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1476,8 +1260,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G009_C003_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G009_C003_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1489,8 +1272,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G009_C014_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G009_C014_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1502,8 +1284,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G010_C026_UHD_SDR_v02_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/G010_C026_UHD_HDR_v02_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1515,7 +1296,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P001_C005_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P001_C005_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1527,8 +1308,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P005_C002_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P005_C002_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1540,8 +1320,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P006_C002_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P006_C002_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1553,7 +1332,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P007_C027_UHD_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/P007_C027_UHD_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1565,8 +1344,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y004_C015_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y004_C015_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1578,8 +1356,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y005_C003_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y005_C003_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1591,7 +1368,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y002_C013_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y002_C013_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1603,7 +1380,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y003_C009_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y003_C009_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1615,8 +1392,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y011_C001_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y011_C001_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers"
+        "landscapes"
       ]
     },
     {
@@ -1628,7 +1404,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y009_C015_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y009_C015_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1640,7 +1416,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y011_C008_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/Y011_C008_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest"
+        "landscapes"
       ]
     },
     {
@@ -1652,9 +1428,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C008_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C008_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -1666,8 +1440,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S003_C020_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S003_C020_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "coastal_views"
+        "landscapes"
       ]
     },
     {
@@ -1679,9 +1452,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C011_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C011_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -1693,7 +1464,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I004_C014_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I004_C014_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -1705,7 +1476,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C015_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C015_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -1717,8 +1488,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C004_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I003_C004_HDR_4K_HEVC.mov",
       "themeIds": [
-        "lakes_rivers",
-        "ice_snow"
+        "landscapes"
       ]
     },
     {
@@ -1730,9 +1500,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S006_C007_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S006_C007_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "coastal_views"
+        "landscapes"
       ]
     },
     {
@@ -1744,9 +1512,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S005_C015_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/S005_C015_HDR_4K_HEVC.mov",
       "themeIds": [
-        "mountain_forest",
-        "lakes_rivers",
-        "coastal_views"
+        "landscapes"
       ]
     },
     {
@@ -1758,7 +1524,7 @@
       "uhdUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I005_C008_CROP_SDR_4K_HEVC.mov",
       "dolbyVisionUrl": "https://sylvan.apple.com/Aerials/2x/Videos/I005_C008_CROP_HDR_4K_HEVC.mov",
       "themeIds": [
-        "ice_snow"
+        "landscapes"
       ]
     }
   ]
