@@ -51,13 +51,14 @@ final class DynamicWallpaperPlayer {
     private final Listener listener;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable firstFrameTimeout = () -> {
-        if (released || player == null || player.getPlaybackState() == Player.STATE_READY) return;
+        if (released || player == null || firstFrameRendered) return;
         Log.w(TAG, "No first video frame within timeout; revealing still wallpaper");
         revealStillWallpaper();
         notifyError("動態圖片載入逾時，已切回靜態桌布");
     };
     private ExoPlayer player;
     private boolean released;
+    private boolean firstFrameRendered;
     private String activeThemeId = "";
 
     DynamicWallpaperPlayer(Context context, FrameLayout root, Listener listener) {
@@ -101,6 +102,7 @@ final class DynamicWallpaperPlayer {
             if (items.isEmpty()) return false;
 
             activeThemeId = theme.id;
+            firstFrameRendered = false;
             playerView.setVisibility(View.VISIBLE);
             playerView.setAlpha(0f);
             player.setMediaItems(items, true);
@@ -166,6 +168,7 @@ final class DynamicWallpaperPlayer {
             @Override
             public void onRenderedFirstFrame() {
                 if (released) return;
+                firstFrameRendered = true;
                 mainHandler.removeCallbacks(firstFrameTimeout);
                 playerView.setVisibility(View.VISIBLE);
                 playerView.animate().alpha(1f).setDuration(220L).start();
