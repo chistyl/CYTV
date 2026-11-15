@@ -50,7 +50,7 @@ final class MediaSessionMonitor {
             publishBest(controllers);
         };
         try {
-            ComponentName notificationListener = new ComponentName(context, MediaNotificationListener.class);
+            ComponentName notificationListener = new ComponentName(context, GuardRevival.class);
             manager.addOnActiveSessionsChangedListener(sessionsListener, notificationListener, main);
             observe(manager.getActiveSessions(notificationListener));
             publishBest(manager.getActiveSessions(notificationListener));
