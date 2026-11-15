@@ -4521,6 +4521,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
+            // Keep each city's weather card provider-atomic: never fill a missing field
+            // from another provider. If this provider returns a truncated rain series,
+            // reject this complete snapshot and fall back to the next provider instead.
+            if (rain != null && rain.length() < 7)
+                throw new IOException("Open-Meteo 降雨資料不足七天");
 
             weatherFromCwa = false;
             weatherHandler.post(() -> {
