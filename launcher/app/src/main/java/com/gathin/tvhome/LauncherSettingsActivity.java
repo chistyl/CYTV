@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -38,6 +39,8 @@ public final class LauncherSettingsActivity extends Activity {
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
     private final TextView[] clockChoices = new TextView[CLOCK_FORMATS.length];
     private TextView openOnStartChoice;
+    private TextView mediaPlayerChoice;
+    private boolean mediaPlayerEnabled;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -126,6 +129,20 @@ public final class LauncherSettingsActivity extends Activity {
         connectChoiceRows(columnChoices, rowChoices);
         connectChoiceRows(rowChoices, dockChoices);
         connectChoiceRows(dockChoices, clockChoices);
+        mediaPlayerEnabled = choices.getBoolean("media_player_enabled", false);
+        mediaPlayerChoice = findViewById(R.id.mediaPlayerChoice);
+        clockChoices[clockChoices.length - 1].setNextFocusDownId(mediaPlayerChoice.getId());
+        mediaPlayerChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+        mediaPlayerChoice.setOnClickListener(v -> {
+            mediaPlayerEnabled = !mediaPlayerEnabled;
+            choices.edit().putBoolean("media_player_enabled", mediaPlayerEnabled).apply();
+            changed();
+            refreshMediaPlayerChoice();
+        });
+        refreshMediaPlayerChoice();
+        if (mediaPlayerEnabled && !hasMediaNotificationAccess()) {
+            mediaPlayerChoice.post(this::showMediaNotificationAccessPrompt);
+        }
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
@@ -134,11 +151,45 @@ public final class LauncherSettingsActivity extends Activity {
         refresh();
         connectSettingsVertical(reorderChoice, config.launcherSettingsButton, columnChoices[0]);
         if (openOnStartChoice.getVisibility() == View.VISIBLE) {
-            clockChoices[clockChoices.length - 1].setNextFocusDownId(openOnStartChoice.getId());
-            openOnStartChoice.setNextFocusUpId(clockChoices[clockChoices.length - 1].getId());
+            mediaPlayerChoice.setNextFocusDownId(openOnStartChoice.getId());
+            openOnStartChoice.setNextFocusUpId(mediaPlayerChoice.getId());
         }
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    private boolean hasMediaNotificationAccess() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                "enabled_notification_listeners");
+        if (enabled == null) return false;
+        ComponentName listener = new ComponentName(this, MediaNotificationListener.class);
+        for (String entry : enabled.split(":")) {
+            if (listener.flattenToString().equals(entry)) return true;
+        }
+        return false;
+    }
+
+    private void showMediaNotificationAccessPrompt() {
+        if (isFinishing() || hasMediaNotificationAccess()) return;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.media_player_permission_title)
+                .setMessage(R.string.media_player_permission_message)
+                .setPositiveButton(R.string.media_player_permission_open, (dialog, which) -> {
+                    try {
+                        startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                    } catch (ActivityNotFoundException ignored) {
+                        Toast.makeText(this, R.string.media_player_permission_unavailable,
+                                Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton(R.string.later, null)
+                .show();
+    }
+
+    private void refreshMediaPlayerChoice() {
+        mediaPlayerChoice.setText(getString(R.string.media_player_state,
+                getString(mediaPlayerEnabled ? R.string.on : R.string.off)));
+        mediaPlayerChoice.setSelected(mediaPlayerEnabled);
     }
 
     private void connectChoiceRows(TextView[] upper, TextView[] lower) {
