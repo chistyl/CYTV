@@ -391,6 +391,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private ImageView mediaPlayerArtwork;
     private TextView mediaPlayerTitle;
     private TextView mediaPlayerArtist;
+    private TextView mediaPlayerMode;
+    private View mediaPlayerControls;
     private TextView mediaPlayerToggle;
     private MediaController currentMediaController;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
@@ -542,6 +544,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
         mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
         mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
+        mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
+        mediaPlayerControls = (View) findViewById(R.id.mediaPlayerPrevious).getParent();
         mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
         mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
@@ -1623,13 +1627,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 android.media.MediaMetadata.METADATA_KEY_ART);
         if (art == null && metadata != null) art = metadata.getBitmap(
                 android.media.MediaMetadata.METADATA_KEY_ALBUM_ART);
-        if (art != null) mediaPlayerArtwork.setImageBitmap(art);
-        else mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
+        boolean audioMetadata = metadata != null && (
+                metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ARTIST)
+                || metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ALBUM)
+                || metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART));
+        if (art != null) {
+            mediaPlayerArtwork.setImageBitmap(art);
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+        } else {
+            try {
+                mediaPlayerArtwork.setImageDrawable(getPackageManager().getApplicationIcon(
+                        controller.getPackageName()));
+            } catch (PackageManager.NameNotFoundException ignored) {
+                mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
+            }
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            mediaPlayerArtwork.setPadding(48, 32, 48, 32);
+        }
+        mediaPlayerMode.setVisibility(View.VISIBLE);
+        mediaPlayerMode.setText(audioMetadata ? "NOW PLAYING" : "MEDIA PLAYING");
+        mediaPlayerArtist.setVisibility(audioMetadata ? View.VISIBLE : View.GONE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(
+                audioMetadata ? View.VISIBLE : View.GONE);
         mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
                 ? "❚❚" : "▶");
         mediaPlayerSurface.setVisibility(View.VISIBLE);
         mediaPlayerSurface.bringToFront();
-        if (glass != null) glass.bringToFront();
     }
 
     private void openCurrentMediaApp() {
