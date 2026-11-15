@@ -271,6 +271,18 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Dedicated notification listener for the optional media player. Keep it separate from GuardRevival,
+             whose listener connection also maintains the launcher's accessibility helper on Android 9 devices. -->
+        <service
+            android:name=".MediaNotificationListener"
+            android:exported="true"
+            android:label="@string/media_player_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".GuardConfig"
             android:exported="true"
