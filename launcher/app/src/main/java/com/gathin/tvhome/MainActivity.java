@@ -6580,6 +6580,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // R163：動態圖片沿用預設圖片的三欄 16:9 九宮格，不建立獨立設定頁。
         DynamicWallpaperCatalog dynamicCatalogForPicker = DynamicWallpaperCatalog.load(this);
         final List<DynamicWallpaperCatalog.Theme> dynamicThemes = dynamicCatalogForPicker.themes();
+        if (draftDynamicActive[0] && draftDynamicTheme[0].isEmpty() && !dynamicThemes.isEmpty())
+            draftDynamicTheme[0] = dynamicThemes.get(0).id;
         final View[] dynamicThemeItems = new View[dynamicThemes.size()];
         TextView dynamicHeading = new TextView(this);
         dynamicHeadingRef[0] = dynamicHeading;
@@ -6775,8 +6777,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!savedCustom.isEmpty()) {
                 draftCustomSelection.clear(); draftCustomSelection.addAll(savedCustom);
                 draftCustomActive[0] = true; draftRandom[0] = false; draftDynamicActive[0] = false;
-                draftDynamicActive[0] = false;
-                dynamicHeading.setText("○  動態圖片");
                 persistWallpaperDraft.run();
                 customHeading.setText("◉  自訂圖片");
                 dynamicHeading.setText("○  動態圖片");
