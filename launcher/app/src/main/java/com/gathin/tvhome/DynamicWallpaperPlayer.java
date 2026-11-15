@@ -45,15 +45,6 @@ final class DynamicWallpaperPlayer {
     private final TextureView textureView;
     private final Listener listener;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Runnable firstFrameTimeout = () -> {
-        if (released || player == null || firstFrameRendered) return;
-        String detail = "No first frame after " + FIRST_FRAME_TIMEOUT_MS + "ms"
-                + ", theme=" + activeThemeId + ", video=" + currentVideoId()
-                + ", source=" + currentSourceUrl();
-        Log.e(TAG, detail);
-        tryNextSource("FIRST_FRAME_TIMEOUT", detail);
-    };
-
     private ExoPlayer player;
     private boolean released;
     private boolean firstFrameRendered;
@@ -62,6 +53,15 @@ final class DynamicWallpaperPlayer {
     private int videoIndex;
     private int variantIndex;
     private int failedSourceCount;
+
+    private final Runnable firstFrameTimeout = () -> {
+        if (released || player == null || firstFrameRendered) return;
+        String detail = "No first frame after " + FIRST_FRAME_TIMEOUT_MS + "ms"
+                + ", theme=" + activeThemeId + ", video=" + currentVideoId()
+                + ", source=" + currentSourceUrl();
+        Log.e(TAG, detail);
+        tryNextSource("FIRST_FRAME_TIMEOUT", detail);
+    };
 
     DynamicWallpaperPlayer(Context context, FrameLayout root, Listener listener) {
         appContext = context.getApplicationContext();
