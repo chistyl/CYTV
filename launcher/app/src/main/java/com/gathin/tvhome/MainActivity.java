@@ -483,6 +483,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         // R164: require offline activation before opening the main desktop.
         // The activation screen is shown before any desktop initialization when no valid token exists.
+        // R164 keeps the R163 weather snapshot cache and forecast rendering unchanged.
         if (!ActivationGate.isActivated(this)) {
             startActivity(new android.content.Intent(this, ActivationActivity.class));
             finish();
