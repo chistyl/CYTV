@@ -1652,6 +1652,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * Convert Simplified Chinese metadata supplied by media apps into Traditional Chinese
+     * before it is rendered in the desktop player. Keep non-Chinese text unchanged.
+     */
+    private String mediaTextToTraditional(String value) {
+        if (value == null || value.isEmpty()) return value;
+        try {
+            return android.icu.text.Transliterator.getInstance("Simplified-Traditional")
+                    .transliterate(value);
+        } catch (RuntimeException ignored) {
+            // Keep the original metadata if this device's ICU build lacks the transliterator.
+            return value;
+        }
+    }
+
     private void renderMediaPlayer(MediaController controller, android.media.MediaMetadata metadata,
                                    android.media.session.PlaybackState state) {
         if (mediaPlayerSurface == null) return;
@@ -1670,9 +1685,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         String title = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE);
         String artist = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST);
-        mediaPlayerTitle.setText(title == null || title.trim().isEmpty()
-                ? controller.getPackageName() : title);
-        mediaPlayerArtist.setText(artist == null ? controller.getPackageName() : artist);
+        mediaPlayerTitle.setText(mediaTextToTraditional(title == null || title.trim().isEmpty()
+                ? controller.getPackageName() : title));
+        mediaPlayerArtist.setText(mediaTextToTraditional(
+                artist == null ? controller.getPackageName() : artist));
         android.graphics.Bitmap art = metadata == null ? null : metadata.getBitmap(
                 android.media.MediaMetadata.METADATA_KEY_ART);
         if (art == null && metadata != null) art = metadata.getBitmap(
