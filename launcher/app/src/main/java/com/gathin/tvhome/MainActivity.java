@@ -392,6 +392,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Player visibility follows the dock row's upper-edge clipping state. */
     private boolean mediaPlayerHiddenByDockScroll;
     private ImageView mediaPlayerArtwork;
+    private android.animation.ObjectAnimator mediaArtworkRotation;
     private TextView mediaPlayerTitle;
     private TextView mediaPlayerArtist;
     private TextView mediaPlayerMode;
@@ -1713,11 +1714,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    private void updateMediaArtworkRotation(boolean playing) {
+        if (mediaPlayerArtwork == null) return;
+        if (playing) {
+            if (mediaArtworkRotation == null) {
+                mediaArtworkRotation = android.animation.ObjectAnimator.ofFloat(
+                        mediaPlayerArtwork, View.ROTATION, 0f, 360f);
+                mediaArtworkRotation.setDuration(12000L);
+                mediaArtworkRotation.setInterpolator(new android.view.animation.LinearInterpolator());
+                mediaArtworkRotation.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            }
+            if (!mediaArtworkRotation.isStarted()) mediaArtworkRotation.start();
+        } else if (mediaArtworkRotation != null) {
+            mediaArtworkRotation.cancel();
+            mediaPlayerArtwork.setRotation(0f);
+        }
+    }
+
     private void renderMediaPlayer(MediaController controller, android.media.MediaMetadata metadata,
                                    android.media.session.PlaybackState state) {
         if (mediaPlayerSurface == null) return;
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", true) || controller == null) {
+            updateMediaArtworkRotation(false);
             mediaPlayerSurface.setVisibility(View.GONE);
             return;
         }
@@ -1725,7 +1744,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean active = playback == android.media.session.PlaybackState.STATE_PLAYING
                 || playback == android.media.session.PlaybackState.STATE_BUFFERING
                 || playback == android.media.session.PlaybackState.STATE_PAUSED;
+        updateMediaArtworkRotation(playback == android.media.session.PlaybackState.STATE_PLAYING);
         if (!active) {
+            updateMediaArtworkRotation(false);
             mediaPlayerSurface.setVisibility(View.GONE);
             return;
         }
