@@ -550,16 +550,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // R165: explicitly clip album artwork to the rounded background outline on TV devices.
         mediaPlayerArtwork.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
         mediaPlayerArtwork.setClipToOutline(true);
-        // R165: rotate the circular album thumbnail clockwise continuously.
-        android.view.animation.RotateAnimation artworkRotation =
-                new android.view.animation.RotateAnimation(0f, 360f,
-                        android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
-                        android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f);
-        artworkRotation.setDuration(12000L);
-        artworkRotation.setInterpolator(new android.view.animation.LinearInterpolator());
-        artworkRotation.setRepeatCount(android.view.animation.Animation.INFINITE);
-        artworkRotation.setFillAfter(true);
-        mediaPlayerArtwork.startAnimation(artworkRotation);
+        // R165 follow-up: use only ObjectAnimator for artwork rotation.
+        // Running View Animation and property animation together caused visible jumps.
+        mediaPlayerArtwork.clearAnimation();
+        mediaPlayerArtwork.setRotation(0f);
         mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
         mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
         mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
