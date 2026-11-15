@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.util.LruCache;
 import android.widget.ImageView;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -75,7 +76,7 @@ final class DynamicWallpaperThumbnailLoader {
         } catch (RuntimeException error) {
             return null;
         } finally {
-            try { retriever.release(); } catch (RuntimeException ignored) { }
+            try { retriever.release(); } catch (IOException | RuntimeException ignored) { }
         }
     }
 
