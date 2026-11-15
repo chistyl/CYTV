@@ -1572,7 +1572,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     new DynamicWallpaperPlayer.Listener() {
                         @Override public void onPlaybackError(String message) {
                             Log.w("CYTV.DynamicPlayer", message);
-                            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                            new android.app.AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("CYTV 動態桌布診斷")
+                                    .setMessage(message)
+                                    .setPositiveButton("關閉", null)
+                                    .show();
                             // The static WallpaperPlayer image is already underneath the video layer.
                         }
                         @Override public void onFirstFrame() {
