@@ -139,6 +139,9 @@ public final class LauncherSettingsActivity extends Activity {
             refreshMediaPlayerChoice();
         });
         refreshMediaPlayerChoice();
+        if (mediaPlayerEnabled && !hasMediaNotificationAccess()) {
+            mediaPlayerChoice.post(this::showMediaNotificationAccessPrompt);
+        }
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
@@ -152,6 +155,34 @@ public final class LauncherSettingsActivity extends Activity {
         }
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    private boolean hasMediaNotificationAccess() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                "enabled_notification_listeners");
+        if (enabled == null) return false;
+        ComponentName listener = new ComponentName(this, GuardRevival.class);
+        for (String entry : enabled.split(":")) {
+            if (listener.flattenToString().equals(entry)) return true;
+        }
+        return false;
+    }
+
+    private void showMediaNotificationAccessPrompt() {
+        if (isFinishing() || hasMediaNotificationAccess()) return;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.media_player_permission_title)
+                .setMessage(R.string.media_player_permission_message)
+                .setPositiveButton(R.string.media_player_permission_open, (dialog, which) -> {
+                    try {
+                        startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                    } catch (ActivityNotFoundException ignored) {
+                        Toast.makeText(this, R.string.media_player_permission_unavailable,
+                                Toast.LENGTH_LONG).show();
+                    }
+                })
+                .setNegativeButton(R.string.later, null)
+                .show();
     }
 
     private void refreshMediaPlayerChoice() {
