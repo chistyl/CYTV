@@ -4,11 +4,11 @@ import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -84,7 +84,7 @@ final class DynamicWallpaperThumbnailLoader {
                         + ": " + error.getMessage());
                 // Try another encoding of this same Aerial video.
             } finally {
-                try { retriever.release(); } catch (IOException | RuntimeException ignored) { }
+                try { retriever.release(); } catch (RuntimeException ignored) { }
             }
         }
         Log.e("CYTV.DynamicThumb", "No usable preview frame for video " + video.id
