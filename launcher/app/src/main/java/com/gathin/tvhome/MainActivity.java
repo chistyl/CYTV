@@ -1647,7 +1647,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaPlayerArtwork.setPadding(48, 32, 48, 32);
         }
         mediaPlayerMode.setVisibility(View.VISIBLE);
-        mediaPlayerMode.setText(audioMetadata ? "NOW PLAYING" : "MEDIA PLAYING");
+        mediaPlayerMode.setText(audioMetadata ? R.string.media_player_now_playing : R.string.media_player_playing);
         mediaPlayerArtist.setVisibility(audioMetadata ? View.VISIBLE : View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(
                 audioMetadata ? View.VISIBLE : View.GONE);
