@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +37,7 @@ import java.util.List;
 final class DynamicWallpaperPlayer {
     private static final String TAG = "CYTV.DynamicPlayer";
     private static final long CACHE_BYTES = 256L * 1024L * 1024L;
+    private static final long FIRST_FRAME_TIMEOUT_MS = 20_000L;
     private static volatile Cache sharedCache;
 
     interface Listener {
@@ -46,6 +49,13 @@ final class DynamicWallpaperPlayer {
     private final FrameLayout root;
     private final PlayerView playerView;
     private final Listener listener;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable firstFrameTimeout = () -> {
+        if (released || player == null || player.getPlaybackState() == Player.STATE_READY) return;
+        Log.w(TAG, "No first video frame within timeout; revealing still wallpaper");
+        revealStillWallpaper();
+        notifyError("動態圖片載入逾時，已切回靜態桌布");
+    };
     private ExoPlayer player;
     private boolean released;
     private String activeThemeId = "";
@@ -96,6 +106,8 @@ final class DynamicWallpaperPlayer {
             player.setMediaItems(items, true);
             player.prepare();
             player.setPlayWhenReady(true);
+            mainHandler.removeCallbacks(firstFrameTimeout);
+            mainHandler.postDelayed(firstFrameTimeout, FIRST_FRAME_TIMEOUT_MS);
             return true;
         } catch (Exception error) {
             Log.e(TAG, "Unable to start theme " + theme.id, error);
@@ -111,6 +123,7 @@ final class DynamicWallpaperPlayer {
     }
 
     void stop() {
+        mainHandler.removeCallbacks(firstFrameTimeout);
         if (player != null) {
             player.setPlayWhenReady(false);
             playerView.setVisibility(View.GONE);
@@ -121,6 +134,7 @@ final class DynamicWallpaperPlayer {
     void release() {
         if (released) return;
         released = true;
+        mainHandler.removeCallbacks(firstFrameTimeout);
         if (player != null) {
             player.release();
             player = null;
@@ -152,6 +166,7 @@ final class DynamicWallpaperPlayer {
             @Override
             public void onRenderedFirstFrame() {
                 if (released) return;
+                mainHandler.removeCallbacks(firstFrameTimeout);
                 playerView.setVisibility(View.VISIBLE);
                 playerView.animate().alpha(1f).setDuration(220L).start();
                 if (listener != null) listener.onFirstFrame();
@@ -159,6 +174,7 @@ final class DynamicWallpaperPlayer {
 
             @Override
             public void onPlayerError(PlaybackException error) {
+                mainHandler.removeCallbacks(firstFrameTimeout);
                 Log.w(TAG, "Aerial playback failed; revealing still wallpaper", error);
                 revealStillWallpaper();
                 notifyError("動態圖片連線或播放失敗，已切回靜態桌布");
@@ -183,6 +199,7 @@ final class DynamicWallpaperPlayer {
     }
 
     private void revealStillWallpaper() {
+        mainHandler.removeCallbacks(firstFrameTimeout);
         if (player != null) player.setPlayWhenReady(false);
         playerView.animate().cancel();
         playerView.setAlpha(0f);
