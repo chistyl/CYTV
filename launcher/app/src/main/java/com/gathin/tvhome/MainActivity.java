@@ -387,6 +387,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** R165: active media sessions are observed only while Home is in front. */
     private MediaSessionMonitor mediaSessionMonitor;
+    private View mediaPlayerSurface;
+    private ImageView mediaPlayerArtwork;
+    private TextView mediaPlayerTitle;
+    private TextView mediaPlayerArtist;
+    private TextView mediaPlayerToggle;
+    private MediaController currentMediaController;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
     private final Runnable refreshWifiStatusAfterFocus = () -> {
         if (!isDestroyed() && resumed && hasWindowFocus()) updateWifiLabel();
@@ -532,6 +538,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         coocaaSources = cfg.coocaaSources;
 
         root = findViewById(R.id.root);
+        mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
+        mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
+        mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
+        mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
+        mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
+        mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
+        findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
+        findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
+        mediaPlayerToggle.setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+        mediaPlayerSurface.setVisibility(View.GONE);
         root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
@@ -1552,6 +1568,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .getBoolean("media_player_enabled", true)) return;
         if (mediaSessionMonitor == null) {
             mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
+                currentMediaController = controller;
+                renderMediaPlayer(controller, metadata, state);
                 android.content.SharedPreferences media = getSharedPreferences(
                         Config.SETTINGS_NAME, MODE_PRIVATE);
                 android.content.SharedPreferences.Editor edit = media.edit();
@@ -1578,6 +1596,60 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         mediaSessionMonitor.start();
+    }
+
+    private void renderMediaPlayer(MediaController controller, android.media.MediaMetadata metadata,
+                                   android.media.session.PlaybackState state) {
+        if (mediaPlayerSurface == null) return;
+        if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", true) || controller == null) {
+            mediaPlayerSurface.setVisibility(View.GONE);
+            return;
+        }
+        int playback = state == null ? android.media.session.PlaybackState.STATE_NONE : state.getState();
+        boolean active = playback == android.media.session.PlaybackState.STATE_PLAYING
+                || playback == android.media.session.PlaybackState.STATE_BUFFERING
+                || playback == android.media.session.PlaybackState.STATE_PAUSED;
+        if (!active) {
+            mediaPlayerSurface.setVisibility(View.GONE);
+            return;
+        }
+        String title = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE);
+        String artist = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST);
+        mediaPlayerTitle.setText(title == null || title.trim().isEmpty()
+                ? controller.getPackageName() : title);
+        mediaPlayerArtist.setText(artist == null ? controller.getPackageName() : artist);
+        android.graphics.Bitmap art = metadata == null ? null : metadata.getBitmap(
+                android.media.MediaMetadata.METADATA_KEY_ART);
+        if (art == null && metadata != null) art = metadata.getBitmap(
+                android.media.MediaMetadata.METADATA_KEY_ALBUM_ART);
+        if (art != null) mediaPlayerArtwork.setImageBitmap(art);
+        else mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
+        mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
+                ? "❚❚" : "▶");
+        mediaPlayerSurface.setVisibility(View.VISIBLE);
+        mediaPlayerSurface.bringToFront();
+        if (glass != null) glass.bringToFront();
+    }
+
+    private void openCurrentMediaApp() {
+        MediaController controller = currentMediaController;
+        if (controller == null) return;
+        String packageName = controller.getPackageName();
+        android.content.Intent launch = getPackageManager().getLaunchIntentForPackage(packageName);
+        if (launch != null) {
+            launch.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { startActivity(launch); } catch (android.content.ActivityNotFoundException ignored) { }
+        }
+    }
+
+    private void sendMediaKey(int keyCode) {
+        MediaController controller = currentMediaController;
+        if (controller == null) return;
+        android.view.KeyEvent down = new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode);
+        android.view.KeyEvent up = new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode);
+        controller.dispatchMediaButtonEvent(down);
+        controller.dispatchMediaButtonEvent(up);
     }
 
     private void stopMediaSessionMonitor() {
