@@ -13,6 +13,7 @@ import android.widget.FrameLayout;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.VideoSize;
 import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.cache.Cache;
@@ -169,6 +170,16 @@ final class DynamicWallpaperPlayer {
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
         player.setVideoTextureView(textureView);
         player.addListener(new Player.Listener() {
+            @Override public void onVideoSizeChanged(VideoSize videoSize) {
+                if (released || videoSize.height <= 0 || videoSize.width <= 0) return;
+                float videoAspectRatio = videoSize.width * videoSize.pixelWidthHeightRatio
+                        / (float) videoSize.height;
+                if (videoAspectRatio > 0f && Float.isFinite(videoAspectRatio)) {
+                    aspectFrame.setAspectRatio(videoAspectRatio);
+                    Log.i(TAG, "Video aspect ratio updated: " + videoAspectRatio);
+                }
+            }
+
             @Override public void onRenderedFirstFrame() {
                 if (released) return;
                 firstFrameRendered = true;
