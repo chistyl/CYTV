@@ -4174,6 +4174,64 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Cache key follows the selected weather location so switching cities never shows another city's forecast. */
+    private String weeklyWeatherCacheKey() {
+        SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
+        String mode = prefs.getString("location_mode", "device");
+        String location = "device".equals(mode) ? "device"
+                : ("custom".equals(mode) ? prefs.getString("custom_city", "")
+                : prefs.getString("city", "桃園市"));
+        return "forecast_snapshot_" + mode + "_" + location.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Restore the last complete successful snapshot before starting any network request. */
+    private boolean restoreCachedWeeklyWeather() {
+        if (hasWeeklyWeatherData) return true;
+        try {
+            String raw = getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                    .getString(weeklyWeatherCacheKey(), null);
+            if (raw == null || raw.trim().isEmpty()) return false;
+            JSONObject snapshot = new JSONObject(raw);
+            JSONArray dates = new JSONArray(snapshot.getString("dates"));
+            JSONArray codes = new JSONArray(snapshot.getString("codes"));
+            JSONArray highs = new JSONArray(snapshot.getString("highs"));
+            JSONArray lows = new JSONArray(snapshot.getString("lows"));
+            String rainRaw = snapshot.optString("rain", "");
+            JSONArray rain = rainRaw.isEmpty() ? null : new JSONArray(rainRaw);
+            String place = snapshot.optString("place", "目前位置");
+            if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7) return false;
+            if (rain != null && rain.length() < 7) rain = null;
+            weatherFromCwa = snapshot.optBoolean("fromCwa", false);
+            renderWeeklyWeather(dates, codes, highs, lows, rain, place);
+            return hasWeeklyWeatherData;
+        } catch (Exception e) {
+            android.util.Log.w("CYTV-Weather", "Cached forecast restore failed", e);
+            return false;
+        }
+    }
+
+    /** Persist only complete seven-day forecasts; never cache transient loading/error states. */
+    private void persistWeeklyWeatherSnapshot(JSONArray dates, JSONArray codes, JSONArray highs,
+            JSONArray lows, JSONArray rain, String place) {
+        if (dates == null || codes == null || highs == null || lows == null
+                || dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7) return;
+        try {
+            JSONObject snapshot = new JSONObject();
+            snapshot.put("dates", dates.toString());
+            snapshot.put("codes", codes.toString());
+            snapshot.put("highs", highs.toString());
+            snapshot.put("lows", lows.toString());
+            snapshot.put("rain", rain == null ? "" : rain.toString());
+            snapshot.put("place", place == null ? "" : place);
+            snapshot.put("fromCwa", weatherFromCwa);
+            snapshot.put("savedAt", System.currentTimeMillis());
+            getSharedPreferences("weekly_weather", MODE_PRIVATE).edit()
+                    .putString(weeklyWeatherCacheKey(), snapshot.toString()).apply();
+        } catch (Exception e) {
+            android.util.Log.w("CYTV-Weather", "Cached forecast save failed", e);
+        }
+    }
+
     private void refreshWeeklyWeatherVisibility() {
         if (weeklyWeatherView == null) return;
         configureWeatherInteraction();
@@ -4183,6 +4241,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             weeklyWeatherView.setVisibility(View.GONE);
             return;
         }
+        // Restore a previously successful snapshot immediately; network refresh runs in the background.
+        restoreCachedWeeklyWeather();
         // Keep the last successful forecast visible while refreshing after a resume or settings change.
         if (hasWeeklyWeatherData) {
             weeklyWeatherView.setVisibility(weatherHiddenByScroll ? View.INVISIBLE : View.VISIBLE);
@@ -4567,6 +4627,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
         if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
         hasWeeklyWeatherData = true;
+        persistWeeklyWeatherSnapshot(dates, codes, highs, lows, rain, place);
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
