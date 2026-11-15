@@ -60,6 +60,22 @@ jobs:
       - name: Build debug APK and run unit tests
         run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
 
+
+      - name: Package complete source
+        working-directory: .
+        run: |
+          zip -r CYTV-R163-source.zip . \
+            -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
+               '*/local.properties' '*.iml'
+
+      - name: Upload complete source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R163-source
+          path: CYTV-R163-source.zip
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
