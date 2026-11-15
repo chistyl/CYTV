@@ -6607,10 +6607,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (focused) bg.setStroke(Math.max(2, (int)(2*density)), 0xFF80CBC4);
             v.setBackground(bg);
         });
-        // R163 UI：動態主題區不顯示標題列，只呈現九宮格縮圖。
-        dynamicHeading.setVisibility(View.GONE);
-        dynamicHeading.setFocusable(false);
-        dynamicHeading.setClickable(false);
+        // 保留「動態圖片」模式選項；九宮格縮圖本身不顯示主題標題或文字。
+        LinearLayout.LayoutParams dynamicHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
+        dynamicHeadingLp.topMargin = (int)(8*density);
+        dynamicHeadingLp.bottomMargin = (int)(5*density);
+        choices.addView(dynamicHeading, dynamicHeadingLp);
         Runnable refreshDynamicBorders = () -> {
             for (int i = 0; i < dynamicThemeItems.length; i++) {
                 View item = dynamicThemeItems[i];
