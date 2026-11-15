@@ -1941,6 +1941,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // R165: UP from any actionable media-player control must leave the player
+        // and return to the desktop's upper navigation area (weather first in daily mode).
+        if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP
+                && mediaPlayerSurface != null
+                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            View descendant = focused;
+            while (descendant != null && descendant != mediaPlayerSurface) {
+                android.view.ViewParent parent = descendant.getParent();
+                descendant = parent instanceof View ? (View) parent : null;
+            }
+            if (descendant == mediaPlayerSurface) {
+                boolean dailyWeatherVisible = weeklyWeatherView != null
+                        && weeklyWeatherView.getVisibility() == View.VISIBLE
+                        && "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                                .getString("display_mode", "week"));
+                if (dailyWeatherVisible && weeklyWeatherView.requestFocus()) return true;
+                View topButton = firstTopButton();
+                if (topButton != null && topButton.requestFocus()) return true;
+            }
+        }
         // R165: allow the remote's UP key from the dock row to enter the media controls.
         if (event.getAction() == KeyEvent.ACTION_DOWN
                 && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP
