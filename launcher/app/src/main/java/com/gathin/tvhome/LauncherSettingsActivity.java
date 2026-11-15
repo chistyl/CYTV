@@ -162,7 +162,7 @@ public final class LauncherSettingsActivity extends Activity {
         String enabled = Settings.Secure.getString(getContentResolver(),
                 "enabled_notification_listeners");
         if (enabled == null) return false;
-        ComponentName listener = new ComponentName(this, MediaNotificationListener.class);
+        ComponentName listener = new ComponentName(this, GuardRevival.class);
         for (String entry : enabled.split(":")) {
             if (listener.flattenToString().equals(entry)) return true;
         }
