@@ -50,16 +50,17 @@ final class DynamicWallpaperPlayer {
     private final PlayerView playerView;
     private final Listener listener;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private ExoPlayer player;
+    private boolean released;
+    private boolean firstFrameRendered;
+    private String activeThemeId = "";
+
     private final Runnable firstFrameTimeout = () -> {
         if (released || player == null || firstFrameRendered) return;
         Log.w(TAG, "No first video frame within timeout; revealing still wallpaper");
         revealStillWallpaper();
         notifyError("動態圖片載入逾時，已切回靜態桌布");
     };
-    private ExoPlayer player;
-    private boolean released;
-    private boolean firstFrameRendered;
-    private String activeThemeId = "";
 
     DynamicWallpaperPlayer(Context context, FrameLayout root, Listener listener) {
         this.appContext = context.getApplicationContext();
