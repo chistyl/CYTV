@@ -1638,40 +1638,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** R165: keep the current media session snapshot ready for the desktop player surface. */
+    /** Media surface that works without Android notification-listener authorization. */
     private void startMediaSessionMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", false)) return;
-        if (mediaSessionMonitor == null) {
-            mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
-                currentMediaController = controller;
-                renderMediaPlayer(controller, metadata, state);
-                updateMediaPlayerSourceControl();
-                android.content.SharedPreferences media = getSharedPreferences(
-                        Config.SETTINGS_NAME, MODE_PRIVATE);
-                android.content.SharedPreferences.Editor edit = media.edit();
-                if (controller == null) {
-                    edit.remove("media_session_package")
-                            .remove("media_session_title")
-                            .remove("media_session_artist")
-                            .putInt("media_session_state", android.media.session.PlaybackState.STATE_NONE);
-                } else {
-                    edit.putString("media_session_package",
-                            controller.getPackageName());
-                    if (metadata != null) {
-                        edit.putString("media_session_title", metadata.getString(
-                                android.media.MediaMetadata.METADATA_KEY_TITLE));
-                        edit.putString("media_session_artist", metadata.getString(
-                                android.media.MediaMetadata.METADATA_KEY_ARTIST));
-                    } else {
-                        edit.remove("media_session_title").remove("media_session_artist");
-                    }
-                    edit.putInt("media_session_state", state == null
-                            ? android.media.session.PlaybackState.STATE_NONE : state.getState());
-                }
-                edit.apply();
-            });
-        }
-        mediaSessionMonitor.start();
+        currentMediaController = null;
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface == null) return;
+        mediaPlayerTitle.setText("媒體播放器");
+        mediaPlayerArtist.setText("使用下方按鍵控制目前播放的內容");
+        mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
+        mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mediaPlayerArtwork.setPadding(48, 32, 48, 32);
+        mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerSource.setVisibility(View.GONE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+        mediaPlayerToggle.setText("▶");
+        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        mediaPlayerSurface.bringToFront();
+        updateMediaArtworkRotation(false);
     }
 
     private void updateMediaPlayerSourceControl() {
@@ -1776,23 +1761,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void openCurrentMediaApp() {
-        MediaController controller = currentMediaController;
-        if (controller == null) return;
-        String packageName = controller.getPackageName();
-        android.content.Intent launch = getPackageManager().getLaunchIntentForPackage(packageName);
-        if (launch != null) {
-            launch.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            try { startActivity(launch); } catch (android.content.ActivityNotFoundException ignored) { }
+        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
+        java.util.ArrayList<ResolveInfo> launchable = new java.util.ArrayList<>();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        for (ResolveInfo info : apps) {
+            if (info.activityInfo == null || getPackageName().equals(info.activityInfo.packageName)) continue;
+            launchable.add(info);
+            labels.add(info.loadLabel(getPackageManager()).toString());
         }
+        if (launchable.isEmpty()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("選擇播放器")
+                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
+                    ResolveInfo info = launchable.get(which);
+                    Intent launch = new Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                            .setClassName(info.activityInfo.packageName, info.activityInfo.name)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try { startActivity(launch); }
+                    catch (android.content.ActivityNotFoundException ignored) { }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void sendMediaKey(int keyCode) {
-        MediaController controller = currentMediaController;
-        if (controller == null) return;
-        android.view.KeyEvent down = new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode);
-        android.view.KeyEvent up = new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode);
-        controller.dispatchMediaButtonEvent(down);
-        controller.dispatchMediaButtonEvent(up);
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return;
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode));
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode));
     }
 
     private void stopMediaSessionMonitor() {
