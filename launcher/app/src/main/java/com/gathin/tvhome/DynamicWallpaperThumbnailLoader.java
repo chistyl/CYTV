@@ -4,11 +4,11 @@ import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,8 +59,10 @@ final class DynamicWallpaperThumbnailLoader {
             MediaMetadataRetriever retriever = new MediaMetadataRetriever();
             try {
                 java.util.Map<String, String> headers = new java.util.HashMap<>();
-                headers.put("User-Agent", "CYTV-Aerial-Preview/1.0");
-                headers.put("Accept", "*/*");
+                headers.put("User-Agent", "Mozilla/5.0 (Linux; Android 9; CYTV) AppleWebKit/537.36 Chrome/120 Safari/537.36");
+                headers.put("Accept", "video/quicktime,video/mp4,application/octet-stream,*/*");
+                headers.put("Connection", "keep-alive");
+                Log.i("CYTV.DynamicThumb", "Extracting frame: " + video.id + " from " + url);
                 retriever.setDataSource(url, headers);
                 Bitmap frame = retriever.getFrameAtTime(1_000_000L,
                         MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
@@ -76,12 +78,21 @@ final class DynamicWallpaperThumbnailLoader {
                         Math.max(1, Math.round(height * scale)), true);
                 if (scaled != frame) frame.recycle();
                 return scaled;
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException error) {
+                Log.w("CYTV.DynamicThumb", "Frame extraction failed for " + video.id
+                        + " (" + url + "): " + error.getClass().getSimpleName()
+                        + ": " + error.getMessage());
                 // Try another encoding of this same Aerial video.
             } finally {
-                try { retriever.release(); } catch (IOException | RuntimeException ignored) { }
+                try {
+                    retriever.release();
+                } catch (IOException | RuntimeException ignored) {
+                    // Releasing a retriever must not mask the extraction result.
+                }
             }
         }
+        Log.e("CYTV.DynamicThumb", "No usable preview frame for video " + video.id
+                + "; attempted available AVC/HEVC/4K sources");
         return null;
     }
 

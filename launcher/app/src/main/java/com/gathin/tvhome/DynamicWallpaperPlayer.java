@@ -36,7 +36,7 @@ import java.util.List;
 final class DynamicWallpaperPlayer {
     private static final String TAG = "CYTV.DynamicPlayer";
     private static final long CACHE_BYTES = 256L * 1024L * 1024L;
-    private static final long FIRST_FRAME_TIMEOUT_MS = 20_000L;
+    private static final long FIRST_FRAME_TIMEOUT_MS = 45_000L;
     private static volatile Cache sharedCache;
 
     interface Listener {
@@ -60,7 +60,7 @@ final class DynamicWallpaperPlayer {
         if (released || player == null || firstFrameRendered) return;
         Log.w(TAG, "No first video frame within timeout; revealing still wallpaper");
         revealStillWallpaper();
-        notifyError("動態圖片載入逾時，已切回靜態桌布");
+        notifyError("動態圖片載入逾時（45 秒無影格），已切回靜態桌布");
     };
 
     DynamicWallpaperPlayer(Context context, FrameLayout root, Listener listener) {
@@ -109,6 +109,8 @@ final class DynamicWallpaperPlayer {
             firstFrameRendered = false;
             videoLayer.setVisibility(View.VISIBLE);
             videoLayer.setAlpha(0f);
+            Log.i(TAG, "Starting theme=" + theme.id + ", videos=" + items.size()
+                    + ", firstUrl=" + items.get(0).localConfiguration.uri);
             player.setMediaItems(items, true);
             player.prepare();
             player.setPlayWhenReady(true);
@@ -155,9 +157,14 @@ final class DynamicWallpaperPlayer {
     private void ensurePlayer() {
         if (player != null) return;
         DefaultHttpDataSource.Factory httpFactory = new DefaultHttpDataSource.Factory()
-                .setConnectTimeoutMs(8000)
-                .setReadTimeoutMs(15000)
-                .setAllowCrossProtocolRedirects(true);
+                .setUserAgent("Mozilla/5.0 (Linux; Android 9; CYTV) AppleWebKit/537.36 Chrome/120 Safari/537.36")
+                .setConnectTimeoutMs(20000)
+                .setReadTimeoutMs(30000)
+                .setAllowCrossProtocolRedirects(true)
+                .setDefaultRequestProperties(new java.util.HashMap<String, String>() {{
+                    put("Accept", "video/quicktime,video/mp4,application/octet-stream,*/*");
+                    put("Connection", "keep-alive");
+                }});
         CacheDataSource.Factory cacheFactory = new CacheDataSource.Factory()
                 .setCache(cache())
                 .setUpstreamDataSourceFactory(httpFactory)
@@ -191,9 +198,12 @@ final class DynamicWallpaperPlayer {
 
             @Override public void onPlayerError(PlaybackException error) {
                 mainHandler.removeCallbacks(firstFrameTimeout);
-                Log.w(TAG, "Aerial playback failed; revealing still wallpaper", error);
+                String detail = "code=" + error.errorCode + "/" + error.getErrorCodeName()
+                        + ", cause=" + (error.getCause() == null ? "none"
+                        : error.getCause().getClass().getSimpleName() + ": " + error.getCause().getMessage());
+                Log.e(TAG, "Aerial playback failed: " + detail, error);
                 revealStillWallpaper();
-                notifyError("動態圖片連線或播放失敗，已切回靜態桌布");
+                notifyError("動態圖片播放失敗：" + error.getErrorCodeName() + "，已切回靜態桌布");
             }
         });
     }

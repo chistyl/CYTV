@@ -1572,6 +1572,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     new DynamicWallpaperPlayer.Listener() {
                         @Override public void onPlaybackError(String message) {
                             Log.w("CYTV.DynamicPlayer", message);
+                            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                             // The static WallpaperPlayer image is already underneath the video layer.
                         }
                         @Override public void onFirstFrame() {
