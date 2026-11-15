@@ -30,12 +30,13 @@ import java.util.List;
 final class DynamicWallpaperPlayer {
     private static final String TAG = "CYTV.DynamicPlayer";
     private static final long CACHE_BYTES = 256L * 1024L * 1024L;
-    private static final long FIRST_FRAME_TIMEOUT_MS = 45_000L;
+    private static final long FIRST_FRAME_TIMEOUT_MS = 12_000L;
     private static volatile Cache sharedCache;
 
     interface Listener {
         void onPlaybackError(String message);
         void onFirstFrame();
+        void onPlaybackStatus(String status);
     }
 
     private final Context appContext;
@@ -104,6 +105,7 @@ final class DynamicWallpaperPlayer {
             videoLayer.setVisibility(View.VISIBLE);
             videoLayer.setAlpha(0f);
             Log.i(TAG, "Starting theme=" + theme.id + ", videos=" + videos.size());
+            notifyStatus("動態桌布播放器已初始化，正在讀取影片素材");
             startCurrentSource("theme-start");
             return true;
         } catch (Exception error) {
@@ -200,6 +202,7 @@ final class DynamicWallpaperPlayer {
         mainHandler.removeCallbacks(firstFrameTimeout);
         Log.i(TAG, "Try source: reason=" + reason + ", theme=" + activeThemeId
                 + ", video=" + currentVideoId() + ", format=" + variantName() + ", url=" + url);
+        notifyStatus("正在載入影片：" + currentVideoId() + "（" + variantName() + "）");
         player.setMediaItem(MediaItem.fromUri(url));
         player.prepare();
         player.setPlayWhenReady(true);
@@ -296,6 +299,9 @@ final class DynamicWallpaperPlayer {
         videoLayer.animate().cancel();
         videoLayer.setAlpha(0f);
         videoLayer.setVisibility(View.GONE);
+    }
+    private void notifyStatus(String message) {
+        if (listener != null) listener.onPlaybackStatus(message);
     }
     private void notifyError(String message) {
         if (listener != null) listener.onPlaybackError(message);
