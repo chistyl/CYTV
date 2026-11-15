@@ -28,6 +28,8 @@ final class MediaSessionMonitor {
     private MediaSessionManager manager;
     private MediaSessionManager.OnActiveSessionsChangedListener sessionsListener;
     private final List<MediaController> observed = new ArrayList<>();
+    private final List<MediaController> candidates = new ArrayList<>();
+    private int selectedIndex = 0;
     private boolean running;
 
     MediaSessionMonitor(Context context, Listener listener) {
@@ -71,6 +73,8 @@ final class MediaSessionMonitor {
             catch (RuntimeException ignored) { }
         }
         observed.clear();
+        candidates.clear();
+        selectedIndex = 0;
         sessionsListener = null;
         manager = null;
     }
@@ -117,28 +121,47 @@ final class MediaSessionMonitor {
     }
 
     private void publishBest(List<MediaController> controllers) {
-        MediaController best = null;
-        PlaybackState bestState = null;
-        MediaMetadata bestMetadata = null;
+        candidates.clear();
+        if (controllers != null) {
+            for (MediaController controller : controllers) {
+                PlaybackState state = controller.getPlaybackState();
+                MediaMetadata metadata = controller.getMetadata();
+                if (state != null || metadata != null) candidates.add(controller);
+            }
+        }
+        if (candidates.isEmpty()) {
+            selectedIndex = 0;
+            publish(null);
+            return;
+        }
+        if (selectedIndex >= candidates.size()) selectedIndex = 0;
         long bestScore = Long.MIN_VALUE;
-        if (controllers != null) for (MediaController controller : controllers) {
-            PlaybackState state = controller.getPlaybackState();
-            MediaMetadata metadata = controller.getMetadata();
-            if (state == null && metadata == null) continue;
+        int bestIndex = 0;
+        for (int i = 0; i < candidates.size(); i++) {
+            PlaybackState state = candidates.get(i).getPlaybackState();
             int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
             long priority = playback == PlaybackState.STATE_PLAYING ? 3L
                     : playback == PlaybackState.STATE_BUFFERING ? 2L
                     : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
             long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
             long score = priority * 1_000_000_000_000_000L + recency;
-            if (score > bestScore) {
-                bestScore = score;
-                best = controller;
-                bestState = state;
-                bestMetadata = metadata;
-            }
+            if (score > bestScore) { bestScore = score; bestIndex = i; }
         }
-        publish(best, bestMetadata, bestState);
+        // Preserve a user's explicit source selection while it remains in the active list.
+        if (selectedIndex == 0) selectedIndex = bestIndex;
+        MediaController selected = candidates.get(selectedIndex);
+        publish(selected, selected.getMetadata(), selected.getPlaybackState());
+    }
+
+    int getSessionCount() {
+        return candidates.size();
+    }
+
+    void selectNextSource() {
+        if (candidates.size() < 2) return;
+        selectedIndex = (selectedIndex + 1) % candidates.size();
+        MediaController selected = candidates.get(selectedIndex);
+        publish(selected, selected.getMetadata(), selected.getPlaybackState());
     }
 
     private void publish(MediaController controller) {
