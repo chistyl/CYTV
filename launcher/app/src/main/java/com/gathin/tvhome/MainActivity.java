@@ -4699,7 +4699,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int code = codes.optInt(i, -1);
                 LinearLayout dayColumn = new LinearLayout(this);
                 dayColumn.setOrientation(LinearLayout.VERTICAL);
-                dayColumn.setGravity(Gravity.CENTER);
+                dayColumn.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
                 dayColumn.setPadding((int)(2*density), (int)(5*density), (int)(2*density), (int)(5*density));
                 TextView dateView = new TextView(this);
                 dateView.setText(day);
@@ -4733,7 +4733,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView temperature = new TextView(this);
                 int highTemp = (int) Math.round(highs.optDouble(i));
                 int lowTemp = (int) Math.round(lows.optDouble(i));
-                String temperatureText = highTemp + " / " + lowTemp;
+                String temperatureText = highTemp + "° / " + lowTemp + "°";
                 SpannableString coloredTemperature = new SpannableString(temperatureText);
                 int separator = temperatureText.indexOf(" / ");
                 int warmColor = Color.rgb(255, 242, 166); // same soft warm yellow as daily card
@@ -4843,7 +4843,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int code = codes.optInt(i, -1);
                 LinearLayout dayColumn = new LinearLayout(this);
                 dayColumn.setOrientation(LinearLayout.VERTICAL);
-                dayColumn.setGravity(Gravity.CENTER);
+                dayColumn.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
                 dayColumn.setPadding((int)(3*density), (int)(5*density),
                         (int)(3*density), (int)(5*density));
 
@@ -4875,7 +4875,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 TextView temperature = new TextView(this);
                 int highTemp = (int) Math.round(highs.optDouble(i));
                 int lowTemp = (int) Math.round(lows.optDouble(i));
-                String temperatureText = highTemp + " / " + lowTemp;
+                String temperatureText = highTemp + "° / " + lowTemp + "°";
                 SpannableString coloredTemperature = new SpannableString(temperatureText);
                 int separator = temperatureText.indexOf(" / ");
                 int warmColor = Color.rgb(255, 242, 166);
