@@ -457,7 +457,7 @@
     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
-        android:layout_width="wrap_content"
+        android:layout_width="352dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="80dp"
@@ -487,9 +487,8 @@
             android:nextFocusUp="@id/grid" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="260dp"
             android:layout_height="wrap_content"
-            android:minWidth="200dp"
             android:orientation="vertical"
             android:gravity="start">
 
@@ -503,9 +502,8 @@
 
             <TextView
                 android:id="@+id/mediaPlayerTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxWidth="260dp"
                 android:textColor="#FFFFFFFF"
                 android:textSize="18sp"
                 android:maxLines="1"
@@ -513,7 +511,7 @@
 
             <TextView
                 android:id="@+id/mediaPlayerArtist"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#B3FFFFFF"
                 android:textSize="13sp"
