@@ -477,6 +477,16 @@
             android:contentDescription="@string/media_player_artwork" />
 
         <TextView
+            android:id="@+id/mediaPlayerMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#99FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/mediaPlayerTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
