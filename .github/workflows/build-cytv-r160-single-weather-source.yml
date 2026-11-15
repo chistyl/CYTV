@@ -3,17 +3,17 @@ name: CYTV R160 Weather Source Priority Build
 on:
   push:
     branches:
-      - feature/remove-weather-attribution-r160
+      - feature/weather-single-source-per-city-r160
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r160-remove-weather-attribution.yml'
+      - '.github/workflows/build-cytv-r160-single-weather-source.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - feature/remove-weather-attribution-r159
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r160-remove-weather-attribution.yml'
+      - '.github/workflows/build-cytv-r160-single-weather-source.yml'
   workflow_dispatch:
 
 permissions:
