@@ -1,19 +1,19 @@
-name: CYTV R164 Weather Loading Cache Build
+name: CYTV R164 Login Verification Build
 
 on:
   push:
     branches:
-      - fix/weather-loading-cache-r164
+      - fix/restore-login-verification-r164
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r164-weather-loading-cache.yml'
+      - '.github/workflows/build-cytv-r164-login-verification.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - fix/weather-loading-cache-r163
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r164-weather-loading-cache.yml'
+      - '.github/workflows/build-cytv-r164-login-verification.yml'
   workflow_dispatch:
 
 permissions:
