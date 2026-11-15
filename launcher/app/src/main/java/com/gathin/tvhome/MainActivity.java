@@ -4656,15 +4656,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             temperatureLp.topMargin = (int)(2*density);
             details.addView(temperature, temperatureLp);
 
-            TextView precipitation = new TextView(this);
-            precipitation.setText(TraditionalText.toTraditional("降雨 "
-                    + (rain != null && !rain.isNull(0) ? rain.optInt(0) + "%" : "--")));
-            precipitation.setTextColor(0xFFD5D9E0);
-            precipitation.setTextSize(16);
-            precipitation.setMaxLines(1);
-            LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
-            precipitationLp.topMargin = (int)(2*density);
-            details.addView(precipitation, precipitationLp);
+            // MET Norway does not provide precipitation probability; hide the entire row when absent.
+            if (rain != null && !rain.isNull(0)) {
+                TextView precipitation = new TextView(this);
+                precipitation.setText(TraditionalText.toTraditional("降雨 " + rain.optInt(0) + "%"));
+                precipitation.setTextColor(0xFFD5D9E0);
+                precipitation.setTextSize(16);
+                precipitation.setMaxLines(1);
+                LinearLayout.LayoutParams precipitationLp = new LinearLayout.LayoutParams(-1, -2);
+                precipitationLp.topMargin = (int)(2*density);
+                details.addView(precipitation, precipitationLp);
+            }
 
             weeklyWeatherDays.addView(dailyContent, new LinearLayout.LayoutParams(-1, -2));
             addWeatherAttribution(weeklyWeatherDays);
@@ -4770,16 +4772,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tempLp.topMargin = (int)(3*density);
                 dayColumn.addView(temperature, tempLp);
 
-                TextView precipitation = new TextView(this);
-                precipitation.setText(TraditionalText.toTraditional("降雨 " + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
-                precipitation.setTextColor(0xFFD5D9E0);
-                precipitation.setTextSize(12);
-                precipitation.setGravity(Gravity.CENTER);
-                // Rain probability also adapts to the available column width instead of clipping.
-                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                precipitation.setMaxLines(2);
-                dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
+                // MET Norway does not provide precipitation probability; omit this row instead of showing "--".
+                if (rain != null && i < rain.length() && !rain.isNull(i)) {
+                    TextView precipitation = new TextView(this);
+                    precipitation.setText(TraditionalText.toTraditional("降雨 " + rain.optInt(i) + "%"));
+                    precipitation.setTextColor(0xFFD5D9E0);
+                    precipitation.setTextSize(12);
+                    precipitation.setGravity(Gravity.CENTER);
+                    // Rain probability also adapts to the available column width instead of clipping.
+                    precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1,
+                            android.util.TypedValue.COMPLEX_UNIT_SP);
+                    precipitation.setMaxLines(2);
+                    dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
+                }
 
                 LinearLayout.LayoutParams columnLp = new LinearLayout.LayoutParams(0, -2, 1f);
                 forecast.addView(dayColumn, columnLp);
@@ -4910,16 +4915,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 tempLp.topMargin = (int)(4*density);
                 dayColumn.addView(temperature, tempLp);
 
-                TextView precipitation = new TextView(this);
-                precipitation.setText(TraditionalText.toTraditional("降雨 "
-                        + (rain != null && !rain.isNull(i) ? rain.optInt(i) + "%" : "--")));
-                precipitation.setTextColor(0xFFD5D9E0);
-                precipitation.setTextSize(14);
-                precipitation.setGravity(Gravity.CENTER);
-                precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1,
-                        android.util.TypedValue.COMPLEX_UNIT_SP);
-                precipitation.setMaxLines(1);
-                dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
+                // Hide precipitation probability when the selected provider has no value.
+                if (rain != null && i < rain.length() && !rain.isNull(i)) {
+                    TextView precipitation = new TextView(this);
+                    precipitation.setText(TraditionalText.toTraditional("降雨 " + rain.optInt(i) + "%"));
+                    precipitation.setTextColor(0xFFD5D9E0);
+                    precipitation.setTextSize(14);
+                    precipitation.setGravity(Gravity.CENTER);
+                    precipitation.setAutoSizeTextTypeUniformWithConfiguration(9, 14, 1,
+                            android.util.TypedValue.COMPLEX_UNIT_SP);
+                    precipitation.setMaxLines(1);
+                    dayColumn.addView(precipitation, new LinearLayout.LayoutParams(-1, -2));
+                }
 
                 forecast.addView(dayColumn, new LinearLayout.LayoutParams(0, -2, 1f));
             } catch (Exception ignored) { }
