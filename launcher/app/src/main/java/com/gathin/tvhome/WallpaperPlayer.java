@@ -256,6 +256,14 @@ final class WallpaperPlayer {
             }
         }
         int builtIn = preferences.getInt("builtin_wallpaper", 0);
+        // R165: dynamic video is optional; keep a local still wallpaper underneath it.
+        // On devices upgraded from R163/R164 the old built-in selection may be empty.
+        if ((builtIn < 1 || builtIn > 9)
+                && preferences.getBoolean("dynamic_wallpaper_enabled", false)) {
+            builtIn = 1;
+            preferences.edit().putInt("builtin_wallpaper", builtIn)
+                    .putLong("builtin_wallpaper_changed", System.currentTimeMillis()).apply();
+        }
         if (builtIn >= 1 && builtIn <= 9) {
             int[] themes = {R.drawable.wallpaper_theme_01, R.drawable.wallpaper_theme_02,
                     R.drawable.wallpaper_theme_03, R.drawable.wallpaper_theme_04,
