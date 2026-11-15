@@ -1,17 +1,18 @@
-name: CYTV R171 Android Build # R171 source fallback verification
+name: CYTV R172 Android Build # R172 source fallback verification
 
 on:
   push:
     branches:
       - fix/dynamic-wallpaper-source-fallback-r170
       - fix/dynamic-wallpaper-startup-diagnostics-r171
+      - fix/dynamic-wallpaper-ssl-trust-r172
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r171-build
+  group: cytv-r172-build
   cancel-in-progress: true
 
 jobs:
@@ -74,6 +75,11 @@ jobs:
                   }[theme["id"]]
                   assert source_category == expected_category, f"Cross-category assignment: {video_id}"
           assert len(videos) == 114, f"Expected 114 source videos, found {len(videos)}"
+          network_config = Path("app/src/main/res/xml/network_security_config.xml").read_text(encoding="utf-8")
+          assert '<certificates src="system" />' in network_config
+          assert '<certificates src="user" />' in network_config
+          assert '<domain includeSubdomains="false">sylvan.apple.com</domain>' in network_config
+          assert 'networkSecurityConfig="@xml/network_security_config"' in Path("app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
           assert all(item.get("sourceCategory") != "cities" or not item.get("themeIds") for item in videos), "City videos must not appear in themes"
           print(f"Validated {len(videos)} source videos, 9 curated non-city themes: {actual}")
           PY
@@ -84,22 +90,22 @@ jobs:
       - name: Package complete source
         working-directory: .
         run: |
-          zip -r CYTV-R171-source.zip . \
+          zip -r CYTV-R172-source.zip . \
             -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
                '*/local.properties' '*.iml'
 
       - name: Upload complete source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R171-source
-          path: CYTV-R171-source.zip
+          name: CYTV-R172-source
+          path: CYTV-R172-source.zip
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R171-debug
+          name: CYTV-R172-debug
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
