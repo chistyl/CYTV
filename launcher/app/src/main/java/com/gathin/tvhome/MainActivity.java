@@ -917,16 +917,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.post(grid::requestLayout);
         }
 
-        // R165 visual alignment: the media controls share the app grid's scroll movement.
-        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                if (mediaPlayerSurface == null) return;
-                if (dy != 0) mediaPlayerSurface.setTranslationY(
-                        mediaPlayerSurface.getTranslationY() - dy);
-                if (dx != 0) mediaPlayerSurface.setTranslationX(
-                        mediaPlayerSurface.getTranslationX() - dx);
-            }
-        });
+        // R165: media player stays anchored to the screen; app-grid scrolling must not move it.
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
