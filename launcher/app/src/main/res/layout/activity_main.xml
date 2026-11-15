@@ -453,6 +453,72 @@
         </FrameLayout>
     </LinearLayout>
 
+
+    <!-- R165 media player: floating 16:9 media surface, kept hidden without an active session. -->
+    <LinearLayout
+        android:id="@+id/mediaPlayerSurface"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginEnd="64dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/media_player_glass"
+        android:visibility="gone"
+        android:focusable="true"
+        android:clickable="true"
+        android:contentDescription="@string/media_player_open">
+
+        <ImageView
+            android:id="@+id/mediaPlayerArtwork"
+            android:layout_width="match_parent"
+            android:layout_height="169dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/media_player_artwork" />
+
+        <TextView
+            android:id="@+id/mediaPlayerTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/mediaPlayerArtist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#B3FFFFFF"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/mediaPlayerPrevious"
+                style="@style/DesktopSettingsRow"
+                android:layout_width="64dp"
+                android:text="|◀|" />
+            <TextView
+                android:id="@+id/mediaPlayerToggle"
+                style="@style/DesktopSettingsRow"
+                android:layout_width="80dp"
+                android:text="▶ / ❚❚" />
+            <TextView
+                android:id="@+id/mediaPlayerNext"
+                style="@style/DesktopSettingsRow"
+                android:layout_width="64dp"
+                android:text="|▶|" />
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- The single floating glass highlight that springs between tiles. -->
     <com.gathin.tvhome.GlassView
         android:id="@+id/glass"
