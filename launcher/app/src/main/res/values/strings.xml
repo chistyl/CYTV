@@ -75,6 +75,8 @@
     <string name="off">Off</string>
     <string name="media_player_label">媒體播放器</string>
     <string name="media_player_state">媒體播放器：%1$s</string>
+    <string name="media_player_open">開啟媒體 APP</string>
+    <string name="media_player_artwork">媒體封面</string>
     <string name="media_player_permission_title">啟用媒體播放器</string>
     <string name="media_player_permission_message">CYTV 需要通知存取權，才能讀取音樂、影片及直播 APP 的媒體工作階段資訊。CYTV 不會讀取或顯示一般通知內容。</string>
     <string name="media_player_permission_open">前往授權設定</string>
