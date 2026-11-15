@@ -1,4 +1,4 @@
-name: CYTV R163 Weather Layout and Temperature Build
+name: CYTV R163 Weather Loading Cache Build
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - fix/weather-rain-complete-seven-days-r161
+      - fix/weather-rain-layout-degree-r162
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r163-weather-loading-cache.yml'
