@@ -462,8 +462,8 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="80dp"
         android:layout_marginBottom="72dp"
-        android:translationX="50dp"
-        android:translationY="-200dp"
+        android:translationX="30dp"
+        android:translationY="-50dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="0dp"
@@ -537,8 +537,10 @@
                 android:orientation="horizontal">
                 <TextView
                     android:id="@+id/mediaPlayerPrevious"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:nextFocusRight="@id/mediaPlayerToggle"
+                    android:nextFocusUp="@id/grid"
                     android:layout_marginEnd="6dp"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
