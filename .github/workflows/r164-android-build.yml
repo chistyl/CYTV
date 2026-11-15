@@ -3,7 +3,7 @@ name: CYTV R165 Android Build
 on:
   push:
     branches:
-      - fix/dynamic-wallpaper-texture-layer-r165
+      - fix/dynamic-wallpaper-empty-preview-fallback-r165
   workflow_dispatch:
 
 permissions:
