@@ -551,8 +551,11 @@
                     android:clickable="true" />
                 <TextView
                     android:id="@+id/mediaPlayerToggle"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:nextFocusLeft="@id/mediaPlayerPrevious"
+                    android:nextFocusRight="@id/mediaPlayerNext"
+                    android:nextFocusUp="@id/grid"
                     android:layout_marginEnd="6dp"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
@@ -563,8 +566,10 @@
                     android:clickable="true" />
                 <TextView
                     android:id="@+id/mediaPlayerNext"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:nextFocusLeft="@id/mediaPlayerToggle"
+                    android:nextFocusUp="@id/grid"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
                     android:text="|▶|"
