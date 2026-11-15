@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -21,18 +22,15 @@ import androidx.media3.datasource.cache.SimpleCache;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.AspectRatioFrameLayout;
-import androidx.media3.ui.PlayerView;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Independent Media3 layer for remote dynamic wallpapers.
- *
- * It is inserted directly above WallpaperPlayer's still-image view and below Home UI.
- * The still wallpaper remains visible until the first video frame is rendered, and is
- * revealed again automatically on playback failure or when the dynamic layer is stopped.
+ * Isolated Media3 wallpaper layer. Uses TextureView rather than SurfaceView:
+ * SurfaceView is a separate system surface and can cover the launcher UI or render
+ * black on some Android TV firmwares even when its parent view is transparent.
  */
 final class DynamicWallpaperPlayer {
     private static final String TAG = "CYTV.DynamicPlayer";
@@ -47,7 +45,9 @@ final class DynamicWallpaperPlayer {
 
     private final Context appContext;
     private final FrameLayout root;
-    private final PlayerView playerView;
+    private final FrameLayout videoLayer;
+    private final AspectRatioFrameLayout aspectFrame;
+    private final TextureView textureView;
     private final Listener listener;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private ExoPlayer player;
@@ -66,22 +66,26 @@ final class DynamicWallpaperPlayer {
         this.appContext = context.getApplicationContext();
         this.root = root;
         this.listener = listener;
-        playerView = new PlayerView(context);
-        playerView.setUseController(false);
-        playerView.setUseArtwork(false);
-        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
-        playerView.setShutterBackgroundColor(Color.BLACK);
-        playerView.setKeepContentOnPlayerReset(true);
-        playerView.setFocusable(false);
-        playerView.setFocusableInTouchMode(false);
-        playerView.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        playerView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        playerView.setAlpha(0f);
-        playerView.setVisibility(View.GONE);
 
-        // WallpaperPlayer inserts its still-image ImageView at index 0. Index 1 places
-        // video above that image while preserving the already-inflated Home UI above it.
-        root.addView(playerView, Math.min(1, root.getChildCount()),
+        videoLayer = new FrameLayout(context);
+        videoLayer.setBackgroundColor(Color.TRANSPARENT);
+        videoLayer.setAlpha(0f);
+        videoLayer.setVisibility(View.GONE);
+        videoLayer.setFocusable(false);
+        videoLayer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+
+        aspectFrame = new AspectRatioFrameLayout(context);
+        aspectFrame.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
+        textureView = new TextureView(context);
+        textureView.setOpaque(false);
+        aspectFrame.addView(textureView, new AspectRatioFrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        videoLayer.addView(aspectFrame, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // WallpaperPlayer's still image is inserted at index 0. Keep this layer directly
+        // above it and below all launcher UI children. TextureView obeys this View ordering.
+        root.addView(videoLayer, Math.min(1, root.getChildCount()),
                 new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT));
     }
@@ -95,17 +99,15 @@ final class DynamicWallpaperPlayer {
             ensurePlayer();
             List<MediaItem> items = new ArrayList<>();
             for (DynamicWallpaperCatalog.Video video : videos) {
-                // 2K AVC is the conservative baseline for Android TV decoder compatibility.
-                if (video.streamUrl != null && !video.streamUrl.isEmpty()) {
+                if (video.streamUrl != null && !video.streamUrl.isEmpty())
                     items.add(MediaItem.fromUri(video.streamUrl));
-                }
             }
             if (items.isEmpty()) return false;
 
             activeThemeId = theme.id;
             firstFrameRendered = false;
-            playerView.setVisibility(View.VISIBLE);
-            playerView.setAlpha(0f);
+            videoLayer.setVisibility(View.VISIBLE);
+            videoLayer.setAlpha(0f);
             player.setMediaItems(items, true);
             player.prepare();
             player.setPlayWhenReady(true);
@@ -127,11 +129,10 @@ final class DynamicWallpaperPlayer {
 
     void stop() {
         mainHandler.removeCallbacks(firstFrameTimeout);
-        if (player != null) {
-            player.setPlayWhenReady(false);
-            playerView.setVisibility(View.GONE);
-            playerView.setAlpha(0f);
-        }
+        if (player != null) player.setPlayWhenReady(false);
+        videoLayer.animate().cancel();
+        videoLayer.setAlpha(0f);
+        videoLayer.setVisibility(View.GONE);
     }
 
     void release() {
@@ -139,10 +140,11 @@ final class DynamicWallpaperPlayer {
         released = true;
         mainHandler.removeCallbacks(firstFrameTimeout);
         if (player != null) {
+            player.clearVideoTextureView(textureView);
             player.release();
             player = null;
         }
-        root.removeView(playerView);
+        root.removeView(videoLayer);
     }
 
     String activeThemeId() {
@@ -165,26 +167,24 @@ final class DynamicWallpaperPlayer {
                 .build();
         player.setVolume(0f);
         player.setRepeatMode(Player.REPEAT_MODE_ALL);
+        player.setVideoTextureView(textureView);
         player.addListener(new Player.Listener() {
-            @Override
-            public void onRenderedFirstFrame() {
+            @Override public void onRenderedFirstFrame() {
                 if (released) return;
                 firstFrameRendered = true;
                 mainHandler.removeCallbacks(firstFrameTimeout);
-                playerView.setVisibility(View.VISIBLE);
-                playerView.animate().alpha(1f).setDuration(220L).start();
+                videoLayer.setVisibility(View.VISIBLE);
+                videoLayer.animate().alpha(1f).setDuration(220L).start();
                 if (listener != null) listener.onFirstFrame();
             }
 
-            @Override
-            public void onPlayerError(PlaybackException error) {
+            @Override public void onPlayerError(PlaybackException error) {
                 mainHandler.removeCallbacks(firstFrameTimeout);
                 Log.w(TAG, "Aerial playback failed; revealing still wallpaper", error);
                 revealStillWallpaper();
                 notifyError("動態圖片連線或播放失敗，已切回靜態桌布");
             }
         });
-        playerView.setPlayer(player);
     }
 
     private Cache cache() {
@@ -205,9 +205,9 @@ final class DynamicWallpaperPlayer {
     private void revealStillWallpaper() {
         mainHandler.removeCallbacks(firstFrameTimeout);
         if (player != null) player.setPlayWhenReady(false);
-        playerView.animate().cancel();
-        playerView.setAlpha(0f);
-        playerView.setVisibility(View.GONE);
+        videoLayer.animate().cancel();
+        videoLayer.setAlpha(0f);
+        videoLayer.setVisibility(View.GONE);
     }
 
     private void notifyError(String message) {
