@@ -45,10 +45,10 @@ dependencies {
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     implementation 'com.google.zxing:core:3.5.3'
     // R163: isolated remote aerial-video wallpaper playback; existing still wallpaper player remains unchanged.
-    implementation 'androidx.media3:media3-exoplayer:1.8.1'
-    implementation 'androidx.media3:media3-datasource:1.8.1'
-    implementation 'androidx.media3:media3-database:1.8.1'
-    implementation 'androidx.media3:media3-ui:1.8.1'
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-datasource:1.4.1'
+    implementation 'androidx.media3:media3-database:1.4.1'
+    implementation 'androidx.media3:media3-ui:1.4.1'
     // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
     testImplementation 'junit:junit:4.13.2'
 }
