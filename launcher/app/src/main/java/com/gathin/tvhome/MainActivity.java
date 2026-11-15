@@ -1341,7 +1341,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onResume();
         resumed = true;
         boolean mediaPlayerEnabled = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                .getBoolean("media_player_enabled", true);
+                .getBoolean("media_player_enabled", false);
         if (mediaPlayerEnabled) {
             startMediaSessionMonitor();
         } else {
@@ -1640,7 +1640,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** R165: keep the current media session snapshot ready for the desktop player surface. */
     private void startMediaSessionMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                .getBoolean("media_player_enabled", true)) return;
+                .getBoolean("media_player_enabled", false)) return;
         if (mediaSessionMonitor == null) {
             mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
                 currentMediaController = controller;
@@ -1719,7 +1719,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                    android.media.session.PlaybackState state) {
         if (mediaPlayerSurface == null) return;
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                .getBoolean("media_player_enabled", true) || controller == null) {
+                .getBoolean("media_player_enabled", false) || controller == null) {
             updateMediaArtworkRotation(false);
             mediaPlayerSurface.setVisibility(View.GONE);
             return;
