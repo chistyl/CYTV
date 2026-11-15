@@ -385,6 +385,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** R165: active media sessions are observed only while Home is in front. */
+    private MediaSessionMonitor mediaSessionMonitor;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
     private final Runnable refreshWifiStatusAfterFocus = () -> {
         if (!isDestroyed() && resumed && hasWindowFocus()) updateWifiLabel();
@@ -1257,6 +1259,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        startMediaSessionMonitor();
         if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
@@ -1543,6 +1546,44 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
+    /** R165: keep the current media session snapshot ready for the desktop player surface. */
+    private void startMediaSessionMonitor() {
+        if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", true)) return;
+        if (mediaSessionMonitor == null) {
+            mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
+                android.content.SharedPreferences media = getSharedPreferences(
+                        Config.SETTINGS_NAME, MODE_PRIVATE);
+                android.content.SharedPreferences.Editor edit = media.edit();
+                if (controller == null) {
+                    edit.remove("media_session_package")
+                            .remove("media_session_title")
+                            .remove("media_session_artist")
+                            .putInt("media_session_state", android.media.session.PlaybackState.STATE_NONE);
+                } else {
+                    edit.putString("media_session_package",
+                            controller.getPackageName());
+                    if (metadata != null) {
+                        edit.putString("media_session_title", metadata.getString(
+                                android.media.MediaMetadata.METADATA_KEY_TITLE));
+                        edit.putString("media_session_artist", metadata.getString(
+                                android.media.MediaMetadata.METADATA_KEY_ARTIST));
+                    } else {
+                        edit.remove("media_session_title").remove("media_session_artist");
+                    }
+                    edit.putInt("media_session_state", state == null
+                            ? android.media.session.PlaybackState.STATE_NONE : state.getState());
+                }
+                edit.apply();
+            });
+        }
+        mediaSessionMonitor.start();
+    }
+
+    private void stopMediaSessionMonitor() {
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+    }
+
     private void restartIdleClock() {
         root.removeCallbacks(showIdleClock);
         if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
@@ -1552,6 +1593,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        stopMediaSessionMonitor();
         if (glowParticles != null) glowParticles.setActive(false);
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
