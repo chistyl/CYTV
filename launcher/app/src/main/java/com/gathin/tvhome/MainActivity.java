@@ -1782,7 +1782,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     try { startActivity(launch); }
                     catch (android.content.ActivityNotFoundException ignored) { }
                 })
-                .setNegativeButton(R.string.cancel, null)
+                .setNegativeButton("返回", null)
                 .show();
     }
 
