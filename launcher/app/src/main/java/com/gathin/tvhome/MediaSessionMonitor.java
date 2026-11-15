@@ -126,10 +126,11 @@ final class MediaSessionMonitor {
             MediaMetadata metadata = controller.getMetadata();
             if (state == null && metadata == null) continue;
             int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
-            long score = playback == PlaybackState.STATE_PLAYING ? 1000000L
-                    : playback == PlaybackState.STATE_BUFFERING ? 900000L
-                    : playback == PlaybackState.STATE_PAUSED ? 100000L : 0L;
-            if (state != null) score += Math.max(0L, state.getLastPositionUpdateTime());
+            long priority = playback == PlaybackState.STATE_PLAYING ? 3L
+                    : playback == PlaybackState.STATE_BUFFERING ? 2L
+                    : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
+            long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
+            long score = priority * 1_000_000_000_000_000L + recency;
             if (score > bestScore) {
                 bestScore = score;
                 best = controller;
