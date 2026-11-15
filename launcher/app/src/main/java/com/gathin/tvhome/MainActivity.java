@@ -179,6 +179,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WallpaperPlayer wallpaperPlayer;
     /** R163: isolated remote-video layer; the existing still-image WallpaperPlayer remains authoritative fallback. */
     private DynamicWallpaperPlayer dynamicWallpaperPlayer;
+    private boolean dynamicWallpaperStartupDiagnosticShown;
     private DynamicWallpaperThumbnailLoader dynamicWallpaperThumbnailLoader;
     private DynamicWallpaperCatalog dynamicWallpaperCatalog;
     private YouTubeVideoCarousel videoCarousel;
@@ -1545,47 +1546,74 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
-    /** Starts the optional dynamic wallpaper only when its saved category is enabled. */
+    /** R171: report startup gates and catalog selection before attempting remote playback. */
     private void startDynamicWallpaperIfEnabled() {
         SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
-        if (!prefs.getBoolean("wallpaper_module_enabled", false)
-                || !prefs.getBoolean("dynamic_wallpaper_enabled", false)) return;
+        boolean moduleEnabled = prefs.getBoolean("wallpaper_module_enabled", false);
+        boolean dynamicEnabled = prefs.getBoolean("dynamic_wallpaper_enabled", false);
         String themeId = prefs.getString("dynamic_wallpaper_theme_id", "");
-        if (TextUtils.isEmpty(themeId)) return;
-
         if (dynamicWallpaperCatalog == null) {
-            dynamicWallpaperCatalog = DynamicWallpaperCatalog.load(this);
-        }
-        DynamicWallpaperCatalog.Theme selected = null;
-        for (DynamicWallpaperCatalog.Theme theme : dynamicWallpaperCatalog.themes()) {
-            if (theme.id.equals(themeId)) {
-                selected = theme;
-                break;
+            try {
+                dynamicWallpaperCatalog = DynamicWallpaperCatalog.load(this);
+            } catch (RuntimeException error) {
+                Log.e("CYTV.DynamicPlayer", "Catalog load failed", error);
             }
         }
-        if (selected == null) {
-            Log.w("CYTV.DynamicPlayer", "Saved dynamic theme is missing: " + themeId);
-            return;
+        int themeCount = dynamicWallpaperCatalog == null ? 0 : dynamicWallpaperCatalog.themes().size();
+        DynamicWallpaperCatalog.Theme selected = null;
+        if (dynamicWallpaperCatalog != null && !TextUtils.isEmpty(themeId)) {
+            for (DynamicWallpaperCatalog.Theme theme : dynamicWallpaperCatalog.themes()) {
+                if (theme.id.equals(themeId)) { selected = theme; break; }
+            }
         }
+        int videoCount = selected == null || dynamicWallpaperCatalog == null
+                ? 0 : dynamicWallpaperCatalog.videosFor(selected).size();
+        String gate = !moduleEnabled ? "未啟用桌布模組"
+                : !dynamicEnabled ? "未啟用動態桌布"
+                : TextUtils.isEmpty(themeId) ? "尚未選擇動態桌布主題"
+                : selected == null ? "找不到已選擇的主題" : "啟動條件通過";
+        String diagnostic = "CYTV R171 動態桌布啟動診斷\n\n"
+                + "桌布模組：" + (moduleEnabled ? "開啟" : "關閉") + "\n"
+                + "動態桌布：" + (dynamicEnabled ? "開啟" : "關閉") + "\n"
+                + "主題 ID：" + (TextUtils.isEmpty(themeId) ? "（空白）" : themeId) + "\n"
+                + "載入主題數：" + themeCount + "\n"
+                + "主題影片數：" + videoCount + "\n"
+                + "結果：" + gate;
+        Log.i("CYTV.DynamicPlayer", diagnostic.replace("\n", " | "));
+        if (!dynamicWallpaperStartupDiagnosticShown) {
+            dynamicWallpaperStartupDiagnosticShown = true;
+            new AlertDialog.Builder(this).setTitle("CYTV 動態桌布診斷")
+                    .setMessage(diagnostic).setPositiveButton("關閉", null).show();
+        }
+        if (!moduleEnabled || !dynamicEnabled || TextUtils.isEmpty(themeId) || selected == null) return;
+
         if (dynamicWallpaperPlayer == null) {
             dynamicWallpaperPlayer = new DynamicWallpaperPlayer(this, root,
                     new DynamicWallpaperPlayer.Listener() {
                         @Override public void onPlaybackError(String message) {
                             Log.w("CYTV.DynamicPlayer", message);
-                            new android.app.AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("CYTV 動態桌布診斷")
-                                    .setMessage(message)
-                                    .setPositiveButton("關閉", null)
-                                    .show();
-                            // The static WallpaperPlayer image is already underneath the video layer.
+                            new AlertDialog.Builder(MainActivity.this).setTitle("CYTV 動態桌布播放失敗")
+                                    .setMessage(message).setPositiveButton("關閉", null).show();
                         }
                         @Override public void onFirstFrame() {
                             Log.i("CYTV.DynamicPlayer", "First video frame rendered for " + themeId);
+                            android.widget.Toast.makeText(MainActivity.this,
+                                    "動態桌布已成功呈現首影格", android.widget.Toast.LENGTH_LONG).show();
+                        }
+                        @Override public void onPlaybackStatus(String status) {
+                            Log.i("CYTV.DynamicPlayer", status);
+                            android.widget.Toast.makeText(MainActivity.this, status,
+                                    android.widget.Toast.LENGTH_LONG).show();
                         }
                     });
         }
-        dynamicWallpaperPlayer.playTheme(dynamicWallpaperCatalog, selected);
-        dynamicWallpaperPlayer.start();
+        boolean accepted = dynamicWallpaperPlayer.playTheme(dynamicWallpaperCatalog, selected);
+        Log.i("CYTV.DynamicPlayer", "R171 playTheme accepted=" + accepted
+                + ", theme=" + themeId + ", videos=" + videoCount);
+        if (accepted) dynamicWallpaperPlayer.start();
+        else new AlertDialog.Builder(this).setTitle("CYTV 動態桌布診斷")
+                .setMessage("播放器未能接受播放要求。\n主題：" + themeId + "\n影片數：" + videoCount)
+                .setPositiveButton("關閉", null).show();
     }
 
     private void restartIdleClock() {
