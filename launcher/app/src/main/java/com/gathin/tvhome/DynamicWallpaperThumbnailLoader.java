@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.os.Handler;
 import android.os.Looper;
@@ -73,7 +72,7 @@ final class DynamicWallpaperThumbnailLoader {
                     Math.max(1, Math.round(height * scale)), true);
             if (scaled != frame) frame.recycle();
             return scaled;
-        } catch (RuntimeException | java.io.IOException error) {
+        } catch (RuntimeException error) {
             return null;
         } finally {
             try { retriever.release(); } catch (RuntimeException ignored) { }
