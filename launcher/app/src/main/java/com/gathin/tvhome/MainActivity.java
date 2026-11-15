@@ -1695,11 +1695,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
             mediaPlayerArtwork.setPadding(48, 32, 48, 32);
         }
-        mediaPlayerMode.setVisibility(View.VISIBLE);
-        mediaPlayerMode.setText(audioMetadata ? R.string.media_player_now_playing : R.string.media_player_playing);
-        mediaPlayerArtist.setVisibility(audioMetadata ? View.VISIBLE : View.GONE);
-        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(
-                audioMetadata ? View.VISIBLE : View.GONE);
+        // Compact player presentation: artwork, title, artist and transport controls only.
+        // Do not show "now playing" labels or source/session information in the desktop widget.
+        mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerSource.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(artist == null || artist.trim().isEmpty()
+                ? View.GONE : View.VISIBLE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
         mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
                 ? "❚❚" : "▶");
         mediaPlayerSurface.setVisibility(View.VISIBLE);
