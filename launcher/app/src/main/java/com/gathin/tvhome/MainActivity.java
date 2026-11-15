@@ -584,8 +584,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weeklyWeatherView.setOnClickListener(v -> {
             if ("day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
                     .getString("display_mode", "week"))) {
-                openWeeklyForecastAfterRefresh = true;
-                loadWeeklyWeather();
+                // Open the last successful seven-day snapshot immediately. A tap must never
+                // wait for DNS/TLS/network retries before showing a forecast already on device.
+                if (!showCachedWeeklyForecastDialog()) {
+                    openWeeklyForecastAfterRefresh = true;
+                    loadWeeklyWeather();
+                }
             }
         });
         // Keep the weather card visually below the clock, but outside leftBlock's measurement.
@@ -4206,6 +4210,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return hasWeeklyWeatherData;
         } catch (Exception e) {
             android.util.Log.w("CYTV-Weather", "Cached forecast restore failed", e);
+            return false;
+        }
+    }
+
+    /** Show the current location's saved seven-day snapshot without starting a network request. */
+    private boolean showCachedWeeklyForecastDialog() {
+        try {
+            String raw = getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                    .getString(weeklyWeatherCacheKey(), null);
+            if (raw == null || raw.trim().isEmpty()) return false;
+            JSONObject snapshot = new JSONObject(raw);
+            JSONArray dates = new JSONArray(snapshot.getString("dates"));
+            JSONArray codes = new JSONArray(snapshot.getString("codes"));
+            JSONArray highs = new JSONArray(snapshot.getString("highs"));
+            JSONArray lows = new JSONArray(snapshot.getString("lows"));
+            String rainRaw = snapshot.optString("rain", "");
+            JSONArray rain = rainRaw.isEmpty() ? null : new JSONArray(rainRaw);
+            String place = snapshot.optString("place", "目前位置");
+            if (dates.length() < 7 || codes.length() < 7
+                    || highs.length() < 7 || lows.length() < 7) return false;
+            if (rain != null && rain.length() < 7) rain = null;
+            weatherFromCwa = snapshot.optBoolean("fromCwa", false);
+            showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
+            return true;
+        } catch (Exception e) {
+            android.util.Log.w("CYTV-Weather", "Cached weekly dialog restore failed", e);
             return false;
         }
     }
