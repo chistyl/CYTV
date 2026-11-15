@@ -1,16 +1,16 @@
-name: CYTV R167 Android Build
+name: CYTV R168 Android Build
 
 on:
   push:
     branches:
-      - feature/nine-curated-aerial-themes-r167
+      - fix/dynamic-wallpaper-thumbnail-and-display-r168
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cytv-r167-build
+  group: cytv-r168-build
   cancel-in-progress: true
 
 jobs:
@@ -84,22 +84,22 @@ jobs:
       - name: Package complete source
         working-directory: .
         run: |
-          zip -r CYTV-R167-source.zip . \
+          zip -r CYTV-R168-source.zip . \
             -x '.git/*' '*/.gradle/*' '*/build/*' '*/.idea/*' \
                '*/local.properties' '*.iml'
 
       - name: Upload complete source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R167-source
-          path: CYTV-R167-source.zip
+          name: CYTV-R168-source
+          path: CYTV-R168-source.zip
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R167-debug
+          name: CYTV-R168-debug
           path: launcher/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
