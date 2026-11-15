@@ -463,7 +463,7 @@
         android:layout_marginEnd="80dp"
         android:layout_marginBottom="72dp"
         android:translationX="30dp"
-        android:translationY="-400dp"
+        android:translationY="-200dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="0dp"
