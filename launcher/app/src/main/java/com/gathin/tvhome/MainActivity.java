@@ -6281,6 +6281,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ? wallpaperPrefs.getBoolean("wallpaper_draft_dynamic_active", false)
                 : wallpaperPrefs.getBoolean("dynamic_wallpaper_enabled", false)};
         final TextView[] customHeadingRef = new TextView[1];
+        final TextView[] dynamicHeadingRef = new TextView[1];
         final Runnable[] refreshDynamicBordersRef = new Runnable[1];
         final boolean[] draftRandom = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_random", false) : wallpaperPrefs.getBoolean("builtin_random_play", false)};
         final boolean[] draftCustomActive = {hasWallpaperDraft ? wallpaperPrefs.getBoolean("wallpaper_draft_custom_active", false)
@@ -6431,7 +6432,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             for (int i = 0; i < thumbnailImages.length; i++) if (thumbnailImages[i] != null)
                 setWallpaperThumbnailBorder(thumbnailImages[i], i + 1 == draftTheme[0], false);
             defaultHeading.setText("◉  預設圖片");
-            dynamicHeading.setText("○  動態圖片");
+            if (dynamicHeadingRef[0] != null) dynamicHeadingRef[0].setText("○  動態圖片");
         });
         LinearLayout.LayoutParams defaultHeadingLp = new LinearLayout.LayoutParams(-1, (int)(48*density));
         defaultHeadingLp.topMargin = (int)(5*density);
@@ -6581,6 +6582,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final List<DynamicWallpaperCatalog.Theme> dynamicThemes = dynamicCatalogForPicker.themes();
         final View[] dynamicThemeItems = new View[dynamicThemes.size()];
         TextView dynamicHeading = new TextView(this);
+        dynamicHeadingRef[0] = dynamicHeading;
         dynamicHeading.setText((draftDynamicActive[0] ? "◉  " : "○  ") + "動態圖片");
         dynamicHeading.setTextColor(0xFFF5F6FA);
         dynamicHeading.setTextSize(16);
