@@ -6674,11 +6674,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 item.setId(View.generateViewId());
                 dynamicThemeItems[index] = item;
                 FrameLayout tileContent = new FrameLayout(this);
-                tileContent.setBackgroundColor(0xFF263746);
+                GradientDrawable thumbnailClip = new GradientDrawable();
+                thumbnailClip.setColor(0xFF263746);
+                thumbnailClip.setCornerRadius(12 * density);
+                tileContent.setBackground(thumbnailClip);
+                tileContent.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
+                tileContent.setClipToOutline(true);
                 item.addView(tileContent, new LinearLayout.LayoutParams(-1, -1));
                 ImageView preview = new ImageView(this);
                 preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                preview.setBackgroundColor(0xFF263746);
+                preview.setBackgroundColor(Color.TRANSPARENT);
+                preview.setClipToOutline(true);
                 tileContent.addView(preview, new FrameLayout.LayoutParams(-1, -1));
                 if (dynamicWallpaperThumbnailLoader == null)
                     dynamicWallpaperThumbnailLoader = new DynamicWallpaperThumbnailLoader();
