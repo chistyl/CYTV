@@ -4411,6 +4411,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         JSONArray dates = new JSONArray(), codes = new JSONArray();
         JSONArray highs = new JSONArray(), lows = new JSONArray(), rain = new JSONArray();
+        boolean hasRainProbability = false;
         for (int i = 0; i < 7; i++) {
             JSONObject day = forecast.optJSONObject(i);
             if (day == null || !day.has("high") || !day.has("low"))
@@ -4419,9 +4420,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             codes.put(cwaWeatherToWmo(day.optString("weather", "")));
             highs.put(day.optDouble("high"));
             lows.put(day.optDouble("low"));
-            if (day.isNull("rainProbability")) rain.put(JSONObject.NULL);
-            else rain.put(day.optDouble("rainProbability"));
+            if (day.isNull("rainProbability") || !day.has("rainProbability")) {
+                rain.put(JSONObject.NULL);
+            } else {
+                rain.put(day.optDouble("rainProbability"));
+                hasRainProbability = true;
+            }
         }
+        if (!hasRainProbability)
+            throw new IOException("中央氣象署目前沒有可用的降雨機率資料");
 
         weatherFromCwa = true;
         weatherHandler.post(() -> {
@@ -4472,46 +4479,49 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return mainIsland || penghu || kinmen || matsu;
     }
 
+    /**
+     * Weather provider priority:
+     * Taiwan coverage: CWA -> Open-Meteo -> MET Norway.
+     * Outside Taiwan: Open-Meteo -> MET Norway (CWA township feed is not applicable).
+     * CWA is preferred in Taiwan because it provides precipitation probability.
+     */
     private void fetchForecast(double lat, double lon, String place) {
+        if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
+                || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180) {
+            showWeatherError("城市座標無效");
+            return;
+        }
+
+        Exception cwaError = null;
+        if (isWithinCwaCoverage(lat, lon)) {
+            try {
+                fetchCwaForecast(lat, lon, place);
+                return;
+            } catch (Exception e) {
+                cwaError = e;
+                android.util.Log.w("CYTV-Weather",
+                        "CWA failed; trying Open-Meteo as second-priority fallback", e);
+            }
+        }
+
+        Exception openMeteoError = null;
         try {
-            if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
-                    || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180)
-                throw new IOException("城市座標無效");
             String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                     + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
                     + "&forecast_days=7&timezone=auto";
-            JSONObject response;
-            try {
-                response = getJson(url);
-                if (response.optBoolean("error", false))
-                    throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
-            } catch (Exception primaryError) {
-                android.util.Log.w("CYTV-Weather", "Open-Meteo failed; trying independent MET Norway fallback", primaryError);
-                try {
-                    fetchMetNoForecast(lat, lon, place);
-                    return;
-                } catch (Exception secondError) {
-                    if (!isWithinCwaCoverage(lat, lon)) {
-                        secondError.addSuppressed(primaryError);
-                        throw new IOException("Open-Meteo 與 MET Norway 皆無法連線；CWA 僅支援台灣地區", secondError);
-                    }
-                    android.util.Log.w("CYTV-Weather", "MET Norway failed; trying Taiwan-only CWA third-level forecast fallback", secondError);
-                    try {
-                        fetchCwaForecast(lat, lon, place);
-                        return;
-                    } catch (Exception thirdError) {
-                        thirdError.addSuppressed(secondError);
-                        thirdError.addSuppressed(primaryError);
-                        throw new IOException("三組天氣預報服務皆無法連線：" + thirdError.getMessage(), thirdError);
-                    }
-                }
-            }
+            JSONObject response = getJson(url);
+            if (response.optBoolean("error", false))
+                throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
+
             JSONObject daily = response.getJSONObject("daily");
-            JSONArray dates = daily.getJSONArray("time"), codes = daily.getJSONArray("weather_code");
-            JSONArray highs = daily.getJSONArray("temperature_2m_max"), lows = daily.getJSONArray("temperature_2m_min");
+            JSONArray dates = daily.getJSONArray("time");
+            JSONArray codes = daily.getJSONArray("weather_code");
+            JSONArray highs = daily.getJSONArray("temperature_2m_max");
+            JSONArray lows = daily.getJSONArray("temperature_2m_min");
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
-                throw new IOException("預報資料不足七天，請稍後重試");
+                throw new IOException("Open-Meteo 預報資料不足七天");
+
             weatherFromCwa = false;
             weatherHandler.post(() -> {
                 renderWeeklyWeather(dates, codes, highs, lows, rain, place);
@@ -4520,8 +4530,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
                 }
             });
+            return;
         } catch (Exception e) {
-            showWeatherError("天氣資料讀取失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+            openMeteoError = e;
+            android.util.Log.w("CYTV-Weather",
+                    "Open-Meteo failed; trying MET Norway as final fallback", e);
+        }
+
+        try {
+            fetchMetNoForecast(lat, lon, place);
+        } catch (Exception metNoError) {
+            if (cwaError != null) metNoError.addSuppressed(cwaError);
+            if (openMeteoError != null) metNoError.addSuppressed(openMeteoError);
+            String detail = metNoError.getMessage() == null
+                    ? metNoError.getClass().getSimpleName() : metNoError.getMessage();
+            showWeatherError("天氣資料讀取失敗（CWA／Open-Meteo／MET Norway）： " + detail);
         }
     }
 
