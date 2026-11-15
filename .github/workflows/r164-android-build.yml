@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CYTV-R167-source
-          path: CYTV-R166-source.zip
+          path: CYTV-R167-source.zip
           if-no-files-found: error
           retention-days: 14
 
