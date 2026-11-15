@@ -6,14 +6,14 @@ on:
       - feature/weather-metno-hide-rain-r158
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r158-weather-metno-hide-rain.yml'
+      - '.github/workflows/build-cytv-r158-metno-hide-rain.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feature/disable-login-verification-r156
+      - feature/weather-source-priority-r157
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r158-weather-metno-hide-rain.yml'
+      - '.github/workflows/build-cytv-r158-metno-hide-rain.yml'
   workflow_dispatch:
 
 permissions:
