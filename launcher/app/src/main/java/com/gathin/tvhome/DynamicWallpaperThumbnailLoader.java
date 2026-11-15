@@ -78,7 +78,7 @@ final class DynamicWallpaperThumbnailLoader {
                         Math.max(1, Math.round(height * scale)), true);
                 if (scaled != frame) frame.recycle();
                 return scaled;
-            } catch (IOException | RuntimeException error) {
+            } catch (RuntimeException error) {
                 Log.w("CYTV.DynamicThumb", "Frame extraction failed for " + video.id
                         + " (" + url + "): " + error.getClass().getSimpleName()
                         + ": " + error.getMessage());
