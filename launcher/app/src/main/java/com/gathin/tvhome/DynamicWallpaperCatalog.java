@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads the original Aerial catalog and preserves its four source categories.
+ * Reads the original Aerial catalog and exposes nine curated non-city display themes.
  *
  * This class only parses metadata. Playback is deliberately kept out of WallpaperPlayer
  * so the existing still-image wallpaper lifecycle remains independent.
@@ -116,8 +116,8 @@ final class DynamicWallpaperCatalog {
                     }
                 }
             }
-            if (themes.size() != 4) {
-                Log.w(TAG, "Expected 4 original Aerial categories, loaded " + themes.size());
+            if (themes.size() != 9) {
+                Log.w(TAG, "Expected 9 curated Aerial themes, loaded " + themes.size());
             }
             return new DynamicWallpaperCatalog(videos, themes);
         } catch (Exception error) {
