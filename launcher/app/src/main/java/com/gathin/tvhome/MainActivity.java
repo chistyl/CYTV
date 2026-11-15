@@ -1546,7 +1546,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Starts the optional dynamic wallpaper only when its saved category is enabled. */
     private void startDynamicWallpaperIfEnabled() {
         SharedPreferences prefs = getSharedPreferences("wallpaper_rotation", MODE_PRIVATE);
-        if (!prefs.getBoolean("dynamic_wallpaper_enabled", false)) return;
+        if (!prefs.getBoolean("wallpaper_module_enabled", false)
+                || !prefs.getBoolean("dynamic_wallpaper_enabled", false)) return;
         String themeId = prefs.getString("dynamic_wallpaper_theme_id", "");
         if (TextUtils.isEmpty(themeId)) return;
 
