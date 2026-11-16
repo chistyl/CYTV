@@ -1667,8 +1667,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerSurface.post(mediaPlaybackStateRefresh);
         mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
-        // R170: the default black player disc rotates clockwise continuously.
-        updateMediaArtworkRotation(true);
+        // R174: disc rotation follows actual audio playback state, not panel visibility.
+        // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
     }
 
     private void updateMediaPlayerSourceControl() {
@@ -1814,6 +1814,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 getSystemService(Context.AUDIO_SERVICE);
         mediaPlaybackUiPlaying = audio != null && audio.isMusicActive();
         updateMediaPlaybackButton();
+        updateMediaArtworkRotation(mediaPlaybackUiPlaying);
     }
 
     private void updateMediaPlaybackButton() {
