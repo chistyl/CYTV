@@ -386,15 +386,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** Legacy source selector remains available; this branch does not start its session monitor. */
+    private MediaSessionMonitor mediaSessionMonitor;
     /** Audio playback activity monitor; uses Android's anonymized active-playback callback. */
     private android.media.AudioManager audioPlaybackManager;
     private android.media.AudioManager.AudioPlaybackCallback audioPlaybackCallback;
     private boolean systemAudioPlaybackActive;
-    private final Runnable hideMediaPlayerAfterAudioStops = () -> {
+    private final Runnable hideMediaPlayerAfterAudioStops = this::hideMediaPlayerAfterAudioStops;
+
+    private void hideMediaPlayerAfterAudioStops() {
         systemAudioPlaybackActive = false;
         updateMediaArtworkRotation(false);
         if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
-    };
+    }
     private View mediaPlayerSurface;
     /** Player visibility follows the dock row's upper-edge clipping state. */
     private boolean mediaPlayerHiddenByDockScroll;
