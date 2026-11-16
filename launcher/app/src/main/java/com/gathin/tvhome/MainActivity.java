@@ -399,6 +399,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView mediaPlayerSource;
     private View mediaPlayerControls;
     private TextView mediaPlayerToggle;
+    /** Local play/pause presentation for the permission-free media remote. */
+    private boolean mediaPlaybackUiPlaying = false;
     private MediaController currentMediaController;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
     private final Runnable refreshWifiStatusAfterFocus = () -> {
@@ -547,9 +549,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
         mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
-        // R165: explicitly clip album artwork to the rounded background outline on TV devices.
-        mediaPlayerArtwork.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
-        mediaPlayerArtwork.setClipToOutline(true);
+        // R197: do not clip the vinyl placeholder to the old oval outline.
+        // Its square artwork canvas must reach all four ImageView edges.
+        mediaPlayerArtwork.setClipToOutline(false);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         // R165 follow-up: use only ObjectAnimator for artwork rotation.
         // Running View Animation and property animation together caused visible jumps.
         mediaPlayerArtwork.clearAnimation();
@@ -583,7 +586,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork.setOnClickListener(v -> openCurrentMediaApp());
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
         findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
-        mediaPlayerToggle.setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+        mediaPlayerToggle.setOnClickListener(v -> {
+            // Use the system toggle command; AudioManager playback activity below is the
+            // permission-free source of truth for the button presentation.
+            sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            mediaPlayerToggle.postDelayed(this::refreshMediaPlaybackButton, 350L);
+        });
         mediaPlayerSurface.setVisibility(View.GONE);
         root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
@@ -1638,40 +1646,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** R165: keep the current media session snapshot ready for the desktop player surface. */
+    /** Media surface that works without Android notification-listener authorization. */
     private void startMediaSessionMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", false)) return;
-        if (mediaSessionMonitor == null) {
-            mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
-                currentMediaController = controller;
-                renderMediaPlayer(controller, metadata, state);
-                updateMediaPlayerSourceControl();
-                android.content.SharedPreferences media = getSharedPreferences(
-                        Config.SETTINGS_NAME, MODE_PRIVATE);
-                android.content.SharedPreferences.Editor edit = media.edit();
-                if (controller == null) {
-                    edit.remove("media_session_package")
-                            .remove("media_session_title")
-                            .remove("media_session_artist")
-                            .putInt("media_session_state", android.media.session.PlaybackState.STATE_NONE);
-                } else {
-                    edit.putString("media_session_package",
-                            controller.getPackageName());
-                    if (metadata != null) {
-                        edit.putString("media_session_title", metadata.getString(
-                                android.media.MediaMetadata.METADATA_KEY_TITLE));
-                        edit.putString("media_session_artist", metadata.getString(
-                                android.media.MediaMetadata.METADATA_KEY_ARTIST));
-                    } else {
-                        edit.remove("media_session_title").remove("media_session_artist");
-                    }
-                    edit.putInt("media_session_state", state == null
-                            ? android.media.session.PlaybackState.STATE_NONE : state.getState());
-                }
-                edit.apply();
-            });
-        }
-        mediaSessionMonitor.start();
+        currentMediaController = null;
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface == null) return;
+        // R173: remove the player heading and helper copy; keep artwork and controls only.
+        mediaPlayerTitle.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(View.GONE);
+        // R175: use a compact music-note glyph centered in the black disc.
+        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+        // R197: render the full-bleed vinyl canvas edge-to-edge; no oval mask or inset.
+        mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+        mediaPlayerArtwork.setClipToOutline(false);
+        mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerSource.setVisibility(View.GONE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+        refreshMediaPlaybackButton();
+        mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+        mediaPlayerSurface.post(mediaPlaybackStateRefresh);
+        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        mediaPlayerSurface.bringToFront();
+        // R174: disc rotation follows actual audio playback state, not panel visibility.
+        // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
     }
 
     private void updateMediaPlayerSourceControl() {
@@ -1753,14 +1754,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
             mediaPlayerArtwork.setPadding(0, 0, 0, 0);
         } else {
-            try {
-                mediaPlayerArtwork.setImageDrawable(getPackageManager().getApplicationIcon(
-                        controller.getPackageName()));
-            } catch (PackageManager.NameNotFoundException ignored) {
-                mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
-            }
-            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            mediaPlayerArtwork.setPadding(48, 32, 48, 32);
+            // Keep the designed music-note symbol when the player supplies no album artwork.
+            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+            // R197: show the complete vinyl image without inner padding or oval clipping.
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+            mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            mediaPlayerArtwork.setClipToOutline(false);
         }
         // Compact player presentation: artwork, title, artist and transport controls only.
         // Do not show "now playing" labels or source/session information in the desktop widget.
@@ -1776,27 +1776,67 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void openCurrentMediaApp() {
-        MediaController controller = currentMediaController;
-        if (controller == null) return;
-        String packageName = controller.getPackageName();
-        android.content.Intent launch = getPackageManager().getLaunchIntentForPackage(packageName);
-        if (launch != null) {
-            launch.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            try { startActivity(launch); } catch (android.content.ActivityNotFoundException ignored) { }
+        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
+        java.util.ArrayList<ResolveInfo> launchable = new java.util.ArrayList<>();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        for (ResolveInfo info : apps) {
+            if (info.activityInfo == null || getPackageName().equals(info.activityInfo.packageName)) continue;
+            launchable.add(info);
+            labels.add(info.loadLabel(getPackageManager()).toString());
         }
+        if (launchable.isEmpty()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("選擇播放器")
+                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
+                    ResolveInfo info = launchable.get(which);
+                    Intent launch = new Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                            .setClassName(info.activityInfo.packageName, info.activityInfo.name)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try { startActivity(launch); }
+                    catch (android.content.ActivityNotFoundException ignored) { }
+                })
+                .setNegativeButton("返回", null)
+                .show();
+    }
+
+    /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
+    private final Runnable mediaPlaybackStateRefresh = new Runnable() {
+        @Override public void run() {
+            refreshMediaPlaybackButton();
+            if (mediaPlayerSurface != null && mediaPlayerSurface.getVisibility() != View.GONE) {
+                mediaPlayerSurface.postDelayed(this, 700L);
+            }
+        }
+    };
+
+    private void refreshMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        mediaPlaybackUiPlaying = audio != null && audio.isMusicActive();
+        updateMediaPlaybackButton();
+        updateMediaArtworkRotation(mediaPlaybackUiPlaying);
+    }
+
+    private void updateMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "❚❚" : "▶");
+        mediaPlayerToggle.setContentDescription(mediaPlaybackUiPlaying ? "暫停播放" : "播放");
     }
 
     private void sendMediaKey(int keyCode) {
-        MediaController controller = currentMediaController;
-        if (controller == null) return;
-        android.view.KeyEvent down = new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode);
-        android.view.KeyEvent up = new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode);
-        controller.dispatchMediaButtonEvent(down);
-        controller.dispatchMediaButtonEvent(up);
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return;
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode));
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode));
     }
 
     private void stopMediaSessionMonitor() {
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface != null) mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
     }
 
     private void restartIdleClock() {

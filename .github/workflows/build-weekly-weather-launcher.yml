@@ -34,6 +34,7 @@ on:
       - fix/weekly-weather-no-remote-focus-r1
       - feature/weekly-forecast-dialog-match-card-r1
       - feat/media-player-desktop-r165
+      - fix/android9-notification-access-r166
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'

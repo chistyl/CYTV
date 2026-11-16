@@ -457,8 +457,8 @@
     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
-        android:layout_width="352dp"
-        android:layout_height="80dp"
+        android:layout_width="376dp"
+        android:layout_height="104dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="80dp"
         android:layout_marginBottom="72dp"
@@ -474,8 +474,8 @@
 
         <ImageView
             android:id="@+id/mediaPlayerArtwork"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
             android:layout_marginEnd="12dp"
             android:scaleType="centerCrop"
             android:background="@drawable/media_player_artwork_rounded"
@@ -539,8 +539,8 @@
                 android:orientation="horizontal">
                 <TextView
                     android:id="@+id/mediaPlayerPrevious"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:nextFocusLeft="@id/mediaPlayerArtwork"
                     android:nextFocusRight="@id/mediaPlayerToggle"
                     android:nextFocusUp="@id/grid"
@@ -549,35 +549,37 @@
                     android:background="@drawable/media_player_button"
                     android:text="|◀|"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:focusable="true"
                     android:clickable="true" />
                 <TextView
                     android:id="@+id/mediaPlayerToggle"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:nextFocusLeft="@id/mediaPlayerPrevious"
                     android:nextFocusRight="@id/mediaPlayerNext"
                     android:nextFocusUp="@id/grid"
                     android:layout_marginEnd="6dp"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
-                    android:text="❚❚"
+                    android:text="▶"
+                    android:contentDescription="播放"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="17sp"
+                    android:textSize="14sp"
+                    android:letterSpacing="0.08"
                     android:focusable="true"
                     android:clickable="true" />
                 <TextView
                     android:id="@+id/mediaPlayerNext"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:nextFocusLeft="@id/mediaPlayerToggle"
                     android:nextFocusUp="@id/grid"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
                     android:text="|▶|"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:focusable="true"
                     android:clickable="true" />
             </LinearLayout>
