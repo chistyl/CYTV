@@ -87,8 +87,8 @@ jobs:
           if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/enable-login-verification-r218" ]; then
             cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R218-Login-Verification-debug.apk
             zip -qr release/CYTV-R218-Login-Verification-Source.zip . \
-              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \\
               -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+                 './launcher/app/build/*' './release/*'
           elif [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "fix/media-player-position-up-left-r217" ]; then
             cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R217-Media-Player-Position-debug.apk
             zip -qr release/CYTV-R217-Media-Player-Position-Source.zip . \
