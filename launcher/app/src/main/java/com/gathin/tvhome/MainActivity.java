@@ -1652,8 +1652,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         currentMediaController = null;
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
         if (mediaPlayerSurface == null) return;
-        mediaPlayerTitle.setText("媒體播放器");
-        mediaPlayerArtist.setText("使用下方按鍵控制目前播放的內容");
+        // R173: remove the player heading and helper copy; keep artwork and controls only.
+        mediaPlayerTitle.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(View.GONE);
         mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
