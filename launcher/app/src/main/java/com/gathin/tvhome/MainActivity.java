@@ -1819,7 +1819,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateMediaPlaybackButton() {
         if (mediaPlayerToggle == null) return;
-        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "Ⅱ" : "▶");
+        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "❚❚" : "▶");
         mediaPlayerToggle.setContentDescription(mediaPlaybackUiPlaying ? "暫停播放" : "播放");
     }
 
