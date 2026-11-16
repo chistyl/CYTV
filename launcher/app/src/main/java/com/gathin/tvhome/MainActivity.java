@@ -586,11 +586,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
         findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
         mediaPlayerToggle.setOnClickListener(v -> {
-            mediaPlaybackUiPlaying = !mediaPlaybackUiPlaying;
-            sendMediaKey(mediaPlaybackUiPlaying
-                    ? android.view.KeyEvent.KEYCODE_MEDIA_PLAY
-                    : android.view.KeyEvent.KEYCODE_MEDIA_PAUSE);
-            updateMediaPlaybackButton();
+            // Use the system toggle command; AudioManager playback activity below is the
+            // permission-free source of truth for the button presentation.
+            sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            mediaPlayerToggle.postDelayed(this::refreshMediaPlaybackButton, 350L);
         });
         mediaPlayerSurface.setVisibility(View.GONE);
         root.setBackgroundColor(cfg.backgroundColor);
@@ -1662,8 +1661,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
-        mediaPlaybackUiPlaying = false;
-        updateMediaPlaybackButton();
+        refreshMediaPlaybackButton();
+        mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+        mediaPlayerSurface.post(mediaPlaybackStateRefresh);
         mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
         // R170: the default black player disc rotates clockwise continuously.
@@ -1797,9 +1797,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .show();
     }
 
+    /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
+    private final Runnable mediaPlaybackStateRefresh = new Runnable() {
+        @Override public void run() {
+            refreshMediaPlaybackButton();
+            if (mediaPlayerSurface != null && mediaPlayerSurface.getVisibility() != View.GONE) {
+                mediaPlayerSurface.postDelayed(this, 700L);
+            }
+        }
+    };
+
+    private void refreshMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        mediaPlaybackUiPlaying = audio != null && audio.isMusicActive();
+        updateMediaPlaybackButton();
+    }
+
     private void updateMediaPlaybackButton() {
         if (mediaPlayerToggle == null) return;
-        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "❚❚" : "▶");
+        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "Ⅱ" : "▶");
         mediaPlayerToggle.setContentDescription(mediaPlaybackUiPlaying ? "暫停播放" : "播放");
     }
 
@@ -1813,6 +1831,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void stopMediaSessionMonitor() {
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface != null) mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
     }
 
     private void restartIdleClock() {
