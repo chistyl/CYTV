@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/media-player-r198-reference-layout
+      - fix/media-player-r203-larger-disc-glyph
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
