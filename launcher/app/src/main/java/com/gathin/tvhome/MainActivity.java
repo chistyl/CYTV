@@ -1659,9 +1659,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
-        int musicGlyphInset = (int) (8 * getResources().getDisplayMetrics().density);
-        mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
+        // Vinyl fallback fills the existing circular artwork viewport; the view outline clips
+        // the square drawable to the disc, so no rectangular corners or inset background show.
+        mediaPlayerArtwork.setPadding(0, 0, 0, 0);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
@@ -1756,8 +1756,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Keep the designed music-note symbol when the player supplies no album artwork.
             mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
-            mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
+            // Keep the original circular clipping and background; only remove the inner inset.
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
         }
         // Compact player presentation: artwork, title, artist and transport controls only.
         // Do not show "now playing" labels or source/session information in the desktop widget.
