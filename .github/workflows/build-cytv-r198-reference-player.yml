@@ -21,8 +21,10 @@ on:
       - fix/media-player-black-transparent-focus-r211
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
+      - fix/interface-layout-bottom-row-align-r214
     paths:
       - 'launcher/**'
+      - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   workflow_dispatch:
 
