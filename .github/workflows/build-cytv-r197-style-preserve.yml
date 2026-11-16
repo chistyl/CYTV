@@ -7,6 +7,13 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r197-style-preserve.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - feat/media-player-desktop-r165
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r197-style-preserve.yml'
   workflow_dispatch:
 
 permissions:
