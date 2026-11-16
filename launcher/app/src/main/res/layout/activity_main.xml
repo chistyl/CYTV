@@ -472,6 +472,11 @@
         android:focusable="false"
         android:clickable="false">
 
+        <!-- Retained hidden metadata views for the existing media-session controller bindings. -->
+        <TextView android:id="@+id/mediaPlayerTitle" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerArtist" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerMode" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerSource" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
         <ImageView
             android:id="@+id/mediaPlayerArtwork"
             android:layout_width="76dp"
