@@ -582,7 +582,7 @@
                     android:background="@drawable/media_player_button"
                     android:text="Ⅰ▶Ⅰ"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:focusable="true"
                     android:clickable="true" />
             </LinearLayout>
