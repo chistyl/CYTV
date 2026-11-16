@@ -14,6 +14,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - fix/media-player-r197-r196-clean-build
+      - fix/media-player-black-transparent-focus-r211
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
