@@ -9,8 +9,10 @@ on:
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
       - fix/interface-layout-bottom-row-align-r214
+      - feat/media-thumbnail-launch-source-app-r215
     paths:
       - 'launcher/**'
+      - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -33,6 +35,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Apply R215 media thumbnail source-app changes
+        if: github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215'
+        run: patch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -56,16 +61,21 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R198-R196-Style-Preserved-debug.apk
-          zip -qr release/CYTV-R198-R196-Style-Preserved-Source.zip . \
-            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-               './launcher/app/build/*' './release/*'
+          if [ "${GITHUB_REF_NAME}" = "feat/media-thumbnail-launch-source-app-r215" ]; then
+            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R215-Media-Thumbnail-Launch-debug.apk
+            zip -qr release/CYTV-R215-Media-Thumbnail-Launch-Source.zip . \
+              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+                 './launcher/app/build/*' './release/*'
+          else
+            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R198-R196-Style-Preserved-debug.apk
+            zip -qr release/CYTV-R198-R196-Style-Preserved-Source.zip . \
+              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+                 './launcher/app/build/*' './release/*'
+          fi
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R198-R196-Style-Preserved
-          path: |
-            release/CYTV-R198-R196-Style-Preserved-debug.apk
-            release/CYTV-R198-R196-Style-Preserved-Source.zip
+          name: CYTV-${{ github.ref_name }}-deliverables
+          path: release/*
           if-no-files-found: error
           retention-days: 30
