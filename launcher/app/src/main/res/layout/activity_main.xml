@@ -553,7 +553,7 @@
                     android:background="@drawable/media_player_button"
                     android:text="Ⅰ◀Ⅰ"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:focusable="true"
                     android:clickable="true" />
                 <TextView
@@ -569,7 +569,7 @@
                     android:text="❚❚"
                     android:contentDescription="播放"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:letterSpacing="0.08"
                     android:focusable="true"
                     android:clickable="true" />
@@ -583,7 +583,7 @@
                     android:background="@drawable/media_player_button"
                     android:text="Ⅰ▶Ⅰ"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:focusable="true"
                     android:clickable="true" />
             </LinearLayout>
