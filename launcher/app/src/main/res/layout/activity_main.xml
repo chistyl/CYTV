@@ -460,7 +460,7 @@
         android:layout_width="350dp"
         android:layout_height="114dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="85dp"
+        android:layout_marginEnd="81dp"
         android:layout_marginBottom="218dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
