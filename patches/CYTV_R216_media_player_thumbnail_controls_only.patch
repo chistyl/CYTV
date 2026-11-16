@@ -187,3 +187,14 @@
      </LinearLayout>
  
      <!-- The single floating glass highlight that springs between tiles. -->
+
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -1728,7 +1728,6 @@
+                 if (controller != null) {
+                     renderMediaPlayer(controller, metadata, state);
+                 }
+-                updateMediaPlayerSourceControl();
+             });
+         }
+         mediaSessionMonitor.start();
