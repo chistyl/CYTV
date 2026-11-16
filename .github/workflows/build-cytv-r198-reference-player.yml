@@ -1,4 +1,4 @@
-name: CYTV R198 Reference Player Layout Build
+name: CYTV R210 Audio Playback Callback Build
 
 on:
   push:
