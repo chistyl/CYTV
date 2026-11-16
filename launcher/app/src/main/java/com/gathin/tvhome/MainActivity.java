@@ -399,6 +399,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView mediaPlayerSource;
     private View mediaPlayerControls;
     private TextView mediaPlayerToggle;
+    /** Local play/pause presentation for the permission-free media remote. */
+    private boolean mediaPlaybackUiPlaying = false;
     private MediaController currentMediaController;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
     private final Runnable refreshWifiStatusAfterFocus = () -> {
@@ -583,7 +585,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork.setOnClickListener(v -> openCurrentMediaApp());
         findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
         findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
-        mediaPlayerToggle.setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+        mediaPlayerToggle.setOnClickListener(v -> {
+            mediaPlaybackUiPlaying = !mediaPlaybackUiPlaying;
+            sendMediaKey(mediaPlaybackUiPlaying
+                    ? android.view.KeyEvent.KEYCODE_MEDIA_PLAY
+                    : android.view.KeyEvent.KEYCODE_MEDIA_PAUSE);
+            updateMediaPlaybackButton();
+        });
         mediaPlayerSurface.setVisibility(View.GONE);
         root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
@@ -1654,7 +1662,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
-        mediaPlayerToggle.setText("▶");
+        mediaPlaybackUiPlaying = false;
+        updateMediaPlaybackButton();
         mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
         // R170: the default black player disc rotates clockwise continuously.
@@ -1786,6 +1795,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 })
                 .setNegativeButton("返回", null)
                 .show();
+    }
+
+    private void updateMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "❚❚" : "▶");
+        mediaPlayerToggle.setContentDescription(mediaPlaybackUiPlaying ? "暫停播放" : "播放");
     }
 
     private void sendMediaKey(int keyCode) {
