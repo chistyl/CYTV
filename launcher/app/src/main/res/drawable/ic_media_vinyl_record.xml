@@ -24,4 +24,14 @@
         android:pathData="M12,9.8a2.2,2.2 0,1 0,0 4.4a2.2,2.2 0,1 0,0 -4.4z"/>
     <path android:fillColor="#FFE4E5E7"
         android:pathData="M12,11.15a0.85,0.85 0,1 0,0 1.7a0.85,0.85 0,1 0,0 -1.7z"/>
+    <!-- Keep the original white music-note symbol visible over the vinyl label. -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="0.52"
+        android:scaleY="0.52">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M12,3v12.55A4,4 0,1 1,10 12V7l10,-2v10.55A4,4 0,1 1,18 12V3z"/>
+    </group>
 </vector>
