@@ -1,0 +1,202 @@
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -386,7 +386,7 @@
+     private RecyclerView.OnScrollListener pendingFocusScroll;
+ 
+     private final Handler handler = new Handler(Looper.getMainLooper());
+-    /** Legacy source selector remains available; this branch does not start its session monitor. */
++    /** Tracks the active media session so the artwork opens the app that is actually playing. */
+     private MediaSessionMonitor mediaSessionMonitor;
+     /** Audio playback activity monitor; uses Android's anonymized active-playback callback. */
+     private android.media.AudioManager audioPlaybackManager;
+@@ -1362,6 +1362,7 @@
+                 .getBoolean("media_player_enabled", false);
+         if (mediaPlayerEnabled) {
+             startAudioPlaybackMonitor();
++            startMediaSessionMonitor();
+         } else {
+             // The setting can be switched off while this Activity is paused in Launcher Settings.
+             // Clear the old session immediately so a stale floating panel cannot remain on Home.
+@@ -1718,6 +1719,19 @@
+         mediaPlayerSurface.bringToFront();
+     }
+ 
++    private void startMediaSessionMonitor() {
++        if (mediaSessionMonitor == null) {
++            mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
++                currentMediaController = controller;
++                if (controller != null) {
++                    renderMediaPlayer(controller, metadata, state);
++                }
++                updateMediaPlayerSourceControl();
++            });
++        }
++        mediaSessionMonitor.start();
++    }
++
+     private void updateMediaPlayerSourceControl() {
+         if (mediaPlayerSource == null) return;
+         int count = mediaSessionMonitor == null ? 0 : mediaSessionMonitor.getSessionCount();
+@@ -1816,30 +1830,57 @@
+         mediaPlayerSurface.bringToFront();
+     }
+ 
++    private boolean hasMediaNotificationAccess() {
++        String enabled = Settings.Secure.getString(getContentResolver(),
++                "enabled_notification_listeners");
++        if (enabled == null) return false;
++        ComponentName listener = new ComponentName(this, GuardRevival.class);
++        for (String entry : enabled.split(":")) {
++            if (listener.flattenToString().equals(entry)) return true;
++        }
++        return false;
++    }
++
+     private void openCurrentMediaApp() {
+-        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+-        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
+-        java.util.ArrayList<ResolveInfo> launchable = new java.util.ArrayList<>();
+-        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+-        for (ResolveInfo info : apps) {
+-            if (info.activityInfo == null || getPackageName().equals(info.activityInfo.packageName)) continue;
+-            launchable.add(info);
+-            labels.add(info.loadLabel(getPackageManager()).toString());
+-        }
+-        if (launchable.isEmpty()) return;
+-        new AlertDialog.Builder(this)
+-                .setTitle("選擇播放器")
+-                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
+-                    ResolveInfo info = launchable.get(which);
+-                    Intent launch = new Intent(Intent.ACTION_MAIN)
+-                            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+-                            .setClassName(info.activityInfo.packageName, info.activityInfo.name)
+-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+-                    try { startActivity(launch); }
+-                    catch (android.content.ActivityNotFoundException ignored) { }
+-                })
+-                .setNegativeButton("返回", null)
+-                .show();
++        // MediaSessionManager identifies the exact package currently publishing playback.
++        // Never show a generic app chooser: that could launch an unrelated application.
++        if (!hasMediaNotificationAccess()) {
++            new AlertDialog.Builder(this)
++                    .setTitle(R.string.media_player_permission_title)
++                    .setMessage(R.string.media_player_permission_message)
++                    .setPositiveButton(R.string.media_player_permission_open, (dialog, which) -> {
++                        try {
++                            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
++                        } catch (ActivityNotFoundException ignored) {
++                            Toast.makeText(this, R.string.media_player_permission_unavailable,
++                                    Toast.LENGTH_LONG).show();
++                        }
++                    })
++                    .setNegativeButton(R.string.later, null)
++                    .show();
++            return;
++        }
++
++        MediaController controller = currentMediaController;
++        String packageName = controller == null ? null : controller.getPackageName();
++        if (packageName == null || packageName.trim().isEmpty()) {
++            Toast.makeText(this, R.string.media_player_app_unavailable, Toast.LENGTH_SHORT).show();
++            return;
++        }
++
++        PackageManager pm = getPackageManager();
++        Intent launch = pm.getLeanbackLaunchIntentForPackage(packageName);
++        if (launch == null) launch = pm.getLaunchIntentForPackage(packageName);
++        if (launch == null) {
++            Toast.makeText(this, R.string.media_player_app_unavailable, Toast.LENGTH_SHORT).show();
++            return;
++        }
++        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++        try {
++            startActivity(launch);
++        } catch (ActivityNotFoundException | SecurityException unavailable) {
++            Toast.makeText(this, R.string.media_player_app_unavailable, Toast.LENGTH_SHORT).show();
++        }
+     }
+ 
+     /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
+@@ -1876,6 +1917,8 @@
+     }
+ 
+     private void stopMediaSessionMonitor() {
++        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
++        currentMediaController = null;
+         if (audioPlaybackManager != null && audioPlaybackCallback != null
+                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             audioPlaybackManager.unregisterAudioPlaybackCallback(audioPlaybackCallback);
+--- a/launcher/app/src/main/java/com/gathin/tvhome/LauncherSettingsActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/LauncherSettingsActivity.java
+@@ -138,6 +138,9 @@
+             choices.edit().putBoolean("media_player_enabled", mediaPlayerEnabled).apply();
+             changed();
+             refreshMediaPlayerChoice();
++            if (mediaPlayerEnabled && !hasMediaNotificationAccess()) {
++                showMediaNotificationAccessPrompt();
++            }
+         });
+         refreshMediaPlayerChoice();
+         openOnStartChoice = findViewById(R.id.openOnStartChoice);
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MediaSessionMonitor.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MediaSessionMonitor.java
+@@ -134,22 +134,22 @@
+             publish(null);
+             return;
+         }
+-        MediaController selected = findSelected();
+-        if (selected == null) {
+-            long bestScore = Long.MIN_VALUE;
+-            for (MediaController controller : candidates) {
+-                PlaybackState state = controller.getPlaybackState();
+-                int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
+-                long priority = playback == PlaybackState.STATE_PLAYING ? 3L
+-                        : playback == PlaybackState.STATE_BUFFERING ? 2L
+-                        : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
+-                long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
+-                long score = priority * 1_000_000_000_000_000L + recency;
+-                if (score > bestScore) { bestScore = score; selected = controller; }
+-            }
+-            if (selected == null) selected = candidates.get(0);
+-            selectedPackage = selected.getPackageName();
++        // Re-evaluate on every callback: a previously paused app must not remain selected
++        // after another app becomes the active player.
++        MediaController selected = null;
++        long bestScore = Long.MIN_VALUE;
++        for (MediaController controller : candidates) {
++            PlaybackState state = controller.getPlaybackState();
++            int playback = state == null ? PlaybackState.STATE_NONE : state.getState();
++            long priority = playback == PlaybackState.STATE_PLAYING ? 3L
++                    : playback == PlaybackState.STATE_BUFFERING ? 2L
++                    : playback == PlaybackState.STATE_PAUSED ? 1L : 0L;
++            long recency = state == null ? 0L : Math.max(0L, state.getLastPositionUpdateTime());
++            long score = priority * 1_000_000_000_000_000L + recency;
++            if (score > bestScore) { bestScore = score; selected = controller; }
+         }
++        if (selected == null) selected = candidates.get(0);
++        selectedPackage = selected.getPackageName();
+         publish(selected, selected.getMetadata(), selected.getPlaybackState());
+     }
+ 
+--- a/launcher/app/src/main/res/values/strings.xml
++++ b/launcher/app/src/main/res/values/strings.xml
+@@ -171,4 +171,5 @@
+     <string name="clock_format_system">System</string>
+     <string name="clock_format_12">12-hour</string>
+     <string name="clock_format_24">24-hour</string>
++    <string name="media_player_app_unavailable">Could not identify the currently playing app. Check that playback is active and notification access is enabled.</string>
+ </resources>
+--- a/launcher/app/src/main/res/values-zh-rTW/strings.xml
++++ b/launcher/app/src/main/res/values-zh-rTW/strings.xml
+@@ -97,4 +97,10 @@
+     <string name="clock_format_system">系統</string>
+     <string name="clock_format_12">12 小時制</string>
+     <string name="clock_format_24">24 小時制</string>
++    <string name="media_player_permission_title">需要通知存取權</string>
++    <string name="media_player_permission_message">要辨識目前正在播放的 APP，並在點選圓形縮圖時開啟該 APP，請允許 CYTV 存取通知。</string>
++    <string name="media_player_permission_open">前往設定</string>
++    <string name="media_player_permission_unavailable">無法開啟通知存取權設定，請從 Android 系統設定手動啟用。</string>
++    <string name="media_player_app_unavailable">目前無法辨識正在播放的 APP。請確認媒體正在播放，並已開啟通知存取權。</string>
++    <string name="later">稍後</string>
+ </resources>
