@@ -1,56 +1,17 @@
 package com.gathin.tvhome;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.UserManager;
 import android.service.notification.NotificationListenerService;
 
 /**
- * Starts this launcher's process after the firmware has killed it.
+ * Minimal notification-listener service used to isolate Android 9 notification-access binding.
  *
- * A notification listener keeps its approval across a force stop, and the system binds it again
- * once the process is gone. That rebind is what brings Home back on TCL and Xiaomi. No notification
- * is read. Enable with {@code cmd notification allow_listener com.gathin.tvhome/.GuardRevival}.
+ * Keep the service callback free of launcher, accessibility, receiver-registration, and secure-
+ * settings side effects. MediaSessionManager uses this component solely as the authorization token.
  */
 public class GuardRevival extends NotificationListenerService {
-    private BroadcastReceiver unlocked;
-
     @Override
     public void onListenerConnected() {
-        UserManager users = getSystemService(UserManager.class);
-        if (users != null && !users.isUserUnlocked()) {
-            if (unlocked != null) return;
-            unlocked = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    stopWaiting();
-                    GuardKeep.ensureHomeKey(GuardRevival.this);
-                }
-            };
-            registerReceiver(unlocked, new IntentFilter(Intent.ACTION_USER_UNLOCKED));
-            if (users.isUserUnlocked()) {
-                stopWaiting();
-                GuardKeep.ensureHomeKey(this);
-            }
-            return;
-        }
-        GuardKeep.ensureHomeKey(this);
-    }
-
-    private void stopWaiting() {
-        if (unlocked == null) return;
-        try {
-            unregisterReceiver(unlocked);
-        } catch (RuntimeException ignored) {
-        }
-        unlocked = null;
-    }
-
-    @Override
-    public void onDestroy() {
-        stopWaiting();
-        super.onDestroy();
+        // Intentionally empty: verify the TV can retain notification-listener authorization
+        // without running GuardKeep or any other app-specific work during the system bind.
     }
 }
