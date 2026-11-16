@@ -1,0 +1,13 @@
+--- a/launcher/app/src/main/res/layout/activity_main.xml
++++ b/launcher/app/src/main/res/layout/activity_main.xml
+@@ -465,8 +465,8 @@
+         android:layout_gravity="bottom|end"
+         android:layout_marginEnd="85dp"
+         android:layout_marginBottom="218dp"
+-        android:translationX="80dp"
+-        android:translationY="90dp"
++        android:translationX="30dp"
++        android:translationY="70dp"
+         android:orientation="horizontal"
+         android:gravity="center_vertical"
+         android:paddingStart="0dp"

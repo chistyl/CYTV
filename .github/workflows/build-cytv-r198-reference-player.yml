@@ -1,4 +1,4 @@
-name: CYTV R210 Audio Playback Callback Build
+name: CYTV R217 Media Player Position Build
 
 on:
   push:
@@ -11,10 +11,12 @@ on:
       - fix/interface-layout-bottom-row-align-r214
       - feat/media-thumbnail-launch-source-app-r215
       - feat/media-player-thumbnail-controls-only-r216
+      - fix/media-player-position-up-left-r217
     paths:
       - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - 'patches/CYTV_R216_media_player_thumbnail_controls_only.patch'
+      - 'patches/CYTV_R217_media_player_position_up_left.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -25,10 +27,12 @@ on:
       - fix/media-player-artwork-display-only-r213
       - fix/interface-layout-bottom-row-align-r214
       - feat/media-thumbnail-launch-source-app-r215
+      - feat/media-player-thumbnail-controls-only-r216
     paths:
       - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - 'patches/CYTV_R216_media_player_thumbnail_controls_only.patch'
+      - 'patches/CYTV_R217_media_player_position_up_left.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   workflow_dispatch:
 
@@ -42,11 +46,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Apply R215 media thumbnail source-app changes
-        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
+        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
       - name: Apply R216 minimal media player changes
-        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
+        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R216_media_player_thumbnail_controls_only.patch
+      - name: Apply R217 media player position adjustment
+        if: github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217'
+        run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R217_media_player_position_up_left.patch
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -70,9 +77,9 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
-          if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/media-player-thumbnail-controls-only-r216" ]; then
-            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R216-Minimal-Media-Player-debug.apk
-            zip -qr release/CYTV-R216-Minimal-Media-Player-Source.zip . \
+          if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "fix/media-player-position-up-left-r217" ]; then
+            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R217-Media-Player-Position-debug.apk
+            zip -qr release/CYTV-R217-Media-Player-Position-Source.zip . \
               -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
                  './launcher/app/build/*' './release/*'
           else
@@ -84,7 +91,7 @@ jobs:
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R216-deliverables
+          name: CYTV-R217-deliverables
           path: release/*
           if-no-files-found: error
           retention-days: 30
