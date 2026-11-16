@@ -1644,19 +1644,58 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
+    private boolean hasMediaSessionAccess() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                "enabled_notification_listeners");
+        if (enabled == null || enabled.isEmpty()) return false;
+        ComponentName listener = new ComponentName(this, GuardRevival.class);
+        for (String item : enabled.split(":")) {
+            ComponentName granted = ComponentName.unflattenFromString(item);
+            if (listener.equals(granted)) return true;
+        }
+        return false;
+    }
+
     /** R165: keep the current media session snapshot ready for the desktop player surface. */
     /** Media surface that works without Android notification-listener authorization. */
     private void startMediaSessionMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", false)) return;
+        // R209: MediaSessionManager only exposes third-party sessions to an authorized
+        // NotificationListenerService. Check the exact listener component before starting.
+        if (!hasMediaSessionAccess()) {
+            if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+            if (resumed && !isFinishing()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("需要媒體偵測權限")
+                        .setMessage("CYTV 需要允許通知存取，才能偵測音樂或影片 App 的播放狀態並顯示桌面播放器。請在系統設定中允許 CYTV。")
+                        .setNegativeButton("稍後", (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton("前往設定", (dialog, which) -> {
+                            try {
+                                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                            } catch (RuntimeException ignored) {
+                                Toast.makeText(this, "請至系統設定開啟 CYTV 的通知存取權限", Toast.LENGTH_LONG).show();
+                            }
+                        })
+                        .show();
+            }
+            return;
+        }
         currentMediaController = null;
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
         if (mediaPlayerSurface == null) return;
+        // R207: wire the active-session monitor to the desktop surface. Without this listener
+        // the monitor was never created, so renderMediaPlayer() could not reveal the R206-hidden view.
+        mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, playbackState) -> {
+            currentMediaController = controller;
+            renderMediaPlayer(controller, metadata, playbackState);
+            updateMediaPlayerSourceControl();
+        });
         // R173: remove the player heading and helper copy; keep artwork and controls only.
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
         // R175: use a compact music-note glyph centered in the black disc.
-        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
         // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
@@ -1668,8 +1707,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshMediaPlaybackButton();
         mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
         mediaPlayerSurface.post(mediaPlaybackStateRefresh);
-        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        // R206: keep the player hidden on an idle desktop; renderMediaPlayer reveals it only for an active media session.
+        mediaPlayerSurface.setVisibility(View.GONE);
         mediaPlayerSurface.bringToFront();
+        // R208: start monitoring only after the initial GONE state is applied.
+        // An immediate active-session callback must be allowed to reveal the surface.
+        mediaSessionMonitor.start();
         // R174: disc rotation follows actual audio playback state, not panel visibility.
         // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
     }
@@ -1754,7 +1797,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaPlayerArtwork.setPadding(0, 0, 0, 0);
         } else {
             // Keep the designed music-note symbol when the player supplies no album artwork.
-            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
             int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
             mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
