@@ -1,16 +1,16 @@
-name: CYTV R198 R198 Reference Player Layout Build
+name: CYTV R198 Reference Player Layout Build
 
 on:
   push:
     branches:
-      - fix/media-player-r198-r196-clean-build
+      - fix/media-player-r198-reference-layout
     paths:
       - 'launcher/**'
-      - '.github/workflows/build-cytv-r198-style-preserve.yml'
+      - '.github/workflows/build-cytv-r198-reference-player.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - feat/media-player-desktop-r165
+      - fix/media-player-r197-r196-clean-build
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-style-preserve.yml'
