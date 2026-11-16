@@ -1,0 +1,200 @@
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -404,9 +404,5 @@
+     private boolean mediaPlayerHiddenByDockScroll;
+     private ImageView mediaPlayerArtwork;
+     private android.animation.ObjectAnimator mediaArtworkRotation;
+-    private TextView mediaPlayerTitle;
+-    private TextView mediaPlayerArtist;
+-    private TextView mediaPlayerMode;
+-    private TextView mediaPlayerSource;
+     private View mediaPlayerControls;
+     private TextView mediaPlayerToggle;
+@@ -567,18 +563,9 @@
+         // Running View Animation and property animation together caused visible jumps.
+         mediaPlayerArtwork.clearAnimation();
+         mediaPlayerArtwork.setRotation(0f);
+-        mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
+-        mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
+-        mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
+-        mediaPlayerSource = findViewById(R.id.mediaPlayerSource);
+-        mediaPlayerSource.setOnClickListener(v -> {
+-            if (mediaSessionMonitor != null) mediaSessionMonitor.selectNextSource();
+-        });
+         mediaPlayerControls = (View) findViewById(R.id.mediaPlayerPrevious).getParent();
+         mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
+         // The floating panel is a click target, not a D-pad stop: keep focus on actionable controls.
+         mediaPlayerSurface.setFocusable(false);
+         mediaPlayerSurface.setFocusableInTouchMode(false);
+-        mediaPlayerSource.setFocusable(true);
+-        mediaPlayerSource.setFocusableInTouchMode(true);
+         View mediaPrevious = findViewById(R.id.mediaPlayerPrevious);
+@@ -1367,5 +1356,4 @@
+             // Clear the old session immediately so a stale floating panel cannot remain on Home.
+             currentMediaController = null;
+             if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+-            if (mediaPlayerSource != null) mediaPlayerSource.setVisibility(View.GONE);
+         }
+@@ -1663,13 +1651,9 @@
+         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                 .getBoolean("media_player_enabled", false) || mediaPlayerSurface == null) return;
+ 
+-        mediaPlayerTitle.setVisibility(View.GONE);
+-        mediaPlayerArtist.setVisibility(View.GONE);
+         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
+         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
+         int musicGlyphInset = (int) (8 * getResources().getDisplayMetrics().density);
+         mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
+-        mediaPlayerMode.setVisibility(View.GONE);
+-        mediaPlayerSource.setVisibility(View.GONE);
+         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+@@ -1718,15 +1702,6 @@
+         mediaPlayerSurface.bringToFront();
+     }
+ 
+-    private void updateMediaPlayerSourceControl() {
+-        if (mediaPlayerSource == null) return;
+-        int count = mediaSessionMonitor == null ? 0 : mediaSessionMonitor.getSessionCount();
+-        mediaPlayerSource.setVisibility(count > 1 ? View.VISIBLE : View.GONE);
+-        if (count > 1) {
+-            mediaPlayerSource.setText(getString(R.string.media_player_source_count, count));
+-        }
+-    }
+-
+     /**
+      * Convert Simplified Chinese metadata supplied by media apps into Traditional Chinese
+      * before it is rendered in the desktop player. Keep non-Chinese text unchanged.
+@@ -1778,11 +1753,5 @@
+             mediaPlayerSurface.setVisibility(View.GONE);
+             return;
+         }
+-        String title = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE);
+-        String artist = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST);
+-        mediaPlayerTitle.setText(mediaTextToTraditional(title == null || title.trim().isEmpty()
+-                ? controller.getPackageName() : title));
+-        mediaPlayerArtist.setText(mediaTextToTraditional(
+-                artist == null ? controller.getPackageName() : artist));
+         android.graphics.Bitmap art = metadata == null ? null : metadata.getBitmap(
+                 android.media.MediaMetadata.METADATA_KEY_ART);
+@@ -1803,12 +1776,7 @@
+             int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
+             mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
+         }
+-        // Compact player presentation: artwork, title, artist and transport controls only.
+-        // Do not show "now playing" labels or source/session information in the desktop widget.
+-        mediaPlayerMode.setVisibility(View.GONE);
+-        mediaPlayerSource.setVisibility(View.GONE);
+-        mediaPlayerArtist.setVisibility(artist == null || artist.trim().isEmpty()
+-                ? View.GONE : View.VISIBLE);
++        // Minimal player presentation: only the circular artwork and transport controls remain.
+         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+         mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
+                 ? "❚❚" : "▶");
+--- a/launcher/app/src/main/res/layout/activity_main.xml
++++ b/launcher/app/src/main/res/layout/activity_main.xml
+@@ -457,18 +457,18 @@
+     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
+     <!-- R198 reference-matched media player: transparent, compact controls, offset 20dp. -->
+     <!-- R198 transport symbols use matching compact sizing for previous and next. -->
+     <LinearLayout
+         android:id="@+id/mediaPlayerSurface"
+-        android:layout_width="300dp"
+-        android:layout_height="114dp"
++        android:layout_width="220dp"
++        android:layout_height="80dp"
+         android:layout_gravity="bottom|end"
+         android:layout_marginEnd="85dp"
+         android:layout_marginBottom="218dp"
+         android:translationX="80dp"
+         android:translationY="90dp"
+         android:orientation="horizontal"
+         android:gravity="center_vertical"
+-        android:paddingStart="16dp"
++        android:paddingStart="0dp"
+         android:paddingEnd="0dp"
+         android:background="@android:color/transparent"
+         android:visibility="gone"
+@@ -486,57 +486,11 @@
+             android:focusable="false"
+             android:clickable="false" />
+ 
+-        <LinearLayout
+-            android:layout_width="wrap_content"
+-            android:layout_height="match_parent"
+-            android:orientation="horizontal"
+-            android:gravity="center_vertical">
+-
+-            <TextView
+-                android:id="@+id/mediaPlayerMode"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:textColor="#99FFFFFF"
+-                android:textSize="11sp"
+-                android:visibility="gone" />
+-
+-            <TextView
+-                android:id="@+id/mediaPlayerTitle"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:textColor="#FFFFFFFF"
+-                android:textSize="18sp"
+-                android:maxLines="1"
+-                android:ellipsize="end"
+-                android:visibility="gone" />
+-
+-            <TextView
+-                android:id="@+id/mediaPlayerArtist"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:textColor="#B3FFFFFF"
+-                android:textSize="13sp"
+-                android:maxLines="1"
+-                android:ellipsize="end"
+-                android:visibility="gone" />
+-
+-            <TextView
+-                android:id="@+id/mediaPlayerSource"
+-                android:layout_width="wrap_content"
+-                android:layout_height="30dp"
+-                android:gravity="center_vertical"
+-                android:textColor="#CCFFFFFF"
+-                android:textSize="12sp"
+-                android:focusable="true"
+-                android:clickable="true"
+-                android:visibility="gone"
+-                android:contentDescription="@string/media_player_switch_source" />
+-
+-            <LinearLayout
+-                android:id="@+id/mediaPlayerButtons"
+-                android:layout_width="wrap_content"
+-                android:layout_height="match_parent"
+-                android:gravity="center_vertical"
+-                android:orientation="horizontal">
++        <LinearLayout
++            android:id="@+id/mediaPlayerButtons"
++            android:layout_width="wrap_content"
++            android:layout_height="match_parent"
++            android:gravity="center_vertical"
++            android:orientation="horizontal">
+                 <TextView
+                     android:id="@+id/mediaPlayerPrevious"
+@@ -585,7 +538,6 @@
+                     android:focusable="true"
+                     android:clickable="true" />
+-            </LinearLayout>
+         </LinearLayout>
+     </LinearLayout>
+ 
+     <!-- The single floating glass highlight that springs between tiles. -->
+
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -1728,7 +1728,6 @@
+                 if (controller != null) {
+                     renderMediaPlayer(controller, metadata, state);
+                 }
+-                updateMediaPlayerSourceControl();
+             });
+         }
+         mediaSessionMonitor.start();
