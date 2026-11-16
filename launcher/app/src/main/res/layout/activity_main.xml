@@ -459,7 +459,7 @@
     <!-- R198 transport symbols use matching compact sizing for previous and next. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
-        android:layout_width="350dp"
+        android:layout_width="320dp"
         android:layout_height="114dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="85dp"
@@ -548,7 +548,7 @@
                     android:nextFocusLeft="@id/mediaPlayerArtwork"
                     android:nextFocusRight="@id/mediaPlayerToggle"
                     android:nextFocusUp="@id/grid"
-                    android:layout_marginEnd="16dp"
+                    android:layout_marginEnd="8dp"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
                     android:text="Ⅰ◀Ⅰ"
@@ -563,7 +563,7 @@
                     android:nextFocusLeft="@id/mediaPlayerPrevious"
                     android:nextFocusRight="@id/mediaPlayerNext"
                     android:nextFocusUp="@id/grid"
-                    android:layout_marginEnd="16dp"
+                    android:layout_marginEnd="8dp"
                     android:gravity="center"
                     android:background="@drawable/media_player_button"
                     android:text="❚❚"
