@@ -386,8 +386,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    /** R165: active media sessions are observed only while Home is in front. */
-    private MediaSessionMonitor mediaSessionMonitor;
+    /** Audio playback activity monitor; uses Android's anonymized active-playback callback. */
+    private android.media.AudioManager audioPlaybackManager;
+    private android.media.AudioManager.AudioPlaybackCallback audioPlaybackCallback;
+    private boolean systemAudioPlaybackActive;
+    private final Runnable hideMediaPlayerAfterAudioStops = () -> {
+        systemAudioPlaybackActive = false;
+        updateMediaArtworkRotation(false);
+        if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+    };
     private View mediaPlayerSurface;
     /** Player visibility follows the dock row's upper-edge clipping state. */
     private boolean mediaPlayerHiddenByDockScroll;
@@ -1350,7 +1357,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean mediaPlayerEnabled = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", false);
         if (mediaPlayerEnabled) {
-            startMediaSessionMonitor();
+            startAudioPlaybackMonitor();
         } else {
             // The setting can be switched off while this Activity is paused in Launcher Settings.
             // Clear the old session immediately so a stale floating panel cannot remain on Home.
@@ -1644,34 +1651,67 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
-    /** R165: keep the current media session snapshot ready for the desktop player surface. */
-    /** Media surface that works without Android notification-listener authorization. */
-    private void startMediaSessionMonitor() {
+    /**
+     * Detect active system audio without notification access or media-session permissions.
+     * Android returns anonymized active playback configurations to ordinary applications.
+     */
+    private void startAudioPlaybackMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                .getBoolean("media_player_enabled", false)) return;
-        currentMediaController = null;
-        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
-        if (mediaPlayerSurface == null) return;
-        // R173: remove the player heading and helper copy; keep artwork and controls only.
+                .getBoolean("media_player_enabled", false) || mediaPlayerSurface == null) return;
+
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
-        // R175: use a compact music-note glyph centered in the black disc.
         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
         int musicGlyphInset = (int) (8 * getResources().getDisplayMetrics().density);
         mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // AudioPlaybackCallback is API 26+. Keep the surface hidden on older systems.
+            mediaPlayerSurface.setVisibility(View.GONE);
+            return;
+        }
+        audioPlaybackManager = (android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audioPlaybackManager == null) return;
+        if (audioPlaybackCallback != null) {
+            audioPlaybackManager.unregisterAudioPlaybackCallback(audioPlaybackCallback);
+        }
+        audioPlaybackCallback = new android.media.AudioManager.AudioPlaybackCallback() {
+            @Override
+            public void onPlaybackConfigChanged(
+                    java.util.List<android.media.AudioPlaybackConfiguration> configs) {
+                boolean active = configs != null && !configs.isEmpty();
+                runOnUiThread(() -> updateSystemAudioPlayback(active));
+            }
+        };
+        audioPlaybackManager.registerAudioPlaybackCallback(audioPlaybackCallback, handler);
+        try {
+            updateSystemAudioPlayback(!audioPlaybackManager.getActivePlaybackConfigurations().isEmpty());
+        } catch (RuntimeException ignored) {
+            // Some TV firmware may reject the initial snapshot; the registered callback can still report changes.
+            mediaPlayerSurface.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateSystemAudioPlayback(boolean active) {
+        if (mediaPlayerSurface == null || !getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", false)) return;
+        mediaPlayerSurface.removeCallbacks(hideMediaPlayerAfterAudioStops);
+        if (!active) {
+            // Ignore very short gaps between audio tracks to prevent the panel flickering.
+            mediaPlayerSurface.postDelayed(hideMediaPlayerAfterAudioStops, 1500L);
+            return;
+        }
+        systemAudioPlaybackActive = true;
         refreshMediaPlaybackButton();
         mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
         mediaPlayerSurface.post(mediaPlaybackStateRefresh);
         mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
-        // R174: disc rotation follows actual audio playback state, not panel visibility.
-        // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
     }
 
     private void updateMediaPlayerSourceControl() {
@@ -1832,8 +1872,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void stopMediaSessionMonitor() {
-        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
-        if (mediaPlayerSurface != null) mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+        if (audioPlaybackManager != null && audioPlaybackCallback != null
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioPlaybackManager.unregisterAudioPlaybackCallback(audioPlaybackCallback);
+        }
+        audioPlaybackCallback = null;
+        systemAudioPlaybackActive = false;
+        if (mediaPlayerSurface != null) {
+            mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+            mediaPlayerSurface.removeCallbacks(hideMediaPlayerAfterAudioStops);
+            mediaPlayerSurface.setVisibility(View.GONE);
+        }
     }
 
     private void restartIdleClock() {
