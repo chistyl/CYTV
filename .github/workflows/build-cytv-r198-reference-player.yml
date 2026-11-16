@@ -8,6 +8,7 @@ on:
       - fix/media-player-black-transparent-focus-r211
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
+      - fix/interface-layout-bottom-row-align-r214
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
@@ -17,6 +18,7 @@ on:
       - fix/media-player-r197-r196-clean-build
       - fix/media-player-black-transparent-focus-r211
       - fix/media-player-visible-focus-ring-r212
+      - fix/media-player-artwork-display-only-r213
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
