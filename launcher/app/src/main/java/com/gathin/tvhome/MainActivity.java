@@ -549,9 +549,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
         mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
-        // R165: explicitly clip album artwork to the rounded background outline on TV devices.
-        mediaPlayerArtwork.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
-        mediaPlayerArtwork.setClipToOutline(true);
+        // R197: do not clip the vinyl placeholder to the old oval outline.
+        // Its square artwork canvas must reach all four ImageView edges.
+        mediaPlayerArtwork.setClipToOutline(false);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         // R165 follow-up: use only ObjectAnimator for artwork rotation.
         // Running View Animation and property animation together caused visible jumps.
         mediaPlayerArtwork.clearAnimation();
@@ -1657,11 +1658,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtist.setVisibility(View.GONE);
         // R175: use a compact music-note glyph centered in the black disc.
         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
-        mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
-        int musicGlyphInset = (int) (8 * getResources().getDisplayMetrics().density);
-        mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
+        // R197: render the full-bleed vinyl canvas edge-to-edge; no oval mask or inset.
+        mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+        mediaPlayerArtwork.setClipToOutline(false);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
@@ -1755,9 +1756,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             // Keep the designed music-note symbol when the player supplies no album artwork.
             mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
-            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
-            mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
+            // R197: show the complete vinyl image without inner padding or oval clipping.
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+            mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            mediaPlayerArtwork.setClipToOutline(false);
         }
         // Compact player presentation: artwork, title, artist and transport controls only.
         // Do not show "now playing" labels or source/session information in the desktop widget.
