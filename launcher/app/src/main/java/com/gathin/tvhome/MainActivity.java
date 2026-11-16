@@ -1649,6 +1649,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtist.setText("使用下方按鍵控制目前播放的內容");
         mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
         mediaPlayerArtwork.setPadding(48, 32, 48, 32);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
@@ -1656,7 +1657,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerToggle.setText("▶");
         mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
         mediaPlayerSurface.bringToFront();
-        updateMediaArtworkRotation(false);
+        // R170: the default black player disc rotates clockwise continuously.
+        updateMediaArtworkRotation(true);
     }
 
     private void updateMediaPlayerSourceControl() {
