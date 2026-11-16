@@ -1,0 +1,49 @@
+--- a/launcher/app/src/main/res/layout/activity_main.xml
++++ b/launcher/app/src/main/res/layout/activity_main.xml
+@@ -1010,8 +1010,8 @@
+     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
+     <!-- R198 reference-matched media player: transparent, compact controls, offset 20dp. -->
+     <!-- R198 transport symbols use matching compact sizing for previous and next. -->
+     <LinearLayout
+         android:id="@+id/mediaPlayerSurface"
+-        android:layout_width="300dp"
+-        android:layout_height="114dp"
++        android:layout_width="59dp"
++        android:layout_height="59dp"
+         android:layout_gravity="bottom|end"
+         android:layout_marginEnd="85dp"
+         android:layout_marginBottom="218dp"
+@@ -1020,8 +1020,8 @@
+         android:orientation="horizontal"
+         android:gravity="center_vertical"
+-        android:paddingStart="16dp"
++        android:paddingStart="0dp"
+         android:paddingEnd="0dp"
+         android:background="@android:color/transparent"
+@@ -1032,7 +1032,7 @@
+         <ImageView
+             android:id="@+id/mediaPlayerArtwork"
+             android:layout_width="59dp"
+             android:layout_height="59dp"
+-            android:layout_marginEnd="10dp"
++            android:layout_marginEnd="0dp"
+             android:scaleType="centerCrop"
+             android:background="@drawable/media_player_artwork_rounded"
+             android:clipToOutline="true"
+             android:importantForAccessibility="no"
+-            android:focusable="false"
+-            android:clickable="false" />
++            android:focusable="true"
++            android:clickable="true" />
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -1680,7 +1680,7 @@
+         mediaPlayerMode.setVisibility(View.GONE);
+         mediaPlayerSource.setVisibility(View.GONE);
+-        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
++        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.GONE);
+@@ -1804,7 +1804,7 @@
+         mediaPlayerArtist.setVisibility(artist == null || artist.trim().isEmpty()
+                 ? View.GONE : View.VISIBLE);
+-        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
++        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.GONE);
