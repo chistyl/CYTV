@@ -1655,10 +1655,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // R173: remove the player heading and helper copy; keep artwork and controls only.
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
-        mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
+        // R175: use a compact music-note glyph centered in the black disc.
+        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_music_note);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        mediaPlayerArtwork.setPadding(48, 32, 48, 32);
+        int musicGlyphInset = (int) (28 * getResources().getDisplayMetrics().density);
+        mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
