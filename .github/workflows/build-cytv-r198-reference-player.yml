@@ -36,6 +36,7 @@ on:
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - 'patches/CYTV_R216_media_player_thumbnail_controls_only.patch'
       - 'patches/CYTV_R217_media_player_position_up_left.patch'
+      - 'patches/CYTV_R218_enable_login_verification.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   workflow_dispatch:
 
@@ -87,7 +88,7 @@ jobs:
             cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R218-Login-Verification-debug.apk
             zip -qr release/CYTV-R218-Login-Verification-Source.zip . \
               -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \\
-                 './launcher/app/build/*' './release/*'
+              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
           elif [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "fix/media-player-position-up-left-r217" ]; then
             cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R217-Media-Player-Position-debug.apk
             zip -qr release/CYTV-R217-Media-Player-Position-Source.zip . \
