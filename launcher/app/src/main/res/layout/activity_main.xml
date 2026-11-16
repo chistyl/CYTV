@@ -463,11 +463,13 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="85dp"
         android:layout_marginBottom="218dp"
+        android:translationX="20dp"
+        android:translationY="20dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="27dp"
         android:paddingEnd="0dp"
-        android:background="#660B0503"
+        android:background="@android:color/transparent"
         android:visibility="gone"
         android:focusable="false"
         android:clickable="false">
@@ -550,7 +552,7 @@
                     android:background="@drawable/media_player_button"
                     android:text="Ⅰ◀Ⅰ"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:focusable="true"
                     android:clickable="true" />
                 <TextView
@@ -566,7 +568,7 @@
                     android:text="❚❚"
                     android:contentDescription="播放"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="20sp"
+                    android:textSize="16sp"
                     android:letterSpacing="0.08"
                     android:focusable="true"
                     android:clickable="true" />
