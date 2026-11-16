@@ -271,6 +271,7 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
         <receiver
             android:name=".GuardConfig"
             android:exported="true"

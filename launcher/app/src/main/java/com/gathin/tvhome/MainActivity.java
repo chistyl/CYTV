@@ -31,6 +31,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.session.MediaController;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -385,6 +386,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** R165: active media sessions are observed only while Home is in front. */
+    private MediaSessionMonitor mediaSessionMonitor;
+    private View mediaPlayerSurface;
+    /** Player visibility follows the dock row's upper-edge clipping state. */
+    private boolean mediaPlayerHiddenByDockScroll;
+    private ImageView mediaPlayerArtwork;
+    private android.animation.ObjectAnimator mediaArtworkRotation;
+    private TextView mediaPlayerTitle;
+    private TextView mediaPlayerArtist;
+    private TextView mediaPlayerMode;
+    private TextView mediaPlayerSource;
+    private View mediaPlayerControls;
+    private TextView mediaPlayerToggle;
+    /** Local play/pause presentation for the permission-free media remote. */
+    private boolean mediaPlaybackUiPlaying = false;
+    private MediaController currentMediaController;
     /** Debounced Wi-Fi pill refresh when Home regains window focus after TV standby or Settings. */
     private final Runnable refreshWifiStatusAfterFocus = () -> {
         if (!isDestroyed() && resumed && hasWindowFocus()) updateWifiLabel();
@@ -530,6 +547,52 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         coocaaSources = cfg.coocaaSources;
 
         root = findViewById(R.id.root);
+        mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
+        mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
+        // R197: do not clip the vinyl placeholder to the old oval outline.
+        // Its square artwork canvas must reach all four ImageView edges.
+        mediaPlayerArtwork.setClipToOutline(false);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        // R165 follow-up: use only ObjectAnimator for artwork rotation.
+        // Running View Animation and property animation together caused visible jumps.
+        mediaPlayerArtwork.clearAnimation();
+        mediaPlayerArtwork.setRotation(0f);
+        mediaPlayerTitle = findViewById(R.id.mediaPlayerTitle);
+        mediaPlayerArtist = findViewById(R.id.mediaPlayerArtist);
+        mediaPlayerMode = findViewById(R.id.mediaPlayerMode);
+        mediaPlayerSource = findViewById(R.id.mediaPlayerSource);
+        mediaPlayerSource.setOnClickListener(v -> {
+            if (mediaSessionMonitor != null) mediaSessionMonitor.selectNextSource();
+        });
+        mediaPlayerControls = (View) findViewById(R.id.mediaPlayerPrevious).getParent();
+        mediaPlayerToggle = findViewById(R.id.mediaPlayerToggle);
+        // The floating panel is a click target, not a D-pad stop: keep focus on actionable controls.
+        mediaPlayerSurface.setFocusable(false);
+        mediaPlayerSurface.setFocusableInTouchMode(false);
+        mediaPlayerSource.setFocusable(true);
+        mediaPlayerSource.setFocusableInTouchMode(true);
+        View mediaPrevious = findViewById(R.id.mediaPlayerPrevious);
+        View mediaNext = findViewById(R.id.mediaPlayerNext);
+        mediaPrevious.setFocusable(true);
+        mediaPrevious.setFocusableInTouchMode(true);
+        mediaNext.setFocusable(true);
+        mediaNext.setFocusableInTouchMode(true);
+        mediaPlayerToggle.setFocusable(true);
+        mediaPlayerToggle.setFocusableInTouchMode(true);
+        mediaPlayerSurface.setOnClickListener(v -> openCurrentMediaApp());
+        // The circular album thumbnail directly opens the app that owns the active media session.
+        mediaPlayerArtwork.setFocusable(true);
+        mediaPlayerArtwork.setFocusableInTouchMode(true);
+        mediaPlayerArtwork.setOnClickListener(v -> openCurrentMediaApp());
+        findViewById(R.id.mediaPlayerPrevious).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS));
+        findViewById(R.id.mediaPlayerNext).setOnClickListener(v -> sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT));
+        mediaPlayerToggle.setOnClickListener(v -> {
+            // Use the system toggle command; AudioManager playback activity below is the
+            // permission-free source of truth for the button presentation.
+            sendMediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            mediaPlayerToggle.postDelayed(this::refreshMediaPlaybackButton, 350L);
+        });
+        mediaPlayerSurface.setVisibility(View.GONE);
         root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
@@ -875,6 +938,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.getViewTreeObserver().addOnPreDrawListener(dockFirstFrame);
             grid.post(grid::requestLayout);
         }
+
+        // R165: keep the media player fixed at its desktop position.
+        // Match the weekly-weather panel: hide on downward grid scrolling and restore only at the top.
+        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            private void hidePlayerForGrid() {
+                if (mediaPlayerSurface == null || mediaPlayerHiddenByDockScroll) return;
+                mediaPlayerHiddenByDockScroll = true;
+                if (mediaPlayerSurface.getVisibility() != View.GONE) {
+                    mediaPlayerSurface.setVisibility(View.INVISIBLE);
+                }
+            }
+            private void restorePlayerAtTop(RecyclerView rv) {
+                if (mediaPlayerSurface == null || !mediaPlayerHiddenByDockScroll
+                        || rv.canScrollVertically(-1)) return;
+                mediaPlayerHiddenByDockScroll = false;
+                if (mediaPlayerSurface.getVisibility() != View.GONE) {
+                    mediaPlayerSurface.setVisibility(View.VISIBLE);
+                }
+            }
+            @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (dy > 0) hidePlayerForGrid();
+                else if (dy < 0) restorePlayerAtTop(rv);
+            }
+            @Override public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+                if (state == RecyclerView.SCROLL_STATE_IDLE) restorePlayerAtTop(rv);
+            }
+        });
+        // Start visible regardless of RecyclerView's restored offset, matching weekly weather behavior.
 
         // Keep the glass glued to its tile while the grid scrolls.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -1257,6 +1348,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        boolean mediaPlayerEnabled = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", false);
+        if (mediaPlayerEnabled) {
+            startMediaSessionMonitor();
+        } else {
+            // The setting can be switched off while this Activity is paused in Launcher Settings.
+            // Clear the old session immediately so a stale floating panel cannot remain on Home.
+            currentMediaController = null;
+            if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+            if (mediaPlayerSource != null) mediaPlayerSource.setVisibility(View.GONE);
+        }
         if (glowParticles != null) glowParticles.setActive(ambientGlow && !isCustomWallpaperActive());
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
@@ -1543,6 +1645,200 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
+    /** R165: keep the current media session snapshot ready for the desktop player surface. */
+    /** Media surface that works without Android notification-listener authorization. */
+    private void startMediaSessionMonitor() {
+        if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", false)) return;
+        currentMediaController = null;
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface == null) return;
+        // R173: remove the player heading and helper copy; keep artwork and controls only.
+        mediaPlayerTitle.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(View.GONE);
+        // R175: use a compact music-note glyph centered in the black disc.
+        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+        // R197: render the full-bleed vinyl canvas edge-to-edge; no oval mask or inset.
+        mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+        mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+        mediaPlayerArtwork.setClipToOutline(false);
+        mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerSource.setVisibility(View.GONE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+        refreshMediaPlaybackButton();
+        mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+        mediaPlayerSurface.post(mediaPlaybackStateRefresh);
+        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        mediaPlayerSurface.bringToFront();
+        // R174: disc rotation follows actual audio playback state, not panel visibility.
+        // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
+    }
+
+    private void updateMediaPlayerSourceControl() {
+        if (mediaPlayerSource == null) return;
+        int count = mediaSessionMonitor == null ? 0 : mediaSessionMonitor.getSessionCount();
+        mediaPlayerSource.setVisibility(count > 1 ? View.VISIBLE : View.GONE);
+        if (count > 1) {
+            mediaPlayerSource.setText(getString(R.string.media_player_source_count, count));
+        }
+    }
+
+    /**
+     * Convert Simplified Chinese metadata supplied by media apps into Traditional Chinese
+     * before it is rendered in the desktop player. Keep non-Chinese text unchanged.
+     */
+    private String mediaTextToTraditional(String value) {
+        if (value == null || value.isEmpty()) return value;
+        try {
+            return android.icu.text.Transliterator.getInstance("Simplified-Traditional")
+                    .transliterate(value);
+        } catch (RuntimeException ignored) {
+            // Keep the original metadata if this device's ICU build lacks the transliterator.
+            return value;
+        }
+    }
+
+    private void updateMediaArtworkRotation(boolean playing) {
+        if (mediaPlayerArtwork == null) return;
+        if (playing) {
+            if (mediaArtworkRotation == null) {
+                mediaArtworkRotation = android.animation.ObjectAnimator.ofFloat(
+                        mediaPlayerArtwork, View.ROTATION, 0f, 360f);
+                mediaArtworkRotation.setDuration(12000L);
+                mediaArtworkRotation.setInterpolator(new android.view.animation.LinearInterpolator());
+                mediaArtworkRotation.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            }
+            if (!mediaArtworkRotation.isStarted()) mediaArtworkRotation.start();
+        } else if (mediaArtworkRotation != null) {
+            mediaArtworkRotation.cancel();
+            mediaPlayerArtwork.setRotation(0f);
+        }
+    }
+
+    private void renderMediaPlayer(MediaController controller, android.media.MediaMetadata metadata,
+                                   android.media.session.PlaybackState state) {
+        if (mediaPlayerSurface == null) return;
+        if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean("media_player_enabled", false) || controller == null) {
+            updateMediaArtworkRotation(false);
+            mediaPlayerSurface.setVisibility(View.GONE);
+            return;
+        }
+        int playback = state == null ? android.media.session.PlaybackState.STATE_NONE : state.getState();
+        boolean active = playback == android.media.session.PlaybackState.STATE_PLAYING
+                || playback == android.media.session.PlaybackState.STATE_BUFFERING
+                || playback == android.media.session.PlaybackState.STATE_PAUSED;
+        updateMediaArtworkRotation(playback == android.media.session.PlaybackState.STATE_PLAYING);
+        if (!active) {
+            updateMediaArtworkRotation(false);
+            mediaPlayerSurface.setVisibility(View.GONE);
+            return;
+        }
+        String title = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE);
+        String artist = metadata == null ? null : metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST);
+        mediaPlayerTitle.setText(mediaTextToTraditional(title == null || title.trim().isEmpty()
+                ? controller.getPackageName() : title));
+        mediaPlayerArtist.setText(mediaTextToTraditional(
+                artist == null ? controller.getPackageName() : artist));
+        android.graphics.Bitmap art = metadata == null ? null : metadata.getBitmap(
+                android.media.MediaMetadata.METADATA_KEY_ART);
+        if (art == null && metadata != null) art = metadata.getBitmap(
+                android.media.MediaMetadata.METADATA_KEY_ALBUM_ART);
+        boolean audioMetadata = metadata != null && (
+                metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ARTIST)
+                || metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ALBUM)
+                || metadata.containsKey(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART));
+        if (art != null) {
+            mediaPlayerArtwork.setImageBitmap(art);
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+        } else {
+            // Keep the designed music-note symbol when the player supplies no album artwork.
+            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+            // R197: show the complete vinyl image without inner padding or oval clipping.
+            mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_XY);
+            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+            mediaPlayerArtwork.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            mediaPlayerArtwork.setClipToOutline(false);
+        }
+        // Compact player presentation: artwork, title, artist and transport controls only.
+        // Do not show "now playing" labels or source/session information in the desktop widget.
+        mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerSource.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(artist == null || artist.trim().isEmpty()
+                ? View.GONE : View.VISIBLE);
+        if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
+        mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
+                ? "❚❚" : "▶");
+        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        mediaPlayerSurface.bringToFront();
+    }
+
+    private void openCurrentMediaApp() {
+        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
+        java.util.ArrayList<ResolveInfo> launchable = new java.util.ArrayList<>();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        for (ResolveInfo info : apps) {
+            if (info.activityInfo == null || getPackageName().equals(info.activityInfo.packageName)) continue;
+            launchable.add(info);
+            labels.add(info.loadLabel(getPackageManager()).toString());
+        }
+        if (launchable.isEmpty()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("選擇播放器")
+                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
+                    ResolveInfo info = launchable.get(which);
+                    Intent launch = new Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                            .setClassName(info.activityInfo.packageName, info.activityInfo.name)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try { startActivity(launch); }
+                    catch (android.content.ActivityNotFoundException ignored) { }
+                })
+                .setNegativeButton("返回", null)
+                .show();
+    }
+
+    /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
+    private final Runnable mediaPlaybackStateRefresh = new Runnable() {
+        @Override public void run() {
+            refreshMediaPlaybackButton();
+            if (mediaPlayerSurface != null && mediaPlayerSurface.getVisibility() != View.GONE) {
+                mediaPlayerSurface.postDelayed(this, 700L);
+            }
+        }
+    };
+
+    private void refreshMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        mediaPlaybackUiPlaying = audio != null && audio.isMusicActive();
+        updateMediaPlaybackButton();
+        updateMediaArtworkRotation(mediaPlaybackUiPlaying);
+    }
+
+    private void updateMediaPlaybackButton() {
+        if (mediaPlayerToggle == null) return;
+        mediaPlayerToggle.setText(mediaPlaybackUiPlaying ? "❚❚" : "▶");
+        mediaPlayerToggle.setContentDescription(mediaPlaybackUiPlaying ? "暫停播放" : "播放");
+    }
+
+    private void sendMediaKey(int keyCode) {
+        android.media.AudioManager audio = (android.media.AudioManager)
+                getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return;
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode));
+        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode));
+    }
+
+    private void stopMediaSessionMonitor() {
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        if (mediaPlayerSurface != null) mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
+    }
+
     private void restartIdleClock() {
         root.removeCallbacks(showIdleClock);
         if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
@@ -1552,6 +1848,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        stopMediaSessionMonitor();
         if (glowParticles != null) glowParticles.setActive(false);
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
@@ -1678,6 +1975,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // R165: UP from any actionable media-player control must leave the player
+        // and return to the desktop's upper navigation area (weather first in daily mode).
+        if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP
+                && mediaPlayerSurface != null
+                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            View descendant = focused;
+            while (descendant != null && descendant != mediaPlayerSurface) {
+                android.view.ViewParent parent = descendant.getParent();
+                descendant = parent instanceof View ? (View) parent : null;
+            }
+            if (descendant == mediaPlayerSurface) {
+                boolean dailyWeatherVisible = weeklyWeatherView != null
+                        && weeklyWeatherView.getVisibility() == View.VISIBLE
+                        && "day".equals(getSharedPreferences("weekly_weather", MODE_PRIVATE)
+                                .getString("display_mode", "week"));
+                if (dailyWeatherVisible && weeklyWeatherView.requestFocus()) return true;
+                View topButton = firstTopButton();
+                if (topButton != null && topButton.requestFocus()) return true;
+            }
+        }
+        // R165: allow the remote's UP key from the dock row to enter the media controls.
+        if (event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP
+                && mediaPlayerSurface != null
+                && mediaPlayerSurface.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            View child = focused;
+            while (child != null && child.getParent() != grid) {
+                android.view.ViewParent parent = child.getParent();
+                child = parent instanceof View ? (View) parent : null;
+            }
+            int dockPosition = child == null || grid == null ? -1
+                    : grid.getChildAdapterPosition(child);
+            if (dockPosition >= 0 && dockPosition < COLUMNS) {
+                View previous = findViewById(R.id.mediaPlayerPrevious);
+                if (previous != null && previous.isShown() && previous.requestFocus()) return true;
+            }
+        }
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window, so their
         // "hold:" entries run here too or nowhere. Only while resumed: onPause releases Home's holds, and a DOWN
         // taken after that would arm one nothing releases.

@@ -110,6 +110,19 @@
         </LinearLayout>
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/media_player_label"
+            android:textColor="@color/cytv_text_primary"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/mediaPlayerChoice"
+            style="@style/DesktopSettingsRow"
+            android:layout_marginTop="8dp" />
+
+        <TextView
             android:id="@+id/openOnStartChoice"
             style="@style/DesktopSettingsRow"
             android:layout_marginTop="14dp"
