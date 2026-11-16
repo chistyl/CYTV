@@ -49,13 +49,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Apply R215 media thumbnail source-app changes
-        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218'
+        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
       - name: Apply R216 minimal media player changes
-        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217'
+        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R216_media_player_thumbnail_controls_only.patch
       - name: Apply R217 media player position adjustment
-        if: github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217'
+        if: github.head_ref == 'fix/media-player-position-up-left-r217' || github.ref == 'refs/heads/fix/media-player-position-up-left-r217' || github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R217_media_player_position_up_left.patch
       - name: Apply R218 login verification changes
         if: github.head_ref == 'feat/enable-login-verification-r218' || github.ref == 'refs/heads/feat/enable-login-verification-r218'
