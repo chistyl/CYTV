@@ -455,7 +455,7 @@
 
 
     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
-    <!-- R198 reference-matched media player: aligned above the dock at the lower right. -->
+    <!-- R198 reference-matched media player: transparent, compact controls, offset 20dp. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
         android:layout_width="350dp"
