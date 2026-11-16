@@ -1652,6 +1652,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         currentMediaController = null;
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
         if (mediaPlayerSurface == null) return;
+        // R207: wire the active-session monitor to the desktop surface. Without this listener
+        // the monitor was never created, so renderMediaPlayer() could not reveal the R206-hidden view.
+        mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, playbackState) -> {
+            currentMediaController = controller;
+            renderMediaPlayer(controller, metadata, playbackState);
+            updateMediaPlayerSourceControl();
+        });
+        mediaSessionMonitor.start();
         // R173: remove the player heading and helper copy; keep artwork and controls only.
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
