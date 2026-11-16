@@ -1659,7 +1659,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             renderMediaPlayer(controller, metadata, playbackState);
             updateMediaPlayerSourceControl();
         });
-        mediaSessionMonitor.start();
         // R173: remove the player heading and helper copy; keep artwork and controls only.
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
@@ -1679,6 +1678,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // R206: keep the player hidden on an idle desktop; renderMediaPlayer reveals it only for an active media session.
         mediaPlayerSurface.setVisibility(View.GONE);
         mediaPlayerSurface.bringToFront();
+        // R208: start monitoring only after the initial GONE state is applied.
+        // An immediate active-session callback must be allowed to reveal the surface.
+        mediaSessionMonitor.start();
         // R174: disc rotation follows actual audio playback state, not panel visibility.
         // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
     }
