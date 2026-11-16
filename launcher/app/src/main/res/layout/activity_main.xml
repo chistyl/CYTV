@@ -466,7 +466,7 @@
         android:gravity="center_vertical"
         android:paddingStart="27dp"
         android:paddingEnd="24dp"
-        android:background="@drawable/media_player_panel"
+        android:background="@android:color/transparent"
         android:visibility="gone"
         android:focusable="false"
         android:clickable="false">
