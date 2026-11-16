@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Full-bleed base prevents transparent corners from showing around the vinyl. -->
+    <path android:fillColor="#FF17191C" android:pathData="M0,0h24v24h-24z"/>
+    <!-- Enlarge the record beyond all four viewport corners; only the vinyl surface is visible. -->
+    <group android:pivotX="12" android:pivotY="12" android:scaleX="1.9" android:scaleY="1.9">
+        <path android:fillColor="#FF17191C" android:pathData="M12,1.5a10.5,10.5 0,1 0,0 21a10.5,10.5 0,1 0,0 -21z"/>
+        <path android:fillColor="#FF30343A" android:pathData="M12,3.1a8.9,8.9 0,1 0,0 17.8a8.9,8.9 0,1 0,0 -17.8z"/>
+        <path android:fillColor="#FF17191C" android:pathData="M12,4.1a7.9,7.9 0,1 0,0 15.8a7.9,7.9 0,1 0,0 -15.8z"/>
+        <path android:fillColor="#FF383D43" android:pathData="M12,5.2a6.8,6.8 0,1 0,0 13.6a6.8,6.8 0,1 0,0 -13.6z"/>
+        <path android:fillColor="#FF17191C" android:pathData="M12,6.2a5.8,5.8 0,1 0,0 11.6a5.8,5.8 0,1 0,0 -11.6z"/>
+        <path android:fillColor="#FF5B626B" android:pathData="M12,7.1a4.9,4.9 0,1 0,0 9.8a4.9,4.9 0,1 0,0 -9.8z"/>
+        <path android:fillColor="#FF252A30" android:pathData="M12,8.2a3.8,3.8 0,1 0,0 7.6a3.8,3.8 0,1 0,0 -7.6z"/>
+        <path android:fillColor="#FFB7B9BC" android:pathData="M12,9.1a2.9,2.9 0,1 0,0 5.8a2.9,2.9 0,1 0,0 -5.8z"/>
+        <path android:fillColor="#FF343A42" android:pathData="M12,9.8a2.2,2.2 0,1 0,0 4.4a2.2,2.2 0,1 0,0 -4.4z"/>
+        <path android:fillColor="#FFE4E5E7" android:pathData="M12,11.15a0.85,0.85 0,1 0,0 1.7a0.85,0.85 0,1 0,0 -1.7z"/>
+    </group>
+    <!-- Solid white music note, with no outline or stroke. -->
+    <group android:pivotX="12" android:pivotY="12" android:scaleX="0.65" android:scaleY="0.65">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M12,3v12.55A4,4 0,1 1,10 12V7l10,-2v10.55A4,4 0,1 1,18 12V3z"/>
+    </group>
+</vector>

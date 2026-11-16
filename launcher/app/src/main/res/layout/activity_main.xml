@@ -454,19 +454,18 @@
     </LinearLayout>
 
 
-    <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
+    <!-- R197: compact player panel aligned to the lower-right reference position. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
-        android:layout_width="352dp"
-        android:layout_height="80dp"
+        android:layout_width="350dp"
+        android:layout_height="114dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="80dp"
-        android:layout_marginBottom="72dp"
-        android:translationX="30dp"
-        android:translationY="-100dp"
+        android:layout_marginEnd="81dp"
+        android:layout_marginBottom="218dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="0dp"
+        android:paddingStart="27dp"
+        android:paddingEnd="24dp"
         android:background="@android:color/transparent"
         android:visibility="gone"
         android:focusable="false"
@@ -474,9 +473,9 @@
 
         <ImageView
             android:id="@+id/mediaPlayerArtwork"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_marginEnd="22dp"
             android:scaleType="centerCrop"
             android:background="@drawable/media_player_artwork_rounded"
             android:clipToOutline="true"
@@ -486,101 +485,64 @@
             android:nextFocusRight="@id/mediaPlayerPrevious"
             android:nextFocusUp="@id/grid" />
 
+        <!-- Retain metadata view IDs required by the existing media-session controller. -->
+        <TextView android:id="@+id/mediaPlayerMode" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerTitle" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerArtist" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerSource" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+
         <LinearLayout
-            android:layout_width="260dp"
+            android:id="@+id/mediaPlayerButtons"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center_vertical|start">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/mediaPlayerMode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#99FFFFFF"
-                android:textSize="11sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/mediaPlayerTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:id="@+id/mediaPlayerPrevious"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:nextFocusLeft="@id/mediaPlayerArtwork"
+                android:nextFocusRight="@id/mediaPlayerToggle"
+                android:nextFocusUp="@id/grid"
+                android:layout_marginEnd="18dp"
+                android:gravity="center"
+                android:background="@android:color/transparent"
+                android:text="|◀|"
                 android:textColor="#FFFFFFFF"
                 android:textSize="18sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/mediaPlayerArtist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#B3FFFFFF"
-                android:textSize="13sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/mediaPlayerSource"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:gravity="center_vertical"
-                android:textColor="#CCFFFFFF"
-                android:textSize="12sp"
                 android:focusable="true"
-                android:clickable="true"
-                android:visibility="gone"
-                android:contentDescription="@string/media_player_switch_source" />
+                android:clickable="true" />
 
-            <LinearLayout
-                android:id="@+id/mediaPlayerButtons"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-                <TextView
-                    android:id="@+id/mediaPlayerPrevious"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:nextFocusLeft="@id/mediaPlayerArtwork"
-                    android:nextFocusRight="@id/mediaPlayerToggle"
-                    android:nextFocusUp="@id/grid"
-                    android:layout_marginEnd="6dp"
-                    android:gravity="center"
-                    android:background="@drawable/media_player_button"
-                    android:text="|◀|"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="15sp"
-                    android:focusable="true"
-                    android:clickable="true" />
-                <TextView
-                    android:id="@+id/mediaPlayerToggle"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:nextFocusLeft="@id/mediaPlayerPrevious"
-                    android:nextFocusRight="@id/mediaPlayerNext"
-                    android:nextFocusUp="@id/grid"
-                    android:layout_marginEnd="6dp"
-                    android:gravity="center"
-                    android:background="@drawable/media_player_button"
-                    android:text="❚❚"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="17sp"
-                    android:focusable="true"
-                    android:clickable="true" />
-                <TextView
-                    android:id="@+id/mediaPlayerNext"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:nextFocusLeft="@id/mediaPlayerToggle"
-                    android:nextFocusUp="@id/grid"
-                    android:gravity="center"
-                    android:background="@drawable/media_player_button"
-                    android:text="|▶|"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="18sp"
-                    android:focusable="true"
-                    android:clickable="true" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/mediaPlayerToggle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:nextFocusLeft="@id/mediaPlayerPrevious"
+                android:nextFocusRight="@id/mediaPlayerNext"
+                android:nextFocusUp="@id/grid"
+                android:layout_marginEnd="18dp"
+                android:gravity="center"
+                android:background="@android:color/transparent"
+                android:text="❚❚"
+                android:textColor="#FFFFFFFF"
+                android:textSize="21sp"
+                android:focusable="true"
+                android:clickable="true" />
+
+            <TextView
+                android:id="@+id/mediaPlayerNext"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:nextFocusLeft="@id/mediaPlayerToggle"
+                android:nextFocusUp="@id/grid"
+                android:gravity="center"
+                android:background="@android:color/transparent"
+                android:text="|▶|"
+                android:textColor="#FFFFFFFF"
+                android:textSize="18sp"
+                android:focusable="true"
+                android:clickable="true" />
         </LinearLayout>
     </LinearLayout>
 
