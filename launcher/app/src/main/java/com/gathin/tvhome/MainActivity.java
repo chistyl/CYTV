@@ -1659,7 +1659,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_music_note);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        int musicGlyphInset = (int) (36 * getResources().getDisplayMetrics().density);
+        // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
+        int musicGlyphInset = (int) (8 * getResources().getDisplayMetrics().density);
         mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
@@ -1752,14 +1753,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
             mediaPlayerArtwork.setPadding(0, 0, 0, 0);
         } else {
-            try {
-                mediaPlayerArtwork.setImageDrawable(getPackageManager().getApplicationIcon(
-                        controller.getPackageName()));
-            } catch (PackageManager.NameNotFoundException ignored) {
-                mediaPlayerArtwork.setImageResource(android.R.drawable.ic_media_play);
-            }
+            // Keep the designed music-note symbol when the player supplies no album artwork.
+            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_music_note);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            mediaPlayerArtwork.setPadding(48, 32, 48, 32);
+            int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
+            mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
         }
         // Compact player presentation: artwork, title, artist and transport controls only.
         // Do not show "now playing" labels or source/session information in the desktop widget.
