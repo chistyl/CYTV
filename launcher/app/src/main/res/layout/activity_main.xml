@@ -554,8 +554,8 @@
                     android:clickable="true" />
                 <TextView
                     android:id="@+id/mediaPlayerToggle"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:nextFocusLeft="@id/mediaPlayerPrevious"
                     android:nextFocusRight="@id/mediaPlayerNext"
                     android:nextFocusUp="@id/grid"
