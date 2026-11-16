@@ -10,7 +10,6 @@ on:
       - fix/media-player-artwork-display-only-r213
       - fix/interface-layout-bottom-row-align-r214
       - feat/media-thumbnail-launch-source-app-r215
-      - feat/media-thumbnail-launch-source-app-r215
       - feat/media-thumbnail-only-r216
     paths:
       - 'launcher/**'
