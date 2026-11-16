@@ -485,6 +485,12 @@
             android:nextFocusRight="@id/mediaPlayerPrevious"
             android:nextFocusUp="@id/grid" />
 
+        <!-- Retain metadata view IDs required by the existing media-session controller. -->
+        <TextView android:id="@+id/mediaPlayerMode" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerTitle" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerArtist" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/mediaPlayerSource" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/mediaPlayerButtons"
             android:layout_width="wrap_content"
