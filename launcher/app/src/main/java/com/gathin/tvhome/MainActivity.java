@@ -1668,7 +1668,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         refreshMediaPlaybackButton();
         mediaPlayerSurface.removeCallbacks(mediaPlaybackStateRefresh);
         mediaPlayerSurface.post(mediaPlaybackStateRefresh);
-        mediaPlayerSurface.setVisibility(mediaPlayerHiddenByDockScroll ? View.INVISIBLE : View.VISIBLE);
+        // R206: keep the player hidden on an idle desktop; renderMediaPlayer reveals it only for an active media session.
+        mediaPlayerSurface.setVisibility(View.GONE);
         mediaPlayerSurface.bringToFront();
         // R174: disc rotation follows actual audio playback state, not panel visibility.
         // refreshMediaPlaybackButton() starts or stops rotation based on AudioManager.
