@@ -24,6 +24,7 @@ on:
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
       - fix/interface-layout-bottom-row-align-r214
+      - feat/media-thumbnail-launch-source-app-r215
     paths:
       - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
@@ -68,6 +69,12 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
+          if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/media-thumbnail-only-r216" ]; then
+            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R216-Media-Thumbnail-Only-debug.apk
+            zip -qr release/CYTV-R216-Media-Thumbnail-Only-Source.zip . \
+              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+                 './launcher/app/build/*' './release/*'
+          elif [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/media-thumbnail-launch-source-app-r215" ]; then
           if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/media-thumbnail-launch-source-app-r215" ]; then
             cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R215-Media-Thumbnail-Launch-debug.apk
             zip -qr release/CYTV-R215-Media-Thumbnail-Launch-Source.zip . \
@@ -82,7 +89,7 @@ jobs:
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R215-deliverables
+name: CYTV-R216-deliverables
           path: release/*
           if-no-files-found: error
           retention-days: 30
