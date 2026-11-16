@@ -457,8 +457,8 @@
     <!-- R165 media player: transparent horizontal controls, positioned above the app shelf. -->
     <LinearLayout
         android:id="@+id/mediaPlayerSurface"
-        android:layout_width="352dp"
-        android:layout_height="80dp"
+        android:layout_width="376dp"
+        android:layout_height="104dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="80dp"
         android:layout_marginBottom="72dp"
@@ -474,8 +474,8 @@
 
         <ImageView
             android:id="@+id/mediaPlayerArtwork"
-            android:layout_width="92dp"
-            android:layout_height="92dp"
+            android:layout_width="104dp"
+            android:layout_height="104dp"
             android:layout_marginEnd="12dp"
             android:scaleType="centerCrop"
             android:background="@drawable/media_player_artwork_rounded"
