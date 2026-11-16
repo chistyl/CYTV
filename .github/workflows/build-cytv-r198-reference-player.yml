@@ -32,6 +32,7 @@ on:
       - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
       - 'patches/CYTV_R216_media_player_thumbnail_controls_only.patch'
+      - 'patches/CYTV_R217_media_player_position_offset.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   workflow_dispatch:
 
@@ -45,10 +46,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Apply R215 media thumbnail source-app changes
-        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
+        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'feat/media-player-position-offset-r217' || github.ref == 'refs/heads/feat/media-player-position-offset-r217'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
       - name: Apply R216 minimal media player changes
-        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
+        if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216' || github.head_ref == 'feat/media-player-position-offset-r217' || github.ref == 'refs/heads/feat/media-player-position-offset-r217'
         run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R216_media_player_thumbnail_controls_only.patch
       - name: Apply R217 media player position offset
         if: github.head_ref == 'feat/media-player-position-offset-r217' || github.ref == 'refs/heads/feat/media-player-position-offset-r217'
@@ -95,7 +96,7 @@ jobs:
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R216-deliverables
+          name: CYTV-R217-deliverables
           path: release/*
           if-no-files-found: error
           retention-days: 30
