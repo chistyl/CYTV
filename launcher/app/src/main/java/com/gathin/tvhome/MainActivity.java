@@ -1659,7 +1659,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerArtwork.setImageResource(R.drawable.ic_media_music_note);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
-        int musicGlyphInset = (int) (28 * getResources().getDisplayMetrics().density);
+        int musicGlyphInset = (int) (36 * getResources().getDisplayMetrics().density);
         mediaPlayerArtwork.setPadding(musicGlyphInset, musicGlyphInset, musicGlyphInset, musicGlyphInset);
         mediaPlayerMode.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
