@@ -1751,7 +1751,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (art != null) {
             mediaPlayerArtwork.setImageBitmap(art);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+            // R201: inset real album art so the black/image area is smaller while the 76dp white circular rim stays unchanged.
+            int artworkInset = (int) (8 * getResources().getDisplayMetrics().density);
+            mediaPlayerArtwork.setPadding(artworkInset, artworkInset, artworkInset, artworkInset);
         } else {
             // Keep the designed music-note symbol when the player supplies no album artwork.
             mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
