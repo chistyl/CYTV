@@ -1644,11 +1644,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         restartIdleClock();
     }
 
+    private boolean hasMediaSessionAccess() {
+        String enabled = Settings.Secure.getString(getContentResolver(),
+                "enabled_notification_listeners");
+        if (enabled == null || enabled.isEmpty()) return false;
+        ComponentName listener = new ComponentName(this, GuardRevival.class);
+        for (String item : enabled.split(":")) {
+            ComponentName granted = ComponentName.unflattenFromString(item);
+            if (listener.equals(granted)) return true;
+        }
+        return false;
+    }
+
     /** R165: keep the current media session snapshot ready for the desktop player surface. */
     /** Media surface that works without Android notification-listener authorization. */
     private void startMediaSessionMonitor() {
         if (!getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getBoolean("media_player_enabled", false)) return;
+        // R209: MediaSessionManager only exposes third-party sessions to an authorized
+        // NotificationListenerService. Check the exact listener component before starting.
+        if (!hasMediaSessionAccess()) {
+            if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
+            if (resumed && !isFinishing()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("需要媒體偵測權限")
+                        .setMessage("CYTV 需要允許通知存取，才能偵測音樂或影片 App 的播放狀態並顯示桌面播放器。請在系統設定中允許 CYTV。")
+                        .setNegativeButton("稍後", (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton("前往設定", (dialog, which) -> {
+                            try {
+                                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                            } catch (RuntimeException ignored) {
+                                Toast.makeText(this, "請至系統設定開啟 CYTV 的通知存取權限", Toast.LENGTH_LONG).show();
+                            }
+                        })
+                        .show();
+            }
+            return;
+        }
         currentMediaController = null;
         if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
         if (mediaPlayerSurface == null) return;
