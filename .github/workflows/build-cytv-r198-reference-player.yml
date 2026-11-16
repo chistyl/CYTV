@@ -1,30 +1,21 @@
-name: CYTV R210 Audio Playback Callback Build
+name: CYTV R216 Media Thumbnail Only Build
 
 on:
   push:
     branches:
-      - fix/media-player-r198-reference-layout
-      - fix/media-player-audio-playback-callback-r210
-      - fix/media-player-black-transparent-focus-r211
-      - fix/media-player-visible-focus-ring-r212
-      - fix/media-player-artwork-display-only-r213
-      - fix/interface-layout-bottom-row-align-r214
-      - feat/media-thumbnail-launch-source-app-r215
+      - feat/media-thumbnail-only-r216
     paths:
       - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
+      - 'patches/CYTV_R216_media_thumbnail_only.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-      - fix/media-player-r197-r196-clean-build
-      - fix/media-player-black-transparent-focus-r211
-      - fix/media-player-visible-focus-ring-r212
-      - fix/media-player-artwork-display-only-r213
-      - fix/interface-layout-bottom-row-align-r214
+      - feat/media-thumbnail-launch-source-app-r215
     paths:
-      - 'launcher/**'
       - 'patches/CYTV_R215_media_thumbnail_launch_source.patch'
+      - 'patches/CYTV_R216_media_thumbnail_only.patch'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
   workflow_dispatch:
 
@@ -37,9 +28,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Apply R215 media thumbnail source-app changes
-        if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215'
+      - name: Apply R215 source-app behavior
         run: patch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
+      - name: Apply R216 thumbnail-only layout
+        run: patch -p1 < patches/CYTV_R216_media_thumbnail_only.patch
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -63,21 +55,14 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
-          if [ "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = "feat/media-thumbnail-launch-source-app-r215" ]; then
-            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R215-Media-Thumbnail-Launch-debug.apk
-            zip -qr release/CYTV-R215-Media-Thumbnail-Launch-Source.zip . \
-              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-                 './launcher/app/build/*' './release/*'
-          else
-            cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R198-R196-Style-Preserved-debug.apk
-            zip -qr release/CYTV-R198-R196-Style-Preserved-Source.zip . \
-              -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
-                 './launcher/app/build/*' './release/*'
-          fi
+          cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R216-Media-Thumbnail-Only-debug.apk
+          zip -qr release/CYTV-R216-Media-Thumbnail-Only-Source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './release/*'
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R215-deliverables
+          name: CYTV-R216-deliverables
           path: release/*
           if-no-files-found: error
           retention-days: 30
