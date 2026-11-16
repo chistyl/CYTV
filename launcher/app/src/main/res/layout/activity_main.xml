@@ -474,8 +474,8 @@
 
         <ImageView
             android:id="@+id/mediaPlayerArtwork"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
             android:layout_marginEnd="12dp"
             android:scaleType="centerCrop"
             android:background="@drawable/media_player_artwork_rounded"
