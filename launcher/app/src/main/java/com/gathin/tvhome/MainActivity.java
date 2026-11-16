@@ -1656,7 +1656,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerTitle.setVisibility(View.GONE);
         mediaPlayerArtist.setVisibility(View.GONE);
         // R175: use a compact music-note glyph centered in the black disc.
-        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+        mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
         mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
         mediaPlayerArtwork.setBackgroundResource(R.drawable.media_player_artwork_rounded);
         // R181: keep the music-note glyph visible inside the reduced 50dp artwork disc.
@@ -1751,10 +1751,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (art != null) {
             mediaPlayerArtwork.setImageBitmap(art);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            mediaPlayerArtwork.setPadding(0, 0, 0, 0);
+            // R201: inset real album art so the black/image area is smaller while the 76dp white circular rim stays unchanged.
+            int artworkInset = (int) (8 * getResources().getDisplayMetrics().density);
+            mediaPlayerArtwork.setPadding(artworkInset, artworkInset, artworkInset, artworkInset);
         } else {
             // Keep the designed music-note symbol when the player supplies no album artwork.
-            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_vinyl_record);
+            mediaPlayerArtwork.setImageResource(R.drawable.ic_media_player_default);
             mediaPlayerArtwork.setScaleType(ImageView.ScaleType.FIT_CENTER);
             int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
             mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
