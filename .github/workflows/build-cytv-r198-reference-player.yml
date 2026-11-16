@@ -5,6 +5,7 @@ on:
     branches:
       - fix/media-player-r198-reference-layout
       - fix/media-player-audio-playback-callback-r210
+      - fix/media-player-black-transparent-focus-r211
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
