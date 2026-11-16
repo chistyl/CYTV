@@ -43,10 +43,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Apply R215 media thumbnail source-app changes
         if: github.head_ref == 'feat/media-thumbnail-launch-source-app-r215' || github.ref == 'refs/heads/feat/media-thumbnail-launch-source-app-r215' || github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
-        run: patch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
+        run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R215_media_thumbnail_launch_source.patch
       - name: Apply R216 minimal media player changes
         if: github.head_ref == 'feat/media-player-thumbnail-controls-only-r216' || github.ref == 'refs/heads/feat/media-player-thumbnail-controls-only-r216'
-        run: patch -p1 < patches/CYTV_R216_media_player_thumbnail_controls_only.patch
+        run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R216_media_player_thumbnail_controls_only.patch
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
