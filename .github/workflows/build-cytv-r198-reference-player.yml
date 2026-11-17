@@ -1,4 +1,4 @@
-name: CYTV R210 Audio Playback Callback Build
+name: CYTV R215 Global Dialog Safe-Area Build
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
       - fix/interface-layout-bottom-row-align-r214
+      - fix/global-dialog-layout-safe-area-r215
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
@@ -19,6 +20,7 @@ on:
       - fix/media-player-black-transparent-focus-r211
       - fix/media-player-visible-focus-ring-r212
       - fix/media-player-artwork-display-only-r213
+      - fix/interface-layout-bottom-row-align-r214
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
@@ -56,14 +58,14 @@ jobs:
       - name: Package APK and complete source
         run: |
           mkdir -p release
-          cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R198-R196-Style-Preserved-debug.apk
-          zip -qr release/CYTV-R198-R196-Style-Preserved-Source.zip . \
+          cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R215-debug.apk
+          zip -qr release/CYTV-R215-Source.zip . \
             -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
                './launcher/app/build/*' './release/*'
       - name: Upload deliverables
         uses: actions/upload-artifact@v4
         with:
-          name: CYTV-R198-R196-Style-Preserved
+          name: CYTV-R215
           path: |
             release/CYTV-R198-R196-Style-Preserved-debug.apk
             release/CYTV-R198-R196-Style-Preserved-Source.zip
