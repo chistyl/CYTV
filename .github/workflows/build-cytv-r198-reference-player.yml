@@ -67,7 +67,7 @@ jobs:
         with:
           name: CYTV-R215
           path: |
-            release/CYTV-R198-R196-Style-Preserved-debug.apk
-            release/CYTV-R198-R196-Style-Preserved-Source.zip
+            release/CYTV-R215-debug.apk
+            release/CYTV-R215-Source.zip
           if-no-files-found: error
           retention-days: 30
