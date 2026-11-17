@@ -168,7 +168,7 @@ public final class LauncherSettingsActivity extends Activity {
 
     private void showMediaNotificationAccessPrompt() {
         if (isFinishing() || hasMediaNotificationAccess()) return;
-        new AlertDialog.Builder(this)
+        AlertDialog permissionPrompt = new AlertDialog.Builder(this)
                 .setTitle(R.string.media_player_permission_title)
                 .setMessage(R.string.media_player_permission_message)
                 .setPositiveButton(R.string.media_player_permission_open, (dialog, which) -> {
@@ -180,7 +180,9 @@ public final class LauncherSettingsActivity extends Activity {
                     }
                 })
                 .setNegativeButton(R.string.later, null)
-                .show();
+                .create();
+        permissionPrompt.show();
+        styleSettingsDialog(permissionPrompt);
     }
 
     private void refreshMediaPlayerChoice() {
