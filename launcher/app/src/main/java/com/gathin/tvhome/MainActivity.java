@@ -4718,6 +4718,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 });
             } else {
                 String place = resolveWeatherPlace(location.getLatitude(), location.getLongitude());
+                if (!isWeatherRequestCurrent(requestId)) return;
                 fetchForecast(location.getLatitude(), location.getLongitude(), place, requestId, requestCacheKey);
             }
         });
@@ -4759,6 +4760,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void fetchCityForecast(String city, long requestId, String cacheKey) {
+        if (!isWeatherRequestCurrent(requestId)) return;
         try {
             String normalized = city == null ? "" : city.trim().replace("臺", "台");
             if (normalized.isEmpty()) throw new IOException("請輸入城市名稱");
@@ -4810,6 +4812,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void fetchMetNoForecast(double lat, double lon, String place,
             long requestId, String cacheKey) throws Exception {
+        if (!isWeatherRequestCurrent(requestId)) return;
         String endpoint = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat="
                 + lat + "&lon=" + lon;
         JSONObject response = getJson(endpoint);
@@ -4875,6 +4878,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void fetchCwaForecast(double lat, double lon, String place,
             long requestId, String cacheKey) throws Exception {
+        if (!isWeatherRequestCurrent(requestId)) return;
         final String endpoint = "https://raw.githubusercontent.com/chistyl/CYTV/weather-data/cwa-weekly.json";
         JSONObject response = getJson(endpoint);
         JSONArray locations = response.optJSONArray("locations");
@@ -4978,6 +4982,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * CWA is preferred in Taiwan because it provides precipitation probability.
      */
     private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
+        if (!isWeatherRequestCurrent(requestId)) return;
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
                 || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180) {
             showWeatherError("城市座標無效", requestId);
