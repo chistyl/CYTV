@@ -5417,6 +5417,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dialog.setContentView(panel);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -5952,6 +5953,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (selectedRow[0] != null) selectedRow[0].requestFocus(); else if (cityRows.getChildCount() > 0) cityRows.getChildAt(0).requestFocus();
             });
             pickerDialog.show();
+        DialogLayoutController.apply(pickerDialog, this);
         });
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -6019,6 +6021,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
@@ -6619,6 +6622,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         dialog.setContentView(outer);
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
@@ -7564,6 +7568,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         dialog.setContentView(screen);
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(16, 25, 40)));
@@ -7816,6 +7821,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         });
         dialog.setContentView(panel); dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             // Keep the same 60% dim layer as folder dialogs; the QR panel stays sharp.
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -7974,6 +7980,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         });
         createDialog.show();
+        DialogLayoutController.apply(createDialog, this);
         if (createDialog.getWindow() != null) {
             createDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
@@ -8267,6 +8274,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
         dialog.setContentView(outer);
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
@@ -8967,6 +8975,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         }
         dialog.setContentView(outer);
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if (dialog.getWindow() != null) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
@@ -9263,6 +9272,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             });
         }
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         if(dialog.getWindow()!=null) {
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
@@ -9489,6 +9499,7 @@ private GradientDrawable roundSurface(int color, float radius) {
             }
         });
         renameDialog.show();
+        DialogLayoutController.apply(renameDialog, this);
         if (renameDialog.getWindow() != null) {
             renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
@@ -9909,6 +9920,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }).create();
         colorDialog.setOnCancelListener(dialog -> reopenPendingFolderAfterAppEdit());
         colorDialog.show();
+        DialogLayoutController.apply(colorDialog, this);
         if (colorDialog.getWindow() != null) {
             GradientDrawable dialogSurface = new GradientDrawable();
             dialogSurface.setColor(0xFF3B3B3B);
@@ -10065,6 +10077,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                 }).create();
         sizeDialog.setOnCancelListener(dialog -> reopenPendingFolderAfterAppEdit());
         sizeDialog.show();
+        DialogLayoutController.apply(sizeDialog, this);
         if (sizeDialog.getWindow() != null) {
             GradientDrawable dialogSurface = new GradientDrawable();
             dialogSurface.setColor(0xFF3B3B3B);
@@ -10273,6 +10286,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                         }
                     });
                     renameDialog.show();
+        DialogLayoutController.apply(renameDialog, this);
                     if (renameDialog.getWindow() != null) {
                         renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                         int fixedWidth = Math.min((int)(680*density),
@@ -10411,6 +10425,7 @@ private GradientDrawable roundSurface(int color, float radius) {
                         }
                     });
                     deleteDialog.show();
+        DialogLayoutController.apply(deleteDialog, this);
                     if (deleteDialog.getWindow() != null) {
                         deleteDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                         int fixedWidth = Math.min((int)(680*density),
@@ -10703,6 +10718,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         show.setOnKeyListener(keys);
         cardPrompt = dialog;
         dialog.show();
+        DialogLayoutController.apply(dialog, this);
         keep.requestFocus();
     }
 
