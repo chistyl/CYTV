@@ -10413,9 +10413,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                         deleteDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                         int fixedWidth = Math.min((int)(680*density),
                                 getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-                        int compactHeight = Math.min((int)(226*density),
-                                getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-                        deleteDialog.getWindow().setLayout(fixedWidth, compactHeight);
+                        // 依標題、說明與操作按鈕的實際內容決定高度，不使用固定高度。
+                        deleteDialog.getWindow().setLayout(fixedWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
                         deleteDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                         deleteDialog.getWindow().setDimAmount(0.6f);
                     }
