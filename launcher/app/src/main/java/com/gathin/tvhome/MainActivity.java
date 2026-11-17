@@ -1922,10 +1922,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                             && (actions & android.media.session.PlaybackState.ACTION_PAUSE) != 0) {
                         controls.pause();
                         handled = true;
-                    } else if ((actions & android.media.session.PlaybackState.ACTION_PLAY) != 0) {
-                        controls.play();
+                    } else if (playback == android.media.session.PlaybackState.STATE_PLAYING
+                            && (actions & android.media.session.PlaybackState.ACTION_PLAY_PAUSE) != 0) {
+                        controls.pause();
                         handled = true;
-                    } else if ((actions & android.media.session.PlaybackState.ACTION_PLAY_PAUSE) != 0) {
+                    } else if ((actions & (android.media.session.PlaybackState.ACTION_PLAY
+                            | android.media.session.PlaybackState.ACTION_PLAY_PAUSE)) != 0) {
                         controls.play();
                         handled = true;
                     }
