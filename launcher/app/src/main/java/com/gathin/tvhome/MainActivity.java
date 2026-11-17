@@ -220,6 +220,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean hasWeeklyWeatherData;
     /** CWA-derived forecasts require explicit source attribution in the weather UI. */
     private boolean weatherFromCwa;
+    /** Monotonic token: only the latest selected location may publish or persist a forecast. */
+    private final java.util.concurrent.atomic.AtomicLong weatherRequestGeneration =
+            new java.util.concurrent.atomic.AtomicLong();
     private Runnable placeWeatherOverlay;
     private LinearLayout weeklyWeatherDays;
     private TextView weeklyWeatherHeading;
@@ -4575,6 +4578,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return "forecast_snapshot_" + mode + "_" + location.trim().toLowerCase(Locale.ROOT);
     }
 
+    private boolean isWeatherRequestCurrent(long requestId) {
+        return weatherRequestGeneration.get() == requestId;
+    }
+
     /** Restore the last complete successful snapshot before starting any network request. */
     private boolean restoreCachedWeeklyWeather() {
         if (hasWeeklyWeatherData) return true;
@@ -4593,7 +4600,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7) return false;
             if (rain != null && rain.length() < 7) rain = null;
             weatherFromCwa = snapshot.optBoolean("fromCwa", false);
-            renderWeeklyWeather(dates, codes, highs, lows, rain, place);
+            renderWeeklyWeather(dates, codes, highs, lows, rain, place,
+                    snapshot.optBoolean("fromCwa", false), weeklyWeatherCacheKey());
             return hasWeeklyWeatherData;
         } catch (Exception e) {
             android.util.Log.w("CYTV-Weather", "Cached forecast restore failed", e);
@@ -4629,7 +4637,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Persist only complete seven-day forecasts; never cache transient loading/error states. */
     private void persistWeeklyWeatherSnapshot(JSONArray dates, JSONArray codes, JSONArray highs,
-            JSONArray lows, JSONArray rain, String place) {
+            JSONArray lows, JSONArray rain, String place, boolean fromCwa, String cacheKey) {
         if (dates == null || codes == null || highs == null || lows == null
                 || dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7) return;
         try {
@@ -4640,10 +4648,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             snapshot.put("lows", lows.toString());
             snapshot.put("rain", rain == null ? "" : rain.toString());
             snapshot.put("place", place == null ? "" : place);
-            snapshot.put("fromCwa", weatherFromCwa);
+            snapshot.put("fromCwa", fromCwa);
             snapshot.put("savedAt", System.currentTimeMillis());
             getSharedPreferences("weekly_weather", MODE_PRIVATE).edit()
-                    .putString(weeklyWeatherCacheKey(), snapshot.toString()).apply();
+                    .putString(cacheKey, snapshot.toString()).apply();
         } catch (Exception e) {
             android.util.Log.w("CYTV-Weather", "Cached forecast save failed", e);
         }
@@ -4671,6 +4679,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void loadWeeklyWeather() {
+        final long requestId = weatherRequestGeneration.incrementAndGet();
+        final String requestCacheKey = weeklyWeatherCacheKey();
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         String mode = prefs.getString("location_mode", "device");
         if ("city".equals(mode) || "custom".equals(mode)) {
@@ -4678,12 +4688,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     : prefs.getString("city", "桃園市").trim();
             if (city.isEmpty()) city = "桃園市";
             final String selectedCity = city;
-            weatherExecutor.execute(() -> fetchCityForecast(selectedCity));
+            weatherExecutor.execute(() -> fetchCityForecast(selectedCity, requestId, requestCacheKey));
             return;
         }
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             weatherHandler.post(() -> {
+                if (!isWeatherRequestCurrent(requestId)) return;
                 showWeeklyWeatherStatus("一週天氣：需要定位權限，請至設定允許，或改用固定城市");
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 918);
             });
@@ -4701,10 +4712,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             } catch (Exception ignored) { }
             if (location == null) {
-                weatherHandler.post(() -> showWeeklyWeatherStatus("無法取得電視位置，請改用「固定指定城市」"));
+                weatherHandler.post(() -> {
+                    if (isWeatherRequestCurrent(requestId))
+                        showWeeklyWeatherStatus("無法取得電視位置，請改用「固定指定城市」");
+                });
             } else {
                 String place = resolveWeatherPlace(location.getLatitude(), location.getLongitude());
-                fetchForecast(location.getLatitude(), location.getLongitude(), place);
+                fetchForecast(location.getLatitude(), location.getLongitude(), place, requestId, requestCacheKey);
             }
         });
     }
@@ -4744,7 +4758,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return "目前位置";
     }
 
-    private void fetchCityForecast(String city) {
+    private void fetchCityForecast(String city, long requestId, String cacheKey) {
         try {
             String normalized = city == null ? "" : city.trim().replace("臺", "台");
             if (normalized.isEmpty()) throw new IOException("請輸入城市名稱");
@@ -4753,7 +4767,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Districts and overseas cities continue through geocoding below.
             WeeklyWeatherCity fixedCity = WeeklyWeatherCity.find(normalized);
             if (fixedCity != null) {
-                fetchForecast(fixedCity.latitude, fixedCity.longitude, fixedCity.displayName);
+                fetchForecast(fixedCity.latitude, fixedCity.longitude, fixedCity.displayName, requestId, cacheKey);
                 return;
             }
 
@@ -4781,10 +4795,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (selected == null) selected = results.getJSONObject(0);
             // Keep the user's entered place as the card label; do not append geocoder
             // administrative areas or country metadata such as "中壢・臺灣省・台灣".
+            if (!isWeatherRequestCurrent(requestId)) return;
             fetchForecast(selected.getDouble("latitude"), selected.getDouble("longitude"),
-                    TraditionalText.toTraditional(normalized));
+                    TraditionalText.toTraditional(normalized), requestId, cacheKey);
         } catch (Exception e) {
-            showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+            showWeatherError("城市定位失敗：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()), requestId);
         }
     }
 
@@ -4793,7 +4808,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Uses a separate host/provider from Open-Meteo and requires no API key.
      * Daily highs/lows are aggregated from the provider's forecast time series.
      */
-    private void fetchMetNoForecast(double lat, double lon, String place) throws Exception {
+    private void fetchMetNoForecast(double lat, double lon, String place,
+            long requestId, String cacheKey) throws Exception {
         String endpoint = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat="
                 + lat + "&lon=" + lon;
         JSONObject response = getJson(endpoint);
@@ -4842,9 +4858,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lows.put(Math.round(entry.getValue()[1] * 10.0) / 10.0);
         }
         if (dates.length() < 7) throw new IOException("備援天氣資料不足七天");
-        weatherFromCwa = false;
         weatherHandler.post(() -> {
-            renderWeeklyWeather(dates, codes, highs, lows, null, place);
+            if (!isWeatherRequestCurrent(requestId)) return;
+            renderWeeklyWeather(dates, codes, highs, lows, null, place, false, cacheKey);
             if (openWeeklyForecastAfterRefresh) {
                 openWeeklyForecastAfterRefresh = false;
                 showWeeklyForecastDialog(dates, codes, highs, lows, null, place);
@@ -4857,7 +4873,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Reads the normalized, key-free CWA feed generated by the repository's scheduled workflow.
      * The device never receives or stores the private CWA API key.
      */
-    private void fetchCwaForecast(double lat, double lon, String place) throws Exception {
+    private void fetchCwaForecast(double lat, double lon, String place,
+            long requestId, String cacheKey) throws Exception {
         final String endpoint = "https://raw.githubusercontent.com/chistyl/CYTV/weather-data/cwa-weekly.json";
         JSONObject response = getJson(endpoint);
         JSONArray locations = response.optJSONArray("locations");
@@ -4905,9 +4922,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
 
-        weatherFromCwa = true;
         weatherHandler.post(() -> {
-            renderWeeklyWeather(dates, codes, highs, lows, rain, place);
+            if (!isWeatherRequestCurrent(requestId)) return;
+            renderWeeklyWeather(dates, codes, highs, lows, rain, place, true, cacheKey);
             if (openWeeklyForecastAfterRefresh) {
                 openWeeklyForecastAfterRefresh = false;
                 showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
@@ -4960,19 +4977,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Outside Taiwan: Open-Meteo -> MET Norway (CWA township feed is not applicable).
      * CWA is preferred in Taiwan because it provides precipitation probability.
      */
-    private void fetchForecast(double lat, double lon, String place) {
+    private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
                 || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180) {
-            showWeatherError("城市座標無效");
+            showWeatherError("城市座標無效", requestId);
             return;
         }
 
         Exception cwaError = null;
         if (isWithinCwaCoverage(lat, lon)) {
             try {
-                fetchCwaForecast(lat, lon, place);
+                fetchCwaForecast(lat, lon, place, requestId, cacheKey);
                 return;
             } catch (Exception e) {
+                if (!isWeatherRequestCurrent(requestId)) return;
                 cwaError = e;
                 android.util.Log.w("CYTV-Weather",
                         "CWA failed; trying Open-Meteo as second-priority fallback", e);
@@ -5006,9 +5024,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     throw new IOException("Open-Meteo 第 " + (i + 1) + " 天降雨機率資料缺漏");
             }
 
-            weatherFromCwa = false;
             weatherHandler.post(() -> {
-                renderWeeklyWeather(dates, codes, highs, lows, rain, place);
+                if (!isWeatherRequestCurrent(requestId)) return;
+                renderWeeklyWeather(dates, codes, highs, lows, rain, place, false, cacheKey);
                 if (openWeeklyForecastAfterRefresh) {
                     openWeeklyForecastAfterRefresh = false;
                     showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
@@ -5016,19 +5034,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
             return;
         } catch (Exception e) {
+            if (!isWeatherRequestCurrent(requestId)) return;
             openMeteoError = e;
             android.util.Log.w("CYTV-Weather",
                     "Open-Meteo failed; trying MET Norway as final fallback", e);
         }
 
         try {
-            fetchMetNoForecast(lat, lon, place);
+            fetchMetNoForecast(lat, lon, place, requestId, cacheKey);
         } catch (Exception metNoError) {
+            if (!isWeatherRequestCurrent(requestId)) return;
             if (cwaError != null) metNoError.addSuppressed(cwaError);
             if (openMeteoError != null) metNoError.addSuppressed(openMeteoError);
             String detail = metNoError.getMessage() == null
                     ? metNoError.getClass().getSimpleName() : metNoError.getMessage();
-            showWeatherError("天氣資料讀取失敗（CWA／Open-Meteo／MET Norway）： " + detail);
+            showWeatherError("天氣資料讀取失敗（CWA／Open-Meteo／MET Norway）： " + detail, requestId);
         }
     }
 
@@ -5045,10 +5065,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
 
-    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows, JSONArray rain, String place) {
+    private void renderWeeklyWeather(JSONArray dates, JSONArray codes, JSONArray highs, JSONArray lows,
+            JSONArray rain, String place, boolean fromCwa, String cacheKey) {
         if (weeklyWeatherDays == null || weeklyWeatherView == null) return;
+        weatherFromCwa = fromCwa;
         hasWeeklyWeatherData = true;
-        persistWeeklyWeatherSnapshot(dates, codes, highs, lows, rain, place);
+        persistWeeklyWeatherSnapshot(dates, codes, highs, lows, rain, place, fromCwa, cacheKey);
         weeklyWeatherDays.removeAllViews();
         weeklyWeatherDays.setOrientation(LinearLayout.VERTICAL);
         weeklyWeatherDays.setGravity(Gravity.CENTER_VERTICAL);
@@ -5491,9 +5513,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         throw new IOException("天氣服務連線失敗");
     }
 
-    private void showWeatherError(String message) {
+    private void showWeatherError(String message, long requestId) {
         weatherHandler.post(() -> {
-            if (weeklyWeatherView == null) return;
+            if (!isWeatherRequestCurrent(requestId) || weeklyWeatherView == null) return;
             // Keep the last known-good forecast on screen; only show an error before the first success.
             if (!hasWeeklyWeatherData) {
                 showWeeklyWeatherStatus("一週天氣：" + message);
