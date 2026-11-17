@@ -1826,12 +1826,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int glyphInset = (int) (8 * getResources().getDisplayMetrics().density);
             mediaPlayerArtwork.setPadding(glyphInset, glyphInset, glyphInset, glyphInset);
         }
-        // Compact player presentation: artwork, title, artist and transport controls only.
-        // Do not show "now playing" labels or source/session information in the desktop widget.
+        // R226: show only the album thumbnail and transport buttons.
+        // Hide every text/metadata field regardless of the active media app's metadata.
         mediaPlayerMode.setVisibility(View.GONE);
+        mediaPlayerTitle.setVisibility(View.GONE);
+        mediaPlayerArtist.setVisibility(View.GONE);
         mediaPlayerSource.setVisibility(View.GONE);
-        mediaPlayerArtist.setVisibility(artist == null || artist.trim().isEmpty()
-                ? View.GONE : View.VISIBLE);
         if (mediaPlayerControls != null) mediaPlayerControls.setVisibility(View.VISIBLE);
         mediaPlayerToggle.setText(playback == android.media.session.PlaybackState.STATE_PLAYING
                 ? "❚❚" : "▶");
