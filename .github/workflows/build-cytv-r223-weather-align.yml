@@ -53,3 +53,5 @@ jobs:
             release/CYTV-R223-debug.apk
             release/CYTV-R223-Source.zip
           if-no-files-found: error
+
+# Re-run validation against the latest R223 branch head.
