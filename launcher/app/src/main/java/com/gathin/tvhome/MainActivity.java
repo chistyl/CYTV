@@ -6023,9 +6023,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int reducedHeight = Math.min((int)(430*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-            dialog.getWindow().setLayout(fixedWidth, reducedHeight);
+            // Preserve the designed content height; fixed-height windows clipped the
+            // bottom action row on TVs with different density/font-scale configurations.
+            dialog.getWindow().setLayout(fixedWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
         }
@@ -7978,9 +7978,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             createDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int compactHeight = Math.min((int)(226*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-            createDialog.getWindow().setLayout(fixedWidth, compactHeight);
+            // Let the complete title, input panel and action row determine the height.
+            createDialog.getWindow().setLayout(fixedWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
             createDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             createDialog.getWindow().setDimAmount(0.6f);
         }
@@ -9493,9 +9492,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int fixedWidth = Math.min((int)(680*density),
                     getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-            int compactHeight = Math.min((int)(226*density),
-                    getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-            renameDialog.getWindow().setLayout(fixedWidth, compactHeight);
+            // Let the complete title, input panel and action row determine the height.
+            renameDialog.getWindow().setLayout(fixedWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
             renameDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             renameDialog.getWindow().setDimAmount(0.6f);
         }
