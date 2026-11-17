@@ -1897,7 +1897,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         MediaController controller = currentMediaController;
         android.media.session.PlaybackState state = controller == null
                 ? null : controller.getPlaybackState();
-        android.media.session.PlaybackState.TransportControls controls =
+        MediaController.TransportControls controls =
                 controller == null ? null : controller.getTransportControls();
         long actions = state == null ? 0L : state.getActions();
         boolean handled = false;
