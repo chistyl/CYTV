@@ -4857,11 +4857,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // never silently choose an unrelated first result when a Taiwan result exists further down the list.
             String q = URLEncoder.encode(normalized, "UTF-8");
             JSONObject geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
-                    + "&count=10&language=zh&format=json");
+                    + "&count=10&language=zh&format=json", 5000, 7000, 1);
             JSONArray results = geo.optJSONArray("results");
             if (results == null || results.length() == 0) {
                 geo = getJson("https://geocoding-api.open-meteo.com/v1/search?name=" + q
-                        + "&count=10&language=en&format=json");
+                        + "&count=10&language=en&format=json", 5000, 7000, 1);
                 results = geo.optJSONArray("results");
             }
             if (results == null || results.length() == 0) throw new IOException("找不到城市：" + city);
@@ -4895,7 +4895,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!isWeatherRequestCurrent(requestId)) return;
         String endpoint = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat="
                 + lat + "&lon=" + lon;
-        JSONObject response = getJson(endpoint);
+        JSONObject response = getJson(endpoint, 5000, 7000, 1);
         JSONArray series = response.getJSONObject("properties").getJSONArray("timeseries");
         java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         parser.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
@@ -4960,7 +4960,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             long requestId, String cacheKey) throws Exception {
         if (!isWeatherRequestCurrent(requestId)) return;
         final String endpoint = "https://raw.githubusercontent.com/chistyl/CYTV/weather-data/cwa-weekly.json";
-        JSONObject response = getJson(endpoint);
+        JSONObject response = getJson(endpoint, 5000, 7000, 1);
         JSONArray locations = response.optJSONArray("locations");
         if (locations == null || locations.length() == 0)
             throw new IOException("中央氣象署公開預報資料目前沒有可用鄉鎮");
@@ -5061,6 +5061,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Outside Taiwan: Open-Meteo -> MET Norway (CWA township feed is not applicable).
      * CWA is preferred in Taiwan because it provides precipitation probability.
      */
+    /**
+     * Weather provider priority is identical worldwide:
+     * Open-Meteo -> CWA (Taiwan coverage only) -> MET Norway.
+     * Each provider is used as a complete seven-day snapshot; data is never mixed.
+     */
     private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
         if (!isWeatherRequestCurrent(requestId)) return;
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
@@ -5069,25 +5074,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
 
-        Exception cwaError = null;
-        if (isWithinCwaCoverage(lat, lon)) {
-            try {
-                fetchCwaForecast(lat, lon, place, requestId, cacheKey);
-                return;
-            } catch (Exception e) {
-                if (!isWeatherRequestCurrent(requestId)) return;
-                cwaError = e;
-                android.util.Log.w("CYTV-Weather",
-                        "CWA failed; trying Open-Meteo as second-priority fallback", e);
-            }
-        }
-
         Exception openMeteoError = null;
         try {
             String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                     + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
                     + "&forecast_days=7&timezone=auto";
-            JSONObject response = getJson(url);
+            JSONObject response = getJson(url, 4500, 6500, 1);
             if (response.optBoolean("error", false))
                 throw new IOException(response.optString("reason", "天氣服務回報錯誤"));
 
@@ -5099,9 +5091,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
-            // Keep each city's weather card provider-atomic: all seven days must have
-            // precipitation probabilities from this provider. Never mix providers or
-            // render a partially populated rain row; reject incomplete data as one snapshot.
             if (rain == null || rain.length() < 7)
                 throw new IOException("Open-Meteo 降雨資料不足七天");
             for (int i = 0; i < 7; i++) {
@@ -5122,18 +5111,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!isWeatherRequestCurrent(requestId)) return;
             openMeteoError = e;
             android.util.Log.w("CYTV-Weather",
-                    "Open-Meteo failed; trying MET Norway as final fallback", e);
+                    "Open-Meteo failed; trying CWA as second-priority fallback", e);
+        }
+
+        Exception cwaError = null;
+        if (isWithinCwaCoverage(lat, lon)) {
+            try {
+                fetchCwaForecast(lat, lon, place, requestId, cacheKey);
+                return;
+            } catch (Exception e) {
+                if (!isWeatherRequestCurrent(requestId)) return;
+                cwaError = e;
+                android.util.Log.w("CYTV-Weather",
+                        "CWA failed; trying MET Norway as final fallback", e);
+            }
         }
 
         try {
             fetchMetNoForecast(lat, lon, place, requestId, cacheKey);
         } catch (Exception metNoError) {
             if (!isWeatherRequestCurrent(requestId)) return;
-            if (cwaError != null) metNoError.addSuppressed(cwaError);
             if (openMeteoError != null) metNoError.addSuppressed(openMeteoError);
+            if (cwaError != null) metNoError.addSuppressed(cwaError);
             String detail = metNoError.getMessage() == null
                     ? metNoError.getClass().getSimpleName() : metNoError.getMessage();
-            showWeatherError("天氣資料讀取失敗（CWA／Open-Meteo／MET Norway）： " + detail, requestId);
+            showWeatherError("天氣資料讀取失敗（Open-Meteo／CWA／MET Norway）： " + detail, requestId);
         }
     }
 
@@ -5546,25 +5548,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * All calls run on weatherExecutor, so the short backoff never blocks the UI thread.
      */
     private JSONObject getJson(String address) throws Exception {
-        final int maxAttempts = 3;
+        // Keep geocoding and fallback requests bounded; never let a slow endpoint stall weather refresh.
+        return getJson(address, 8000, 10000, 2);
+    }
+
+    private JSONObject getJson(String address, int connectTimeoutMs,
+            int readTimeoutMs, int maxAttempts) throws Exception {
         Exception lastError = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             HttpURLConnection c = null;
             try {
                 c = (HttpURLConnection) new URL(address).openConnection();
                 c.setRequestMethod("GET");
-                c.setConnectTimeout(18000);
-                c.setReadTimeout(18000);
+                c.setConnectTimeout(connectTimeoutMs);
+                c.setReadTimeout(readTimeoutMs);
                 c.setUseCaches(false);
                 c.setInstanceFollowRedirects(true);
                 c.setRequestProperty("Accept", "application/json");
                 c.setRequestProperty("Cache-Control", "no-cache");
                 c.setRequestProperty("Connection", "close");
-                c.setRequestProperty("User-Agent", "CYTV-Weather/1.1 (Android TV launcher)");
+                c.setRequestProperty("User-Agent", "CYTV-Weather/1.2 (Android TV launcher)");
                 int status = c.getResponseCode();
                 if (status < 200 || status >= 300) {
                     IOException httpError = new IOException("天氣服務 HTTP " + status);
-                    // Retry rate limits and temporary server errors, but not permanent client errors.
                     if (status != 429 && status < 500) throw httpError;
                     lastError = httpError;
                 } else {
@@ -5587,7 +5593,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             if (attempt < maxAttempts) {
                 try {
-                    Thread.sleep(attempt * 1500L);
+                    Thread.sleep(500L);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
                     throw interrupted;
