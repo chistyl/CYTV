@@ -13,6 +13,7 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r198-reference-player.yml'
+      - '.github/workflows/build-cytv-r221-folder-fit.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
