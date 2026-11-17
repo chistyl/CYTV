@@ -120,7 +120,8 @@
         <TextView
             android:id="@+id/mediaPlayerChoice"
             style="@style/DesktopSettingsRow"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="10dp" />
 
         <TextView
             android:id="@+id/openOnStartChoice"
