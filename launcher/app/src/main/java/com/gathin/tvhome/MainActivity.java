@@ -4311,7 +4311,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(widthSpec, heightSpec);
         int menuHeight = Math.min(panel.getMeasuredHeight(), availableHeight - (int) (24 * density));
         menuHeight = Math.max(1, menuHeight);
-        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        // Keep the actual popup window within the measured visible root.
+        // WRAP_CONTENT here would ignore menuHeight and could extend below the TV safe area.
+        popup.setHeight(menuHeight);
 
         int margin = (int) (12 * density);
         int gap = (int) (10 * density);
