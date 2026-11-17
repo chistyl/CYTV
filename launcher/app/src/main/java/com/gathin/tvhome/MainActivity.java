@@ -5061,25 +5061,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Outside Taiwan: Open-Meteo -> MET Norway (CWA township feed is not applicable).
      * CWA is preferred in Taiwan because it provides precipitation probability.
      */
+    /**
+     * Weather provider priority is identical worldwide:
+     * Open-Meteo -> CWA (Taiwan coverage only) -> MET Norway.
+     * Each provider is used as a complete seven-day snapshot; data is never mixed.
+     */
     private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
         if (!isWeatherRequestCurrent(requestId)) return;
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
                 || Double.isNaN(lon) || Double.isInfinite(lon) || lon < -180 || lon > 180) {
             showWeatherError("城市座標無效", requestId);
             return;
-        }
-
-        Exception cwaError = null;
-        if (isWithinCwaCoverage(lat, lon)) {
-            try {
-                fetchCwaForecast(lat, lon, place, requestId, cacheKey);
-                return;
-            } catch (Exception e) {
-                if (!isWeatherRequestCurrent(requestId)) return;
-                cwaError = e;
-                android.util.Log.w("CYTV-Weather",
-                        "CWA failed; trying Open-Meteo as second-priority fallback", e);
-            }
         }
 
         Exception openMeteoError = null;
@@ -5099,9 +5091,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
-            // Keep each city's weather card provider-atomic: all seven days must have
-            // precipitation probabilities from this provider. Never mix providers or
-            // render a partially populated rain row; reject incomplete data as one snapshot.
             if (rain == null || rain.length() < 7)
                 throw new IOException("Open-Meteo 降雨資料不足七天");
             for (int i = 0; i < 7; i++) {
@@ -5122,18 +5111,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!isWeatherRequestCurrent(requestId)) return;
             openMeteoError = e;
             android.util.Log.w("CYTV-Weather",
-                    "Open-Meteo failed; trying MET Norway as final fallback", e);
+                    "Open-Meteo failed; trying CWA as second-priority fallback", e);
+        }
+
+        Exception cwaError = null;
+        if (isWithinCwaCoverage(lat, lon)) {
+            try {
+                fetchCwaForecast(lat, lon, place, requestId, cacheKey);
+                return;
+            } catch (Exception e) {
+                if (!isWeatherRequestCurrent(requestId)) return;
+                cwaError = e;
+                android.util.Log.w("CYTV-Weather",
+                        "CWA failed; trying MET Norway as final fallback", e);
+            }
         }
 
         try {
             fetchMetNoForecast(lat, lon, place, requestId, cacheKey);
         } catch (Exception metNoError) {
             if (!isWeatherRequestCurrent(requestId)) return;
-            if (cwaError != null) metNoError.addSuppressed(cwaError);
             if (openMeteoError != null) metNoError.addSuppressed(openMeteoError);
+            if (cwaError != null) metNoError.addSuppressed(cwaError);
             String detail = metNoError.getMessage() == null
                     ? metNoError.getClass().getSimpleName() : metNoError.getMessage();
-            showWeatherError("天氣資料讀取失敗（CWA／Open-Meteo／MET Norway）： " + detail, requestId);
+            showWeatherError("天氣資料讀取失敗（Open-Meteo／CWA／MET Norway）： " + detail, requestId);
         }
     }
 
