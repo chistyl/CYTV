@@ -5709,7 +5709,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         permissionDialog.show();
                         DialogLayoutController.apply(permissionDialog, MainActivity.this);
                     }
-                });
+                }).create();
         rebootDialog.show();
         DialogLayoutController.apply(rebootDialog, this);
     }
