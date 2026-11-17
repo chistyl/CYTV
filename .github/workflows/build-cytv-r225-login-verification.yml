@@ -1,0 +1,58 @@
+name: CYTV R225 Login Verification Build
+
+on:
+  push:
+    branches:
+      - feat/enable-login-verification-r225
+    paths:
+      - 'launcher/**'
+      - 'patches/CYTV_R225_enable_login_verification.patch'
+      - '.github/workflows/build-cytv-r225-login-verification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Apply R225 login verification changes
+        run: patch --no-backup-if-mismatch -p1 < patches/CYTV_R225_enable_login_verification.patch
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Run unit tests and build debug APK
+        working-directory: launcher
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest :app:assembleDebug
+      - name: Package APK and complete source
+        run: |
+          mkdir -p release
+          cp launcher/app/build/outputs/apk/debug/*.apk release/CYTV-R225-Login-Verification-debug.apk
+          zip -qr release/CYTV-R225-Login-Verification-Source.zip . \
+            -x './.git/*' './**/.git/*' './**/build/*' './**/.gradle/*' \
+               './launcher/app/build/*' './release/*'
+      - name: Upload deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: CYTV-R225-Login-Verification-APK-and-Source
+          path: |
+            release/CYTV-R225-Login-Verification-debug.apk
+            release/CYTV-R225-Login-Verification-Source.zip
+          if-no-files-found: error
+          retention-days: 90

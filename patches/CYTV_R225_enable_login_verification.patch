@@ -1,0 +1,28 @@
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -509,7 +509,13 @@
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+-        // R156: login/activation verification disabled; open the desktop directly.
++        // R225: require offline activation before opening the main desktop.
++        // The activation screen is shown before desktop initialization when no valid token exists.
++        if (!ActivationGate.isActivated(this)) {
++            startActivity(new android.content.Intent(this, ActivationActivity.class));
++            finish();
++            return;
++        }
+         CrashDiagnostics.install(this);
+         CrashDiagnostics.stage(this, "launcher:onCreate");
+         setContentView(R.layout.activity_main);
+--- a/launcher/app/src/main/java/com/gathin/tvhome/ActivationActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/ActivationActivity.java
+@@ -38,7 +38,7 @@
+         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
+ 
+         TextView hint = new TextView(this);
+-        hint.setText("首次使用前，請輸入啟用驗證碼\\n驗證成功後即可使用本設備");
++        hint.setText("首次使用前，請輸入啟用驗證碼，驗證成功後即可使用");
+         hint.setTextColor(Color.LTGRAY);
+         hint.setTextSize(17);
+         hint.setGravity(Gravity.CENTER);
