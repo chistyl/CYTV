@@ -5344,7 +5344,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         LinearLayout forecast = new LinearLayout(this);
         forecast.setOrientation(LinearLayout.HORIZONTAL);
-        forecast.setGravity(Gravity.CENTER_VERTICAL);
+        forecast.setGravity(Gravity.TOP);
         forecast.setWeightSum(7f);
         for (int i = 0; i < 7; i++) {
             try {
