@@ -370,6 +370,10 @@ public final class LauncherSettingsActivity extends Activity {
             cancel.setNextFocusRightId(primary.getId());
             primary.setNextFocusLeftId(cancel.getId());
         }
+
+        // Apply after the dialog has been shown and styled so all launcher settings
+        // pickers share the same visible-frame and safe-edge constraints.
+        DialogLayoutController.apply(dialog, this);
     }
 
     private StateListDrawable settingsChoiceListSelector() {
