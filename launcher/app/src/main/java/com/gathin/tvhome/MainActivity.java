@@ -10171,7 +10171,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     title.setTextSize(20);
                     title.setGravity(Gravity.CENTER);
                     title.setPadding(0, (int)(1*density), 0, (int)(7*density));
-                    outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+                    title.setMinHeight((int)(42*density));
+                    outer.addView(title, new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT));
 
                     LinearLayout fieldPanel = new LinearLayout(this);
                     fieldPanel.setOrientation(LinearLayout.VERTICAL);
@@ -10180,7 +10181,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                             (int)(18*density), (int)(12*density));
                     fieldPanel.setBackground(roundSurface(0xFF343A46, 18*density));
                     LinearLayout.LayoutParams fieldPanelLp =
-                            new LinearLayout.LayoutParams(-1, (int)(92*density));
+                            new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    fieldPanel.setMinimumHeight((int)(92*density));
                     fieldPanelLp.topMargin = (int)(4*density);
                     outer.addView(fieldPanel, fieldPanelLp);
                     fieldPanel.addView(edit, new LinearLayout.LayoutParams(-1, (int)(52*density)));
@@ -10189,7 +10191,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     actions.setOrientation(LinearLayout.HORIZONTAL);
                     actions.setGravity(Gravity.CENTER);
                     LinearLayout.LayoutParams actionsLp =
-                            new LinearLayout.LayoutParams(-1, (int)(52*density));
+                            new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    actions.setMinimumHeight((int)(52*density));
                     actionsLp.topMargin = (int)(12*density);
                     outer.addView(actions, actionsLp);
 
@@ -10275,9 +10278,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                         renameDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                         int fixedWidth = Math.min((int)(680*density),
                                 getResources().getDisplayMetrics().widthPixels - (int)(48*density));
-                        int compactHeight = Math.min((int)(226*density),
-                                getResources().getDisplayMetrics().heightPixels - (int)(48*density));
-                        renameDialog.getWindow().setLayout(fixedWidth, compactHeight);
+                        // 視窗高度與內容區皆採 WRAP_CONTENT，避免固定高度裁切底部按鈕。
+                        renameDialog.getWindow().setLayout(fixedWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
                         renameDialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                         renameDialog.getWindow().setDimAmount(0.6f);
                     }
@@ -10333,7 +10335,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     title.setTextSize(20);
                     title.setGravity(Gravity.CENTER);
                     title.setPadding(0, (int)(1*density), 0, (int)(7*density));
-                    outer.addView(title, new LinearLayout.LayoutParams(-1, (int)(42*density)));
+                    title.setMinHeight((int)(42*density));
+                    outer.addView(title, new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT));
 
                     TextView message = new TextView(this);
                     message.setText("刪除分類後，裡面的 APP 會移回桌面，不會解除安裝。");
@@ -10345,7 +10348,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                             (int)(12*density), (int)(8*density));
                     message.setBackground(roundSurface(0xFF343A46, 18*density));
                     LinearLayout.LayoutParams messageLp =
-                            new LinearLayout.LayoutParams(-1, (int)(92*density));
+                            new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    message.setMinimumHeight((int)(92*density));
                     messageLp.topMargin = (int)(4*density);
                     outer.addView(message, messageLp);
 
@@ -10353,7 +10357,8 @@ private GradientDrawable roundSurface(int color, float radius) {
                     actions.setOrientation(LinearLayout.HORIZONTAL);
                     actions.setGravity(Gravity.CENTER);
                     LinearLayout.LayoutParams actionsLp =
-                            new LinearLayout.LayoutParams(-1, (int)(52*density));
+                            new LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    actions.setMinimumHeight((int)(52*density));
                     actionsLp.topMargin = (int)(12*density);
                     outer.addView(actions, actionsLp);
 
