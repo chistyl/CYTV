@@ -4892,13 +4892,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONObject day = forecast.optJSONObject(i);
             if (day == null || !day.has("high") || !day.has("low"))
                 throw new IOException("中央氣象署七天溫度資料不完整");
-            if (day.isNull("rainProbability") || !day.has("rainProbability"))
-                throw new IOException("中央氣象署七天降雨機率資料不完整");
             dates.put(day.optString("date", ""));
             codes.put(cwaWeatherToWmo(day.optString("weather", "")));
             highs.put(day.optDouble("high"));
             lows.put(day.optDouble("low"));
-            rain.put(day.optDouble("rainProbability"));
+            // CWA may omit precipitation probability for individual days.
+            // Preserve the seven-day temperature forecast and let the UI hide only that day's rain row.
+            if (!day.has("rainProbability") || day.isNull("rainProbability")) {
+                rain.put(JSONObject.NULL);
+            } else {
+                rain.put(day.optDouble("rainProbability"));
+            }
         }
 
         weatherFromCwa = true;
@@ -8064,7 +8068,14 @@ private GradientDrawable roundSurface(int color, float radius) {
         int contentWidthDp = Math.max(1, dialogWidthDp - 36);
         int columns = 3;
         int baseTileWidthDp = Math.max(72, Math.min(176, (contentWidthDp - 48) / columns));
-        int tileWidthDp = Math.max(1, Math.round(baseTileWidthDp * 0.88f));
+        // Keep the dialog's existing fixed height. Fit three complete rows inside its
+        // measured content area by reducing tile width only when the screen is shorter.
+        int screenHeightDp = (int)(getResources().getDisplayMetrics().heightPixels / density);
+        int fixedDialogHeightDp = Math.min(468, Math.round((screenHeightDp - 48) * 0.90f));
+        int folderGridAvailableDp = Math.max(120, fixedDialogHeightDp - 28 - 44);
+        int maxTileWidthForHeightDp = Math.max(72,
+                Math.round((folderGridAvailableDp / 3f - 41f) * 16f / 9f));
+        int tileWidthDp = Math.max(72, Math.round(Math.min(baseTileWidthDp, maxTileWidthForHeightDp) * 0.88f));
         java.util.ArrayList<LinearLayout> pages = new java.util.ArrayList<>();
         java.util.ArrayList<View> focusTiles = new java.util.ArrayList<>();
         java.util.ArrayList<View> pageDots = new java.util.ArrayList<>();
@@ -8636,7 +8647,15 @@ private GradientDrawable roundSurface(int color, float radius) {
         int folderContentWidthDp = Math.max(1, folderDialogWidthDp - 36); // outer left/right padding: 18dp each
         int folderColumns = 3;
         int baseFolderTileDp = Math.max(72, Math.min(176, (folderContentWidthDp - 48) / folderColumns));
-        int folderTileDp = Math.max(1, Math.round(baseFolderTileDp * 0.88f));
+        // Keep the dialog's existing fixed height. Fit three complete rows (including
+        // the add tile) by reducing tile width only when vertical space is limited.
+        int screenHeightDp = (int)(getResources().getDisplayMetrics().heightPixels / density);
+        int fixedDialogHeightDp = Math.min(468, Math.round((screenHeightDp - 48) * 0.90f));
+        int folderGridAvailableDp = Math.max(120, fixedDialogHeightDp - 28 - 44);
+        int maxFolderTileForHeightDp = Math.max(72,
+                Math.round((folderGridAvailableDp / 3f - 41f) * 16f / 9f));
+        int folderTileDp = Math.max(72,
+                Math.round(Math.min(baseFolderTileDp, maxFolderTileForHeightDp) * 0.88f));
         java.util.ArrayList<LinearLayout> folderPages = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderFocusTiles = new java.util.ArrayList<>();
         java.util.ArrayList<View> folderPageDots = new java.util.ArrayList<>();
