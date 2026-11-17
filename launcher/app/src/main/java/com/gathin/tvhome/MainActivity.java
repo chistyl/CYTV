@@ -5066,6 +5066,70 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Open-Meteo -> CWA (Taiwan coverage only) -> MET Norway.
      * Each provider is used as a complete seven-day snapshot; data is never mixed.
      */
+    /**
+     * Fourth-level free fallback: Visual Crossing's no-key Timeline API.
+     * Requires no account or API key; only accept a complete seven-day daily forecast.
+     */
+    private void fetchVisualCrossingForecast(double lat, double lon, String place,
+            long requestId, String cacheKey) throws Exception {
+        if (!isWeatherRequestCurrent(requestId)) return;
+        String endpoint = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
+                + lat + "," + lon
+                + "?unitGroup=metric&include=days"
+                + "&elements=datetime%2Ctempmax%2Ctempmin%2Cprecipprob%2Cicon"
+                + "&contentType=json";
+        JSONObject response = getJson(endpoint, 4500, 6500, 1);
+        JSONArray sourceDays = response.optJSONArray("days");
+        if (sourceDays == null || sourceDays.length() < 7)
+            throw new IOException("Visual Crossing 預報資料不足七天");
+
+        JSONArray dates = new JSONArray();
+        JSONArray codes = new JSONArray();
+        JSONArray highs = new JSONArray();
+        JSONArray lows = new JSONArray();
+        JSONArray rain = new JSONArray();
+        for (int i = 0; i < 7; i++) {
+            JSONObject day = sourceDays.optJSONObject(i);
+            if (day == null || day.isNull("datetime") || day.isNull("tempmax")
+                    || day.isNull("tempmin") || day.isNull("precipprob"))
+                throw new IOException("Visual Crossing 第 " + (i + 1) + " 天資料不完整");
+            String date = day.optString("datetime", "");
+            double high = day.optDouble("tempmax", Double.NaN);
+            double low = day.optDouble("tempmin", Double.NaN);
+            double precipitation = day.optDouble("precipprob", Double.NaN);
+            if (date.isEmpty() || Double.isNaN(high) || Double.isNaN(low)
+                    || Double.isNaN(precipitation))
+                throw new IOException("Visual Crossing 第 " + (i + 1) + " 天資料格式錯誤");
+            dates.put(date);
+            codes.put(visualCrossingIconToWmo(day.optString("icon", "cloudy")));
+            highs.put(high);
+            lows.put(low);
+            rain.put(precipitation);
+        }
+
+        final String attributedPlace = (place == null ? "" : place)
+                + "（資料來源：Visual Crossing Weather）";
+        weatherHandler.post(() -> {
+            if (!isWeatherRequestCurrent(requestId)) return;
+            renderWeeklyWeather(dates, codes, highs, lows, rain, attributedPlace, false, cacheKey);
+            if (openWeeklyForecastAfterRefresh) {
+                openWeeklyForecastAfterRefresh = false;
+                showWeeklyForecastDialog(dates, codes, highs, lows, rain, attributedPlace);
+            }
+        });
+    }
+
+    private int visualCrossingIconToWmo(String icon) {
+        String value = icon == null ? "" : icon.toLowerCase(Locale.ROOT);
+        if (value.contains("thunder")) return 95;
+        if (value.contains("snow")) return 71;
+        if (value.contains("fog")) return 45;
+        if (value.contains("rain") || value.contains("showers")) return 61;
+        if (value.contains("cloudy")) return value.contains("partly") ? 2 : 3;
+        if (value.contains("clear")) return 0;
+        return 3;
+    }
+
     private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
         if (!isWeatherRequestCurrent(requestId)) return;
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
@@ -5127,15 +5191,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
 
+        Exception metNoError = null;
         try {
             fetchMetNoForecast(lat, lon, place, requestId, cacheKey);
-        } catch (Exception metNoError) {
+            return;
+        } catch (Exception e) {
             if (!isWeatherRequestCurrent(requestId)) return;
-            if (openMeteoError != null) metNoError.addSuppressed(openMeteoError);
-            if (cwaError != null) metNoError.addSuppressed(cwaError);
-            String detail = metNoError.getMessage() == null
-                    ? metNoError.getClass().getSimpleName() : metNoError.getMessage();
-            showWeatherError("天氣資料讀取失敗（Open-Meteo／CWA／MET Norway）： " + detail, requestId);
+            metNoError = e;
+            android.util.Log.w("CYTV-Weather",
+                    "MET Norway failed; trying Visual Crossing free no-key fallback", e);
+        }
+
+        try {
+            fetchVisualCrossingForecast(lat, lon, place, requestId, cacheKey);
+        } catch (Exception visualCrossingError) {
+            if (!isWeatherRequestCurrent(requestId)) return;
+            if (openMeteoError != null) visualCrossingError.addSuppressed(openMeteoError);
+            if (cwaError != null) visualCrossingError.addSuppressed(cwaError);
+            if (metNoError != null) visualCrossingError.addSuppressed(metNoError);
+            String detail = visualCrossingError.getMessage() == null
+                    ? visualCrossingError.getClass().getSimpleName() : visualCrossingError.getMessage();
+            showWeatherError("天氣資料讀取失敗（Open-Meteo／CWA／MET Norway／Visual Crossing）： " + detail, requestId);
         }
     }
 
