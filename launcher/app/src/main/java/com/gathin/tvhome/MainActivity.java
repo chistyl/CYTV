@@ -4892,13 +4892,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONObject day = forecast.optJSONObject(i);
             if (day == null || !day.has("high") || !day.has("low"))
                 throw new IOException("中央氣象署七天溫度資料不完整");
-            if (day.isNull("rainProbability") || !day.has("rainProbability"))
-                throw new IOException("中央氣象署七天降雨機率資料不完整");
             dates.put(day.optString("date", ""));
             codes.put(cwaWeatherToWmo(day.optString("weather", "")));
             highs.put(day.optDouble("high"));
             lows.put(day.optDouble("low"));
-            rain.put(day.optDouble("rainProbability"));
+            // CWA may omit precipitation probability for individual days.
+            // Preserve the seven-day temperature forecast and let the UI hide only that day's rain row.
+            if (!day.has("rainProbability") || day.isNull("rainProbability")) {
+                rain.put(JSONObject.NULL);
+            } else {
+                rain.put(day.optDouble("rainProbability"));
+            }
         }
 
         weatherFromCwa = true;
