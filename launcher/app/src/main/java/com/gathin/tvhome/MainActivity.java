@@ -4663,6 +4663,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         SharedPreferences prefs = getSharedPreferences("weekly_weather", MODE_PRIVATE);
         boolean enabled = prefs.getBoolean("enabled", false);
         if (!enabled) {
+            weatherRequestGeneration.incrementAndGet(); // Invalidate any in-flight request when weather is disabled.
             weeklyWeatherView.setVisibility(View.GONE);
             return;
         }
