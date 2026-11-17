@@ -7,6 +7,12 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r228-login-verification.yml'
+  pull_request:
+    branches:
+      - fix/weather-provider-priority-open-meteo-first-r227
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r228-login-verification.yml'
 
 permissions:
   contents: read
