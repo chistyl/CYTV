@@ -67,7 +67,7 @@ jobs:
         with:
           name: CYTV-R219
           path: |
-            release/CYTV-R216-debug.apk
-            release/CYTV-R216-Source.zip
+            release/CYTV-R219-debug.apk
+            release/CYTV-R219-Source.zip
           if-no-files-found: error
           retention-days: 30
