@@ -1365,6 +1365,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .getBoolean("media_player_enabled", false);
         if (mediaPlayerEnabled) {
             startAudioPlaybackMonitor();
+            startMediaSessionMonitor();
         } else {
             // The setting can be switched off while this Activity is paused in Launcher Settings.
             // Clear the old session immediately so a stale floating panel cannot remain on Home.
@@ -1721,6 +1722,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         mediaPlayerSurface.bringToFront();
     }
 
+    /**
+     * Keep the active MediaSession controller available while Home is visible.
+     * AudioPlaybackCallback only detects audio; it cannot send transport commands
+     * to the app that owns the playback session.
+     */
+    private void startMediaSessionMonitor() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return;
+        if (mediaSessionMonitor == null) {
+            mediaSessionMonitor = new MediaSessionMonitor(this, (controller, metadata, state) -> {
+                currentMediaController = controller;
+                if (controller != null) {
+                    renderMediaPlayer(controller, metadata, state);
+                }
+                updateMediaPlayerSourceControl();
+            });
+        }
+        mediaSessionMonitor.start();
+    }
+
     private void updateMediaPlayerSourceControl() {
         if (mediaPlayerSource == null) return;
         int count = mediaSessionMonitor == null ? 0 : mediaSessionMonitor.getSessionCount();
@@ -1871,14 +1891,62 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void sendMediaKey(int keyCode) {
+        // Prefer the owning app's MediaSession. AudioManager key dispatch alone is
+        // unreliable on Android 9+ TV firmware when no system media-button receiver
+        // is registered, even though the app is actively playing audio.
+        MediaController controller = currentMediaController;
+        android.media.session.PlaybackState state = controller == null
+                ? null : controller.getPlaybackState();
+        MediaController.TransportControls controls =
+                controller == null ? null : controller.getTransportControls();
+        long actions = state == null ? 0L : state.getActions();
+        boolean handled = false;
+        if (controls != null) {
+            try {
+                if (keyCode == KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                        && (actions & android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0) {
+                    controls.skipToPrevious();
+                    handled = true;
+                } else if (keyCode == KeyEvent.KEYCODE_MEDIA_NEXT
+                        && (actions & android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT) != 0) {
+                    controls.skipToNext();
+                    handled = true;
+                } else if (keyCode == KeyEvent.KEYCODE_MEDIA_STOP
+                        && (actions & android.media.session.PlaybackState.ACTION_STOP) != 0) {
+                    controls.stop();
+                    handled = true;
+                } else if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                    int playback = state == null
+                            ? android.media.session.PlaybackState.STATE_NONE : state.getState();
+                    if (playback == android.media.session.PlaybackState.STATE_PLAYING
+                            && (actions & android.media.session.PlaybackState.ACTION_PAUSE) != 0) {
+                        controls.pause();
+                        handled = true;
+                    } else if (playback == android.media.session.PlaybackState.STATE_PLAYING
+                            && (actions & android.media.session.PlaybackState.ACTION_PLAY_PAUSE) != 0) {
+                        controls.pause();
+                        handled = true;
+                    } else if ((actions & (android.media.session.PlaybackState.ACTION_PLAY
+                            | android.media.session.PlaybackState.ACTION_PLAY_PAUSE)) != 0) {
+                        controls.play();
+                        handled = true;
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // Fall back to the platform media-key route for vendor-specific sessions.
+            }
+        }
+        if (handled) return;
         android.media.AudioManager audio = (android.media.AudioManager)
                 getSystemService(Context.AUDIO_SERVICE);
         if (audio == null) return;
-        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode));
-        audio.dispatchMediaKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode));
+        audio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
+        audio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
     }
 
     private void stopMediaSessionMonitor() {
+        if (mediaSessionMonitor != null) mediaSessionMonitor.stop();
+        currentMediaController = null;
         if (audioPlaybackManager != null && audioPlaybackCallback != null
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioPlaybackManager.unregisterAudioPlaybackCallback(audioPlaybackCallback);
