@@ -1827,7 +1827,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             labels.add(info.loadLabel(getPackageManager()).toString());
         }
         if (launchable.isEmpty()) return;
-        new AlertDialog.Builder(this)
+        AlertDialog playerDialog = new AlertDialog.Builder(this)
                 .setTitle("選擇播放器")
                 .setItems(labels.toArray(new String[0]), (dialog, which) -> {
                     ResolveInfo info = launchable.get(which);
@@ -1839,7 +1839,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     catch (android.content.ActivityNotFoundException ignored) { }
                 })
                 .setNegativeButton("返回", null)
-                .show();
+                .create();
+        playerDialog.show();
+        DialogLayoutController.apply(playerDialog, this);
     }
 
     /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
@@ -5688,7 +5690,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void requestDeviceReboot() {
-        new AlertDialog.Builder(this)
+        AlertDialog rebootDialog = new AlertDialog.Builder(this)
                 .setTitle("重新開機")
                 .setMessage("確定要重新啟動電視嗎？")
                 .setNegativeButton("取消", null)
@@ -5699,14 +5701,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         if (power == null) throw new SecurityException("Power service unavailable");
                         power.reboot(null);
                     } catch (RuntimeException error) {
-                        new AlertDialog.Builder(this)
+                        AlertDialog permissionDialog = new AlertDialog.Builder(this)
                                 .setTitle("電視系統未允許直接重新開機")
                                 .setMessage("這台電視的 Android 9 系統沒有授予啟動器重新開機權限。請使用電視遙控器的電源選單選擇「重新啟動」。此操作不需要進入輔助使用設定。")
                                 .setPositiveButton("確定", null)
-                                .show();
+                                .create();
+                        permissionDialog.show();
+                        DialogLayoutController.apply(permissionDialog, MainActivity.this);
                     }
-                })
-                .show();
+                });
+        rebootDialog.show();
+        DialogLayoutController.apply(rebootDialog, this);
     }
 
     /** Best-effort IP geolocation for the fixed-city weather option; GPS permission is not required. */
@@ -7377,7 +7382,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return;
             }
             List<File> targets = new ArrayList<>(customDeleteSelection);
-            new AlertDialog.Builder(this)
+            AlertDialog deleteImagesDialog = new AlertDialog.Builder(this)
                     .setTitle("刪除自訂圖片")
                     .setMessage("確定刪除已選取的 " + targets.size() + " 張圖片嗎？此操作無法復原。")
                     .setNegativeButton("取消", null)
@@ -7397,7 +7402,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         clearWallpaperDraft.run();
                         dialog.dismiss();
                         showWallpaperPicker();
-                    }).show();
+                    }).create();
+            deleteImagesDialog.show();
+            DialogLayoutController.apply(deleteImagesDialog, MainActivity.this);
         });
         customDeleteAction[0] = deleteAction;
         refreshCustomDeleteAction.run();
