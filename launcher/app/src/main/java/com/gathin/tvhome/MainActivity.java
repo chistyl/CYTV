@@ -1840,29 +1840,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void openCurrentMediaApp() {
-        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
-        java.util.ArrayList<ResolveInfo> launchable = new java.util.ArrayList<>();
-        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
-        for (ResolveInfo info : apps) {
-            if (info.activityInfo == null || getPackageName().equals(info.activityInfo.packageName)) continue;
-            launchable.add(info);
-            labels.add(info.loadLabel(getPackageManager()).toString());
+        // The thumbnail represents the active media session: return to that exact app,
+        // rather than showing a generic list of installed TV launchers.
+        MediaController controller = currentMediaController;
+        String packageName = controller == null ? null : controller.getPackageName();
+        if (packageName == null || packageName.trim().isEmpty()) {
+            android.widget.Toast.makeText(this, "目前沒有可返回的播放 APP", android.widget.Toast.LENGTH_SHORT).show();
+            return;
         }
-        if (launchable.isEmpty()) return;
-        new AlertDialog.Builder(this)
-                .setTitle("選擇播放器")
-                .setItems(labels.toArray(new String[0]), (dialog, which) -> {
-                    ResolveInfo info = launchable.get(which);
-                    Intent launch = new Intent(Intent.ACTION_MAIN)
-                            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-                            .setClassName(info.activityInfo.packageName, info.activityInfo.name)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    try { startActivity(launch); }
-                    catch (android.content.ActivityNotFoundException ignored) { }
-                })
-                .setNegativeButton("返回", null)
-                .show();
+
+        PackageManager pm = getPackageManager();
+        Intent launch = pm.getLaunchIntentForPackage(packageName);
+        if (launch == null) {
+            // Some TV apps expose only a Leanback launcher activity.
+            Intent query = new Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                    .setPackage(packageName);
+            List<ResolveInfo> matches = pm.queryIntentActivities(query, 0);
+            if (matches != null && !matches.isEmpty() && matches.get(0).activityInfo != null) {
+                ActivityInfo activity = matches.get(0).activityInfo;
+                launch = new Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                        .setClassName(activity.packageName, activity.name);
+            }
+        }
+        if (launch == null) {
+            android.widget.Toast.makeText(this, "無法開啟目前的播放 APP", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        try {
+            startActivity(launch);
+        } catch (android.content.ActivityNotFoundException | SecurityException error) {
+            android.widget.Toast.makeText(this, "返回播放 APP 失敗", android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** Poll AudioManager's permission-free playback activity so the icon follows actual audio state. */
