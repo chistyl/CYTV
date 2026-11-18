@@ -39,7 +39,7 @@ jobs:
               lines[i:i+1] = replacement
           elif "        if (!ActivationGate.isActivated(this)) {" not in lines:
               raise SystemExit("R229 MainActivity insertion point not found")
-          main.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          main.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
           activity = Path("app/src/main/java/com/gathin/tvhome/ActivationActivity.java")
           lines = activity.read_text(encoding="utf-8").splitlines()
@@ -49,7 +49,7 @@ jobs:
                   break
           else:
               raise SystemExit("ActivationActivity hint line not found")
-          activity.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          activity.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
       - name: Set up JDK 17
         uses: actions/setup-java@v4
