@@ -9182,19 +9182,27 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         // 內容左右再內縮，與資料夾視窗外框保留一致的安全留白。
-        panel.setPadding((int)(10*density), (int)(2*density), (int)(10*density), (int)(3*density));
-        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding((int)(8*density), 0, (int)(8*density), 0);
+        panel.setGravity(Gravity.CENTER);
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
-        preview.view.setPadding(0, (int)(1*density), 0, (int)(2*density));
-        // Keep the preview card dimensions owned by the shared preview builder.
-        // The icon is measured against that exact card width, just like AppAdapter's desktop tile.
+        preview.view.setPadding(0, 0, 0, 0);
+        // Compact preview consistently so the complete control set fits one fixed-height page.
+        if (preview.view.getChildAt(0) != null) {
+            View previewCard = preview.view.getChildAt(0);
+            ViewGroup.LayoutParams previewCardLp = previewCard.getLayoutParams();
+            previewCardLp.width = Math.round(190*density);
+            previewCardLp.height = Math.round(107*density);
+            previewCard.setLayoutParams(previewCardLp);
+        }
         if (preview.view.getChildAt(1) != null) {
             LinearLayout.LayoutParams previewNameLp = (LinearLayout.LayoutParams) preview.view.getChildAt(1).getLayoutParams();
-            previewNameLp.height = (int)(18*density);
-            previewNameLp.topMargin = (int)(2*density);
+            previewNameLp.height = Math.round(16*density);
+            previewNameLp.topMargin = Math.round(1*density);
             preview.view.getChildAt(1).setLayoutParams(previewNameLp);
         }
         panel.addView(preview.view, new LinearLayout.LayoutParams(-1, -2));
@@ -9202,8 +9210,8 @@ private GradientDrawable roundSurface(int color, float radius) {
         TextView sizeTitle = new TextView(this);
         sizeTitle.setText("圖標大小");
         sizeTitle.setTextColor(Color.WHITE);
-        sizeTitle.setTextSize(14);
-        panel.addView(sizeTitle);
+        sizeTitle.setTextSize(13);
+        panel.addView(sizeTitle, new LinearLayout.LayoutParams(-1, Math.round(17*density)));
 
         SeekBar sizeBar = new SeekBar(this);
         sizeBar.setMax(250);
@@ -9211,18 +9219,17 @@ private GradientDrawable roundSurface(int color, float radius) {
         sizeBar.setFocusable(true);
         sizeBar.setFocusableInTouchMode(true);
         styleCytvAppearanceSeekBar(sizeBar);
-        LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, (int)(30*density));
-        sizeBarLp.bottomMargin = (int)(10*density);
+        LinearLayout.LayoutParams sizeBarLp = new LinearLayout.LayoutParams(-1, Math.round(24*density));
+        sizeBarLp.bottomMargin = Math.round(4*density);
         panel.addView(sizeBar, sizeBarLp);
 
         TextView colorTitle = new TextView(this);
         colorTitle.setText("背景色自訂");
         colorTitle.setTextColor(Color.WHITE);
-        colorTitle.setTextSize(14);
-        colorTitle.setPadding(0, (int)(3*density), 0, 0);
-        LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, -2);
-        // 將「背景色自訂」標題與第一行「紅色：數值」明確拉開。
-        colorTitleLp.bottomMargin = (int)(14*density);
+        colorTitle.setTextSize(13);
+        colorTitle.setPadding(0, 0, 0, 0);
+        LinearLayout.LayoutParams colorTitleLp = new LinearLayout.LayoutParams(-1, Math.round(17*density));
+        colorTitleLp.bottomMargin = Math.round(3*density);
         panel.addView(colorTitle, colorTitleLp);
 
         String[] channelNames = {"紅色", "綠色", "藍色"};
@@ -9233,11 +9240,11 @@ private GradientDrawable roundSurface(int color, float radius) {
             final int channel=i;
             TextView label = new TextView(this);
             label.setTextColor(0xFFE8EBF0);
-            label.setTextSize(12);
-            // 稍微縮小 RGB 各列垂直間距，讓三組顏色控制更緊湊。
-            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, -2);
-            labelLp.topMargin = i == 0 ? 0 : (int)(4*density);
-            labelLp.bottomMargin = (int)(3*density);
+            label.setTextSize(11);
+            // Compact RGB labels while retaining readable values on TV.
+            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, Math.round(15*density));
+            labelLp.topMargin = i == 0 ? 0 : Math.round(1*density);
+            labelLp.bottomMargin = Math.round(1*density);
             panel.addView(label, labelLp);
             channelLabels[i]=label;
 
@@ -9247,8 +9254,8 @@ private GradientDrawable roundSurface(int color, float radius) {
             bar.setFocusable(true);
             bar.setFocusableInTouchMode(true);
             styleCytvAppearanceSeekBar(bar);
-            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, (int)(31*density));
-            barLp.bottomMargin = (int)(3*density);
+            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(-1, Math.round(24*density));
+            barLp.bottomMargin = Math.round(1*density);
             panel.addView(bar, barLp);
             channelBars[i]=bar;
             bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -9287,7 +9294,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
         actionRow.setGravity(Gravity.CENTER);
-        actionRow.setPadding(0, (int)(5*density), 0, (int)(2*density));
+        actionRow.setPadding(0, Math.round(2*density), 0, 0);
         Button resetButton = new Button(this);
         resetButton.setText("恢復預設");
         Button cancelButton = new Button(this);
@@ -9320,10 +9327,10 @@ private GradientDrawable roundSurface(int color, float radius) {
                 ((Button)v).setTextColor(focused?Color.WHITE:0xFFE8EBF0);
             });
         }
-        LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams((int)(112*density),(int)(46*density));
+        LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams(Math.round(104*density),Math.round(42*density));
         resetLp.rightMargin=(int)(8*density);
         actionRow.addView(resetButton,resetLp);
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(Math.round(76*density),Math.round(42*density));
         actionLp.leftMargin=(int)(4*density);
         actionLp.rightMargin=(int)(4*density);
         actionRow.addView(cancelButton,actionLp);
@@ -9336,7 +9343,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         Dialog dialog = new Dialog(this);
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
-        outer.setPadding((int)(18*density), (int)(14*density), (int)(18*density), (int)(14*density));
+        outer.setPadding((int)(16*density), (int)(10*density), (int)(16*density), (int)(10*density));
         GradientDrawable outerSurface = new GradientDrawable();
         outerSurface.setColor(Color.rgb(29, 33, 43));
         outerSurface.setCornerRadius(22*density);
@@ -9347,15 +9354,11 @@ private GradientDrawable roundSurface(int color, float radius) {
         heading.setTextColor(Color.WHITE);
         heading.setTextSize(20);
         heading.setGravity(Gravity.CENTER);
-        heading.setPadding((int)(8*density),(int)(4*density),0,(int)(12*density));
-        outer.addView(heading,new LinearLayout.LayoutParams(-1,-2));
-        android.widget.ScrollView contentScroll = new android.widget.ScrollView(this);
-        contentScroll.setFillViewport(false);
-        contentScroll.setClipToPadding(false);
-        contentScroll.setVerticalScrollBarEnabled(false);
-        contentScroll.addView(panel,new android.widget.ScrollView.LayoutParams(-1,-2));
-        outer.addView(contentScroll,new LinearLayout.LayoutParams(-1,0,1f));
-        outer.addView(actionRow,new LinearLayout.LayoutParams(-1,(int)(53*density)));
+        heading.setPadding((int)(8*density), 0, 0, Math.round(4*density));
+        outer.addView(heading, new LinearLayout.LayoutParams(-1, Math.round(32*density)));
+        // A direct weighted content area replaces ScrollView: all controls remain on one page.
+        outer.addView(panel, new LinearLayout.LayoutParams(-1, 0, 1f));
+        outer.addView(actionRow, new LinearLayout.LayoutParams(-1, Math.round(46*density)));
         dialog.setContentView(outer);
         resetButton.setOnClickListener(v -> {
             prefs.edit().remove("icon_scale_adjust_"+packageName)
