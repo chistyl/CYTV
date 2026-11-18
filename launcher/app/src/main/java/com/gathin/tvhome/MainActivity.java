@@ -9332,7 +9332,7 @@ private GradientDrawable roundSurface(int color, float radius) {
         actionLp.leftMargin=(int)(4*density);
         actionLp.rightMargin=(int)(4*density);
         actionRow.addView(cancelButton,actionLp);
-        LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams((int)(82*density),(int)(46*density));
+        LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams(Math.round(82*density),Math.round(42*density));
         applyLp.leftMargin=(int)(4*density);
         actionRow.addView(applyButton,applyLp);
         // 操作列固定在視窗底部，避免內容超出固定視窗高度時被裁切。
