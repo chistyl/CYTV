@@ -41,6 +41,7 @@ on:
       - '.github/workflows/build-weekly-weather-launcher.yml'
   pull_request:
     branches:
+      - fix/weather-provider-priority-open-meteo-first-r227
       - feature/weather-icons-emotn-inspired-67c7d53
       - feature/unified-settings-ui-7c7345f
       - fix/weather-city-heading-visible-506e839
