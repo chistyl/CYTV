@@ -35,6 +35,7 @@ on:
       - feature/weekly-forecast-dialog-match-card-r1
       - feat/media-player-desktop-r165
       - fix/android9-notification-access-r166
+      - fix/icon-appearance-single-page-all-android-r228
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
