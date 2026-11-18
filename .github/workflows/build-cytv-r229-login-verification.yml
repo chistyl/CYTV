@@ -87,3 +87,5 @@ jobs:
             release/CYTV-R229-Login-Verification-Source.zip
           if-no-files-found: error
           retention-days: 90
+
+# R229 build workflow: apply activation edits with newline-safe Python writes.
