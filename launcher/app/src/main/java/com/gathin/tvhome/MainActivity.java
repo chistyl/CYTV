@@ -9186,8 +9186,6 @@ private GradientDrawable roundSurface(int color, float radius) {
         panel.setGravity(Gravity.CENTER);
         panel.setClipChildren(false);
         panel.setClipToPadding(false);
-        panel.setClipChildren(false);
-        panel.setClipToPadding(false);
 
         AppIconPreviewStrip preview = createAppIconPreviewStrip(packageName, prefs);
         preview.view.setPadding(0, 0, 0, 0);
