@@ -35,11 +35,13 @@ on:
       - feature/weekly-forecast-dialog-match-card-r1
       - feat/media-player-desktop-r165
       - fix/android9-notification-access-r166
+      - fix/icon-appearance-single-page-all-android-r228
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
   pull_request:
     branches:
+      - fix/weather-provider-priority-open-meteo-first-r227
       - feature/weather-icons-emotn-inspired-67c7d53
       - feature/unified-settings-ui-7c7345f
       - fix/weather-city-heading-visible-506e839
