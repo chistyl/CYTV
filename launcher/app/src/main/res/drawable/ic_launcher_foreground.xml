@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="600"
-    android:viewportHeight="600">
-    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-        android:pathData="M276,0 L567,600 L425,600 L375,467 L228,467 L178,600 L36,600 Z M302,180 L356,349 L241,349 Z" />
-    <path android:fillColor="#FF32C5F4"
-        android:pathData="M451,83 L538,83 L538,0 L600,0 L600,250 L538,250 L538,158 L451,158 Z" />
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/cytv_app_icon_original"
+    android:gravity="center" />
