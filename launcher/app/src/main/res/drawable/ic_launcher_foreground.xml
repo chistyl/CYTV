@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/cytv_app_icon_original"
-    android:insetLeft="31dp"
-    android:insetTop="31dp"
-    android:insetRight="31dp"
-    android:insetBottom="31dp" />
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/cytv_app_icon_original"
+    android:gravity="fill" />
