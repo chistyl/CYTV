@@ -403,6 +403,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (mediaPlayerSurface != null) mediaPlayerSurface.setVisibility(View.GONE);
     }
     private View mediaPlayerSurface;
+    /** Original XML offset; adjusted by the dock row's height so the player-to-dock gap stays fixed. */
+    private float mediaPlayerBaseTranslationY;
     /** Player visibility follows the dock row's upper-edge clipping state. */
     private boolean mediaPlayerHiddenByDockScroll;
     private ImageView mediaPlayerArtwork;
@@ -562,6 +564,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         mediaPlayerSurface = findViewById(R.id.mediaPlayerSurface);
+        mediaPlayerBaseTranslationY = mediaPlayerSurface.getTranslationY();
         mediaPlayerArtwork = findViewById(R.id.mediaPlayerArtwork);
         // R165: explicitly clip album artwork to the rounded background outline on TV devices.
         mediaPlayerArtwork.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
@@ -872,6 +875,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
             int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
             int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+            // The player is anchored to the screen bottom while the dock is bottom-anchored too.
+            // Keep their vertical gap unchanged as COLUMNS changes the dock tile height. Five columns
+            // is the launcher's default layout, so retain its existing player position as the baseline.
+            if (MainActivity.this.dockRow && mediaPlayerSurface != null) {
+                int baselineTileW = AppAdapter.tileWidthPx(inner, 5, density);
+                int baselineItemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(baselineTileW), density);
+                mediaPlayerSurface.setTranslationY(mediaPlayerBaseTranslationY + baselineItemH - itemH);
+            }
             int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
             int gridRows = itemH * rowsBelowDock;
             // Keep the hero below the header when the library is enabled on a short screen,
