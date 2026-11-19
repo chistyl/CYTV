@@ -38,7 +38,7 @@ public final class ActivationActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView hint = new TextView(this);
-        hint.setText("首次使用前，請輸入啟用驗證碼\\n驗證成功後即可使用本設備");
+        hint.setText("首次使用前，請輸入啟用驗證碼，驗證成功後即可使用");
         hint.setTextColor(Color.LTGRAY);
         hint.setTextSize(17);
         hint.setGravity(Gravity.CENTER);
