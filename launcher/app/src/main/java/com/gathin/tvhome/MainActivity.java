@@ -4987,14 +4987,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
             if (rain == null || rain.length() < 7)
-            if (rain == null || rain.length() < 7) rain = null;
+            final JSONArray forecastRain = (rain == null || rain.length() < 7) ? null : rain;
 
             weatherHandler.post(() -> {
                 if (!isWeatherRequestCurrent(requestId)) return;
-                renderWeeklyWeather(dates, codes, highs, lows, rain, place, cacheKey);
+                renderWeeklyWeather(dates, codes, highs, lows, forecastRain, place, cacheKey);
                 if (openWeeklyForecastAfterRefresh) {
                     openWeeklyForecastAfterRefresh = false;
-                    showWeeklyForecastDialog(dates, codes, highs, lows, rain, place);
+                    showWeeklyForecastDialog(dates, codes, highs, lows, forecastRain, place);
                 }
             });
             return;
