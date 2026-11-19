@@ -37,6 +37,7 @@ on:
       - fix/android9-notification-access-r166
       - fix/icon-appearance-single-page-all-android-r228
       - fix/media-player-dock-spacing-stable-r229
+      - feature/cytv-app-icon-tv-banner-r230
     paths:
       - 'launcher/**'
       - '.github/workflows/build-weekly-weather-launcher.yml'
