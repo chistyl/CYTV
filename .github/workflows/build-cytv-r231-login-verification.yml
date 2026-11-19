@@ -7,6 +7,13 @@ on:
     paths:
       - 'launcher/**'
       - '.github/workflows/build-cytv-r231-login-verification.yml'
+  pull_request:
+    branches:
+      - feature/cytv-app-icon-tv-banner-r230
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/build-cytv-r231-login-verification.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
