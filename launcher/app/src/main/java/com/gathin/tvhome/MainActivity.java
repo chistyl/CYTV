@@ -4961,6 +4961,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
+    private int metNoSymbolToWmo(String symbol) {
+        String s = symbol.toLowerCase(Locale.ROOT);
+        if (s.contains("thunder")) return 95;
+        if (s.contains("sleet")) return 68;
+        if (s.contains("snow")) return 71;
+        if (s.contains("rain")) return 61;
+        if (s.contains("fog")) return 45;
+        if (s.contains("cloudy")) return 3;
+        if (s.contains("partlycloudy")) return 2;
+        if (s.contains("fair")) return 1;
+        if (s.contains("clearsky")) return 0;
+        return 3;
+    }
+
     private void fetchForecast(double lat, double lon, String place, long requestId, String cacheKey) {
         if (!isWeatherRequestCurrent(requestId)) return;
         if (Double.isNaN(lat) || Double.isInfinite(lat) || lat < -90 || lat > 90
@@ -4986,7 +5000,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             JSONArray rain = daily.optJSONArray("precipitation_probability_max");
             if (dates.length() < 7 || codes.length() < 7 || highs.length() < 7 || lows.length() < 7)
                 throw new IOException("Open-Meteo 預報資料不足七天");
-            if (rain == null || rain.length() < 7)
             final JSONArray forecastRain = (rain == null || rain.length() < 7) ? null : rain;
 
             weatherHandler.post(() -> {
